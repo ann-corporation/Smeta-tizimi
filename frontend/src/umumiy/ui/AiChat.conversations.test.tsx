@@ -3,9 +3,9 @@ import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-libra
 import { MemoryRouter } from 'react-router-dom';
 import type { YordamchiUlanish } from './yordamchi/ishlov';
 import type { KasbIshchi } from '../../api/t2-agent-ish';
-const m=vi.hoisted(()=>({ask:vi.fn(),load:vi.fn(),list:vi.fn(),intent:vi.fn(),save:vi.fn(),sync:vi.fn(),append:vi.fn(),mutate:vi.fn(),diskRead:vi.fn(),diskSave:vi.fn(),diskRemove:vi.fn()}));
+const m=vi.hoisted(()=>({ask:vi.fn(),load:vi.fn(),list:vi.fn(),intent:vi.fn(),save:vi.fn(),sync:vi.fn(),append:vi.fn(),mutate:vi.fn(),diskRead:vi.fn(),diskSave:vi.fn(),diskRemove:vi.fn(),page:vi.fn()}));
 vi.mock('../../api/t2-agent-ish',()=>({niyatLlmOl:m.intent,suhbatRoyxatOl:m.list,suhbatServerga:m.save,suhbatServerdanOl:m.load,kasbSavolOqim:m.ask,tizimYordamSavol:vi.fn()}));
-vi.mock('../../api/jarvis-suhbat-sync',()=>({syncJarvisConversation:m.sync,appendJarvisMessages:m.append,mutateJarvisConversation:m.mutate}));
+vi.mock('../../api/jarvis-suhbat-sync',()=>({syncJarvisConversation:m.sync,appendJarvisMessages:m.append,mutateJarvisConversation:m.mutate,jarvisConversationPage:m.page}));
 vi.mock('../../lib/jarvis/conversation-outbox',()=>({jarvisOutboxRead:m.diskRead,jarvisOutboxStore:m.diskSave,jarvisOutboxRemove:m.diskRemove}));
 vi.mock('./AiBaho',()=>({AiBaho:()=>null}));vi.mock('./AiHarakatKarta',()=>({AiHarakatKarta:()=>null}));
 vi.mock('../../lib/yordamchi/niyat',()=>({niyatAniqla:()=>({tur:'nomalum',yaqin:[]})}));
@@ -22,6 +22,7 @@ beforeEach(()=>{localStorage.clear();sessionStorage.clear();m.ask.mockReset();m.
  m.diskRead.mockReset().mockResolvedValue(null);
  m.diskSave.mockReset().mockResolvedValue(true);
  m.diskRemove.mockReset().mockResolvedValue(true);
+ m.page.mockReset().mockResolvedValue(null);
  localStorage.setItem('jarvis-suhbatlar:7:17',JSON.stringify(['a','b'].map(id=>({id,sarlavha:'Chat '+id,yangilandi:Date.now(),xabarlar:[{rol:'user',matn:'Message '+id}]}))));});
 afterEach(()=>{vi.useRealTimers();cleanup();});
 const send=(text:string)=>{fireEvent.change(screen.getByRole('textbox'),{target:{value:text}});fireEvent.keyDown(screen.getByRole('textbox'),{key:'Enter'});};
@@ -33,6 +34,23 @@ function remoteFixture() {
  m.load.mockResolvedValue({ xabarlar: [{ r: 'ai', m: 'Before phone update' }], qisqartma: null });
  return row;
 }
+
+it('loads older pages without duplicate newest rows, then opens an archived conversation', async () => {
+ vi.useFakeTimers();
+ const recent = remoteFixture();
+ const old = { id:'archived',sarlavha:'Older plan',yangilandi:'2025-11-16T10:00:00Z',toliq:true };
+ const cursor = { at:'2026-11-16T10:00:00.123456Z', row:'9007199254740993' };
+ m.page.mockResolvedValueOnce({royxat:[recent],keyingi:cursor}).mockResolvedValueOnce({royxat:[old],keyingi:null});
+ m.load.mockResolvedValue({xabarlar:[{r:'ai',m:'From archive'}],arxivlangan:true});
+ render(view());await tick(0);
+ fireEvent.click(screen.getByRole('button',{name:'Eski suhbatlarni ko‘rish'}));
+ await tick(0);
+ expect(m.page.mock.calls).toEqual([[17,null],[17,cursor]]);
+ expect(screen.getAllByRole('option',{name:'Phone chat'})).toHaveLength(1);
+ choose(old.id);await tick(0);
+ expect(screen.getByText('From archive')).toBeTruthy();
+ expect(m.load).toHaveBeenCalledWith(17,old.id);
+});
 
 it('restores an encrypted queued append after reopening and removes it only after acknowledgment', async () => {
  const {row,etag} = await openVersionedChat();

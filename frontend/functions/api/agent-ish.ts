@@ -422,6 +422,17 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
     return chiqar(await rpcData(env, 't2_agent_xotira_yoz_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_profil: profil, p_kalit: String(so.kalit ?? ''), p_mazmun: String(so.mazmun ?? '').slice(0, 4000) }));
   }
   /* JARVIS SUHBATLARI (serverda, t2_jarvis_suhbat): faqat egasi o'qiydi; actor sessiyadan, a'zolik bazada (scope_guard); model chaqirilmaydi. */
+  if (amal === 'suhbat_page') {
+    if (kid == null) return xato('Kompaniyani tanlang', 422);
+    const { before_at: at, before_row: row } = so;
+    if ((at == null) !== (row == null) || (at != null &&
+      (typeof at !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(at) ||
+        !Number.isFinite(Date.parse(at)) || typeof row !== 'string' || !/^[1-9]\d{0,18}$/.test(row) ||
+        BigInt(row) > 9223372036854775807n))) return xato('Suhbat sahifasi noto‘g‘ri');
+    return chiqar(await rpcData(env, 't2_jarvis_suhbat_page_v1', {
+      p_actor_id: k.actor, p_kompaniya_id: kid, p_before_at: at ?? null, p_before_id: row ?? null,
+    }));
+  }
   if (amal === 'suhbat_sync') {
     if (kid == null) return xato('Kompaniyani tanlang', 422);
     const id = so.klient_id;

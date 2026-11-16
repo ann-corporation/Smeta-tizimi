@@ -10,6 +10,8 @@ type Snapshot =
   | { id: string; holat: 'missing' }
   | { id: string; holat: 'changed'; etag: string; xabarlar: Turn[] | null; qisqartma: string | null; arxivlangan?: true };
 type Sync = { ok?: boolean; royxat?: Chat[]; suhbat?: Snapshot };
+type PageCursor = { at: string; row: string };
+type Page = { ok?: boolean; royxat?: Chat[]; keyingi?: PageCursor | null };
 type Target = { company: number; id: string; mode: 'n' | 'o' };
 export type JarvisBotReply = { matn: string; options?: Record<string, unknown>; transcript?: string[] };
 export type JarvisReplyTo = { from?: { is_bot?: boolean }; entities?: { type?: string; url?: string }[] };
@@ -28,6 +30,28 @@ const validTurns = (value: unknown): value is Turn[] => Array.isArray(value) && 
 
 function sync(env: TgEnv, actor: number, company: number, id?: string) {
   return call<Sync>(env, actor, { amal: 'suhbat_sync', kompaniya_id: company, ...(id ? { klient_id: id } : {}) });
+}
+
+function pageButton(company: number, cursor: PageCursor | null | undefined, til: TgTil) {
+  if (typeof cursor?.at !== 'string' || typeof cursor.row !== 'string' || !/^[1-9]\d{0,18}$/.test(cursor.row)) return null;
+  const milliseconds = Date.parse(cursor.at);
+  if (!Number.isSafeInteger(milliseconds) || milliseconds < 1) return null;
+  const fraction = /\.(\d{1,6})/.exec(cursor.at)?.[1]?.padEnd(6, '0') ?? '000000';
+  const micros = BigInt(milliseconds) * 1000n + BigInt(fraction.slice(3));
+  const data = `j:p:${company}:${micros}:${cursor.row}`;
+  return data.length <= 64 ? { text: tgT('Eski suhbatlarni ko‘rish', til), callback_data: data } : null;
+}
+
+async function historyPage(env: TgEnv, actor: number, company: number, til: TgTil, before?: PageCursor): Promise<JarvisBotReply> {
+  const r = await call<Page>(env, actor, { amal: 'suhbat_page', kompaniya_id: company,
+    ...(before ? { before_at: before.at, before_row: before.row } : {}) });
+  if (!sent(r.status) || !r.body?.ok || !Array.isArray(r.body.royxat)) return unavailable(til);
+  const keyboard = [[{ text: tgT('Yangi Jarvis suhbati', til), callback_data: `j:n:${company}` }],
+    ...r.body.royxat.slice(0, 20).flatMap(row => CHAT_ID.test(row.id) && typeof row.sarlavha === 'string'
+      ? [[{ text: row.sarlavha.slice(0, 60) || row.id, callback_data: `j:o:${company}:${row.id}` }]] : [])];
+  const next = pageButton(company, r.body.keyingi, til);
+  if (next) keyboard.push([next]);
+  return { matn: tgT('Jarvis suhbatini tanlang.', til), options: { reply_markup: { inline_keyboard: keyboard } } };
 }
 
 async function sign(env: TgEnv, actor: number, telegram: number, value: string): Promise<string | null> {
@@ -66,11 +90,21 @@ export async function telegramJarvisMenu(env: TgEnv, actor: number, til: TgTil):
 }
 
 export async function telegramJarvisSelect(env: TgEnv, actor: number, telegram: number, til: TgTil, data: string): Promise<JarvisBotReply> {
+  const older = /^j:p:([1-9]\d{0,15}):([1-9]\d{0,17}):([1-9]\d{0,18})$/.exec(data);
+  if (older) {
+    const company = Number(older[1]);
+    const micros = BigInt(older[2]);
+    const time = new Date(Number(micros / 1000n));
+    if (!number(company) || !Number.isFinite(time.getTime()) || time.getUTCFullYear() > 9999) return unavailable(til);
+    const at = time.toISOString().replace(/Z$/, String(micros % 1000n).padStart(3, '0') + 'Z');
+    return historyPage(env, actor, company, til, { at, row: older[3] });
+  }
   const fields = /^j:([cno]):([1-9]\d*)(?::([A-Za-z0-9_.-]{1,40}))?$/.exec(data);
   const company = Number(fields?.[2]);
   const action = fields?.[1];
   const id = fields?.[3];
   if (!number(company) || (action === 'o' ? !id : !!id)) return unavailable(til);
+  if (action === 'c') return historyPage(env, actor, company, til);
   const r = await sync(env, actor, company, id);
   if (!sent(r.status) || !r.body?.ok || !Array.isArray(r.body.royxat)) return unavailable(til);
   if (action === 'n') return prompt(env, actor, telegram, til, { company, id: crypto.randomUUID(), mode: 'n' });
@@ -95,10 +129,7 @@ export async function telegramJarvisSelect(env: TgEnv, actor: number, telegram: 
     const entry = await prompt(env, actor, telegram, til, { company, id, mode: 'o' }, name);
     return { ...entry, transcript };
   }
-  const keyboard = [[{ text: tgT('Yangi Jarvis suhbati', til), callback_data: `j:n:${company}` }],
-    ...r.body.royxat.slice(0, 20).flatMap(row => CHAT_ID.test(row.id) && typeof row.sarlavha === 'string'
-      ? [[{ text: row.sarlavha.slice(0, 60) || row.id, callback_data: `j:o:${company}:${row.id}` }]] : [])];
-  return { matn: tgT('Jarvis suhbatini tanlang.', til), options: { reply_markup: { inline_keyboard: keyboard } } };
+  return unavailable(til);
 }
 
 export async function telegramJarvisReply(

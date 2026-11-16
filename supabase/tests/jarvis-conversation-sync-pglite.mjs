@@ -46,10 +46,12 @@ try {
   const registered = async () => (await db.query('select to_regprocedure($1) is not null as present', [signature])).rows[0].present;
   assert.equal(await registered(), false);
   await db.exec(migration);
+  await db.exec(await sql('../migrations/20270101002100_t2_jarvis_suhbat_history_page.sql'));
   for (const role of ['anon', 'authenticated', 'service_role']) {
     for (const target of [signature, writeSignature, 'public.t2_jarvis_suhbat_archive_pick_v1(integer)',
       'public.t2_jarvis_suhbat_archive_commit_v1(bigint,text,integer)',
-      'public.t2_jarvis_suhbat_archive_restore_v1(bigint,text)']) {
+      'public.t2_jarvis_suhbat_archive_restore_v1(bigint,text)',
+      'public.t2_jarvis_suhbat_page_v1(bigint,bigint,timestamptz,bigint)']) {
       const { rows } = await db.query("select has_function_privilege($1,$2,'execute') as allowed", [role, target]);
       assert.equal(rows[0].allowed, role === 'service_role');
     }
@@ -160,6 +162,19 @@ try {
   }
   assert.equal((await sync(7, 17)).royxat.length, 20);
   assert.equal((await sync(7, 17, 'synthetic-0')).suhbat.holat, 'changed');
+  await db.exec("update public.t2_jarvis_suhbat set yangilandi=now()-interval '1 minute' where klient_id like 'synthetic-%'");
+  const page = async (actor, company, cursor = null) => (await db.query(
+    'select public.t2_jarvis_suhbat_page_v1($1,$2,$3,$4) as r', [actor, company, cursor?.at ?? null, cursor?.row ?? null],
+  )).rows[0].r;
+  const p1 = await page(7, 17);
+  const p2 = await page(7, 17, p1.keyingi);
+  assert.equal(p1.royxat.length, 20);
+  assert.equal(new Set([...p1.royxat, ...p2.royxat].map(row => row.id)).size, p1.royxat.length + p2.royxat.length);
+  assert.equal([...p1.royxat, ...p2.royxat].filter(row => row.id.startsWith('synthetic-')).length, 21);
+  assert.ok(p2.royxat.some(row => row.id === 'expired' && row.toliq));
+  assert.equal(p2.keyingi, null);
+  assert.equal((await page(8, 17, p1.keyingi)).royxat.some(row => row.id.startsWith('synthetic-')), false);
+  assert.deepEqual(await page(7, 99, p1.keyingi), { ok: false, code: 'COMPANY_ACCESS_DENIED' });
   await db.exec('reset role');
   const undo = await sql('../migrations/20270101002000_t2_jarvis_suhbat_sync_archive.rollback.sql');
   await assert.rejects(() => db.exec(undo), /JARVIS_ARCHIVE_ROLLBACK_REQUIRES_RESTORE/);
@@ -169,6 +184,7 @@ try {
   )).rows[0].r;
   assert.deepEqual(await restore(cold.body.replace('Hidden', 'Broken')), { ok: true, restored: false });
   assert.deepEqual(await restore(cold.body), { ok: true, restored: true });
+  await db.exec(await sql('../migrations/20270101002100_t2_jarvis_suhbat_history_page.rollback.sql'));
   await db.exec(undo);
   await db.query('select public._t2_jarvis_suhbat_tozala($1,$2)', [7, 17]);
   assert.equal((await db.query('select xabarlar from public.t2_jarvis_suhbat where id=$1', [cold.row])).rows[0].xabarlar.length, 1);

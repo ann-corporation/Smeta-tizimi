@@ -261,6 +261,8 @@
     <string name="ja_q_fact">Fact status by object</string>
     <string name="ja_q_fact_text">What is the fact status by object? What is done and what is left?</string>
     <string name="ja_new_chat">New chat</string>
+    <string name="ja_history_older">Show older conversations</string>
+    <string name="ja_history_failed">Could not load older conversations.</string>
     <string name="ja_rename">Rename</string>
     <string name="ja_delete">Delete conversation</string>
     <string name="ja_chat_title">Conversation name</string>

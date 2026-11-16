@@ -69,6 +69,7 @@ import uz.anncorp.smeta.R
 import uz.anncorp.smeta.core.data.ChatInfo
 import uz.anncorp.smeta.core.data.ChatMsg
 import uz.anncorp.smeta.core.data.ChatCursor
+import uz.anncorp.smeta.core.data.ChatPageCursor
 import uz.anncorp.smeta.core.data.ChatSnapshot
 import uz.anncorp.smeta.core.data.ChatWrite
 import uz.anncorp.smeta.core.data.JarvisRepository
@@ -99,6 +100,7 @@ data class JarvisUi(
     val bubbles: List<Bubble> = emptyList(), val busy: Boolean = false, val chats: List<ChatInfo> = emptyList(),
     val chatId: String = newChatId(), val showList: Boolean = false, val saveIssue: ChatSaveIssue? = null,
     val editor: ChatEditor? = null, val editIssue: ChatSaveIssue? = null, val outboxUnreadable: Boolean = false,
+    val historyLoading: Boolean = false, val historyFailed: Boolean = false, val hasMoreHistory: Boolean = true,
 ) {
     val canSend: Boolean get() = !busy && saveIssue == null && editor == null && !outboxUnreadable
 }
@@ -136,6 +138,10 @@ class JarvisViewModel @Inject constructor(
     private var pendingDevice: String? = null
     private var pendingStored = false
     private var lastAttempt = 0L
+    private var latestChats = emptyList<ChatInfo>()
+    private val olderChats = mutableMapOf<String, ChatInfo>()
+    private var historyCursor: ChatPageCursor? = null
+    private var historyRequest: Any? = null
 
     private fun companyId() = ctx.current.value?.companyId
     private fun current(epoch: Long, company: Long?) = generation == epoch && companyId() == company && ctx.current.value == workplace
@@ -152,10 +158,47 @@ class JarvisViewModel @Inject constructor(
                     pending = null
                     pendingDevice = null
                     pendingStored = false
+                    latestChats = emptyList()
+                    olderChats.clear()
+                    historyCursor = null
+                    historyRequest = null
                     summaryOnly = false
                     restored = false
                     _ui.value = JarvisUi(busy = next != null)
                     if (next != null) restorePending(next.companyId, generation)
+                }
+            }
+        }
+    }
+
+    private fun allChats(): List<ChatInfo> = (latestChats + olderChats.values).distinctBy { it.id }
+
+    fun loadOlderChats() {
+        val company = companyId() ?: return
+        if (historyRequest != null || !_ui.value.canSend || !_ui.value.hasMoreHistory || ctx.current.value != workplace) return
+        val epoch = generation
+        val before = historyCursor
+        val marker = Any()
+        historyRequest = marker
+        _ui.update { it.copy(historyLoading = true, historyFailed = false) }
+        viewModelScope.launch {
+            try {
+                var page = repo.chatPage(company, before)
+                if (!current(epoch, company)) return@launch
+                val known = latestChats.map { it.id }.toSet()
+                val next = page?.next
+                if (before == null && page != null && next != null && page.chats.all { it.id in known }) {
+                    page = repo.chatPage(company, next)
+                    if (!current(epoch, company)) return@launch
+                }
+                if (page == null) { _ui.update { it.copy(historyFailed = true) }; return@launch }
+                page.chats.forEach { row -> olderChats[row.id] = row }
+                historyCursor = page.next
+                _ui.update { it.copy(chats = allChats(), hasMoreHistory = page.next != null) }
+            } finally {
+                if (historyRequest === marker) {
+                    historyRequest = null
+                    _ui.update { it.copy(historyLoading = false) }
                 }
             }
         }
@@ -303,12 +346,16 @@ class JarvisViewModel @Inject constructor(
             when (result) {
                 is ChatWrite.Saved -> {
                     cursor = edit.target.copy(etag = result.etag)
+                    olderChats[edit.target.id]?.let { olderChats[edit.target.id] = it.copy(title = title) }
+                    latestChats = latestChats.map { if (it.id == edit.target.id) it.copy(title = title) else it }
                     _ui.update {
                         it.copy(busy = false, editor = null,
                             chats = it.chats.map { row -> if (row.id == edit.target.id) row.copy(title = title) else row })
                     }
                 }
                 ChatWrite.Deleted -> {
+                    olderChats.remove(edit.target.id)
+                    latestChats = latestChats.filterNot { it.id == edit.target.id }
                     _ui.update { it.copy(busy = false, chats = it.chats.filterNot { row -> row.id == edit.target.id }) }
                     newChat()
                 }
@@ -325,13 +372,18 @@ class JarvisViewModel @Inject constructor(
         val requested = cursor.takeIf { _ui.value.canSend && !typing() }
         val snapshot = repo.syncChats(cid, requested) ?: return false
         if (!current(epoch, cid)) return true
-        _ui.update { it.copy(chats = snapshot.chats) }
+        latestChats = snapshot.chats
+        _ui.update { it.copy(chats = allChats()) }
         if (pendingStored && _ui.value.saveIssue == ChatSaveIssue.RETRY &&
             (lastAttempt == 0L || System.nanoTime() - lastAttempt > 30_000_000_000L)) retrySave()
         if (!_ui.value.canSend || typing()) return true
         when (val active = snapshot.active) {
             is ChatSnapshot.Changed -> if (requested != null) applySnapshot(requested.id, active, selected = false)
-            ChatSnapshot.Missing -> newChat()
+            ChatSnapshot.Missing -> {
+                requested?.id?.let(olderChats::remove)
+                _ui.update { it.copy(chats = allChats()) }
+                newChat()
+            }
             else -> Unit
         }
         if (!restored && cursor == null && _ui.value.bubbles.isEmpty()) {
@@ -345,9 +397,11 @@ class JarvisViewModel @Inject constructor(
         cursor = ChatCursor(id, snapshot.etag)
         summaryOnly = snapshot.messages == null || snapshot.archived
         val messages = snapshot.messages ?: snapshot.summary?.takeIf { it.isNotBlank() }?.let { listOf(ChatMsg(false, it)) }.orEmpty()
+        val title = snapshot.title
+        if (title != null) olderChats[id]?.let { olderChats[id] = it.copy(title = title) }
         _ui.update {
             val bubbles = if (!selected && toMessages(it.bubbles) == messages) it.bubbles else toBubbles(messages)
-            it.copy(chatId = id, bubbles = bubbles, showList = if (selected) false else it.showList)
+            it.copy(chatId = id, bubbles = bubbles, chats = allChats(), showList = if (selected) false else it.showList)
         }
     }
 
@@ -361,7 +415,8 @@ class JarvisViewModel @Inject constructor(
             if (!current(epoch, cid)) return@launch
             val active = snapshot?.active
             if (active is ChatSnapshot.Changed) applySnapshot(c.id, active, selected = true)
-            _ui.update { it.copy(chats = snapshot?.chats ?: it.chats, busy = false) }
+            if (snapshot != null) latestChats = snapshot.chats
+            _ui.update { it.copy(chats = allChats(), busy = false) }
         }
     }
 
@@ -486,11 +541,16 @@ fun JarvisScreen(onBack: () -> Unit, vm: JarvisViewModel = hiltViewModel()) {
         if (ui.showList) {
             LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (ui.chats.isEmpty()) item { Text(stringResource(R.string.ja_chats_empty), color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                items(ui.chats) { c ->
+                items(ui.chats, key = { it.id }) { c ->
                     Surface(color = if (c.id == ui.chatId) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.fillMaxWidth().clickable(enabled = ui.canSend && text.isBlank()) { vm.open(c) }) {
                         Text(c.title.ifBlank { "—" }, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(12.dp), maxLines = 2)
                     }
+                }
+                if (ui.hasMoreHistory) item {
+                    if (ui.historyFailed) Text(stringResource(R.string.ja_history_failed), color = MaterialTheme.colorScheme.error)
+                    SuggestionChip(onClick = vm::loadOlderChats, enabled = !ui.historyLoading && ui.canSend && text.isBlank(),
+                        label = { Text(stringResource(R.string.ja_history_older)) })
                 }
             }
         } else LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = list, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {

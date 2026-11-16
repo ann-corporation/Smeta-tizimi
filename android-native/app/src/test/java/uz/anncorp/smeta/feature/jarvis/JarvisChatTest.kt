@@ -217,6 +217,28 @@ class JarvisChatTest {
     }
     private data class Fixture(val vm: JarvisViewModel, val api: ChatApi, val workplace: WorkContext, val outbox: MemoryOutbox)
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test fun showsAndOpensOlderHistoryWithoutDuplicatingRecentChats() = withJarvis { (vm, api, _, _) ->
+        api.answer = { snapshot("recent", "a", "Current screen") }
+        vm.open(ChatInfo("recent", "Latest", "2026-11-15T10:00:00+00:00"))
+        runCurrent()
+        api.answer = {
+            if (!api.requests.last().containsKey("before_row")) payload(200,
+                """{"ok":true,"royxat":[{"id":"recent","sarlavha":"Latest","yangilandi":"2026-11-15T10:00:00+00:00"}],"keyingi":{"at":"2026-11-15T10:00:00.123456+00:00","row":"9007199254740993"}}""")
+            else payload(200,
+                """{"ok":true,"royxat":[{"id":"older","sarlavha":"Older","yangilandi":"2026-01-15T10:00:00+00:00"}],"keyingi":null}""")
+        }
+        vm.loadOlderChats()
+        runCurrent()
+        assertEquals(listOf("recent", "older"), vm.ui.value.chats.map { it.id })
+        assertFalse(vm.ui.value.hasMoreHistory)
+        assertEquals("9007199254740993", api.requests.last().getValue("before_row").jsonPrimitive.content)
+        api.answer = { snapshot("older", "b", "Archived synthetic turn") }
+        vm.open(vm.ui.value.chats.last())
+        runCurrent()
+        assertEquals(listOf(ChatMsg(false, "Archived synthetic turn")), toMessages(vm.ui.value.bubbles))
+    }
+
     private fun viewModel(api: ChatApi, workplace: WorkContext, outbox: MemoryOutbox) =
         JarvisViewModel(JarvisRepository(api), workplace, SavedStateHandle(), { error("No object selected") }, outbox)
 

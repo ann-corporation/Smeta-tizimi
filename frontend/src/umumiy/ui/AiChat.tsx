@@ -5,7 +5,7 @@ import { mdBolaklar } from '../../lib/yordamchi/jadval';
 import { ArrowRight, Bot, Mic, MicOff, Send, Square, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { kasbSavolOqim, niyatLlmOl, suhbatRoyxatOl, suhbatServerdanOl, suhbatServerga, type ServerSuhbat, tizimYordamSavol, type KasbIshchi, type KasbYakun, type Qadam, type SahifaIshora } from '../../api/t2-agent-ish';
-import { appendJarvisMessages, mutateJarvisConversation, syncJarvisConversation } from '../../api/jarvis-suhbat-sync';
+import { appendJarvisMessages, jarvisConversationPage, mutateJarvisConversation, syncJarvisConversation, type ConversationPageCursor } from '../../api/jarvis-suhbat-sync';
 import { jarvisOutboxRead, jarvisOutboxRemove, jarvisOutboxStore, type JarvisQueuedWrite } from '../../lib/jarvis/conversation-outbox';
 import { jarvisKichikGap } from '../../lib/jarvis/intent';
 import { katalogKonteksti, narxSavolimi, vaqtBilan, type KatalogKontekst } from '../../lib/jarvis/katalog-kontekst';
@@ -377,11 +377,47 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     return () => { tirik = false; clearTimeout(tm); };
   }, [xabarlar, arxivKalit, yordamchi, tarixKalit, tarixEga, saqlashQadami, outboxScope, scope]); // eslint-disable-line react-hooks/exhaustive-deps
   const [serverRoyxat, setServerRoyxat] = useState<ServerSuhbat[]>([]);
+  const [extraHistory, setExtraHistory] = useState<{ owner: string; rows: ServerSuhbat[]; next: ConversationPageCursor | null } | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const historyRequest = useRef<object | null>(null);
+  const history = extraHistory?.owner === tarixKalit ? extraHistory : null;
+  const loadOlderChats = async () => {
+    if (kompaniyaId == null || !tarixKalit || historyRequest.current || tahrirSorov.current || (history && !history.next)) return;
+    const marker = {};
+    const avlod = gen.current;
+    const oldVersion = tahrirVersiya.current;
+    historyRequest.current = marker;
+    setHistoryLoading(true);
+    try {
+      const first = await jarvisConversationPage(kompaniyaId, history?.next ?? null);
+      if (gen.current !== avlod || tahrirVersiya.current !== oldVersion) return;
+      if (!first) { toast(t('Eski suhbatlarni yuklab bo‘lmadi.'), 'warn'); return; }
+      const rows = new Map((history?.rows ?? []).map(row => [row.id, row]));
+      const latest = new Set(serverRoyxat.map(row => row.id));
+      let page = first;
+      if (!history && page.keyingi && page.royxat.every(row => latest.has(row.id))) {
+        const older = await jarvisConversationPage(kompaniyaId, page.keyingi);
+        if (gen.current !== avlod || tahrirVersiya.current !== oldVersion) return;
+        if (!older) { toast(t('Eski suhbatlarni yuklab bo‘lmadi.'), 'warn'); return; }
+        page = older;
+      }
+      for (const row of page.royxat) rows.set(row.id, row);
+      setExtraHistory({ owner: tarixKalit, rows: [...rows.values()], next: page.keyingi });
+    } finally {
+      if (historyRequest.current === marker) {
+        historyRequest.current = null;
+        setHistoryLoading(false);
+      }
+    }
+  };
   const syncListed = useRef(false);
   useEffect(() => {
     let tirik = true;
     syncListed.current = false;
     setServerRoyxat([]);
+    setExtraHistory(null);
+    historyRequest.current = null;
+    setHistoryLoading(false);
     if (kompaniyaId != null && foydalanuvchiId != null && yordamchi) {
       void suhbatRoyxatOl(kompaniyaId).then((r) => { if (tirik && r && !syncListed.current) setServerRoyxat(r); });
     }
@@ -415,6 +451,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     if (remote.holat === 'same') return true;
     davomRef.current = null;
     if (remote.holat === 'missing') {
+      setExtraHistory(items => items?.rows.some(row => row.id === requestId) ? { ...items, rows: items.rows.filter(row => row.id !== requestId) } : items);
       remoteAnchor.current = null;
       qisqartmaDan.current = null;
       suhbatId.current = crypto.randomUUID();
@@ -423,6 +460,8 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
       setXabarlar([]);
       return true;
     }
+    setExtraHistory(items => items?.rows.some(row => row.id === requestId && row.sarlavha !== remote.sarlavha) ?
+      { ...items, rows: items.rows.map(row => row.id === requestId ? { ...row, sarlavha: remote.sarlavha } : row) } : items);
     const messages = remote.xabarlar ?? (remote.qisqartma ? [{ r: 'ai' as const, m: t('Eski suhbat (qisqartma)') + ': ' + remote.qisqartma }] : []);
     const next = messages.map((x, i) => ({ id: requestId + '-' + i, rol: x.r, matn: x.m, jarvis: x.r === 'ai' }));
     if (remote.xabarlar === null || remote.arxivlangan) qisqartmaDan.current = requestId;
@@ -452,12 +491,14 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     return () => { stopped = true; clearTimeout(timer); request?.abort(); };
   }, [tarixKalit, kompaniyaId, scope]);
   /* Ko'rinadigan ro'yxat: brauzer nusxasi + faqat serverda bor (boshqa qurilma) suhbatlar. */
+  const allServerRows = useMemo(() => [...new Map([...(history?.rows ?? []), ...serverRoyxat].map(row => [row.id, row])).values()],
+    [history, serverRoyxat]);
   const korinadigan = useMemo(() => {
     const bor = new Set(arxiv.map((s) => s.id));
-    const sv = serverRoyxat.filter((s) => !bor.has(s.id)).map((s) => ({ id: s.id, sarlavha: s.sarlavha, yangilandi: Date.parse(s.yangilandi) || 0, xabarlar: [] as Suhbat['xabarlar'], server: true as const }));
+    const sv = allServerRows.filter((s) => !bor.has(s.id)).map((s) => ({ id: s.id, sarlavha: s.sarlavha, yangilandi: Date.parse(s.yangilandi) || 0, xabarlar: [] as Suhbat['xabarlar'], server: true as const }));
     return [...arxiv.map((s) => ({ ...s, server: false as const })), ...sv].sort((a, b) => b.yangilandi - a.yangilandi);
-  }, [arxiv, serverRoyxat]);
-  const serverSuhbat = serverRoyxat.find(s => s.id === suhbatId.current && s.id === remoteAnchor.current?.id);
+  }, [arxiv, allServerRows]);
+  const serverSuhbat = allServerRows.find(s => s.id === suhbatId.current && s.id === remoteAnchor.current?.id);
   const faolTahrir = suhbatTahriri?.avlod === gen.current && suhbatTahriri.id === serverSuhbat?.id ? suhbatTahriri : null;
   const tahrirMumkin = serverSuhbat && remoteAnchor.current?.etag && suhbatSof() && !tahrirBand;
   const tahrirOch = (amal: 'rename' | 'delete') => {
@@ -490,8 +531,10 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     if (result.status === 'saved') {
       remoteAnchor.current = { ...anchor, etag: result.etag };
       setServerRoyxat(rows => rows.map(row => row.id === draft.id ? { ...row, sarlavha: name } : row));
+      setExtraHistory(items => items?.owner === tarixKalit ? { ...items, rows: items.rows.map(row => row.id === draft.id ? { ...row, sarlavha: name } : row) } : items);
     } else {
       setServerRoyxat(rows => rows.filter(row => row.id !== draft.id));
+      setExtraHistory(items => items?.owner === tarixKalit ? { ...items, rows: items.rows.filter(row => row.id !== draft.id) } : items);
       suhbatToxtat();
       qisqartmaDan.current = null;
       suhbatId.current = crypto.randomUUID();
@@ -723,6 +766,11 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
           </select>
           {!ixcham && <button type="button" disabled={outboxLoading || !!pendingWrite} onClick={() => window.dispatchEvent(new Event('ai:yangi-suhbat'))} className="rounded border border-border px-2 py-1 text-sm">{t('Yangi suhbat')}</button>}
         </div>
+        {tarixKalit && kompaniyaId != null && (!history || history.next) && <button type="button"
+          disabled={historyLoading || outboxLoading || tahrirBand || !!pendingWrite} onClick={() => void loadOlderChats()}
+          className="mt-1 rounded border border-border px-2 py-1 text-xs disabled:opacity-50">
+          {t('Eski suhbatlarni ko‘rish')}
+        </button>}
         {serverSuhbat && !faolTahrir && <div className="mt-1 flex flex-wrap gap-1.5 text-xs">
           <button type="button" disabled={!tahrirMumkin || tinglayapti} onClick={() => tahrirOch('rename')} className="rounded border border-border px-2 py-1 disabled:opacity-50">{t('Suhbat nomini o‘zgartirish')}</button>
           <button type="button" disabled={!tahrirMumkin || tinglayapti} onClick={() => tahrirOch('delete')} className="rounded border border-border px-2 py-1 disabled:opacity-50">{t('Suhbatni o‘chirish')}</button>

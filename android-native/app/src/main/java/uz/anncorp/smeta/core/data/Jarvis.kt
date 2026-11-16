@@ -35,9 +35,13 @@ data class ChatCursor(val id: String, val etag: String? = null)
 sealed interface ChatSnapshot {
     data object Missing : ChatSnapshot
     data object Same : ChatSnapshot
-    data class Changed(val etag: String, val messages: List<ChatMsg>?, val summary: String?, val archived: Boolean = false) : ChatSnapshot
+    data class Changed(
+        val etag: String, val messages: List<ChatMsg>?, val summary: String?, val archived: Boolean = false, val title: String? = null,
+    ) : ChatSnapshot
 }
 data class ChatSync(val chats: List<ChatInfo>, val active: ChatSnapshot?)
+data class ChatPageCursor(val at: String, val row: String)
+data class ChatPage(val chats: List<ChatInfo>, val next: ChatPageCursor?)
 
 sealed interface ChatWrite {
     data class Saved(val etag: String) : ChatWrite
@@ -75,6 +79,27 @@ class JarvisRepository(private val api: BffApi) {
             put("amal", "suhbat_sync"); put("kompaniya_id", companyId)
             cursor?.let { put("klient_id", it.id); it.etag?.let { tag -> put("etag", tag) } }
         }), cursor)
+
+    suspend fun chatPage(companyId: Long, before: ChatPageCursor?): ChatPage? {
+        val r = api.bff(PATH, "POST", buildJsonObject {
+            put("amal", "suhbat_page"); put("kompaniya_id", companyId)
+            before?.let { put("before_at", it.at); put("before_row", it.row) }
+        })
+        val body = r.body as? JsonObject ?: return null
+        if (!r.ok || !body.successful()) return null
+        val chats = parseChatRows(body["royxat"] as? JsonArray ?: return null) ?: return null
+        val next = when (val marker = body["keyingi"]) {
+            JsonNull -> null
+            is JsonObject -> {
+                val at = marker.string("at") ?: return null
+                val row = marker.string("row")?.takeIf { it.toLongOrNull()?.let { id -> id > 0 } == true } ?: return null
+                if (runCatching { OffsetDateTime.parse(at) }.isFailure) return null
+                ChatPageCursor(at, row).takeIf { it != before } ?: return null
+            }
+            else -> return null
+        }
+        return ChatPage(chats, next)
+    }
 
     suspend fun writeMessages(
         companyId: Long, cursor: ChatCursor, title: String?, messages: List<ChatMsg>, operationId: String? = null,
@@ -127,10 +152,7 @@ class JarvisRepository(private val api: BffApi) {
         private fun JsonObject.string(key: String) = (this[key] as? JsonPrimitive)?.takeIf { it.isString }?.content
         private fun JsonObject.successful() = (this["ok"] as? JsonPrimitive)?.let { !it.isString && it.booleanOrNull == true } == true
 
-        internal fun parseSync(r: ApiResult, cursor: ChatCursor?): ChatSync? {
-            val body = r.body as? JsonObject ?: return null
-            if (!r.ok || !body.successful()) return null
-            val rows = body["royxat"] as? JsonArray ?: return null
+        private fun parseChatRows(rows: JsonArray): List<ChatInfo>? {
             if (rows.size > 20) return null
             val list = rows.map {
                 val row = it as? JsonObject ?: return null
@@ -141,6 +163,13 @@ class JarvisRepository(private val api: BffApi) {
                 ChatInfo(id, title, time)
             }
             if (list.map { it.id }.toSet().size != list.size) return null
+            return list
+        }
+
+        internal fun parseSync(r: ApiResult, cursor: ChatCursor?): ChatSync? {
+            val body = r.body as? JsonObject ?: return null
+            if (!r.ok || !body.successful()) return null
+            val list = parseChatRows(body["royxat"] as? JsonArray ?: return null) ?: return null
             if (cursor == null) return if (body["suhbat"] == JsonNull) ChatSync(list, null) else null
             val row = body["suhbat"] as? JsonObject ?: return null
             if (row.string("id") != cursor.id) return null
@@ -164,7 +193,7 @@ class JarvisRepository(private val api: BffApi) {
                         }
                         else -> return null
                     }
-                    ChatSnapshot.Changed(tag, messages, summary, (row["arxivlangan"] as? JsonPrimitive)?.booleanOrNull == true)
+                    ChatSnapshot.Changed(tag, messages, summary, (row["arxivlangan"] as? JsonPrimitive)?.booleanOrNull == true, row.string("sarlavha"))
                 }
                 else -> return null
             }

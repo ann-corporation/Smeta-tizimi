@@ -181,6 +181,8 @@ it('lists shared Jarvis chats only through the bound actor and selected company'
   const tag = 'a'.repeat(32);
   const row = { id: 'test-chat', sarlavha: 'Synthetic chat', yangilandi: '2026-11-16T10:00:00Z', toliq: true };
   const c = net(asos({
+    t2_jarvis_suhbat_page_v1: (body) => ({ ok: true, royxat: body.p_before_id ? [] : [row],
+      keyingi: body.p_before_id ? null : { at: '2026-11-16T10:00:00.123456+00:00', row: '9007199254740993' } }),
     t2_jarvis_suhbat_sync_v1: (body) => ({ ok: true, royxat: [row], suhbat: body.p_klient_id ? {
       id: row.id, holat: 'changed', etag: tag, xabarlar: [{ r: 'ai', m: 'Shared synthetic answer' }], qisqartma: null,
     } : null }),
@@ -190,11 +192,20 @@ it('lists shared Jarvis chats only through the bound actor and selected company'
   }));
   expect(await updateIshla(ENV, msg('/jarvis') as never)).toBe('jarvis');
   expect(await updateIshla(ENV, cb('j:c:17') as never)).toBe('cb:jarvis');
+  const pages = c.tg.find(x => x.metod === 'sendMessage' && x.yuk.reply_markup?.inline_keyboard?.some((items: any[]) =>
+    items[0].callback_data?.startsWith('j:p:')));
+  const older = pages?.yuk.reply_markup.inline_keyboard.at(-1)[0].callback_data;
+  expect(older).toMatch(/^j:p:17:/);
+  expect(older.length).toBeLessThanOrEqual(64);
+  expect(await updateIshla(ENV, cb(older) as never)).toBe('cb:jarvis');
   expect(await updateIshla(ENV, cb('j:o:17:test-chat') as never)).toBe('cb:jarvis');
   expect(await updateIshla(ENV, cb('j:o:18:test-chat') as never)).toBe('cb:jarvis');
   expect(c.yuk.t2_jarvis_suhbat_sync_v1).toEqual([
-    { p_actor_id: UID, p_kompaniya_id: 17, p_klient_id: null, p_etag: null },
     { p_actor_id: UID, p_kompaniya_id: 17, p_klient_id: 'test-chat', p_etag: null },
+  ]);
+  expect(c.yuk.t2_jarvis_suhbat_page_v1).toEqual([
+    { p_actor_id: UID, p_kompaniya_id: 17, p_before_at: null, p_before_id: null },
+    { p_actor_id: UID, p_kompaniya_id: 17, p_before_at: '2026-11-16T10:00:00.123456Z', p_before_id: '9007199254740993' },
   ]);
   const sends = c.tg.filter(x => x.metod === 'sendMessage').map(x => x.yuk);
   expect(sends.some(x => x.reply_markup?.inline_keyboard?.some((r: any[]) => r[0].callback_data === 'j:o:17:test-chat'))).toBe(true);

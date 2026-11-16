@@ -23,6 +23,19 @@ beforeEach(() => { kontekstKeshTozala(); m.tekshir.mockResolvedValue({ foydalanu
 afterEach(() => vi.unstubAllGlobals());
 
 describe('agent-ish shlyuzi', () => {
+  it('pages history using the signed-in actor and preserves microseconds and bigint cursor precision', async () => {
+    const fetcher = vi.fn(async (_url: string, _init?: RequestInit) => rpcJavob({ ok: true, royxat: [], keyingi: null }));
+    vi.stubGlobal('fetch', fetcher);
+    const request = { amal: 'suhbat_page', kompaniya_id: 17, before_at: '2026-11-16T10:00:00.123456+00:00',
+      before_row: '9007199254740993', p_actor_id: 99 };
+    expect((await post(request)).status).toBe(200);
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toEqual({
+      p_actor_id: 7, p_kompaniya_id: 17, p_before_at: request.before_at, p_before_id: request.before_row,
+    });
+    expect((await post({ ...request, before_at: null })).status).toBe(400);
+    expect((await post({ ...request, before_row: '9223372036854775808' })).status).toBe(400);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
   it('hydrates an authorized archived chat with verified R2 text and keeps the storage pointer private', async () => {
     const turns = [{ r: 'ai', m: 'Synthetic archived text' }];
     const bytes = new TextEncoder().encode(JSON.stringify({ v: 1, row: '9', turns }));

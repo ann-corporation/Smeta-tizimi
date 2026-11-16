@@ -262,6 +262,8 @@
     <string name="ja_q_fact">Obyekt bo\'yicha fakt holati</string>
     <string name="ja_q_fact_text">Obyektlar bo\'yicha fakt holati qanday? Nima bajarilgan va nima qolgan?</string>
     <string name="ja_new_chat">Yangi suhbat</string>
+    <string name="ja_history_older">Eski suhbatlarni ko‘rish</string>
+    <string name="ja_history_failed">Eski suhbatlarni yuklab bo‘lmadi.</string>
     <string name="ja_rename">Nomini o‘zgartirish</string>
     <string name="ja_delete">Suhbatni o‘chirish</string>
     <string name="ja_chat_title">Suhbat nomi</string>

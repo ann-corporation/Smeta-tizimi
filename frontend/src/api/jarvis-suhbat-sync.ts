@@ -6,6 +6,8 @@ type ActiveSnapshot =
   | { id: string; holat: 'same'; etag: string }
   | { id: string; holat: 'changed'; etag: string; sarlavha: string; xabarlar: Message[] | null; qisqartma: string | null; arxivlangan?: true };
 export type ConversationSync = { royxat: ServerSuhbat[]; suhbat: ActiveSnapshot | null };
+export type ConversationPageCursor = { at: string; row: string };
+type ConversationPage = { royxat: ServerSuhbat[]; keyingi: ConversationPageCursor | null };
 type Cursor = { id: string; etag: string | null };
 const idPattern = /^[a-zA-Z0-9_.-]{1,40}$/;
 const etagPattern = /^[a-f0-9]{32}$/;
@@ -20,11 +22,12 @@ const validMessage = (value: unknown): value is Message => {
   const row = record(value);
   return !!row && (row.r === 'user' || row.r === 'ai') && typeof row.m === 'string' && row.m.length > 0 && row.m.length <= 800;
 };
+const validList = (value: unknown): value is ServerSuhbat[] => Array.isArray(value) && value.length <= 20 &&
+  value.every(validListRow) && new Set(value.map(row => row.id)).size === value.length;
 
 export function parseConversationSync(value: unknown, cursor: Cursor | null): ConversationSync | null {
   const body = record(value);
-  if (!body || body.ok !== true || !Array.isArray(body.royxat) || body.royxat.length > 20 || !body.royxat.every(validListRow) ||
-      new Set(body.royxat.map(row => row.id)).size !== body.royxat.length) return null;
+  if (!body || body.ok !== true || !validList(body.royxat)) return null;
   const royxat = body.royxat;
   if (!cursor) return body.suhbat === null ? { royxat, suhbat: null } : null;
   const row = record(body.suhbat);
@@ -37,6 +40,25 @@ export function parseConversationSync(value: unknown, cursor: Cursor | null): Co
       !(row.xabarlar === null || (Array.isArray(row.xabarlar) && row.xabarlar.length <= 12 && row.xabarlar.every(validMessage)))) return null;
   return { royxat, suhbat: { id: cursor.id, holat: 'changed', etag: row.etag, sarlavha: row.sarlavha, xabarlar: row.xabarlar, qisqartma: row.qisqartma,
     ...(row.arxivlangan === true ? { arxivlangan: true as const } : {}) } };
+}
+
+export async function jarvisConversationPage(company: number, before: ConversationPageCursor | null): Promise<ConversationPage | null> {
+  try {
+    const response = await fetch('/api/agent-ish', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(8000),
+      body: JSON.stringify({ amal: 'suhbat_page', kompaniya_id: company, before_at: before?.at ?? null, before_row: before?.row ?? null }),
+    });
+    if (!response.ok) return null;
+    const body = record(await response.json());
+    if (body?.ok !== true || !validList(body.royxat)) return null;
+    if (body.keyingi === null) return { royxat: body.royxat, keyingi: null };
+    const cursor = record(body.keyingi);
+    if (!cursor || typeof cursor.at !== 'string' || !Number.isFinite(Date.parse(cursor.at)) ||
+      typeof cursor.row !== 'string' || !/^[1-9]\d{0,18}$/.test(cursor.row) ||
+      (cursor.at === before?.at && cursor.row === before.row)) return null;
+    return { royxat: body.royxat, keyingi: { at: cursor.at, row: cursor.row } };
+  } catch { return null; }
 }
 
 export async function syncJarvisConversation(company: number, cursor: Cursor | null, signal: AbortSignal): Promise<ConversationSync | null> {
