@@ -3,8 +3,12 @@
    SINTETIK ma'lumot; tarmoq (Telegram + Supabase) to'liq soxtalashtirilgan. Haqiqiy middleware → shlyuz zanjiri ishlaydi. */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const ai = vi.hoisted(() => ({ hisobli: vi.fn(), Xato: class extends Error { constructor(readonly kod: string, readonly xabar: string) { super(kod); } } }));
-vi.mock('../../_shared/ai-hisobli', () => ({ aiHisobli: ai.hisobli, AiByudjetXatosi: ai.Xato }));
+const ai = vi.hoisted(() => ({ hisobli: vi.fn() }));
+vi.mock('../../_shared/agent-hisob', async (load) => ({ ...(await load<typeof import('../../_shared/agent-hisob')>()), aiHisobli: ai.hisobli }));
+vi.mock('../../_shared/ai-hisobli', async (load) => ({ ...(await load<typeof import('../../_shared/ai-hisobli')>()), aiHisobli: ai.hisobli }));
+import { AiByudjetXatosi } from '../../_shared/ai-hisobli';
+import { ByudjetXatosi } from '../../_shared/agent-hisob';
+import { kontekstKeshTozala } from '../../_shared/agent-kontekst-kesh';
 
 import { vakolatKeshTozala } from '../../_shared/role-authority';
 import { bildirishnomaTugmalari } from '../../_shared/telegram-tugma';
@@ -137,8 +141,14 @@ describe('/obyektlar', () => {
   });
 });
 
-describe('/jarvis — mavjud ai-savol (aiHisobli: limit + token yechish)', () => {
-  const umumiy = { t2_ai_umumiy: () => ({ ok: true, izoh: '', obyektlar: [{ id: 79, nom: 'Sinov', smeta: 10, fakt: 20, f2: 30, narxsiz: 0, toliq: true }] }) };
+describe('/jarvis — umumiy Jarvis yadrosi', () => {
+  beforeEach(() => kontekstKeshTozala());
+  const umumiy = {
+    t2_agent_kasb_v1: () => ({ ok: true, nom: 'Sinov', rol: 'pto', profil: 'company_access', vazifa: 'Sinov', boshqalar: [], namuna_savollar: [], kategoriyalar: ['obyektlar', 'smeta_pul'] }),
+    t2_agent_shaxsiy_v1: () => ({ ok: true }),
+    t2_agent_fakt_v1: () => ({ ok: true, fakt: {}, ishlatilgan: ['smeta_pul'] }),
+    t2_agent_muhit_v1: () => ({ ok: true, qoidalar: [], xotira: [], manbalar: [] }),
+  };
   const envAi = { ...ENV, OPENROUTER_API_KEY: 'test' };
   it('hisobli yo‘l: actor + kompaniya + profil/amal; javob yuboriladi; Workers AI chetlab o‘tilmaydi', async () => {
     const worker = vi.fn();
@@ -146,12 +156,12 @@ describe('/jarvis — mavjud ai-savol (aiHisobli: limit + token yechish)', () =>
     const c = net(asos(umumiy));
     expect(await updateIshla({ ...envAi, AI: { run: worker } } as never, msg('/jarvis Narxlar haqida tushuntir') as never)).toBe('jarvis');
     expect(ai.hisobli).toHaveBeenCalledTimes(1);
-    expect(ai.hisobli.mock.calls[0].slice(1, 5)).toEqual([UID, 17, 'company_access', 'jarvis_eski']);
+    expect(ai.hisobli.mock.calls[0].slice(1, 5)).toEqual([UID, 17, 'company_access', 'kasb_savol']);
     expect(worker).not.toHaveBeenCalled();
     expect(javobMatni(c)).toBe('Dalilli javob');
   });
   it('byudjet/limit tugagan — model chaqirilmaydi, server xabari foydalanuvchiga', async () => {
-    ai.hisobli.mockRejectedValue(new ai.Xato('BYUDJET_YOQ', 'AI uchun oylik limit belgilanmagan'));
+    ai.hisobli.mockRejectedValue(new ByudjetXatosi('BYUDJET_YOQ', 'AI uchun oylik limit belgilanmagan'));
     const c = net(asos(umumiy));
     await updateIshla(envAi as never, msg('/jarvis Narxlar haqida tushuntir') as never);
     expect(javobMatni(c)).toContain('oylik limit');
@@ -160,7 +170,7 @@ describe('/jarvis — mavjud ai-savol (aiHisobli: limit + token yechish)', () =>
     const c = net(asos(umumiy));
     await updateIshla(envAi as never, msg('/jarvis') as never);
     await updateIshla(envAi as never, msg('/jarvis ' + 'x'.repeat(1001)) as never);
-    expect(ai.hisobli).not.toHaveBeenCalled(); expect(c.rpc).not.toContain('t2_ai_umumiy');
+    expect(ai.hisobli).not.toHaveBeenCalled(); expect(c.rpc).not.toContain('t2_agent_kasb_v1');
     expect(javobMatni(c)).toContain('/jarvis <savol>'); expect(javobMatni(c)).toContain('juda uzun');
   });
   it('soʻrov limiti: daqiqada 5 tadan keyin AI chaqirilmaydi', async () => {
@@ -173,7 +183,7 @@ describe('/jarvis — mavjud ai-savol (aiHisobli: limit + token yechish)', () =>
   it('ruxsati yo‘q rol (document.read yo‘q) — middleware rad etadi, AI chaqirilmaydi', async () => {
     const c = net(asos({ ...umumiy, t2_men_v1: men(['company.read']) }));
     await updateIshla(envAi as never, msg('/jarvis Narxlar haqida tushuntir') as never);
-    expect(ai.hisobli).not.toHaveBeenCalled(); expect(c.rpc).not.toContain('t2_ai_umumiy');
+    expect(ai.hisobli).not.toHaveBeenCalled(); expect(c.rpc).not.toContain('t2_agent_kasb_v1');
   });
 });
 
@@ -569,7 +579,7 @@ describe('/fakt <obyekt#> <matn> — AI taklifi → ko‘rib chiqish → faqat Q
     expect(c.rpc).not.toContain('t2_usta_fakt_qoralama_v1'); expect(javobMatni(c)).toContain('saqlanmadi');
   });
   it('byudjet/limit tugagan — server xabari; qator qidirilmaydi, hech narsa yozilmaydi', async () => {
-    ai.hisobli.mockRejectedValue(new ai.Xato('BYUDJET_YOQ', 'AI uchun oylik limit belgilanmagan'));
+    ai.hisobli.mockRejectedValue(new AiByudjetXatosi('BYUDJET_YOQ', 'AI uchun oylik limit belgilanmagan'));
     const c = net(hamma());
     await updateIshla(envAi as never, msg('/fakt 79 beton quyish 12,5 m3') as never);
     expect(javobMatni(c)).toContain('oylik limit'); expect(c.rpc).not.toContain('t2_qator');

@@ -35,6 +35,17 @@ describe('pulJavobMatni', () => {
     expect(t).not.toMatch(/Diqqat/);
   });
   it('podval yo‘q — aniq aytiladi', () => expect(pulJavobMatni('X', { ...NK, nk_manba: 'sukut' })).toMatch(/smeta podvali .* topilmadi/));
+  it('smeta podvali yo‘q bo‘lsa standart ustama va QQS summasi chiqmaydi', () => {
+    const text = pulJavobMatni('X', { ...NK, nk_manba: 'sukut' });
+    expect(text).toContain('Ma’lumot yo‘q');
+    expect(text.replace(/\s/g, '')).not.toMatch(/1344|1200/);
+  });
+  it('manfiy smeta tuzatishlarining ishorasi saqlanadi', () => {
+    const text = pulJavobMatni('X', { ...NK, cats: { mat: -100 }, nakrutka: { pryamye: -100, itogo4: -125, vsego: -140 } });
+    expect(text).toMatch(/-140/);
+    expect(text).toMatch(/-125/);
+    expect(text).toMatch(/-100/);
+  });
   it('narxsiz smeta va hisob xatosi — sababi bilan, «bilmayman» emas', () => {
     expect(pulJavobMatni('X', { ...NK, cats: {}, nakrutka: { pryamye: 0, itogo4: 0, vsego: 0 } })).toMatch(/narxsiz/);
     expect(pulJavobMatni('X', { ok: false })).toMatch(/hisoblab bo‘lmadi/);

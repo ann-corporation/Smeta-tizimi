@@ -1,39 +1,80 @@
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
-const m = vi.hoisted(() => ({ auth: vi.fn(), ai: vi.fn(), Xato: class extends Error { constructor(readonly kod: string, readonly xabar: string) { super(kod); } } }));
-const ByudjetXato = m.Xato;
-vi.mock('../_shared/auth', () => ({ tekshir: m.auth }));
-vi.mock('../_shared/ai', () => ({ aiPublicError: () => ({ code: 'provider_unavailable', message: 'AI hozir javob bera olmadi' }) }));
-vi.mock('../_shared/ai-hisobli', () => ({ aiHisobli: m.ai, AiByudjetXatosi: m.Xato }));
+const auth = vi.hoisted(() => vi.fn());
+const ai = vi.hoisted(() => vi.fn());
+vi.mock('../_shared/auth', () => ({ tekshir: auth }));
+vi.mock('../_shared/agent-hisob', async (load) => ({
+  ...(await load<typeof import('../_shared/agent-hisob')>()), aiHisobli: ai,
+}));
+import { ByudjetXatosi } from '../_shared/agent-hisob';
+import { kontekstKeshTozala } from '../_shared/agent-kontekst-kesh';
 import { onRequestPost } from './ai-savol';
-const data = { ok: true, izoh: '', obyektlar: [{ id: 79, nom: 'Fast Food 1-etaj', smeta: 10, fakt: 20, f2: 241983934.96, narxsiz: 0, toliq: true }] };
-const run = (savol: string, kompaniya_id = 17, extra = {}) => onRequestPost({ request: new Request('https://x/api/ai-savol', { method: 'POST', body: JSON.stringify({ savol, kompaniya_id }) }), env: { SESSIYA_KALIT: 'test', SUPABASE_URL: 'https://x.supabase.co', SUPABASE_KEY: 'test', ...extra } } as never);
-beforeEach(() => { m.auth.mockResolvedValue({ foydalanuvchi_id: 7, kompaniyalar: [{ kompaniya_id: 17 }] }); m.ai.mockReset(); vi.stubGlobal('fetch', vi.fn(async () => Response.json(data))); });
+
+const object = { id: 34, nom: 'Sinov Bino' };
+let categories: string[];
+const rpc = vi.fn(async (input: string, _init?: RequestInit) => {
+  switch (input.split('/').at(-1)) {
+    case 't2_agent_kasb_v1': return Response.json({ ok: true, nom: 'Sinov', rol: 'pto', profil: 'company_access', vazifa: 'Sinov', boshqalar: [], namuna_savollar: [], kategoriyalar: categories });
+    case 't2_agent_fakt_v1': return Response.json({ ok: true, fakt: { obyektlar: [object] }, ishlatilgan: categories });
+    case 't2_obyekt_nakrutka_v1': return Response.json({ ok: true, nk_manba: 'smeta_podvali', nakrutka: { pryamye: 100, itogo4: 125, vsego: 140 } });
+    case 't2_agent_muhit_v1': return Response.json({ ok: true, qoidalar: [], xotira: [], manbalar: [] });
+    default: return Response.json({ ok: true });
+  }
+});
+const run = (savol: string, kompaniya_id = 17, extra = {}, env = {}) => onRequestPost({
+  request: new Request('https://unit.test/api/ai-savol', { method: 'POST', body: JSON.stringify({ savol, kompaniya_id, ...extra }) }),
+  env: { SESSIYA_KALIT: 'test', SUPABASE_URL: 'https://unit.supabase.co', SUPABASE_KEY: 'test', ...env },
+} as never);
+const called = (name: string) => rpc.mock.calls.filter(([url]) => url.endsWith('/' + name));
+
+beforeEach(() => {
+  auth.mockResolvedValue({ foydalanuvchi_id: 7, kompaniyalar: [{ kompaniya_id: 17 }] });
+  ai.mockReset(); rpc.mockClear(); kontekstKeshTozala();
+  categories = ['obyektlar', 'smeta_pul'];
+  vi.stubGlobal('fetch', rpc);
+});
 afterEach(() => vi.unstubAllGlobals());
-it('salom va help pullik model yoki DB chaqirmaydi', async () => {
+
+it('salom va help model yoki DB chaqirmaydi', async () => {
   for (const q of ['salom', 'nimalar qila olasan']) expect((await run(q)).status).toBe(200);
-  expect(fetch).not.toHaveBeenCalled(); expect(m.ai).not.toHaveBeenCalled();
+  expect(rpc).not.toHaveBeenCalled(); expect(ai).not.toHaveBeenCalled();
 });
-it('unauthorized tenant model va DBga chiqmaydi', async () => {
+it('boshqa kompaniya model va DBga chiqmaydi', async () => {
   expect((await run('F2 qancha', 99)).status).toBe(403);
-  expect(fetch).not.toHaveBeenCalled(); expect(m.ai).not.toHaveBeenCalled();
+  expect(rpc).not.toHaveBeenCalled(); expect(ai).not.toHaveBeenCalled();
 });
-it('F2 exact qiymati local dalil javobida qoladi', async () => {
-  const r = await (await run('Fast Food 1-etaj F2 jami qancha?')).json() as { javob: string; provider: string; dalil: { id: number } };
-  expect(r.javob.replace(/\s/g, '')).toContain('241983934,96'); expect(r.provider).toBe('local'); expect(r.dalil.id).toBe(17); expect(m.ai).not.toHaveBeenCalled();
+it('QQS follow-up umumiy yadroda tarix orqali obyektni topadi', async () => {
+  const r = await run('QQS bilan shu obyekt qancha?', 17, { tarix: [{ rol: 'user', matn: 'Sinov Bino haqida' }], actor: 300 });
+  expect(await r.json()).toMatchObject({ ok: true, provider: 'local', javob: expect.stringMatching(/Sinov Bino[\s\S]*QQS bilan[\s\S]*140/) });
+  expect(JSON.parse(String(called('t2_obyekt_nakrutka_v1')[0][1]?.body))).toMatchObject({ p_actor_id: 7, p_obyekt_id: 34 });
+  expect(ai).not.toHaveBeenCalled();
 });
-it('OpenRouter configured bo‘lsa Workers AI binding uni chetlab o‘tmaydi', async () => {
-  const worker = vi.fn(); m.ai.mockResolvedValue({ text: 'Dalilli javob', provider: 'openrouter', model: 'configured' });
-  const r = await (await run('Narxlar haqida tushuntir', 17, { OPENROUTER_API_KEY: 'test', AI: { run: worker } })).json() as { provider: string };
-  expect(r.provider).toBe('openrouter'); expect(worker).not.toHaveBeenCalled();
-  expect(m.ai.mock.calls[0][0].AI_PRIMARY_PROVIDER).toBe('openrouter');
-  expect(m.ai.mock.calls[0][5].text.replace(/\s/g, '')).toContain('241983934,96');
-  expect(m.ai.mock.calls[0].slice(1, 5)).toEqual([7, 17, 'company_access', 'jarvis_eski']);   // HISOBLI: actor + kompaniya + profil + amal
+it('smeta_pul ruxsati bo‘lmasa moliya RPCsi va model chaqirilmaydi', async () => {
+  categories = ['obyektlar'];
+  const r = await run('Sinov Bino smeta summasi QQS bilan qancha?');
+  expect(await r.json()).toMatchObject({ ok: true, rad: true });
+  expect(called('t2_obyekt_nakrutka_v1')).toHaveLength(0);
+  expect(ai).not.toHaveBeenCalled();
 });
-it('limit yo‘q/tugagan bo‘lsa 402 va tushunarli xabar (model hisobsiz chaqirilmaydi)', async () => {
-  m.ai.mockRejectedValue(new ByudjetXato('BYUDJET_YOQ', 'AI uchun oylik limit belgilanmagan'));
-  const r = await run('Narxlar haqida tushuntir', 17, { OPENROUTER_API_KEY: 'test' });
-  expect(r.status).toBe(402); expect(await r.json()).toMatchObject({ ok: false, code: 'BYUDJET_YOQ' });
+it('model taklifi eski chatdan yozilmaydi, chaqiruv hisobli', async () => {
+  const worker = vi.fn();
+  ai.mockResolvedValue({
+    text: JSON.stringify({ javob: 'Sinov javob', harakatlar: [{ amal: 'test', parametrlar: {}, tushuntirish: 'sinov', aniq: true }] }),
+    provider: 'openrouter', model: 'test',
+  });
+  const r = await run('Narxlar haqida tushuntir', 17, { mode: 'interactive' }, { AI: { run: worker } });
+  expect(await r.json()).toMatchObject({ ok: true, provider: 'openrouter', harakatlar: [], requires_approval: false });
+  expect(ai.mock.calls[0].slice(1, 5)).toEqual([7, 17, 'company_access', 'kasb_savol']);
+  expect(called('t2_agent_harakat_taklif_v1')).toHaveLength(0);
+  expect(called('t2_agent_jurnal_yoz_v1')).toHaveLength(0);
+  expect(worker).not.toHaveBeenCalled();
+});
+it('limit ishlamasa legacy 402 kontrakti saqlanadi', async () => {
+  ai.mockRejectedValue(new ByudjetXatosi('BYUDJET_YOQ', 'AI uchun oylik limit belgilanmagan'));
+  const r = await run('Narxlar haqida tushuntir');
+  expect(r.status).toBe(402);
+  expect(await r.json()).toMatchObject({ ok: false, code: 'BYUDJET_YOQ', xabar: expect.stringContaining('oylik limit') });
 });
 it('sessiyasiz help ham yopiq', async () => {
-  m.auth.mockResolvedValue(null); expect((await run('nimalar qila olasan')).status).toBe(401);
+  auth.mockResolvedValue(null);
+  expect((await run('nimalar qila olasan')).status).toBe(401);
 });

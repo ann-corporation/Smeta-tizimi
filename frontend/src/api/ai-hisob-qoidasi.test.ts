@@ -15,11 +15,11 @@ function fayllar(d: string): string[] {
 describe('AI hisob qoidasi', () => {
   it('aiCall( faqat hisobli o‘ramlarda ishlatiladi', () => {
     const buzilgan = fayllar(ILDIZ).map((p) => relative(ILDIZ, p).replace(/\\/g, '/')).filter((r) => !RUXSAT.has(r))
-      .filter((r) => /\baiCall\(/.test(readFileSync(join(ILDIZ, r), 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')));
+      .filter((r) => /\b(?:aiCall|aiXom)\(|\bAI\.run\(/.test(readFileSync(join(ILDIZ, r), 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')));
     expect(buzilgan).toEqual([]);
   });
   it('har model endpointi hisobli o‘ramni ishlatadi (ai-parse, ai-savol, smeta-ai, smeta-narx-agent, agent-ish, foto-ai, loyiha-ai-oqish)', () => {
-    for (const f of ['api/ai-parse.ts', 'api/ai-savol.ts', 'api/smeta-ai.ts', 'api/smeta-narx-agent.ts', 'api/agent-ish.ts', 'api/foto-ai.ts', 'api/loyiha-ai-oqish.ts']) {
+    for (const f of ['api/ai-parse.ts', '_shared/jarvis/chat.ts', 'api/smeta-ai.ts', 'api/smeta-narx-agent.ts', 'api/agent-ish.ts', 'api/foto-ai.ts', 'api/loyiha-ai-oqish.ts']) {
       expect(readFileSync(join(ILDIZ, f), 'utf8'), f).toMatch(/aiHisobli/);
     }
   });
