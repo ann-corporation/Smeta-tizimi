@@ -36,21 +36,16 @@ try {
     grant execute on function public.t2_agent_scope_guard_v1(bigint,bigint) to service_role;
   `);
   await db.exec(await sql('../migrations/20261218400000_t2_jarvis_suhbat_v1.sql'));
-  const migration = await sql('../../docs/architecture/jarvis-conversation-sync.sql');
-  const mutation = await sql('../../docs/architecture/jarvis-conversation-mutate.sql');
-  const archive = await sql('../../docs/architecture/jarvis-conversation-archive.sql');
+  const migration = await sql('../migrations/20270101002000_t2_jarvis_suhbat_sync_archive.sql');
   await db.exec('begin');
   await db.exec(migration);
-  await db.exec(mutation);
-  await db.exec(archive);
+  await db.exec(await sql('../migrations/20270101002000_t2_jarvis_suhbat_sync_archive.acceptance.sql'));
   await db.exec('rollback');
   const signature = 'public.t2_jarvis_suhbat_sync_v1(bigint,bigint,text,text)';
   const writeSignature = 'public.t2_jarvis_suhbat_mutate_v1(bigint,bigint,text,text,text,text,jsonb,uuid)';
   const registered = async () => (await db.query('select to_regprocedure($1) is not null as present', [signature])).rows[0].present;
   assert.equal(await registered(), false);
   await db.exec(migration);
-  await db.exec(mutation);
-  await db.exec(archive);
   for (const role of ['anon', 'authenticated', 'service_role']) {
     for (const target of [signature, writeSignature, 'public.t2_jarvis_suhbat_archive_pick_v1(integer)',
       'public.t2_jarvis_suhbat_archive_commit_v1(bigint,text,integer)',
@@ -166,7 +161,7 @@ try {
   assert.equal((await sync(7, 17)).royxat.length, 20);
   assert.equal((await sync(7, 17, 'synthetic-0')).suhbat.holat, 'changed');
   await db.exec('reset role');
-  const undo = await sql('../../docs/architecture/jarvis-conversation-sync.rollback.sql');
+  const undo = await sql('../migrations/20270101002000_t2_jarvis_suhbat_sync_archive.rollback.sql');
   await assert.rejects(() => db.exec(undo), /JARVIS_ARCHIVE_ROLLBACK_REQUIRES_RESTORE/);
   assert.equal(await registered(), true);
   const restore = async body => (await db.query(
