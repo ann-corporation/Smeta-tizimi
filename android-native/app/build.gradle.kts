@@ -19,18 +19,13 @@ android {
         // Tauri Android build: major*1e6+minor*1e3+patch (0.1.1 -> 1001). Start above it so a native release upgrades it in place.
         versionCode = 2_000_005
         // Format must match the server's ilovaVersiya() regex: d{1,4}.d{1,4}.d{1,6}
-<<<<<<< HEAD
-        versionName = "0.1.5"
+        versionName = "0.1.6"
         // Domain move (qurai.uz): ONE source for the API host. Canonical host first; the fallback list (comma separated, tried in order
         // on a network failure, see core/data/HostFallback.kt) keeps old/other hosts reachable. Override: -PapiBase=... -PapiFallbacks=...
         val apiBase = (project.findProperty("apiBase") as String?) ?: "https://qurai.uz"
         val apiFallbacks = (project.findProperty("apiFallbacks") as String?) ?: "https://smeta-tizimi.pages.dev"
         buildConfigField("String", "API_BASE_URL", "\"$apiBase\"")
         buildConfigField("String", "API_FALLBACK_URLS", "\"$apiFallbacks\"")
-=======
-        versionName = "0.1.6"
-        buildConfigField("String", "API_BASE_URL", "\"https://smeta-tizimi.pages.dev\"")
->>>>>>> origin/main
         resourceConfigurations += listOf("uz", "ru", "en")
     }
 
