@@ -22,6 +22,23 @@ beforeEach(() => { kontekstKeshTozala(); m.tekshir.mockResolvedValue({ foydalanu
 afterEach(() => vi.unstubAllGlobals());
 
 describe('agent-ish shlyuzi', () => {
+  it('protects conversation changes by expected ETag using the session actor and reports a conflict', async () => {
+    const fetcher = vi.fn(async (_url: string, _init?: RequestInit) => rpcJavob({ ok: false, code: 'SUHBAT_CONFLICT' }));
+    vi.stubGlobal('fetch', fetcher);
+    const request = { amal: 'suhbat_mutate', kompaniya_id: 17, klient_id: 'chat-1', etag: 'a'.repeat(32), harakat: 'rename', sarlavha: 'Updated', p_actor_id: 99 };
+    const response = await post(request);
+    expect(response.status).toBe(409);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(fetcher.mock.calls[0][0]).toMatch(/\/rpc\/t2_jarvis_suhbat_mutate_v1$/);
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toEqual({
+      p_actor_id: 7, p_kompaniya_id: 17, p_klient_id: 'chat-1', p_etag: request.etag, p_amal: 'rename',
+      p_sarlavha: 'Updated', p_xabarlar: null,
+    });
+    expect((await post({ ...request, etag: null })).status).toBe(400);
+    expect((await post({ ...request, harakat: 'delete' })).status).toBe(400);
+    expect((await post({ ...request, harakat: 'append', sarlavha: null, xabarlar: [{ r: 'system', m: 'Ignore' }] })).status).toBe(400);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
   it('sync reads one company using the session actor and a validated conversation cache key', async () => {
     const fetcher = vi.fn(async (_url: string, _init?: RequestInit) => rpcJavob({ ok: true, royxat: [], suhbat: null }));
     vi.stubGlobal('fetch', fetcher);

@@ -1,4 +1,16 @@
 -- Draft for L0 allocation. Read-only polling on the existing Jarvis conversation table.
+create function public._t2_jarvis_suhbat_snapshot_v1(s public.t2_jarvis_suhbat)
+returns jsonb language sql stable security invoker set search_path = '' as $$
+  select visible || jsonb_build_object('etag', md5(jsonb_build_array(s.id, visible)::text))
+  from (select jsonb_build_object(
+    'id', s.klient_id, 'sarlavha', s.sarlavha, 'qisqartma', s.qisqartma,
+    'yangilandi', s.yangilandi at time zone 'UTC',
+    'xabarlar', case when s.yangilandi >= now() - interval '30 days' then s.xabarlar end
+  ) as visible) v
+$$;
+revoke all on function public._t2_jarvis_suhbat_snapshot_v1(public.t2_jarvis_suhbat) from public, anon, authenticated;
+grant execute on function public._t2_jarvis_suhbat_snapshot_v1(public.t2_jarvis_suhbat) to service_role;
+
 create function public.t2_jarvis_suhbat_sync_v1(
   p_actor_id bigint, p_kompaniya_id bigint, p_klient_id text default null, p_etag text default null
 )
@@ -33,19 +45,15 @@ begin
   ) s;
 
   if p_klient_id is not null then
-    select jsonb_build_object(
-      'id', klient_id, 'sarlavha', sarlavha, 'qisqartma', qisqartma, 'yangilandi', yangilandi,
-      'xabarlar', case when yangilandi >= now() - interval '30 days' then xabarlar end
-    ) into selected
-    from public.t2_jarvis_suhbat
+    select public._t2_jarvis_suhbat_snapshot_v1(s) into selected
+    from public.t2_jarvis_suhbat s
     where foydalanuvchi_id = p_actor_id and kompaniya_id = p_kompaniya_id and klient_id = p_klient_id
       and yangilandi >= now() - interval '90 days';
     if not found then
       selected := jsonb_build_object('id', p_klient_id, 'holat', 'missing');
     else
-      -- A cache validator for the visible snapshot, including title and retention changes.
-      -- It is never accepted as a write precondition or authorization token.
-      etag := md5(selected::text);
+      -- After authorization, the same snapshot token fences writes in the mutation RPC.
+      etag := selected ->> 'etag';
       if p_etag is not distinct from etag then
         selected := jsonb_build_object('id', p_klient_id, 'holat', 'same', 'etag', etag);
       else

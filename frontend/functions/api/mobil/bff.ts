@@ -57,7 +57,7 @@ const amalRuxsat = (amallar: ReadonlySet<string>, method: string, body: unknown)
   try { const o = typeof body === 'string' ? JSON.parse(body) : body; return !!o && typeof o === 'object' && typeof (o as { amal?: unknown }).amal === 'string' && amallar.has((o as { amal: string }).amal); } catch { return false; }
 };
 /** /api/agent-ish also hosts admin/superadmin actions (models, budgets, rules, rivojlanish...): the device may reach ONLY the Jarvis chat (kasb_savol, same aiHisobli charging) and the server-side chat list/save (t2_jarvis_suhbat), identical to web. */
-export const MOBIL_AGENT_AMAL: ReadonlySet<string> = new Set(['kasb_savol','suhbat_sync','suhbat_royxat','suhbat_ol','suhbat_saqla','suhbat_ochir']);
+export const MOBIL_AGENT_AMAL: ReadonlySet<string> = new Set(['kasb_savol','suhbat_sync','suhbat_mutate','suhbat_royxat','suhbat_ol','suhbat_saqla','suhbat_ochir']);
 export const MOBIL_BFF_MAX_BYTES = 2 * 1024 * 1024;
 
 async function boundedBody(request: Request): Promise<string> {

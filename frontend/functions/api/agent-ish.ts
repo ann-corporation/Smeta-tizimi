@@ -431,6 +431,29 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
       p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: id ?? null, p_etag: etag ?? null,
     }));
   }
+  if (amal === 'suhbat_mutate') {
+    if (kid == null) return xato('Kompaniyani tanlang', 422);
+    const { klient_id: id, etag, harakat, sarlavha, xabarlar } = so;
+    if (typeof id !== 'string' || !/^[A-Za-z0-9_.-]{1,40}$/.test(id) ||
+        typeof etag !== 'string' || !/^[a-f0-9]{32}$/.test(etag) ||
+        (harakat !== 'append' && harakat !== 'rename' && harakat !== 'delete')) return xato('Suhbat o‘zgarishi noto‘g‘ri');
+    if (harakat === 'rename' ? typeof sarlavha !== 'string' || !sarlavha.trim() || sarlavha.length > 80 : sarlavha != null) {
+      return xato('Suhbat sarlavhasi noto‘g‘ri');
+    }
+    if (harakat === 'append') {
+      if (!Array.isArray(xabarlar) || xabarlar.length < 1 || xabarlar.length > 12 || !xabarlar.every(x =>
+        x && (x.r === 'user' || x.r === 'ai') && typeof x.m === 'string' && x.m.length <= 800 && [...x.m].length <= 400 && !!x.m.trim()
+      )) return xato('Suhbat xabarlari noto‘g‘ri');
+    } else if (xabarlar != null) return xato('Bu amal xabarlarni o‘zgartirmaydi');
+    const result = await rpcData(env, 't2_jarvis_suhbat_mutate_v1', {
+      p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: id, p_etag: etag, p_amal: harakat,
+      p_sarlavha: sarlavha ?? null,
+      p_xabarlar: Array.isArray(xabarlar) ? xabarlar.map(x => ({ r: x.r, m: x.m })) : null,
+    });
+    if (result.data.code === 'SUHBAT_CONFLICT') return Response.json(result.data, { status: 409, ...JAVOB });
+    if (result.data.code === 'SUHBAT_NOT_FOUND') return Response.json(result.data, { status: 404, ...JAVOB });
+    return chiqar(result);
+  }
   if (amal === 'suhbat_royxat' || amal === 'suhbat_ol' || amal === 'suhbat_saqla' || amal === 'suhbat_ochir') {
     if (kid == null) return xato('Kompaniyani tanlang', 422);
     const klient = String(so.klient_id ?? '');
