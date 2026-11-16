@@ -1,0 +1,42 @@
+name: tajriba-tungi
+
+# Tungi tajriba indeksi (R2): tasdiqlangan smetalar va Studio tanlovlaridan ILGARI KO'RILMAGANLARI indeksga qo'shiladi
+# (frontend/functions/_shared/tajriba-tick.ts; indeks R2 normativ/tajriba/v1/ da, bazada emas). Postgres R2 ga yoza olmaydi -
+# shu workflow Pages Function /api/tajriba-tick ni chaqiradi. Oyna 21:00-24:00 UTC (endpoint ham tekshiradi).
+# Sirlar arxiv-tungi / telegram-kunlik bilan bir xil: BILDIRISHNOMA_CRON_KALIT + repo o'zgaruvchisi PROD_URL. Sozlanmasa ish jim o'tkazib yuboriladi.
+# Chaqiruv <= 5 obyekt + <= 500 tanlov; "qoldi":true bo'lsa davom etadi; <= 40 chaqiruv.
+on:
+  schedule:
+    - cron: '50 21 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tajriba-tungi
+  cancel-in-progress: false
+
+jobs:
+  tajriba:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      BILDIRISHNOMA_CRON_KALIT: ${{ secrets.BILDIRISHNOMA_CRON_KALIT }}
+      PROD_URL: ${{ vars.PROD_URL }}
+    steps:
+      - name: Tajriba indeksini yangilash
+        run: |
+          if [ -z "$BILDIRISHNOMA_CRON_KALIT" ] || [ -z "$PROD_URL" ]; then
+            echo "BILDIRISHNOMA_CRON_KALIT yoki PROD_URL sozlanmagan - o'tkazib yuborildi."; exit 0
+          fi
+          for i in $(seq 1 40); do
+            code=$(curl -sS -o resp.json -w '%{http_code}' -X POST "$PROD_URL/api/tajriba-tick" \
+              -H 'Content-Type: application/json' -H "X-Cron-Kalit: $BILDIRISHNOMA_CRON_KALIT" \
+              --data '{}' --max-time 120 || echo 000)
+            echo "HTTP $code"; head -c 300 resp.json; echo
+            if [ "$code" != "200" ]; then echo "::warning::tajriba-tungi muvaffaqiyatsiz (HTTP $code)"; exit 0; fi
+            grep -q '"qoldi":true' resp.json || break
+            grep -q '"oyna":false' resp.json && break
+            sleep 5
+          done

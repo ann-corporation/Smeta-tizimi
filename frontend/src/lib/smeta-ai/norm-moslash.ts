@@ -19,6 +19,7 @@ import { uzRuAlias } from './norm-lugat';
 import { kodKalit } from './resurs-kalit';
 import { qisqartmaOch, sinonimlar } from './norm-sinonim';
 import { xotiraBall, type Xotira } from './norm-xotira';
+import { tajribaOl, type TajribaIndeks, type TajribaNomzod } from './tajriba-qidir';
 
 export type NormManba = {
   allWorks(): NormWork[];
@@ -43,6 +44,8 @@ export type IshSorovi = {
   sonlarMatn?: string | null;
   /** Company memory (compact counters): a code confirmed before for similar text is retrieved and ranked first. */
   xotira?: Xotira | null;
+  /** Experience index (exemplars of approved smetas): a code used before for a similar wording is a first-stage candidate. Default: the loaded one. */
+  tajriba?: TajribaIndeks | null;
 };
 
 export type MoslashNomzod = { id: string; kod: string; nom: string; birlik: string | null; jadval: string | null; toplam: string | null;
@@ -115,7 +118,7 @@ const TAMIR_SOZ = /ремонт|восстанов|реконструкц|ta['�
 
 /** Re-rank weights (tuned on half of the approved smetas by file, checked on the other half; see the eval report). */
 export const OGIRLIK = { bm: 0.15, mos: 0.45, birlik: 0.12, sonYes: 0.08, sonNo: 0.10, extra: 0.015, extraMax: 0.06, boshi: 0.06,
-  bolim: 0.08, maxsus: 0.22, tamir: 0.18, qoshni: 0.07, prec: 0.10, bigram: 0.26, tabRef: 0.30, xotira: 0.10 };
+  bolim: 0.08, maxsus: 0.22, tamir: 0.18, qoshni: 0.07, prec: 0.10, bigram: 0.26, tabRef: 0.30, xotira: 0.10, tajriba: 0.30 };
 export type Ogirlik = typeof OGIRLIK;
 
 type Hujjat = { w: NormWork; coll: string; kodK: string; jadvalK: string; birlik: Set<Asos>; sonlar: string[]; boshi: string | null; stems: Set<string>; bigrams: Set<string> };
@@ -125,7 +128,8 @@ type Hit = { d: Hujjat; z: number; mos: number; sabab: string[]; birlik: boolean
 export type Kontekst = { smeta: Set<Asos>; tamir: boolean; hint: Set<string>; qSon: string[]; qBosh: string | null; qoshni: Map<string, number>;
   qStems: Set<string>; qBigrams: Set<string>; hits: Array<{ id: number; ball: number; mos: number }>;
   /** Tables the line itself points to («К НОРМЕ 11-01-011-01»): canonical «Е11-1-11». */ tabRefs: Set<string>;
-  /** Company memory score per canonical code. */ xotira: Map<string, number>; iboralar: string[] };
+  /** Company memory score per canonical code. */ xotira: Map<string, number>; iboralar: string[];
+  /** Experience-index candidates per canonical code (exemplars of approved smetas). */ tajriba?: Map<string, TajribaNomzod> };
 
 export class NormMoslash {
   private idx: MatnIndeks;
@@ -194,9 +198,13 @@ export class NormMoslash {
     const qosh = (i: number, ball: number) => { if (!mavjud.has(i)) { mavjud.add(i); hits.push({ id: i, ball, mos: 0.5 }); } };
     for (const key of tabRefs) for (const i of this.jadvalIdx.get(key) ?? []) qosh(i, top * 0.6);
     for (const [kod, s] of xotira) if (s >= 0.5) for (const i of this.kodIdx.get(kod) ?? []) qosh(i, top * 0.7);
+    // Exemplar kNN: codes the estimators actually used for similar wordings join the candidates BEFORE the re-rank.
+    const tj = (q.tajriba === undefined ? tajribaOl() : q.tajriba)?.qidir({ nom: asosiy, birlik: q.birlik, bolim: q.bolim, qoshni: q.qoshni }, 8);
+    const tajriba = new Map<string, TajribaNomzod>((tj ?? []).map(x => [x.kod, x]));
+    for (const [kod, x] of tajriba) if (x.ball >= 0.4) for (const i of this.kodIdx.get(kod) ?? []) qosh(i, top * 0.7);
     return { smeta: birlikAsoslari(q.birlik), tamir: TAMIR_SOZ.test(`${asosiy} ${(q.bolim ?? []).join(' ')} ${q.tavsif ?? ''}`),
       hint: this.bolimToplamlari(q), qSon: sonlar(`${asosiy} ${q.sonlarMatn ?? ''}`), qBosh: qst[0] ?? null, qoshni, qStems: new Set(qst), qBigrams: bigramlar(qst),
-      hits, tabRefs, xotira, iboralar };
+      hits, tabRefs, xotira, iboralar, tajriba };
   }
 
   /**
@@ -244,6 +252,7 @@ export class NormMoslash {
       if (qoshniJami) { const s = (k.qoshni.get(d.coll) ?? 0) / qoshniJami; if (s > 0) { z += og.qoshni * Math.min(1, 0.5 + s); sabab.push("qo'shni qatorlar mos"); } }
       if (k.tabRefs.has(d.jadvalK)) { z += og.tabRef; sabab.push('jadval shifri qatorda'); }
       const xb = k.xotira.get(d.kodK); if (xb) { z += og.xotira * xb; sabab.push('kompaniya tajribasi'); }
+      const tb = k.tajriba?.get(d.kodK); if (tb) { z += og.tajriba * tb.ball; sabab.push(tb.sabab); }
       if (MAXSUS.has(d.coll) && !k.hint.has(d.coll)) z -= og.maxsus;
       if (TAMIR(d.coll) && !k.tamir) z -= og.tamir;
       out.push({ d, z, mos: h.mos, sabab, birlik: bm });

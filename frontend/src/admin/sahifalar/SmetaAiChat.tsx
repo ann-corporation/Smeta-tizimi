@@ -41,6 +41,7 @@ async function ilovaTayyorla(f: File): Promise<Ilova> {
 }
 import { manbaMaterialiniTekshir, suhbatJavobiniTekshir, type SuhbatXabari, type TanlovNomzodi, type TanlovSorovi } from '../../lib/smeta-ai/protokol';
 import { xotiraOl, xotiraSaqla, xotiraYoz } from '../../lib/smeta-ai/norm-xotira';
+import { tajribaYukla } from '../../lib/smeta-ai/tajriba-yukla';
 import { avtoTanlov, birlashtir, katalogSahifasi, kichikNomzodlar, nomzodlarTop, smetagaQoshish, xotiraMatni, tanlovSorovi, tanlovDalili, tanlovZidmi, tasdiqKerak, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
 import { ifodaHisobla } from '../../lib/smeta-ai/ifoda';
 import { foundationReference } from '../../lib/smeta-ai/normative-reference';
@@ -104,6 +105,8 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
   const [xotiraOchiq, setXotiraOchiq] = useState(false);
   const xotiraYangila = useCallback((kid: number) => smetaXotirasi(kid).then(x => { if (tirik.current) { setXotira(x.yozuvlar); setSuperadmin(x.superadmin); } }), []);
   useEffect(() => { if (kompaniyaId != null) void xotiraYangila(kompaniyaId); }, [kompaniyaId, xotiraYangila]);
+  // Experience index (exemplars of approved smetas, R2): a first-stage candidate source for norm matching; silent when not published yet.
+  useEffect(() => { if (kompaniyaId != null) void tajribaYukla(kompaniyaId); }, [kompaniyaId]);
   const [amallar, setAmallar] = useState<Array<AgentAmal & { tanlangan: boolean; ogoh: string | null }>>([]);
   const sourceScope = katalog?.manifest.revision === COEFFICIENT_SOURCE_REVISION ? `:norm-library:${COEFFICIENT_SOURCE_REVISION}` : '';
   const kalit = saqlashKalit(`${kompaniyaId}:${doc.draftId}${sourceScope}`);
