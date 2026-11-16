@@ -302,11 +302,10 @@ fun WebModuleScreen(title: String, onBack: () -> Unit, vm: WebModuleViewModel = 
                     Icons.Filled.Warning,
                     stringResource(if (s.offline) R.string.p1_objects_offline_empty else R.string.hub_web_soon),
                     stringResource(if (s.offline) R.string.err_network else R.string.hub_web_soon_hint),
-                    stringResource(if (s.offline) R.string.retry else R.string.hub_web_open_browser),
-                ) {
-                    if (s.offline) vm.load()
-                    else runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.API_BASE_URL.trimEnd('/') + vm.path)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-                }
+                    stringResource(R.string.retry),
+                    secondaryLabel = if (s.offline) null else stringResource(R.string.hub_web_open_browser),
+                    onSecondary = { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.API_BASE_URL.trimEnd('/') + vm.path)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } },
+                ) { vm.load() }
                 is WebState.Ready -> PullToRefreshBox(isRefreshing = refreshing, onRefresh = { refreshing = true; web?.reload() }, modifier = Modifier.fillMaxSize()) {
                     AndroidView(
                         modifier = Modifier.fillMaxSize(),

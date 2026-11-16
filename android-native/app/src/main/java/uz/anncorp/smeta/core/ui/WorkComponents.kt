@@ -95,12 +95,13 @@ fun UpdatedLine(ms: Long?, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun CenterMessage(icon: ImageVector?, title: String, body: String? = null, actionLabel: String? = null, modifier: Modifier = Modifier, onAction: (() -> Unit)? = null) {
+fun CenterMessage(icon: ImageVector?, title: String, body: String? = null, actionLabel: String? = null, modifier: Modifier = Modifier, secondaryLabel: String? = null, onSecondary: (() -> Unit)? = null, onAction: (() -> Unit)? = null) {
     Column(modifier.fillMaxSize().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         if (icon != null) { Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(40.dp).height(40.dp)); Spacer(Modifier.height(12.dp)) }
         Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center)
         if (body != null) { Spacer(Modifier.height(6.dp)); Text(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center) }
         if (actionLabel != null && onAction != null) { Spacer(Modifier.height(12.dp)); Button(onClick = onAction, modifier = Modifier.heightIn(min = TouchTarget)) { Text(actionLabel) } }
+        if (secondaryLabel != null && onSecondary != null) { Spacer(Modifier.height(4.dp)); TextButton(onClick = onSecondary, modifier = Modifier.heightIn(min = TouchTarget)) { Text(secondaryLabel) } }
     }
 }
 
