@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -37,9 +38,11 @@ try {
   await db.exec(await sql('../migrations/20261218400000_t2_jarvis_suhbat_v1.sql'));
   const migration = await sql('../../docs/architecture/jarvis-conversation-sync.sql');
   const mutation = await sql('../../docs/architecture/jarvis-conversation-mutate.sql');
+  const archive = await sql('../../docs/architecture/jarvis-conversation-archive.sql');
   await db.exec('begin');
   await db.exec(migration);
   await db.exec(mutation);
+  await db.exec(archive);
   await db.exec('rollback');
   const signature = 'public.t2_jarvis_suhbat_sync_v1(bigint,bigint,text,text)';
   const writeSignature = 'public.t2_jarvis_suhbat_mutate_v1(bigint,bigint,text,text,text,text,jsonb,uuid)';
@@ -47,8 +50,11 @@ try {
   assert.equal(await registered(), false);
   await db.exec(migration);
   await db.exec(mutation);
+  await db.exec(archive);
   for (const role of ['anon', 'authenticated', 'service_role']) {
-    for (const target of [signature, writeSignature]) {
+    for (const target of [signature, writeSignature, 'public.t2_jarvis_suhbat_archive_pick_v1(integer)',
+      'public.t2_jarvis_suhbat_archive_commit_v1(bigint,text,integer)',
+      'public.t2_jarvis_suhbat_archive_restore_v1(bigint,text)']) {
       const { rows } = await db.query("select has_function_privilege($1,$2,'execute') as allowed", [role, target]);
       assert.equal(rows[0].allowed, role === 'service_role');
     }
@@ -63,17 +69,33 @@ try {
   `);
   await db.exec('begin read only; set local role service_role');
   const first = await sync(7, 17, 'current');
-  assert.deepEqual(first.royxat.map(row => [row.id, row.toliq]), [['current', true], ['old', false]]);
+  assert.deepEqual(first.royxat.map(row => [row.id, row.toliq]), [['current', true], ['old', true], ['expired', true]]);
   assert.equal(first.suhbat.holat, 'changed');
   assert.equal(first.suhbat.xabarlar[0].m, 'Synthetic request');
   assert.deepEqual((await sync(7, 17, 'current', first.suhbat.etag)).suhbat, { id: 'current', holat: 'same', etag: first.suhbat.etag });
-  assert.equal((await sync(7, 17, 'old')).suhbat.xabarlar, null);
-  assert.deepEqual((await sync(7, 17, 'expired')).suhbat, { id: 'expired', holat: 'missing' });
+  assert.equal((await sync(7, 17, 'old')).suhbat.xabarlar.length, 1);
+  assert.equal((await sync(7, 17, 'expired')).suhbat.xabarlar.length, 1);
   assert.equal((await sync(8, 17, 'current')).suhbat.sarlavha, 'Other actor');
   assert.deepEqual(await sync(7, 99, 'current'), { ok: false, code: 'COMPANY_ACCESS_DENIED' });
   assert.deepEqual(await sync(7, 17, '$invalid'), { ok: false, code: 'SUHBAT_INVALID' });
   await db.exec('rollback');
   await db.exec('set role service_role');
+  const candidates = (await db.query('select public.t2_jarvis_suhbat_archive_pick_v1(10) as rows')).rows[0].rows;
+  assert.equal(candidates.length, 1);
+  const cold = candidates[0];
+  const bytes = Buffer.byteLength(cold.body);
+  const sha = createHash('sha256').update(cold.body).digest('hex');
+  const commit = async (length, digest) => (await db.query(
+    'select public.t2_jarvis_suhbat_archive_commit_v1($1,$2,$3) as r', [cold.row, digest, length],
+  )).rows[0].r;
+  assert.deepEqual(await commit(bytes, '0'.repeat(64)), { ok: true, archived: false });
+  assert.deepEqual(await commit(bytes - 1, sha), { ok: true, archived: false });
+  assert.deepEqual(await commit(bytes, sha), { ok: true, archived: true });
+  assert.deepEqual(await commit(bytes, sha), { ok: true, archived: false });
+  const frozen = (await sync(7, 17, 'expired')).suhbat;
+  assert.equal(frozen.xabarlar, null);
+  assert.deepEqual(frozen.archive, { row: cold.row, sha256: sha, bytes });
+  assert.equal((await sync(8, 17, 'expired')).suhbat.holat, 'missing');
   const rename = await mutate(7, 17, 'current', first.suhbat.etag, 'rename', 'Renamed');
   assert.equal(rename.ok, true);
   const changed = await sync(7, 17, 'current', first.suhbat.etag);
@@ -141,10 +163,20 @@ try {
   for (let index = 0; index <= 20; index++) {
     assert.equal((await mutate(7, 17, `synthetic-${index}`, null, 'create', 'Synthetic', message)).ok, true);
   }
-  assert.equal((await db.query('select count(*)::int as total from public.t2_jarvis_suhbat where foydalanuvchi_id=7 and kompaniya_id=17')).rows[0].total, 20);
-  assert.deepEqual(await mutate(7, 17, 'synthetic-0', null, 'create', 'Synthetic', message), { ok: false, code: 'SUHBAT_NOT_FOUND' });
+  assert.equal((await sync(7, 17)).royxat.length, 20);
+  assert.equal((await sync(7, 17, 'synthetic-0')).suhbat.holat, 'changed');
   await db.exec('reset role');
-  await db.exec(await sql('../../docs/architecture/jarvis-conversation-sync.rollback.sql'));
+  const undo = await sql('../../docs/architecture/jarvis-conversation-sync.rollback.sql');
+  await assert.rejects(() => db.exec(undo), /JARVIS_ARCHIVE_ROLLBACK_REQUIRES_RESTORE/);
+  assert.equal(await registered(), true);
+  const restore = async body => (await db.query(
+    'select public.t2_jarvis_suhbat_archive_restore_v1($1,$2) as r', [cold.row, body],
+  )).rows[0].r;
+  assert.deepEqual(await restore(cold.body.replace('Hidden', 'Broken')), { ok: true, restored: false });
+  assert.deepEqual(await restore(cold.body), { ok: true, restored: true });
+  await db.exec(undo);
+  await db.query('select public._t2_jarvis_suhbat_tozala($1,$2)', [7, 17]);
+  assert.equal((await db.query('select xabarlar from public.t2_jarvis_suhbat where id=$1', [cold.row])).rows[0].xabarlar.length, 1);
   assert.equal(await registered(), false);
   assert.equal((await db.query('select to_regprocedure($1) as procedure', [writeSignature])).rows[0].procedure, null);
   assert.equal((await db.query("select to_regclass('public.t2_jarvis_suhbat_create_receipt') as receipt")).rows[0].receipt, null);

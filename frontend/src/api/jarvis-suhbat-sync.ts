@@ -4,7 +4,7 @@ type Message = { r: 'user' | 'ai'; m: string };
 type ActiveSnapshot =
   | { id: string; holat: 'missing' }
   | { id: string; holat: 'same'; etag: string }
-  | { id: string; holat: 'changed'; etag: string; sarlavha: string; xabarlar: Message[] | null; qisqartma: string | null };
+  | { id: string; holat: 'changed'; etag: string; sarlavha: string; xabarlar: Message[] | null; qisqartma: string | null; arxivlangan?: true };
 export type ConversationSync = { royxat: ServerSuhbat[]; suhbat: ActiveSnapshot | null };
 type Cursor = { id: string; etag: string | null };
 const idPattern = /^[a-zA-Z0-9_.-]{1,40}$/;
@@ -35,7 +35,8 @@ export function parseConversationSync(value: unknown, cursor: Cursor | null): Co
   if (row.holat !== 'changed' || typeof row.sarlavha !== 'string' ||
       !(row.qisqartma === null || typeof row.qisqartma === 'string') ||
       !(row.xabarlar === null || (Array.isArray(row.xabarlar) && row.xabarlar.length <= 12 && row.xabarlar.every(validMessage)))) return null;
-  return { royxat, suhbat: { id: cursor.id, holat: 'changed', etag: row.etag, sarlavha: row.sarlavha, xabarlar: row.xabarlar, qisqartma: row.qisqartma } };
+  return { royxat, suhbat: { id: cursor.id, holat: 'changed', etag: row.etag, sarlavha: row.sarlavha, xabarlar: row.xabarlar, qisqartma: row.qisqartma,
+    ...(row.arxivlangan === true ? { arxivlangan: true as const } : {}) } };
 }
 
 export async function syncJarvisConversation(company: number, cursor: Cursor | null, signal: AbortSignal): Promise<ConversationSync | null> {

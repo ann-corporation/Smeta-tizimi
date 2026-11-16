@@ -343,7 +343,7 @@ class JarvisViewModel @Inject constructor(
 
     private fun applySnapshot(id: String, snapshot: ChatSnapshot.Changed, selected: Boolean) {
         cursor = ChatCursor(id, snapshot.etag)
-        summaryOnly = snapshot.messages == null
+        summaryOnly = snapshot.messages == null || snapshot.archived
         val messages = snapshot.messages ?: snapshot.summary?.takeIf { it.isNotBlank() }?.let { listOf(ChatMsg(false, it)) }.orEmpty()
         _ui.update {
             val bubbles = if (!selected && toMessages(it.bubbles) == messages) it.bubbles else toBubbles(messages)

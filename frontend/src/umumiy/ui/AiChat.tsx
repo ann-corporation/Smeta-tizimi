@@ -425,7 +425,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     }
     const messages = remote.xabarlar ?? (remote.qisqartma ? [{ r: 'ai' as const, m: t('Eski suhbat (qisqartma)') + ': ' + remote.qisqartma }] : []);
     const next = messages.map((x, i) => ({ id: requestId + '-' + i, rol: x.r, matn: x.m, jarvis: x.r === 'ai' }));
-    if (remote.xabarlar === null) qisqartmaDan.current = requestId;
+    if (remote.xabarlar === null || remote.arxivlangan) qisqartmaDan.current = requestId;
     else qisqartmaDan.current = null;
     remoteAnchor.current = { id: requestId, etag: remote.etag, count: next.length, base: remote.xabarlar ?? [] };
     yuklanganImzo.current = xabarImzo(next);
@@ -513,7 +513,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     const toLiq = !!r.xabarlar;
     const x = r.xabarlar ?? (r.qisqartma ? [{ r: 'ai' as const, m: `${t('Eski suhbat (qisqartma)')}: ${r.qisqartma}` }] : []);
     suhbatToxtat();
-    suhbatId.current = s.id; qisqartmaDan.current = toLiq || !x.length ? null : s.id;
+    suhbatId.current = s.id; qisqartmaDan.current = r.arxivlangan || (!toLiq && x.length) ? s.id : null;
     remoteAnchor.current = { id: s.id, etag: null, count: x.length, base: r.xabarlar ?? [] };
     if (tarixKalit) {
       try { sessionStorage.removeItem(tarixKalit); sessionStorage.removeItem(tarixKalit + ':id'); } catch { /* storage off */ }

@@ -108,7 +108,6 @@ begin
   end if;
   select * into current_row from public.t2_jarvis_suhbat
   where foydalanuvchi_id = p_actor_id and kompaniya_id = p_kompaniya_id and klient_id = p_klient_id
-    and yangilandi >= now() - interval '90 days'
   for update;
   if not found then
     return jsonb_build_object('ok', false, 'code', 'SUHBAT_NOT_FOUND');

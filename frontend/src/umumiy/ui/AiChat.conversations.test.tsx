@@ -342,8 +342,11 @@ it('merely opening a local conversation neither re-sends it nor bumps its timest
  m.ask.mockResolvedValue({ok:true,javob:'OK'});send('Yana');await tick(0);await tick(1500);expect(m.save).toHaveBeenCalledTimes(1);expect(m.save.mock.calls[0][1]).toBe('a');
 });
 
-it('a summary-only server conversation is never uploaded as the original, and a new message forks it',async()=>{
- vi.useFakeTimers();m.list.mockResolvedValue([{id:'remote',sarlavha:'Remote',yangilandi:new Date().toISOString()}]);m.load.mockResolvedValue({qisqartma:'SUMMARY'});
+it.each([
+ {qisqartma:'SUMMARY'},
+ {xabarlar:[{r:'ai',m:'SUMMARY'}],arxivlangan:true},
+])('continues a summary or archived server conversation with a new id',async snapshot=>{
+ vi.useFakeTimers();m.list.mockResolvedValue([{id:'remote',sarlavha:'Remote',yangilandi:new Date().toISOString()}]);m.load.mockResolvedValue(snapshot);
  render(view());await tick(0);choose('remote');await tick(0);expect(screen.getByText(/SUMMARY/,{selector:'p'})).toBeTruthy();
  await tick(3000);expect(m.save).not.toHaveBeenCalled();
  m.ask.mockResolvedValue({ok:true,javob:'OK'});send('Davom');await tick(0);await tick(1500);

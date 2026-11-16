@@ -6,6 +6,7 @@ vi.mock('../_shared/auth', () => ({ tekshir: m.tekshir }));
 import { buyruqIssueMatni, izTozala, onRequestGet, onRequestPost } from './agent-ish';
 import { mijozNarxKeshTozala } from '../_shared/ai-mijoz-narx';
 import { kontekstKeshTozala } from '../_shared/agent-kontekst-kesh';
+import { sha256Hex } from '../_shared/r2-saqlash';
 
 const env = (o: Record<string, unknown> = {}) => ({ SUPABASE_URL: 'https://x.supabase.co', SUPABASE_KEY: 'svc', SESSIYA_KALIT: 's', AGENT_ISH_YOQILGAN: '1', GROQ_API_KEY: 'g', ...o });
 /** Platforma superadmini (middleware bazadan olgan vakolat) — model katalogi/ustama kabi tizim amallari faqat shunga. */
@@ -22,6 +23,29 @@ beforeEach(() => { kontekstKeshTozala(); m.tekshir.mockResolvedValue({ foydalanu
 afterEach(() => vi.unstubAllGlobals());
 
 describe('agent-ish shlyuzi', () => {
+  it('hydrates an authorized archived chat with verified R2 text and keeps the storage pointer private', async () => {
+    const turns = [{ r: 'ai', m: 'Synthetic archived text' }];
+    const bytes = new TextEncoder().encode(JSON.stringify({ v: 1, row: '9', turns }));
+    const sha256 = await sha256Hex(bytes);
+    const r2 = { get: vi.fn(async () => ({ size: bytes.byteLength, arrayBuffer: async () => bytes.buffer })) };
+    const cold = { id: 'old-chat', sarlavha: 'Old chat', holat: 'changed', etag: 'a'.repeat(32),
+      qisqartma: 'Synthetic summary', xabarlar: null, archive: { row: '9', sha256, bytes: bytes.byteLength } };
+    vi.stubGlobal('fetch', vi.fn(async (url: string) =>
+      rpcJavob(url.endsWith('suhbat_ol_v1') ? { ok: true, xabarlar: null } : { ok: true, royxat: [], suhbat: cold })));
+    const request = { amal: 'suhbat_sync', kompaniya_id: 17, klient_id: cold.id };
+    const res = await post(request, env({ R2_CANONICAL: r2 }));
+    const visible = (await res.json() as { suhbat: unknown }).suhbat;
+    expect(visible).toMatchObject({ xabarlar: turns, arxivlangan: true });
+    expect(visible).not.toHaveProperty('archive');
+    expect(r2.get).toHaveBeenCalledWith(`jarvis-history/v1/9/${sha256}.json`);
+    const legacy = await post({ ...request, amal: 'suhbat_ol' }, env({ R2_CANONICAL: r2 }));
+    expect(await legacy.json()).toEqual({ ok: true, xabarlar: turns, arxivlangan: true });
+    const corrupted = await post({ ...request, klient_id: 'different' }, env({ R2_CANONICAL: r2 }));
+    expect(corrupted.status).toBe(503);
+    expect(r2.get).toHaveBeenCalledTimes(2);
+    const missing = await post(request);
+    expect(await missing.json()).toEqual({ ok: false, code: 'JARVIS_ARCHIVE_UNAVAILABLE' });
+  });
   it('passes append operation IDs to the scoped RPC and rejects an ID on rename', async () => {
     const fetcher = vi.fn(async (_url: string, _init?: RequestInit) => rpcJavob({ ok: true, id: 'chat-1', etag: 'b'.repeat(32) }));
     vi.stubGlobal('fetch', fetcher);

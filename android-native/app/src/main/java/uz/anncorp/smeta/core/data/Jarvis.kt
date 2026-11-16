@@ -35,7 +35,7 @@ data class ChatCursor(val id: String, val etag: String? = null)
 sealed interface ChatSnapshot {
     data object Missing : ChatSnapshot
     data object Same : ChatSnapshot
-    data class Changed(val etag: String, val messages: List<ChatMsg>?, val summary: String?) : ChatSnapshot
+    data class Changed(val etag: String, val messages: List<ChatMsg>?, val summary: String?, val archived: Boolean = false) : ChatSnapshot
 }
 data class ChatSync(val chats: List<ChatInfo>, val active: ChatSnapshot?)
 
@@ -164,7 +164,7 @@ class JarvisRepository(private val api: BffApi) {
                         }
                         else -> return null
                     }
-                    ChatSnapshot.Changed(tag, messages, summary)
+                    ChatSnapshot.Changed(tag, messages, summary, (row["arxivlangan"] as? JsonPrimitive)?.booleanOrNull == true)
                 }
                 else -> return null
             }

@@ -8,7 +8,7 @@ type Turn = { r: 'user' | 'ai'; m: string };
 type Chat = { id: string; sarlavha: string };
 type Snapshot =
   | { id: string; holat: 'missing' }
-  | { id: string; holat: 'changed'; etag: string; xabarlar: Turn[] | null; qisqartma: string | null };
+  | { id: string; holat: 'changed'; etag: string; xabarlar: Turn[] | null; qisqartma: string | null; arxivlangan?: true };
 type Sync = { ok?: boolean; royxat?: Chat[]; suhbat?: Snapshot };
 type Target = { company: number; id: string; mode: 'n' | 'o' };
 export type JarvisBotReply = { matn: string; options?: Record<string, unknown>; transcript?: string[] };
@@ -91,6 +91,7 @@ export async function telegramJarvisSelect(env: TgEnv, actor: number, telegram: 
       page = page ? page + '\n\n' + line : line;
     }
     if (page) transcript.push(page);
+    if (chat.arxivlangan) return { matn: tgT('Arxiv suhbati. Davom etish uchun /jarvis orqali yangi suhbat oching.', til), transcript };
     const entry = await prompt(env, actor, telegram, til, { company, id, mode: 'o' }, name);
     return { ...entry, transcript };
   }
@@ -122,7 +123,7 @@ export async function telegramJarvisReply(
   const chat = r.body?.suhbat;
   if (!sent(r.status) || r.body?.ok !== true || chat?.id !== id) return unavailable(til);
   if (chat.holat === 'missing' ? mode !== 'n' :
-    chat.holat !== 'changed' || !validTurns(chat.xabarlar) || !VERSION.test(chat.etag)) return unavailable(til);
+    chat.holat !== 'changed' || chat.arxivlangan || !validTurns(chat.xabarlar) || !VERSION.test(chat.etag)) return unavailable(til);
   const tarix = chat.holat === 'changed' ? chat.xabarlar?.slice(-6).map(x => ({ rol: x.r === 'user' ? 'user' : 'assistant', matn: x.m })) : [];
   const answer = await call<{ ok?: boolean; javob?: string; xabar?: string; error?: string; sahifalar?: Array<{ yol?: string }> }>(env, actor,
     { amal: 'kasb_savol', kompaniya_id: company, savol, tarix, sahifa: '/telegram/jarvis' });

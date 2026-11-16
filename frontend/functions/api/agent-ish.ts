@@ -32,8 +32,9 @@ import { baholash, javobNarxi, openrouterModellar, tavsiyaEtilgan, TALAB } from 
 import { openrouterBalans } from '../_shared/openrouter-balans';
 import { AI_TIZIM_AMALLAR, aiJavobTozala, platformaSuperadminmi } from '../_shared/tizim-maxfiy';
 import { mijozNarxParam, modellarMijozga, orQatorMijozga } from '../_shared/ai-mijoz-narx';
+import { jarvisArchiveRead } from '../_shared/jarvis-conversation-archive';
 
-type Env = AiEnv & { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; KUZATUV_KALIT?: string; KUZATUV_ACTOR_ID?: string; AGENT_ISH_YOQILGAN?: string; GITHUB_AGENT_TOKEN?: string; GITHUB_REPO?: string };
+type Env = AiEnv & { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; KUZATUV_KALIT?: string; KUZATUV_ACTOR_ID?: string; AGENT_ISH_YOQILGAN?: string; GITHUB_AGENT_TOKEN?: string; GITHUB_REPO?: string; R2_CANONICAL?: R2Bucket };
 
 const JAVOB = { headers: { 'Cache-Control': 'no-store' } };
 const sonmi = (v: unknown) => v != null && v !== '' && Number.isSafeInteger(Number(v)) && Number(v) > 0;
@@ -43,6 +44,8 @@ const PROFIL = /^[a-z_]{3,40}$/;
 /** Model chaqiradigan (token sarflaydigan) amallar. */
 const AI_AMALLAR = new Set(['savol', 'kasb_savol', 'jarvis_niyat', 'veb_tahlil', 'veb_ol', 'rivojlanish_tahlil', 'qadam_taklif', 'bilim_yigish']);
 const chiqar = (r: RpcNatija) => Response.json(r.data, { status: r.status, ...JAVOB });
+const archiveFailure = () => Response.json({ ok: false, code: 'JARVIS_ARCHIVE_UNAVAILABLE' }, { status: 503, ...JAVOB });
+const archivedSnapshot = (value: unknown) => value && typeof value === 'object' ? value as Record<string, unknown> : null;
 const xato = (m: string, status = 400) => Response.json({ ok: false, error: m }, { status, ...JAVOB });
 
 /** Davriy kalit bilan ruxsat etilgan yagona amallar: me'yor sahifalarini tekshirish va signallardan rivojlanish takliflari (ikkalasi ham faqat TAKLIF yaratadi). */
@@ -427,9 +430,20 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
         (etag != null && (id == null || typeof etag !== 'string' || !/^[a-f0-9]{32}$/.test(etag)))) {
       return xato('Suhbat sinxronlash so‘rovi noto‘g‘ri');
     }
-    return chiqar(await rpcData(env, 't2_jarvis_suhbat_sync_v1', {
+    const result = await rpcData(env, 't2_jarvis_suhbat_sync_v1', {
       p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: id ?? null, p_etag: etag ?? null,
-    }));
+    });
+    const active = archivedSnapshot(result.data.suhbat);
+    if (!result.ok || !active || !Object.hasOwn(active, 'archive')) return chiqar(result);
+    const { archive, ...visible } = active;
+    if (archive != null) {
+      if (visible.id !== id || visible.holat !== 'changed' || visible.xabarlar !== null) return archiveFailure();
+      try {
+        visible.xabarlar = await jarvisArchiveRead(env.R2_CANONICAL, archive);
+        visible.arxivlangan = true;
+      } catch { return archiveFailure(); }
+    }
+    return chiqar({ ...result, data: { ...result.data, suhbat: visible } });
   }
   if (amal === 'suhbat_mutate') {
     if (kid == null) return xato('Kompaniyani tanlang', 422);
@@ -464,9 +478,26 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
   if (amal === 'suhbat_royxat' || amal === 'suhbat_ol' || amal === 'suhbat_saqla' || amal === 'suhbat_ochir') {
     if (kid == null) return xato('Kompaniyani tanlang', 422);
     const klient = String(so.klient_id ?? '');
-    if (amal === 'suhbat_royxat') return chiqar(await rpcData(env, 't2_jarvis_suhbat_royxat_v1', { p_actor_id: k.actor, p_kompaniya_id: kid }));
+    if (amal === 'suhbat_royxat') {
+      const key = { p_actor_id: k.actor, p_kompaniya_id: kid };
+      const result = await rpcData(env, 't2_jarvis_suhbat_sync_v1', { ...key, p_klient_id: null, p_etag: null });
+      if (result.ok) return chiqar(result);
+      return chiqar(await rpcData(env, 't2_jarvis_suhbat_royxat_v1', key));
+    }
     if (!/^[A-Za-z0-9_.-]{1,40}$/.test(klient)) return xato('klient_id notoвЂgвЂri');
-    if (amal === 'suhbat_ol') return chiqar(await rpcData(env, 't2_jarvis_suhbat_ol_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: klient }));
+    if (amal === 'suhbat_ol') {
+      const key = { p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: klient };
+      const result = await rpcData(env, 't2_jarvis_suhbat_ol_v1', key);
+      if (!result.ok || result.data.xabarlar !== null) return chiqar(result);
+      const snapshot = await rpcData(env, 't2_jarvis_suhbat_sync_v1', { ...key, p_etag: null });
+      const active = archivedSnapshot(snapshot.data.suhbat);
+      if (!snapshot.ok || !active || active.archive == null) return chiqar(result);
+      if (active.id !== klient || active.holat !== 'changed' || active.xabarlar !== null) return archiveFailure();
+      try {
+        const xabarlar = await jarvisArchiveRead(env.R2_CANONICAL, active.archive);
+        return chiqar({ ...result, data: { ...result.data, xabarlar, arxivlangan: true } });
+      } catch { return archiveFailure(); }
+    }
     if (amal === 'suhbat_ochir') return chiqar(await rpcData(env, 't2_jarvis_suhbat_ochir_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: klient }));
     const xabarlar = (Array.isArray(so.xabarlar) ? so.xabarlar : []).slice(-60).map((x) => { const r = (x ?? {}) as Record<string, unknown>; return { r: r.r === 'user' ? 'user' : 'ai', m: matn(r.m, 400) ?? '' }; }).filter((x) => x.m);
     return chiqar(await rpcData(env, 't2_jarvis_suhbat_saqla_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: klient, p_sarlavha: matn(so.sarlavha, 80) ?? '', p_xabarlar: xabarlar }));

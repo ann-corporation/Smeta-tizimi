@@ -1,11 +1,27 @@
 -- Draft for L0 allocation. Read-only polling on the existing Jarvis conversation table.
+alter table public.t2_jarvis_suhbat
+  add column archive_sha256 text check (archive_sha256 is null or archive_sha256 ~ '^[a-f0-9]{64}$'),
+  add column archive_bytes integer check (archive_bytes is null or archive_bytes between 1 and 32768),
+  add constraint t2_jarvis_archive_pointer check ((archive_sha256 is null) = (archive_bytes is null));
+
+-- Old readers still call this function. The archive worker now owns transcript eviction.
+-- No conversation or text is deleted by an ordinary read, a new conversation, or the legacy writer.
+create or replace function public._t2_jarvis_suhbat_tozala(p_actor_id bigint, p_kompaniya_id bigint)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  return;
+end
+$$;
+
 create function public._t2_jarvis_suhbat_snapshot_v1(s public.t2_jarvis_suhbat)
 returns jsonb language sql stable security invoker set search_path = '' as $$
   select visible || jsonb_build_object('etag', md5(jsonb_build_array(s.id, visible)::text))
   from (select jsonb_build_object(
     'id', s.klient_id, 'sarlavha', s.sarlavha, 'qisqartma', s.qisqartma,
     'yangilandi', s.yangilandi at time zone 'UTC',
-    'xabarlar', case when s.yangilandi >= now() - interval '30 days' then s.xabarlar end
+    'xabarlar', s.xabarlar,
+    'archive', case when s.xabarlar is null and s.archive_sha256 is not null then
+      jsonb_build_object('row', s.id::text, 'sha256', s.archive_sha256, 'bytes', s.archive_bytes) end
   ) as visible) v
 $$;
 revoke all on function public._t2_jarvis_suhbat_snapshot_v1(public.t2_jarvis_suhbat) from public, anon, authenticated;
@@ -37,18 +53,16 @@ begin
   into listing
   from (
     select id, klient_id, sarlavha, yangilandi,
-      xabarlar is not null and yangilandi >= now() - interval '30 days' as toliq
+      xabarlar is not null or archive_sha256 is not null as toliq
     from public.t2_jarvis_suhbat
     where foydalanuvchi_id = p_actor_id and kompaniya_id = p_kompaniya_id
-      and yangilandi >= now() - interval '90 days'
     order by yangilandi desc, id desc limit 20
   ) s;
 
   if p_klient_id is not null then
     select public._t2_jarvis_suhbat_snapshot_v1(s) into selected
     from public.t2_jarvis_suhbat s
-    where foydalanuvchi_id = p_actor_id and kompaniya_id = p_kompaniya_id and klient_id = p_klient_id
-      and yangilandi >= now() - interval '90 days';
+    where foydalanuvchi_id = p_actor_id and kompaniya_id = p_kompaniya_id and klient_id = p_klient_id;
     if not found then
       selected := jsonb_build_object('id', p_klient_id, 'holat', 'missing');
     else
