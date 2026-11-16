@@ -19,6 +19,11 @@ fun outboxTitle(e: OutboxEntity): String {
         val unit = (pl?.get("unit") as? kotlinx.serialization.json.JsonPrimitive)?.takeIf { it.isString }?.content.orEmpty()
         return stringResource(R.string.zay_outbox, item, uz.anncorp.smeta.feature.ombor.formatQty(qty), unit) + " - " + e.obyektNom
     }
+    if (uz.anncorp.smeta.feature.m29.isM29Kind(e.kind)) {
+        val s = uz.anncorp.smeta.feature.m29.summarizeM29(e.payloadJson)
+        return stringResource(R.string.dl_m29_outbox, s?.davr.orEmpty(), s?.lineCount ?: 0) + " - " + e.obyektNom
+    }
+    if (uz.anncorp.smeta.feature.naryad.isNaryadKind(e.kind)) return stringResource(R.string.dl_nar_outbox, uz.anncorp.smeta.feature.naryad.summarizeReport(e.payloadJson).orEmpty()) + " - " + e.obyektNom
     if (!isOmborKind(e.kind)) return e.obyektNom
     val s = summarizePayload(e.payloadJson) ?: return e.obyektNom
     val res = when (s.op) { "rasxod" -> R.string.ombor_outbox_rasxod; "berdim" -> R.string.ombor_outbox_berdim; else -> R.string.ombor_outbox_prixod }

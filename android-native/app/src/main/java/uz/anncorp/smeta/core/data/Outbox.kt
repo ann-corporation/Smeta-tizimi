@@ -14,6 +14,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
@@ -44,6 +45,21 @@ fun rejectionReason(r: ApiResult): String {
     return fr?.error?.takeIf { it.isNotBlank() } ?: r.code ?: "HTTP ${r.status}"
 }
 
+/**
+ * Machine-readable part of a rejection (the server code and, for M-29, the stock shortages), kept on the FAILED entry so a screen can offer
+ * the consent the server asked for. Null when the answer carries neither. Done entries use [OutboxEntity.info] for their summary instead.
+ */
+fun rejectionInfo(r: ApiResult): String? {
+    val o = r.body as? JsonObject ?: return null
+    val code = r.code ?: o["code"].str()
+    val short = o["yetmaydi"].arr()
+    if (code == null && short == null) return null
+    return buildJsonObject {
+        code?.let { put("kod", it) }
+        if (short != null) put("yetmaydi", JsonArray(short.take(8)))
+    }.toString()
+}
+
 enum class DrainResult { IDLE, RETRY_LATER, NEEDS_LOGIN }
 
 /**
@@ -66,7 +82,7 @@ class OutboxProcessor(
             when (judge(r)) {
                 SendVerdict.SUCCESS -> dao.upsert(cur.copy(state = OutboxState.DONE, attempts = e.attempts + 1, lastError = null, info = if (e.kind == KIND_PHOTO) null else summarise(r)))
                 SendVerdict.UNAUTHORIZED -> { dao.pauseAllPending(); return DrainResult.NEEDS_LOGIN }
-                SendVerdict.REJECTED -> dao.upsert(cur.copy(state = OutboxState.FAILED, attempts = e.attempts + 1, lastError = rejectionReason(r)))
+                SendVerdict.REJECTED -> dao.upsert(cur.copy(state = OutboxState.FAILED, attempts = e.attempts + 1, lastError = rejectionReason(r), info = rejectionInfo(r)))
                 SendVerdict.RETRY -> {
                     dao.upsert(cur.copy(attempts = e.attempts + 1, lastError = if (r.networkError) "network" else "HTTP ${r.status}"))
                     return DrainResult.RETRY_LATER

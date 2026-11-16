@@ -36,12 +36,15 @@ data class PhotoJob(
     val file: String, val sha256: String, val size: Int, val companyId: Long, val obyektId: Long, val qatorId: Long?,
     val sana: String, val lat: Double?, val lng: Double?, val izoh: String?,
     val documentId: Long? = null, val fotoId: Long? = null, val linked: Boolean = false,
+    /** Evidence of a work-order (naryad) report: the photo is linked to that naryad instead of being a general object photo. */
+    val naryadId: Long? = null,
 ) {
     fun toJson(): JsonObject = buildJsonObject {
         put("file", file); put("sha256", sha256); put("size", size); put("kompaniya_id", companyId); put("obyekt_id", obyektId)
         qatorId?.let { put("qator_id", it) }; put("sana", sana)
         lat?.let { put("lat", it) }; lng?.let { put("lng", it) }; izoh?.let { put("izoh", it) }
         documentId?.let { put("document_id", it) }; fotoId?.let { put("foto_id", it) }; put("linked", linked)
+        naryadId?.let { put("naryad_id", it) }
     }
 }
 
@@ -52,7 +55,7 @@ fun parsePhotoJob(payload: String): PhotoJob? = runCatching {
         companyId = o["kompaniya_id"].num()?.toLong() ?: return null, obyektId = o["obyekt_id"].num()?.toLong() ?: return null,
         qatorId = o["qator_id"].num()?.toLong(), sana = o["sana"].str() ?: return null, lat = o["lat"].num(), lng = o["lng"].num(), izoh = o["izoh"].str(),
         documentId = o["document_id"].num()?.toLong(), fotoId = o["foto_id"].num()?.toLong(),
-        linked = (o["linked"] as? JsonPrimitive)?.booleanOrNull ?: false,
+        linked = (o["linked"] as? JsonPrimitive)?.booleanOrNull ?: false, naryadId = o["naryad_id"].num()?.toLong()?.takeIf { it > 0 },
     )
 }.getOrNull()
 
@@ -69,7 +72,8 @@ fun uploadBody(bytes: ByteArray, fileName: String, job: PhotoJob, operationId: S
 
 fun linkPayload(job: PhotoJob, operationId: String): JsonObject = buildJsonObject {
     put("amal", "bogla"); put("kompaniya_id", job.companyId); put("obyekt_id", job.obyektId)
-    put("document_id", job.documentId ?: 0L); put("manba_turi", "umumiy"); put("sana", job.sana)
+    put("document_id", job.documentId ?: 0L); put("manba_turi", if (job.naryadId != null) "naryad" else "umumiy"); put("sana", job.sana)
+    job.naryadId?.let { put("manba_id", it) }
     job.lat?.let { put("lat", it) }; job.lng?.let { put("lng", it) }; job.izoh?.let { put("izoh", it) }
     put("operation_id", operationId)
 }
@@ -122,12 +126,12 @@ class PhotoRepository(
     private val outbox: OutboxRepository, private val dir: File,
     private val now: () -> Long = System::currentTimeMillis, private val newId: () -> String = { UUID.randomUUID().toString() },
 ) {
-    suspend fun enqueue(photo: ProcessedPhoto, companyId: Long, obyektId: Long, obyektNom: String, qatorId: Long?, note: String?, date: LocalDate = LocalDate.now()): String {
+    suspend fun enqueue(photo: ProcessedPhoto, companyId: Long, obyektId: Long, obyektNom: String, qatorId: Long?, note: String?, date: LocalDate = LocalDate.now(), naryadId: Long? = null): String {
         val id = newId()
         dir.mkdirs()
         val file = File(dir, "$id.jpg")
         file.writeBytes(photo.jpeg)
-        val job = PhotoJob(file.absolutePath, photo.sha256, photo.jpeg.size, companyId, obyektId, qatorId, date.toString(), photo.lat, photo.lng, note?.trim()?.take(500)?.ifBlank { null })
+        val job = PhotoJob(file.absolutePath, photo.sha256, photo.jpeg.size, companyId, obyektId, qatorId, date.toString(), photo.lat, photo.lng, note?.trim()?.take(500)?.ifBlank { null }, naryadId = naryadId)
         outbox.enqueue(OutboxEntity(id, KIND_PHOTO, job.toJson().toString(), obyektId, obyektNom, 1, OutboxState.PENDING, 0, null, null, now()))
         return id
     }
