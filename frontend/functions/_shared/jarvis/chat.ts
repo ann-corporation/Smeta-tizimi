@@ -9,6 +9,7 @@ import { pulJavobi, pulSorovi } from '../agent-pul-javob';
 import { objectTotalAnswer, objectTotalIntent } from './object-finance';
 import { f2RegisterAnswer, f2RegisterIntent } from './f2-register';
 import { warehouseAnswer, warehouseIntent } from './warehouse';
+import { discrepancyAnswer, discrepancyIntent } from './discrepancies';
 import { normAnswer, normReference } from './normative';
 import type { NormativEnv } from '../normativ-read';
 import { suhbatTarixi, faktMatni, kasbPrompti, mavzuTaqiqi, radMatni, toifalarniTanla, harakatMatni, javobniAjrat, MAVZU_NOMI, type KasbMalumoti, type Toifa } from '../agent-kasb';
@@ -84,6 +85,12 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
   const stock = so.studio == null ? warehouseIntent(savol) : null;
   if (stock) {
     const answer = await warehouseAnswer((name, body) => rpcData(env, name, body), actor, kid, stock, men ?? null);
+    return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
+  }
+  if (so.studio == null && discrepancyIntent(savol)) {
+    const answer = await discrepancyAnswer((name, body) => rpcData(env, name, body), {
+      actor, company: kid, question: savol, history: so.tarix, objectId: sonmi(so.obyekt_id) ? Number(so.obyekt_id) : null,
+    }, men ?? null);
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
   }
   const taqiq = mavzuTaqiqi(savol, kasb.kategoriyalar);

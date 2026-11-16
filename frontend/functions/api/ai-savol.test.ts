@@ -10,6 +10,7 @@ import { kontekstKeshTozala } from '../_shared/agent-kontekst-kesh';
 import { objectTotalIntent } from '../_shared/jarvis/object-finance';
 import { f2RegisterIntent } from '../_shared/jarvis/f2-register';
 import { warehouseIntent } from '../_shared/jarvis/warehouse';
+import { discrepancyIntent } from '../_shared/jarvis/discrepancies';
 import { onRequestPost } from './ai-savol';
 
 const object = { id: 34, nom: 'Sinov Bino' };
@@ -18,6 +19,7 @@ let finance: () => Response;
 let register: () => Response;
 let stock: () => Response;
 let men: () => Response;
+let discrepancies: () => Response;
 const rpc = vi.fn(async (input: string, _init?: RequestInit) => {
   switch (input.split('/').at(-1)) {
     case 't2_agent_kasb_v1': return Response.json({ ok: true, nom: 'Sinov', rol: 'pto', profil: 'company_access', vazifa: 'Sinov', boshqalar: [], namuna_savollar: [], kategoriyalar: categories });
@@ -27,6 +29,7 @@ const rpc = vi.fn(async (input: string, _init?: RequestInit) => {
     case 't2_akt_reestr_obyekt_v1': return register();
     case 't2_sklad_markaziy_qoldiq_v1': return stock();
     case 't2_men_v1': return men();
+    case 't2_aosr_slichitelniy_v1': return discrepancies();
     case 't2_agent_muhit_v1': return Response.json({ ok: true, qoidalar: [], xotira: [], manbalar: [] });
     default: return Response.json({ ok: true });
   }
@@ -45,6 +48,9 @@ beforeEach(() => {
     { kompaniya_id: 17, permissions: ['warehouse.read'] },
   ] });
   stock = () => Response.json({ ok: true, qatorlar: [{ nomi: 'Sinov sement', birligi: 'kg', qoldiq: 87.375 }] });
+  discrepancies = () => Response.json({
+    ok: true, obyekt_id: 34, tayyorlik: { farqli: 6, ortiq: 6, kam: 0, tasdiqlagan: null }, yetishmaydi_jami: 2,
+  });
   finance = () => Response.json({ ok: true, kompaniya_id: 17, basis: 'direct', objects: [{
     obyekt_id: 34, f2: { known: -102.75, unknown: 1, present: true }, fakt: { known: null, unknown: 2, present: true },
   }] });
@@ -57,6 +63,44 @@ beforeEach(() => {
   vi.stubGlobal('fetch', rpc);
 });
 afterEach(() => vi.unstubAllGlobals());
+
+function permitComparison() {
+  men = () => Response.json({ ok: true, context_kompaniyalar: [
+    { kompaniya_id: 17, permissions: ['fakt.read', 'document.read'] },
+  ] });
+}
+
+it.each(['Smeta va fakt farqi', 'Сравни смету и факт', 'Смета ва факт фарқи'])(
+  'reads comparison and AOSR readiness without fabricating a missing count: %s', async question => {
+    permitComparison();
+    const body = await (await run(question, 17, { obyekt_id: 34 })).json();
+    expect(body).toMatchObject({
+      javob: expect.stringMatching(/farq qilgan ishlar: 6[\s\S]*hajmi kam: 0[\s\S]*asosi tasdiqlangan: noma’lum[\s\S]*asos yetishmaydi: 2/),
+      dalil: { tur: 'smeta-fakt-solishtiruv', id: 34, rpc: 't2_aosr_slichitelniy_v1', yol: '/admin/fakt?obyekt=34' },
+    });
+    expect(JSON.parse(String(called('t2_aosr_slichitelniy_v1')[0][1]?.body))).toEqual({
+      p_actor_id: 7, p_kompaniya_id: 17, p_obyekt_id: 34, p_limit: 1,
+    });
+    expect(ai).not.toHaveBeenCalled();
+  },
+);
+
+it('comparison refuses missing permission and rejects results with a mismatched object', async () => {
+  expect(await (await run('Sinov Bino slichitelniy')).json()).toMatchObject({ rad: true });
+  expect(called('t2_aosr_slichitelniy_v1')).toHaveLength(0);
+  permitComparison(); kontekstKeshTozala();
+  discrepancies = () => Response.json({ ok: true, obyekt_id: 99, tayyorlik: { farqli: 787 } });
+  const body = await (await run('Sinov Bino slichitelniy')).json();
+  expect(body).not.toHaveProperty('dalil');
+  expect(body).toMatchObject({ javob: expect.not.stringContaining('787') });
+  expect(ai).not.toHaveBeenCalled();
+});
+
+it('comparison avoids all-time aggregate for period, amount and write requests', () => {
+  for (const question of ['Shu oy slichitelniy', 'Slichitelniy summasi', 'Slichitelniy F2 qoralama yarat']) {
+    expect(discrepancyIntent(question)).toBe(false);
+  }
+});
 
 it.each(['Ombor #7 qoldig‘i: sement', 'Остатки склада №7: sement', 'Омбор №7 қолдиғи: sement'])(
   'reads current central warehouse stock from the scoped warehouse reader: %s', async question => {
