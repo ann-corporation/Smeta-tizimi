@@ -104,7 +104,8 @@ it('yozish maydoni katta (ko‘p qatorli); «Yangi suhbat» tarixni tozalaydi', 
   expect(screen.queryAllByTestId('ai-javob-karta').length).toBe(0);
 });
 
-it('suhbatlar ro‘yxati: yangi suhbatdan keyin oldingisi ko‘rinadi va davom ettiriladi (foydalanuvchi + kompaniya bo‘yicha)', async () => {
+it('eski brauzer suhbatini yangi suhbat ochilgandan keyin ham davom ettirish mumkin', async () => {
+  sessionStorage.setItem('jarvis-chat:7:5:id', 'legacy-chat');
   render(view()); och(); await screen.findByText('Bugun nima qilaman?');
   send('men kimman');
   await screen.findByText(/Sinov Boss/, { selector: 'strong' });
