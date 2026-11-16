@@ -10,6 +10,7 @@ import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.time.OffsetDateTime
+import kotlinx.serialization.Serializable
 
 /** Outcome of one Jarvis question. Charging (aiHisobli) happens on the server; the app only shows what came back. */
 sealed interface JarvisResult {
@@ -23,11 +24,13 @@ sealed interface JarvisResult {
 }
 
 /** One chat turn; [mine] = the user's own message (server role `user`), otherwise Jarvis (`ai`). */
+@Serializable
 data class ChatMsg(val mine: Boolean, val text: String)
 
 /** A server-saved chat (t2_jarvis_suhbat), the same list the web Jarvis shows. [updatedAt] is the server ISO timestamp. */
 data class ChatInfo(val id: String, val title: String, val updatedAt: String)
 
+@Serializable
 data class ChatCursor(val id: String, val etag: String? = null)
 sealed interface ChatSnapshot {
     data object Missing : ChatSnapshot
@@ -75,6 +78,7 @@ class JarvisRepository(private val api: BffApi) {
 
     suspend fun writeMessages(
         companyId: Long, cursor: ChatCursor, title: String?, messages: List<ChatMsg>, operationId: String? = null,
+        deviceId: String? = null,
     ): ChatWrite {
         val create = cursor.etag == null
         if (!CHAT_ID.matches(cursor.id) || (create && title.isNullOrBlank()) ||
@@ -83,6 +87,7 @@ class JarvisRepository(private val api: BffApi) {
         return mutateChat(companyId, cursor, if (create) "create" else "append") {
             if (create) put("sarlavha", title)
             else operationId?.let { put("operation_id", it) }
+            deviceId?.let { put("jarvis_device_id", it) }
             put("xabarlar", buildJsonArray {
                 messages.forEach {
                     add(buildJsonObject { put("r", if (it.mine) "user" else "ai"); put("m", it.text.trim().take(MAX_SAVED_TEXT)) })

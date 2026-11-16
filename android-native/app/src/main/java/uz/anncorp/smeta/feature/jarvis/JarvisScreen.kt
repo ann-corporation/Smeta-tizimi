@@ -73,6 +73,8 @@ import uz.anncorp.smeta.core.data.ChatSnapshot
 import uz.anncorp.smeta.core.data.ChatWrite
 import uz.anncorp.smeta.core.data.JarvisRepository
 import uz.anncorp.smeta.core.data.JarvisResult
+import uz.anncorp.smeta.core.data.JarvisPendingStore
+import uz.anncorp.smeta.core.data.PendingJarvisWrite
 import uz.anncorp.smeta.core.data.ObjectsRepository
 import uz.anncorp.smeta.core.data.WorkContext
 import uz.anncorp.smeta.core.ui.WorkTopBar
@@ -96,9 +98,9 @@ data class ChatEditor(val action: ChatEditAction, val target: ChatCursor, val ti
 data class JarvisUi(
     val bubbles: List<Bubble> = emptyList(), val busy: Boolean = false, val chats: List<ChatInfo> = emptyList(),
     val chatId: String = newChatId(), val showList: Boolean = false, val saveIssue: ChatSaveIssue? = null,
-    val editor: ChatEditor? = null, val editIssue: ChatSaveIssue? = null,
+    val editor: ChatEditor? = null, val editIssue: ChatSaveIssue? = null, val outboxUnreadable: Boolean = false,
 ) {
-    val canSend: Boolean get() = !busy && saveIssue == null && editor == null
+    val canSend: Boolean get() = !busy && saveIssue == null && editor == null && !outboxUnreadable
 }
 
 internal fun newChatId(): String = UUID.randomUUID().toString()
@@ -114,8 +116,11 @@ internal fun isRecent(updatedAt: String, now: OffsetDateTime = OffsetDateTime.no
     runCatching { OffsetDateTime.parse(updatedAt).isAfter(now.minusHours(48)) }.getOrDefault(false)
 
 @HiltViewModel
-class JarvisViewModel @Inject constructor(private val repo: JarvisRepository, private val ctx: WorkContext, saved: SavedStateHandle, objects: Lazy<ObjectsRepository>) : ViewModel() {
-    private val _ui = MutableStateFlow(JarvisUi())
+class JarvisViewModel @Inject constructor(
+    private val repo: JarvisRepository, private val ctx: WorkContext, saved: SavedStateHandle,
+    objects: Lazy<ObjectsRepository>, private val outbox: JarvisPendingStore,
+) : ViewModel() {
+    private val _ui = MutableStateFlow(JarvisUi(busy = ctx.current.value != null))
     val ui: StateFlow<JarvisUi> = _ui.asStateFlow()
     /** The object the chat was opened from (route arg `obyekt`); sent with every question so «shu obyekt» is exact. */
     private val objectId: Long? = saved.get<Long>("obyekt")?.takeIf { it > 0 }
@@ -127,34 +132,58 @@ class JarvisViewModel @Inject constructor(private val repo: JarvisRepository, pr
     private var restored = false
     private var generation = 0L
     private var workplace = ctx.current.value
-    private data class PendingWrite(
-        val cursor: ChatCursor, val title: String?, val turns: List<ChatMsg>, val operationId: String?,
-    )
-    private var pending: PendingWrite? = null
+    private var pending: PendingJarvisWrite? = null
+    private var pendingDevice: String? = null
+    private var pendingStored = false
+    private var lastAttempt = 0L
 
     private fun companyId() = ctx.current.value?.companyId
     private fun current(epoch: Long, company: Long?) = generation == epoch && companyId() == company && ctx.current.value == workplace
 
     init {
         viewModelScope.launch {
+            var initial = true
             ctx.current.collect { next ->
-                if (next != workplace) {
+                if (initial || next != workplace) {
+                    initial = false
                     workplace = next
                     generation++
                     cursor = null
                     pending = null
+                    pendingDevice = null
+                    pendingStored = false
                     summaryOnly = false
                     restored = false
-                    _ui.value = JarvisUi()
+                    _ui.value = JarvisUi(busy = next != null)
+                    if (next != null) restorePending(next.companyId, generation)
                 }
             }
         }
+    }
+
+    private suspend fun restorePending(company: Long, epoch: Long) {
+        val device = outbox.deviceId()
+        val stored = device?.let { outbox.read(it, company) }
+        if (!current(epoch, company) || outbox.deviceId() != device) return
+        val write = stored?.getOrNull()
+        if (write == null) {
+            _ui.update { it.copy(busy = false, outboxUnreadable = stored?.isFailure == true) }
+            return
+        }
+        pending = write
+        pendingDevice = device
+        pendingStored = true
+        lastAttempt = 0
+        restored = true
+        _ui.update { it.copy(chatId = write.cursor.id, bubbles = toBubbles(write.preview), busy = false, outboxUnreadable = false,
+            saveIssue = if (write.stale) ChatSaveIssue.STALE else ChatSaveIssue.RETRY) }
     }
 
     fun ask(text: String) {
         val q = text.trim()
         if (q.isEmpty() || !_ui.value.canSend || ctx.current.value != workplace) return
         val cid = companyId()
+        val device = outbox.deviceId()
         val epoch = ++generation
         val history = toMessages(_ui.value.bubbles)
         if (summaryOnly) {
@@ -176,25 +205,49 @@ class JarvisViewModel @Inject constructor(private val repo: JarvisRepository, pr
             _ui.update { it.copy(bubbles = it.bubbles + reply) }
             if (cid == null) { _ui.update { it.copy(busy = false) }; return@launch }
             val turns = toMessages(listOf(Bubble.Mine(q), reply))
-            val write = PendingWrite(
+            val write = PendingJarvisWrite(
                 target, if (target.etag == null) JarvisRepository.chatTitle(turns) else null, turns,
                 if (target.etag != null) UUID.randomUUID().toString() else null,
+                toMessages(_ui.value.bubbles).takeLast(JarvisRepository.MAX_SAVED).map { it.copy(text = it.text.take(8000)) },
             )
             pending = write
+            pendingDevice = device
             save(cid, epoch, write)
         }
     }
 
-    private suspend fun save(cid: Long, epoch: Long, write: PendingWrite) {
-        val result = repo.writeMessages(cid, write.cursor, write.title, write.turns, write.operationId)
+    private suspend fun save(cid: Long, epoch: Long, write: PendingJarvisWrite) {
+        lastAttempt = System.nanoTime()
+        val device = pendingDevice
+        if (device == null || !outbox.store(device, cid, write)) {
+            if (current(epoch, cid)) _ui.update { it.copy(busy = false, saveIssue = ChatSaveIssue.RETRY) }
+            return
+        }
+        if (!current(epoch, cid) || outbox.deviceId() != device) return
+        pendingStored = true
+        val result = repo.writeMessages(cid, write.cursor, write.title, write.turns, write.operationId, device)
         if (!current(epoch, cid)) return
         val issue = when (result) {
             is ChatWrite.Saved -> {
+                val removed = outbox.remove(device, cid, write)
+                if (!current(epoch, cid)) return
+                if (!removed) {
+                    _ui.update { it.copy(busy = false, saveIssue = ChatSaveIssue.RETRY) }
+                    return
+                }
                 cursor = write.cursor.copy(etag = result.etag)
                 pending = null
+                pendingDevice = null
+                pendingStored = false
                 null
             }
-            ChatWrite.Stale -> ChatSaveIssue.STALE
+            ChatWrite.Stale -> {
+                val stale = write.copy(stale = true)
+                val marked = outbox.store(device, cid, stale)
+                if (!current(epoch, cid)) return
+                if (marked) pending = stale
+                ChatSaveIssue.STALE
+            }
             ChatWrite.Failed, ChatWrite.Deleted -> ChatSaveIssue.RETRY
         }
         _ui.update { it.copy(busy = false, saveIssue = issue) }
@@ -202,6 +255,12 @@ class JarvisViewModel @Inject constructor(private val repo: JarvisRepository, pr
 
     fun retrySave() {
         val cid = companyId() ?: return
+        if (_ui.value.outboxUnreadable && !_ui.value.busy) {
+            val epoch = ++generation
+            _ui.update { it.copy(busy = true) }
+            viewModelScope.launch { restorePending(cid, epoch) }
+            return
+        }
         val write = pending ?: return
         if (_ui.value.busy || _ui.value.saveIssue != ChatSaveIssue.RETRY || ctx.current.value != workplace) return
         val epoch = ++generation
@@ -267,6 +326,8 @@ class JarvisViewModel @Inject constructor(private val repo: JarvisRepository, pr
         val snapshot = repo.syncChats(cid, requested) ?: return false
         if (!current(epoch, cid)) return true
         _ui.update { it.copy(chats = snapshot.chats) }
+        if (pendingStored && _ui.value.saveIssue == ChatSaveIssue.RETRY &&
+            (lastAttempt == 0L || System.nanoTime() - lastAttempt > 30_000_000_000L)) retrySave()
         if (!_ui.value.canSend || typing()) return true
         when (val active = snapshot.active) {
             is ChatSnapshot.Changed -> if (requested != null) applySnapshot(requested.id, active, selected = false)
@@ -305,10 +366,28 @@ class JarvisViewModel @Inject constructor(private val repo: JarvisRepository, pr
     }
 
     fun newChat() {
-        if (_ui.value.busy) return
+        if (_ui.value.busy || _ui.value.outboxUnreadable) return
+        val write = pending
+        val device = pendingDevice
+        val cid = companyId()
+        if (pendingStored && write != null && device != null && cid != null) {
+            val epoch = ++generation
+            _ui.update { it.copy(busy = true) }
+            viewModelScope.launch {
+                val removed = outbox.remove(device, cid, write)
+                if (!current(epoch, cid)) return@launch
+                _ui.update { it.copy(busy = false) }
+                if (removed) clearChat()
+            }
+        } else clearChat()
+    }
+
+    private fun clearChat() {
         generation++
         cursor = null
         pending = null
+        pendingDevice = null
+        pendingStored = false
         summaryOnly = false
         restored = true
         _ui.update {
@@ -377,7 +456,7 @@ fun JarvisScreen(onBack: () -> Unit, vm: JarvisViewModel = hiltViewModel()) {
         Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SuggestionChip(onClick = {
                 if (ui.saveIssue == null && text.isBlank()) vm.newChat() else confirmDiscard = true
-            }, enabled = !ui.busy, label = { Text(stringResource(R.string.ja_new_chat)) })
+            }, enabled = !ui.busy && !ui.outboxUnreadable, label = { Text(stringResource(R.string.ja_new_chat)) })
             SuggestionChip(onClick = { vm.toggleList() }, label = { Text(stringResource(R.string.ja_chats, ui.chats.size)) })
         }
         if (!ui.showList && ui.chats.any { it.id == ui.chatId }) {
@@ -397,6 +476,12 @@ fun JarvisScreen(onBack: () -> Unit, vm: JarvisViewModel = hiltViewModel()) {
                 onClick = vm::retrySave, label = { Text(stringResource(R.string.ja_save_retry)) },
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
+        }
+        if (ui.outboxUnreadable) {
+            Text(stringResource(R.string.ja_outbox_unreadable), color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(horizontal = 16.dp))
+            SuggestionChip(onClick = vm::retrySave, enabled = !ui.busy,
+                label = { Text(stringResource(R.string.ja_save_retry)) }, modifier = Modifier.padding(horizontal = 16.dp))
         }
         if (ui.showList) {
             LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

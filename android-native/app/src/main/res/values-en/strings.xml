@@ -272,6 +272,7 @@
     <string name="ja_save_failed">The chat could not be saved. Your messages are still in this window.</string>
     <string name="ja_save_stale">The chat changed on another device. Your messages are still in this window.</string>
     <string name="ja_save_retry">Retry save</string>
+    <string name="ja_outbox_unreadable">Could not restore unsent messages.</string>
     <string name="ja_discard_title">What should happen to unsaved messages?</string>
     <string name="ja_discard_body">Starting a new chat closes the view with unsaved messages.</string>
     <string name="ja_discard_confirm">Start new chat</string>

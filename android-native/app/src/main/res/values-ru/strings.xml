@@ -272,6 +272,7 @@
     <string name="ja_save_failed">Не удалось сохранить беседу. Сообщения остались в этом окне.</string>
     <string name="ja_save_stale">Беседа изменилась на другом устройстве. Ваши сообщения остались в этом окне.</string>
     <string name="ja_save_retry">Повторить сохранение</string>
+    <string name="ja_outbox_unreadable">Не удалось восстановить несохранённые сообщения.</string>
     <string name="ja_discard_title">Что сделать с несохранёнными сообщениями?</string>
     <string name="ja_discard_body">При открытии новой беседы окно с несохранёнными сообщениями закроется.</string>
     <string name="ja_discard_confirm">Открыть новую беседу</string>

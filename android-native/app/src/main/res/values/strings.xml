@@ -273,6 +273,7 @@
     <string name="ja_save_failed">Suhbat saqlanmadi. Xabarlar shu oynada turibdi.</string>
     <string name="ja_save_stale">Suhbat boshqa qurilmada o‘zgargan. Xabarlaringiz shu oynada turibdi.</string>
     <string name="ja_save_retry">Qayta saqlash</string>
+    <string name="ja_outbox_unreadable">Saqlanmagan xabarlarni tiklab bo‘lmadi.</string>
     <string name="ja_discard_title">Saqlanmagan xabarlar bilan nima qilamiz?</string>
     <string name="ja_discard_body">Yangi suhbat ochilsa, saqlanmagan xabarlar yopiladi.</string>
     <string name="ja_discard_confirm">Yangi suhbat ochish</string>

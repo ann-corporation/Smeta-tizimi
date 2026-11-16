@@ -28,6 +28,8 @@ import uz.anncorp.smeta.core.data.BffApi
 import uz.anncorp.smeta.core.data.ChatInfo
 import uz.anncorp.smeta.core.data.ChatMsg
 import uz.anncorp.smeta.core.data.JarvisRepository
+import uz.anncorp.smeta.core.data.JarvisPendingStore
+import uz.anncorp.smeta.core.data.PendingJarvisWrite
 import uz.anncorp.smeta.core.data.WorkContext
 import uz.anncorp.smeta.core.data.Workplace
 import java.time.OffsetDateTime
@@ -173,7 +175,50 @@ class JarvisChatTest {
         assertEquals(first, api.requests.last())
         assertEquals(null, vm.ui.value.saveIssue)
     }
-    private data class Fixture(val vm: JarvisViewModel, val api: ChatApi, val workplace: WorkContext)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test fun restoresAfterReopeningAndSendsTheSameBatchOnTheNextSuccessfulPoll() = withJarvis { (vm, api, workplace, outbox) ->
+        api.answer = {
+            if (api.actions.last() == "kasb_savol") payload(200, """{"ok":true,"javob":"Synthetic answer"}""")
+            else ApiResult(0, null)
+        }
+        vm.ask("Synthetic question")
+        runCurrent()
+        val original = api.requests.last()
+        val id = original.getValue("klient_id").jsonPrimitive.content
+        vm.viewModelScope.cancel()
+        val reopened = viewModel(api, workplace, outbox)
+        try {
+            runCurrent()
+            assertEquals(id, reopened.ui.value.chatId)
+            assertEquals("Synthetic question", toMessages(reopened.ui.value.bubbles).first().text)
+            assertEquals(ChatSaveIssue.RETRY, reopened.ui.value.saveIssue)
+            api.answer = {
+                if (api.actions.last() == "suhbat_sync") payload(200, """{"ok":true,"royxat":[],"suhbat":null}""")
+                else payload(200, """{"ok":true,"id":"$id","etag":"${"a".repeat(32)}"}""")
+            }
+            reopened.refresh()
+            runCurrent()
+            assertEquals(original, api.requests.last())
+            assertTrue(outbox.pending.isEmpty())
+        } finally { reopened.viewModelScope.cancel() }
+    }
+
+    private class MemoryOutbox : JarvisPendingStore {
+        val pending = mutableMapOf<Pair<String, Long>, PendingJarvisWrite>()
+        override fun deviceId() = "00000000-0000-4000-8000-000000000001"
+        override suspend fun read(device: String, company: Long) = Result.success(pending[device to company])
+        override suspend fun store(device: String, company: Long, write: PendingJarvisWrite): Boolean {
+            pending[device to company] = write
+            return true
+        }
+        override suspend fun remove(device: String, company: Long, write: PendingJarvisWrite): Boolean =
+            pending.remove(device to company, write)
+    }
+    private data class Fixture(val vm: JarvisViewModel, val api: ChatApi, val workplace: WorkContext, val outbox: MemoryOutbox)
+
+    private fun viewModel(api: ChatApi, workplace: WorkContext, outbox: MemoryOutbox) =
+        JarvisViewModel(JarvisRepository(api), workplace, SavedStateHandle(), { error("No object selected") }, outbox)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun withJarvis(test: suspend TestScope.(Fixture) -> Unit) = runTest {
@@ -181,8 +226,10 @@ class JarvisChatTest {
         try {
             val api = ChatApi()
             val workplace = WorkContext().apply { set(Workplace(17)) }
-            val vm = JarvisViewModel(JarvisRepository(api), workplace, SavedStateHandle()) { error("No object selected") }
-            try { test(Fixture(vm, api, workplace)) } finally { vm.viewModelScope.cancel() }
+            val outbox = MemoryOutbox()
+            val vm = viewModel(api, workplace, outbox)
+            runCurrent()
+            try { test(Fixture(vm, api, workplace, outbox)) } finally { vm.viewModelScope.cancel() }
         } finally { Dispatchers.resetMain() }
     }
 

@@ -23,7 +23,8 @@ beforeEach(() => {
     if (u.pathname.endsWith('/t2_desktop_qurilma_tekshir_v2')) return Response.json(b.p_token_hash === await deviceHash(token) ?
       { ok: true, device_id: deviceId, foydalanuvchi_id: 7, tugaydi: expires, sessiya_exp: expires, versiya: 1 } : { ok: false });
     if (u.pathname.endsWith('/t2_men_v1')) return Response.json({ ok: true, platform_role: 'none', foydalanuvchi: { holat: 'faol' },
-      context_kompaniyalar: [{ kompaniya_id: 8, effective_role: 'pto', permissions: ['company.read'] }] });
+      context_kompaniyalar: [{ kompaniya_id: 8, effective_role: 'pto', permissions: ['company.read', 'document.read'] }] });
+    if (u.pathname.endsWith('/t2_jarvis_suhbat_mutate_v1')) return Response.json({ ok: true, id: 'test', etag: 'b'.repeat(32) });
     throw new Error('Unexpected synthetic upstream: ' + u.pathname);
   }));
 });
@@ -35,6 +36,24 @@ const ctx = (request: Request) => ({ request, env, data: {}, next: vi.fn() } as 
 const bff = (path: string, method = 'GET', body?: unknown) => gateway(ctx(native({ path, method, ...(body == null ? {} : { body }) })));
 
 describe('mobil BFF (Android native)', () => {
+  it('rejects a recovered Jarvis batch from another device before invoking the handler', async () => {
+    const r = await bff('/api/agent-ish', 'POST', { amal: 'suhbat_mutate', harakat: 'append',
+      jarvis_device_id: '00000000-0000-4000-8000-000000000002', kompaniya_id: 8, klient_id: 'test' });
+    expect(r.status).toBe(403);
+    expect(await r.json()).toMatchObject({ code: 'JARVIS_DEVICE_SCOPE' });
+    expect(calls.some(c => c.path.endsWith('/t2_jarvis_suhbat_mutate_v1'))).toBe(false);
+  });
+  it('replays a batch only as the verified device actor and keeps the original operation ID', async () => {
+    const operation = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+    const r = await bff('/api/agent-ish', 'POST', { amal: 'suhbat_mutate', harakat: 'append',
+      jarvis_device_id: deviceId, kompaniya_id: 8, klient_id: 'test', etag: 'a'.repeat(32),
+      operation_id: operation, xabarlar: [{ r: 'user', m: 'Synthetic question' }] });
+    expect(r.status).toBe(200);
+    expect(calls.find(c => c.path.endsWith('/t2_jarvis_suhbat_mutate_v1'))?.body).toEqual({
+      p_actor_id: 7, p_kompaniya_id: 8, p_klient_id: 'test', p_amal: 'append', p_etag: 'a'.repeat(32),
+      p_operation_id: operation, p_sarlavha: null, p_xabarlar: [{ r: 'user', m: 'Synthetic question' }],
+    });
+  });
   it('rejects an unknown device token with 401', async () => {
     const bad = base64url(new Uint8Array(32).fill(9));
     const res = await gateway(ctx(native({ path: '/api/sessiya', method: 'GET' }, ANDROID_ORIGIN, bad)));
