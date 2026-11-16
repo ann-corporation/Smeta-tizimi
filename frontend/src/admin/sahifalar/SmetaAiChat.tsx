@@ -157,7 +157,8 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
     for (const i of next.filter(x => x.tanlangan && !x.tanlangan.qolda && !list.find(o => o.id === x.id)?.tanlangan)) qadam(t('«{i}» → {k} {n} — tizim tanlovi', { i: i.tavsif, k: i.tanlangan!.kod, n: i.tanlangan!.nom.slice(0, 70) }), 'ok');
     next = next.map(i => i.tanlangan && !i.tanlangan.qolda && tanlovZidmi(i, { ...i.tanlangan, id: i.tanlangan.workId }, next) ? { ...i, tanlangan: null } : i);
     if (tirik.current) setIshlar(next);
-    const unresolved = next.filter(i => !i.tanlangan && 4 > i.nomzodlar.length).slice(0, 16);
+    const unresolved = next.filter(i => !i.tanlangan)
+      .sort((a, b) => a.nomzodlar.length - b.nomzodlar.length).slice(0, 16);
     const grounded = new Map<string, Awaited<ReturnType<typeof shnqNomzodlar>>>();
     const searchDeadline = AbortSignal.timeout(5500);
     for (let offset = 0; offset < unresolved.length && !searchDeadline.aborted; offset += 4) {
