@@ -40,7 +40,8 @@ function tables(catalog: AiKatalog) {
 
 export async function shnqNomzodlar(catalog: AiKatalog, company: number, work: AiIsh, related: AiIsh[], signal: AbortSignal): Promise<TanlovNomzodi[]> {
   if (!catalog.allWorks || signal.aborted) return [];
-  const query = (work.qidiruv.find(q => /\p{L}{3}/u.test(q)) ?? work.tavsif).trim().slice(0, 120);
+  const query = (work.qidiruv.find(q => /\p{Script=Cyrillic}{3}/u.test(q)) ??
+    work.qidiruv.find(q => /\p{L}{3}/u.test(q)) ?? work.tavsif).trim().slice(0, 120);
   if (query.length < 2) return [];
   try {
     const params = new URLSearchParams({ kompaniya_id: String(company), q: query, limit: '4' });

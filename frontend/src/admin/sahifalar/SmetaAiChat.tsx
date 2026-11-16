@@ -157,21 +157,25 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
     for (const i of next.filter(x => x.tanlangan && !x.tanlangan.qolda && !list.find(o => o.id === x.id)?.tanlangan)) qadam(t('«{i}» → {k} {n} — tizim tanlovi', { i: i.tavsif, k: i.tanlangan!.kod, n: i.tanlangan!.nom.slice(0, 70) }), 'ok');
     next = next.map(i => i.tanlangan && !i.tanlangan.qolda && tanlovZidmi(i, { ...i.tanlangan, id: i.tanlangan.workId }, next) ? { ...i, tanlangan: null } : i);
     if (tirik.current) setIshlar(next);
-    const unresolved = next.filter(i => !i.tanlangan)
-      .sort((a, b) => a.nomzodlar.length - b.nomzodlar.length).slice(0, 16);
-    const grounded = new Map<string, Awaited<ReturnType<typeof shnqNomzodlar>>>();
-    const searchDeadline = AbortSignal.timeout(5500);
-    for (let offset = 0; offset < unresolved.length && !searchDeadline.aborted; offset += 4) {
-      await Promise.all(unresolved.slice(offset, offset + 4).map(async i => {
-        const hits = await shnqNomzodlar(katalog, kompaniyaId, i, next, searchDeadline);
-        if (hits.length) grounded.set(i.id, hits);
-      }));
-      if (!tirik.current) return list;
-    }
+    const shnqBilan = async (rows: AiIsh[], context: AiIsh[]) => {
+      const grounded = new Map<string, Awaited<ReturnType<typeof shnqNomzodlar>>>();
+      const pending = rows.sort((a, b) => a.nomzodlar.length - b.nomzodlar.length).slice(0, 16);
+      const deadline = AbortSignal.timeout(5500);
+      for (let offset = 0; offset < pending.length && !deadline.aborted && tirik.current; offset += 4) {
+        await Promise.all(pending.slice(offset, offset + 4).map(async i => {
+          const hits = await shnqNomzodlar(katalog, kompaniyaId, i, context, deadline);
+          if (hits.length) grounded.set(i.id, hits);
+        }));
+      }
+      return grounded;
+    };
+    const shnqBirlashtir = (i: AiIsh, hits: Awaited<ReturnType<typeof shnqNomzodlar>>) =>
+      ({ ...i, nomzodlar: [...hits, ...i.nomzodlar.filter(n => !hits.some(h => h.id === n.id))].slice(0, 20) });
+    const grounded = await shnqBilan(next.filter(i => !i.tanlangan), next);
+    if (!tirik.current) return list;
     next = next.map(i => {
       const hits = grounded.get(i.id);
-      if (!hits) return i;
-      return { ...i, nomzodlar: [...hits, ...i.nomzodlar.filter(n => !hits.some(h => h.id === n.id))].slice(0, 20) };
+      return hits ? shnqBirlashtir(i, hits) : i;
     });
     // Up to two rounds: when no candidate fits, the model rephrases in normative wording and the catalogue is searched again.
     let qaytaIds: Set<string> | null = null;
@@ -196,6 +200,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
       if (xatoBor && !tanlovlar.length) break;
       const by = new Map(tanlovlar.map(x => [x.id, x]));
       const qayta = new Set<string>();
+      const shnqQayta: AiIsh[] = [];
       next = next.map(i => {
         const c = by.get(i.id), n = c?.ishId ? i.nomzodlar.find(x => x.id === c.ishId) : null;
         if (n && !tanlovZidmi(i, n, next)) {
@@ -205,12 +210,24 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
         }
         if (c && !c.ishId) qadam(t('«{i}»: mos norma topilmadi{q}', { i: i.tavsif, q: c.qidiruv?.length ? t(' — qayta qidiraman: {q}', { q: c.qidiruv.join('; ') }) : '' }), c.qidiruv?.length ? 'ishda' : 'savol');
         if (round === 0 && c?.qidiruv?.length) {
+          const alternate = c.qidiruv.filter(query => !i.qidiruv.some(original => original.trim().toLowerCase() === query.trim().toLowerCase()));
+          if (alternate.length) shnqQayta.push({ ...i, qidiruv: alternate });
           const extra = nomzodlarTop(katalog, { ...i, qidiruv: c.qidiruv });
           const fresh = extra.filter(x => !i.nomzodlar.some(o => o.id === x.id));
           if (fresh.length) { qayta.add(i.id); return { ...i, nomzodlar: [...fresh, ...i.nomzodlar].slice(0, 20) }; }
         }
         return i;
       });
+      if (shnqQayta.length) {
+        const retryHits = await shnqBilan(shnqQayta, next);
+        if (!tirik.current) return list;
+        next = next.map(i => {
+          const hits = retryHits.get(i.id);
+          if (!hits?.some(h => !i.nomzodlar.some(n => n.id === h.id && n.shnq))) return i;
+          qayta.add(i.id);
+          return shnqBirlashtir(i, hits);
+        });
+      }
       if (tirik.current) setIshlar(next);
       if (!qayta.size) break;
       qaytaIds = qayta;

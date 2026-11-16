@@ -25,7 +25,7 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
-it('recovers a missing catalogue match from an R2 table and adds the catalogue recipe after approval', async () => {
+it.each([false, true])('recovers an R2 table and adds the catalogue recipe after approval (rephrased: %s)', async rephrase => {
   const right = { ...work, code: 'E6-1-1-3', name: 'ПОДГОТОВКА БЕТОННАЯ', tableCode: 'E6-1-1' };
   const wrong = { ...right, id: 'wrong', code: 'E6-1-1-4', unitCode: 'wrong' };
   const catalog = {
@@ -37,16 +37,28 @@ it('recovers a missing catalogue match from an R2 table and adds the catalogue r
     ] }),
   } as unknown as AiKatalog;
   const baseFetch = vi.mocked(fetch).getMockImplementation()!;
+  const shnqQueries: string[] = [];
+  let attempts = 0;
   vi.mocked(fetch).mockImplementation(async (url, init) => {
     if (String(url).startsWith('/api/normativ-qidir?')) {
+      const query = new URL(String(url), 'https://studio.test').searchParams.get('q')!;
+      shnqQueries.push(query);
+      if (rephrase && query !== 'бетонная подготовка') {
+        return Response.json({ ok: true, sabab: 'NOT_FOUND', natijalar: [] });
+      }
       return Response.json({ ok: true, natijalar: [
         { norma_kod: '4.02.06-04', jadval_kod: null, iqtibos: 'Таблица 06-01-001. Синтетический пример.', sha256: 'a'.repeat(64), sahifa_pdf: 7 },
       ] });
     }
     if (init?.body && JSON.parse(String(init.body)).amal === 'suhbat') {
       return Response.json({ ok: true, javob: 'Ish ajratildi', savollar: [], ishlar: [
-        { id: 'w1', bolim: 'Asos', tavsif: 'Podbetonka', qidiruv: ['монолитная заливка'],
+        { id: 'w1', bolim: 'Asos', tavsif: 'Podbetonka', qidiruv: ['podbetonka', 'монолитная заливка'],
           birlik: 'м3', hajmIfoda: '2', material: null, holat: 'TAYYOR' },
+      ] });
+    }
+    if (rephrase && init?.body && JSON.parse(String(init.body)).amal === 'tanla' && ++attempts === 1) {
+      return Response.json({ ok: true, tanlovlar: [
+        { id: 'w1', ishId: null, sabab: 'Aniq variant kerak', qidiruv: ['монолитная заливка', 'бетонная подготовка'] },
       ] });
     }
     return baseFetch(url, init);
@@ -57,6 +69,7 @@ it('recovers a missing catalogue match from an R2 table and adds the catalogue r
   fireEvent.change(screen.getByLabelText('Smetachiga xabar'), { target: { value: '2 m3 podbetonka' } });
   fireEvent.click(screen.getByRole('button', { name: 'Yuborish' }));
   await screen.findByText(/ShNQ: 4\.02\.06-04, 06-01-001, PDF 7/);
+  expect(shnqQueries).toEqual(rephrase ? ['монолитная заливка', 'бетонная подготовка'] : ['монолитная заливка']);
   expect((screen.getByRole('button', { name: /Tayyorlarini smetaga qo‘shish \(0\)/ }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.click(screen.getByRole('button', { name: 'Ha, to‘g‘ri' }));
   fireEvent.click(screen.getByRole('button', { name: /Tayyorlarini smetaga qo‘shish \(1\)/ }));
