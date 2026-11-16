@@ -262,6 +262,12 @@
     <string name="ja_q_fact">Obyekt bo\'yicha fakt holati</string>
     <string name="ja_q_fact_text">Obyektlar bo\'yicha fakt holati qanday? Nima bajarilgan va nima qolgan?</string>
     <string name="ja_new_chat">Yangi suhbat</string>
+    <string name="ja_save_failed">Suhbat saqlanmadi. Xabarlar shu oynada turibdi.</string>
+    <string name="ja_save_stale">Suhbat boshqa qurilmada o‘zgargan. Xabarlaringiz shu oynada turibdi.</string>
+    <string name="ja_save_retry">Qayta saqlash</string>
+    <string name="ja_discard_title">Saqlanmagan xabarlar bilan nima qilamiz?</string>
+    <string name="ja_discard_body">Yangi suhbat ochilsa, saqlanmagan xabarlar yopiladi.</string>
+    <string name="ja_discard_confirm">Yangi suhbat ochish</string>
     <string name="ja_chats">Suhbatlar (%1$d)</string>
     <string name="ja_chats_empty">Hali suhbat yo\'q</string>
     <string name="ja_q_money">Obyekt summasi QQS bilan</string>

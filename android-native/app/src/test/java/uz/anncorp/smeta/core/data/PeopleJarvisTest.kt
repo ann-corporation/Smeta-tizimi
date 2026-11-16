@@ -254,31 +254,51 @@ class JarvisRepositoryTest {
     }
 
     @Test fun serverChatsAreListedOpenedAndSavedLikeTheWeb() = runBlocking {
+        val tag = "a".repeat(32)
         val api = PeopleRecorder { _, body ->
             when (body!!["amal"]!!.jsonPrimitive.content) {
-                "suhbat_royxat" -> pres("""{"ok":true,"royxat":[{"id":"a1","sarlavha":"Birinchi","yangilandi":"2026-11-15T10:00:00+00:00","toliq":true}]}""")
-                "suhbat_ol" -> pres("""{"ok":true,"sarlavha":"Birinchi","xabarlar":[{"r":"user","m":"salom"},{"r":"ai","m":"Salom!"}]}""")
-                else -> pres("""{"ok":true}""")
+                "suhbat_sync" -> {
+                    val active = if (body["klient_id"] == null) "null" else """{"id":"a1","holat":"changed","etag":"$tag","qisqartma":null,"xabarlar":[{"r":"user","m":"salom"},{"r":"ai","m":"Salom!"}]}"""
+                    pres("""{"ok":true,"royxat":[{"id":"a1","sarlavha":"Birinchi","yangilandi":"2026-11-15T10:00:00+00:00","toliq":true}],"suhbat":$active}""")
+                }
+                "suhbat_mutate" -> if (body["harakat"]?.jsonPrimitive?.content == "create") {
+                    pres("""{"ok":true,"id":"a1","etag":"$tag"}""")
+                } else pres("""{"ok":false,"code":"SUHBAT_CONFLICT"}""", 409)
+                else -> ApiResult(400, null)
             }
         }
         val repo = JarvisRepository(api)
-        assertEquals(listOf(ChatInfo("a1", "Birinchi", "2026-11-15T10:00:00+00:00")), repo.chats(8))
-        assertEquals(listOf(ChatMsg(true, "salom"), ChatMsg(false, "Salom!")), repo.openChat(8, "a1"))
+        assertEquals(listOf(ChatInfo("a1", "Birinchi", "2026-11-15T10:00:00+00:00")), repo.syncChats(8)?.chats)
+        assertEquals(ChatSnapshot.Changed(tag, listOf(ChatMsg(true, "salom"), ChatMsg(false, "Salom!")), null),
+            repo.syncChats(8, ChatCursor("a1"))?.active)
         assertEquals("a1", api.calls[1].third!!["klient_id"]!!.jsonPrimitive.content)
-        assertTrue(repo.saveChat(8, "a1", listOf(ChatMsg(true, "  salom \n dunyo "), ChatMsg(false, "Salom!"))))
+        val messages = listOf(ChatMsg(true, "  salom \n dunyo "), ChatMsg(false, "Salom!"))
+        assertEquals(ChatWrite.Saved(tag), repo.writeMessages(8, ChatCursor("a1"), JarvisRepository.chatTitle(messages), messages))
         val save = api.calls.last().third!!
-        assertEquals("suhbat_saqla", save["amal"]!!.jsonPrimitive.content)
+        assertEquals("suhbat_mutate", save["amal"]!!.jsonPrimitive.content)
+        assertEquals("create", save["harakat"]!!.jsonPrimitive.content)
+        assertNull(save["etag"])
         assertEquals("salom dunyo", save["sarlavha"]!!.jsonPrimitive.content)
         assertEquals("user", save["xabarlar"]!!.jsonArray[0].jsonObject["r"]!!.jsonPrimitive.content)
         assertEquals("ai", save["xabarlar"]!!.jsonArray[1].jsonObject["r"]!!.jsonPrimitive.content)
-        assertFalse(repo.saveChat(8, "a1", listOf(ChatMsg(false, "faqat javob"))))   // nothing to title the chat with
+        assertEquals(ChatWrite.Stale, repo.writeMessages(8, ChatCursor("a1", tag), null, listOf(ChatMsg(true, "new"))))
+        val append = api.calls.last().third!!
+        assertEquals("append", append["harakat"]!!.jsonPrimitive.content)
+        assertEquals(tag, append["etag"]!!.jsonPrimitive.content)
+        assertNull(append["sarlavha"])
     }
 
-    @Test fun chatFailuresAreNullNotEmpty() {
-        assertNull(JarvisRepository.parseChats(ApiResult(500, null)))
-        assertNull(JarvisRepository.parseChats(pres("""{"ok":false}""")))
-        assertNull(JarvisRepository.parseMessages(ApiResult(0, null)))
-        assertEquals(listOf(ChatMsg(false, "Qisqa")), JarvisRepository.parseMessages(pres("""{"ok":true,"qisqartma":"Qisqa","xabarlar":null}""")))
+    @Test fun acceptsSummaryAndMissingButRejectsUnexpectedIdentityVersionOrRoles() {
+        val tag = "a".repeat(32)
+        val cursor = ChatCursor("a1", tag)
+        fun parse(active: String) = JarvisRepository.parseSync(pres("""{"ok":true,"royxat":[],"suhbat":$active}"""), cursor)?.active
+        assertEquals(ChatSnapshot.Missing, parse("""{"id":"a1","holat":"missing"}"""))
+        assertEquals(ChatSnapshot.Same, parse("""{"id":"a1","holat":"same","etag":"$tag"}"""))
+        assertEquals(ChatSnapshot.Changed(tag, null, "Qisqa"), parse("""{"id":"a1","holat":"changed","etag":"$tag","qisqartma":"Qisqa","xabarlar":null}"""))
+        assertNull(parse("""{"id":"wrong","holat":"missing"}"""))
+        assertNull(parse("""{"id":"a1","holat":"same","etag":"${"b".repeat(32)}"}"""))
+        assertNull(parse("""{"id":"a1","holat":"changed","etag":"$tag","qisqartma":null,"xabarlar":[{"r":"system","m":"Wrong role"}]}"""))
+        assertNull(JarvisRepository.parseSync(ApiResult(500, null), null))
     }
 }
 class JarvisModuleTest {

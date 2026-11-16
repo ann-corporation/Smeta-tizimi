@@ -3,9 +3,12 @@ package uz.anncorp.smeta.core.data
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import java.time.OffsetDateTime
 
 /** Outcome of one Jarvis question. Charging (aiHisobli) happens on the server; the app only shows what came back. */
 sealed interface JarvisResult {
@@ -24,9 +27,23 @@ data class ChatMsg(val mine: Boolean, val text: String)
 /** A server-saved chat (t2_jarvis_suhbat), the same list the web Jarvis shows. [updatedAt] is the server ISO timestamp. */
 data class ChatInfo(val id: String, val title: String, val updatedAt: String)
 
+data class ChatCursor(val id: String, val etag: String? = null)
+sealed interface ChatSnapshot {
+    data object Missing : ChatSnapshot
+    data object Same : ChatSnapshot
+    data class Changed(val etag: String, val messages: List<ChatMsg>?, val summary: String?) : ChatSnapshot
+}
+data class ChatSync(val chats: List<ChatInfo>, val active: ChatSnapshot?)
+
+sealed interface ChatWrite {
+    data class Saved(val etag: String) : ChatWrite
+    data object Stale : ChatWrite
+    data object Failed : ChatWrite
+}
+
 /**
  * Jarvis = the SAME brain as the web (/api/agent-ish kasb_savol: profession prompt, facts, exact search, deterministic money answers,
- * conversation history) through the mobile BFF. Chats live on the server (suhbat_royxat / suhbat_ol / suhbat_saqla), identical to the web.
+ * conversation history) through the mobile BFF. Chats share the web snapshot and mutation contract.
  */
 class JarvisRepository(private val api: BffApi) {
     /**
@@ -48,27 +65,86 @@ class JarvisRepository(private val api: BffApi) {
         return map(r)
     }
 
-    /** Server chat list, newest first. null = request failed (keep what is on screen). */
-    suspend fun chats(companyId: Long): List<ChatInfo>? =
-        parseChats(api.bff(PATH, "POST", buildJsonObject { put("amal", "suhbat_royxat"); put("kompaniya_id", companyId) }))
+    suspend fun syncChats(companyId: Long, cursor: ChatCursor? = null): ChatSync? =
+        parseSync(api.bff(PATH, "POST", buildJsonObject {
+            put("amal", "suhbat_sync"); put("kompaniya_id", companyId)
+            cursor?.let { put("klient_id", it.id); it.etag?.let { tag -> put("etag", tag) } }
+        }), cursor)
 
-    /** Messages of one server chat. null = failed; empty = chat has no messages. */
-    suspend fun openChat(companyId: Long, id: String): List<ChatMsg>? =
-        parseMessages(api.bff(PATH, "POST", buildJsonObject { put("amal", "suhbat_ol"); put("kompaniya_id", companyId); put("klient_id", id) }))
-
-    /** Saves the chat after each message (server keeps the last 12 turns). true = saved. */
-    suspend fun saveChat(companyId: Long, id: String, messages: List<ChatMsg>): Boolean {
-        val title = chatTitle(messages) ?: return false
+    suspend fun writeMessages(companyId: Long, cursor: ChatCursor, title: String?, messages: List<ChatMsg>): ChatWrite {
+        val create = cursor.etag == null
+        if (!CHAT_ID.matches(cursor.id) || (create && title.isNullOrBlank()) ||
+            (!create && (!ETAG.matches(cursor.etag.orEmpty()) || title != null)) ||
+            messages.size !in 1..MAX_SAVED || messages.any { it.text.isBlank() }) return ChatWrite.Failed
         val r = api.bff(PATH, "POST", buildJsonObject {
-            put("amal", "suhbat_saqla"); put("kompaniya_id", companyId); put("klient_id", id); put("sarlavha", title)
+            put("amal", "suhbat_mutate"); put("kompaniya_id", companyId); put("klient_id", cursor.id)
+            put("harakat", if (create) "create" else "append")
+            if (create) put("sarlavha", title)
+            else put("etag", cursor.etag)
             put("xabarlar", buildJsonArray {
-                messages.takeLast(MAX_SAVED).forEach { add(buildJsonObject { put("r", if (it.mine) "user" else "ai"); put("m", it.text.take(MAX_SAVED_TEXT)) }) }
+                messages.forEach {
+                    add(buildJsonObject { put("r", if (it.mine) "user" else "ai"); put("m", it.text.trim().take(MAX_SAVED_TEXT)) })
+                }
             })
         })
-        return r.ok && ((r.body as? JsonObject)?.get("ok") as? JsonPrimitive)?.content != "false"
+        if (r.status == 409 || r.status == 404) return ChatWrite.Stale
+        val body = r.body as? JsonObject
+        val tag = body?.string("etag")
+        return if (r.ok && body?.successful() == true && body.string("id") == cursor.id && tag != null && ETAG.matches(tag)) {
+            ChatWrite.Saved(tag)
+        } else ChatWrite.Failed
     }
 
     companion object {
+        private val CHAT_ID = Regex("^[A-Za-z0-9_.-]{1,40}$")
+        private val ETAG = Regex("^[a-f0-9]{32}$")
+        private fun JsonObject.string(key: String) = (this[key] as? JsonPrimitive)?.takeIf { it.isString }?.content
+        private fun JsonObject.successful() = (this["ok"] as? JsonPrimitive)?.let { !it.isString && it.booleanOrNull == true } == true
+
+        internal fun parseSync(r: ApiResult, cursor: ChatCursor?): ChatSync? {
+            val body = r.body as? JsonObject ?: return null
+            if (!r.ok || !body.successful()) return null
+            val rows = body["royxat"] as? JsonArray ?: return null
+            if (rows.size > 20) return null
+            val list = rows.map {
+                val row = it as? JsonObject ?: return null
+                val id = row.string("id")?.takeIf(CHAT_ID::matches) ?: return null
+                val title = row.string("sarlavha") ?: return null
+                val time = row.string("yangilandi") ?: return null
+                if (runCatching { OffsetDateTime.parse(time) }.isFailure) return null
+                ChatInfo(id, title, time)
+            }
+            if (list.map { it.id }.toSet().size != list.size) return null
+            if (cursor == null) return if (body["suhbat"] == JsonNull) ChatSync(list, null) else null
+            val row = body["suhbat"] as? JsonObject ?: return null
+            if (row.string("id") != cursor.id) return null
+            if (row.string("holat") == "missing") return ChatSync(list, ChatSnapshot.Missing)
+            val tag = row.string("etag")?.takeIf(ETAG::matches) ?: return null
+            val active = when (row.string("holat")) {
+                "same" -> if (tag == cursor.etag) ChatSnapshot.Same else return null
+                "changed" -> {
+                    val summary = row.string("qisqartma")
+                    if (summary == null && row["qisqartma"] != JsonNull) return null
+                    val messages = when (val value = row["xabarlar"]) {
+                        JsonNull -> null
+                        is JsonArray -> {
+                            if (value.size > MAX_SAVED) return null
+                            value.map {
+                                val msg = it as? JsonObject ?: return null
+                                val mine = when (msg.string("r")) { "user" -> true; "ai" -> false; else -> return null }
+                                val text = msg.string("m")?.takeIf { it.isNotBlank() && it.length <= MAX_SAVED_TEXT * 2 } ?: return null
+                                ChatMsg(mine, text)
+                            }
+                        }
+                        else -> return null
+                    }
+                    ChatSnapshot.Changed(tag, messages, summary)
+                }
+                else -> return null
+            }
+            return ChatSync(list, active)
+        }
+
         const val MAX_QUESTION = 1000
         const val MAX_HISTORY = 6
         const val MAX_SAVED = 12
@@ -86,33 +162,6 @@ class JarvisRepository(private val api: BffApi) {
         /** Chat title = the first user message, ≤ 80 chars (the server also cuts at 80). null = nothing to save yet. */
         fun chatTitle(messages: List<ChatMsg>): String? =
             messages.firstOrNull { it.mine && it.text.isNotBlank() }?.text?.replace(Regex("\\s+"), " ")?.trim()?.take(80)
-
-        fun parseChats(r: ApiResult): List<ChatInfo>? {
-            val o = r.body as? JsonObject
-            if (!r.ok || (o?.get("ok") as? JsonPrimitive)?.content == "false") return null
-            val arr = o?.get("royxat") as? JsonArray ?: return null
-            return arr.mapNotNull { e ->
-                val x = e as? JsonObject ?: return@mapNotNull null
-                val id = (x["id"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: return@mapNotNull null
-                ChatInfo(id, (x["sarlavha"] as? JsonPrimitive)?.content.orEmpty(), (x["yangilandi"] as? JsonPrimitive)?.content.orEmpty())
-            }
-        }
-
-        fun parseMessages(r: ApiResult): List<ChatMsg>? {
-            val o = r.body as? JsonObject
-            if (!r.ok || (o?.get("ok") as? JsonPrimitive)?.content == "false") return null
-            val arr = o?.get("xabarlar") as? JsonArray
-            if (arr == null) {
-                // Old chat kept only as a summary: show it as one Jarvis message rather than an empty chat.
-                val s = (o?.get("qisqartma") as? JsonPrimitive)?.takeIf { it.isString }?.content
-                return if (s.isNullOrBlank()) emptyList() else listOf(ChatMsg(false, s))
-            }
-            return arr.mapNotNull { e ->
-                val x = e as? JsonObject ?: return@mapNotNull null
-                val m = (x["m"] as? JsonPrimitive)?.takeIf { it.isString }?.content?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-                ChatMsg((x["r"] as? JsonPrimitive)?.content == "user", m)
-            }
-        }
 
         /** Pure, unit tested. The server's error text is `xabar` (ai-savol) or `error` (agent-ish). */
         fun map(r: ApiResult): JarvisResult {

@@ -261,6 +261,12 @@
     <string name="ja_q_fact">Статус факта по объекту</string>
     <string name="ja_q_fact_text">Каков статус факта по объектам? Что выполнено и что осталось?</string>
     <string name="ja_new_chat">Новый чат</string>
+    <string name="ja_save_failed">Не удалось сохранить беседу. Сообщения остались в этом окне.</string>
+    <string name="ja_save_stale">Беседа изменилась на другом устройстве. Ваши сообщения остались в этом окне.</string>
+    <string name="ja_save_retry">Повторить сохранение</string>
+    <string name="ja_discard_title">Что сделать с несохранёнными сообщениями?</string>
+    <string name="ja_discard_body">При открытии новой беседы окно с несохранёнными сообщениями закроется.</string>
+    <string name="ja_discard_confirm">Открыть новую беседу</string>
     <string name="ja_chats">Чаты (%1$d)</string>
     <string name="ja_chats_empty">Чатов пока нет</string>
     <string name="ja_q_money">Сумма объекта с НДС</string>

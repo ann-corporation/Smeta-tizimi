@@ -2,7 +2,9 @@ package uz.anncorp.smeta.core.demo
 
 import android.content.Context
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -160,9 +162,12 @@ private class DemoBff(private val context: Context, private val json: Json, priv
         }
     }
 
-    private val demoChats = mutableMapOf<String, String>()
+    private data class DemoChat(val id: String, val title: String, val messages: JsonArray, val etag: String, val updated: String)
+    private val demoChats = mutableMapOf<Pair<String, String>, DemoChat>()
+    private var demoChatVersion = 0L
 
     /** Jarvis fixture: money answer from the demo object summary (QQS bilan first), shared chat history in memory. */
+    @Synchronized
     private fun agentIsh(o: JsonObject?): ApiResult {
         fun s(k: String) = (o?.get(k) as? JsonPrimitive)?.takeIf { it.isString }?.content
         return when (s("amal")) {
@@ -173,9 +178,50 @@ private class DemoBff(private val context: Context, private val json: Json, priv
                 else "Bugun 3 ta ish bor: 2 ta fakt kiritish va 1 ta tasdiqlash kutmoqda."
                 ok(buildJsonObject { put("ok", true); put("javob", text); put("provider", "local") }.toString())
             }
-            "suhbat_royxat" -> ok("""{"ok":true,"royxat":[${demoChats.keys.joinToString(",") { """{"id":"$it","sarlavha":"Demo suhbat","yangilandi":"2026-11-15T10:00:00+00:00"}""" }}]}""")
-            "suhbat_ol" -> ok("""{"ok":true,"xabarlar":${demoChats[s("klient_id")] ?: "[]"}}""")
-            "suhbat_saqla" -> { s("klient_id")?.let { demoChats[it] = (o?.get("xabarlar"))?.toString() ?: "[]" }; ok("""{"ok":true}""") }
+            "suhbat_sync" -> {
+                val company = o?.get("kompaniya_id").toString()
+                val id = s("klient_id")
+                val chat = demoChats[company to id.orEmpty()]
+                ok(buildJsonObject {
+                    put("ok", true)
+                    put("royxat", JsonArray(demoChats.filterKeys { it.first == company }.values.sortedByDescending { it.updated }.take(20).map {
+                        buildJsonObject { put("id", it.id); put("sarlavha", it.title); put("yangilandi", it.updated); put("toliq", true) }
+                    }))
+                    put("suhbat", if (id == null) JsonNull else buildJsonObject {
+                        put("id", id)
+                        when {
+                            chat == null -> put("holat", "missing")
+                            chat.etag == s("etag") -> { put("holat", "same"); put("etag", chat.etag) }
+                            else -> {
+                                put("holat", "changed"); put("etag", chat.etag); put("sarlavha", chat.title)
+                                put("xabarlar", chat.messages); put("qisqartma", JsonNull)
+                            }
+                        }
+                    })
+                }.toString())
+            }
+            "suhbat_mutate" -> {
+                val id = s("klient_id") ?: return ApiResult(400, null)
+                val key = o?.get("kompaniya_id").toString() to id
+                val messages = o?.get("xabarlar") as? JsonArray ?: return ApiResult(400, null)
+                val old = demoChats[key]
+                val chat = when (s("harakat")) {
+                    "create" -> {
+                        val title = s("sarlavha") ?: return ApiResult(400, null)
+                        if (old != null && (old.title != title || old.messages != messages)) return ApiResult(409, null)
+                        old ?: DemoChat(id, title, messages, (++demoChatVersion).toString(16).padStart(32, '0'), java.time.OffsetDateTime.now().toString())
+                    }
+                    "append" -> {
+                        if (old == null) return ApiResult(404, null)
+                        if (old.etag != s("etag")) return ApiResult(409, null)
+                        old.copy(messages = JsonArray((old.messages + messages).takeLast(12)),
+                            etag = (++demoChatVersion).toString(16).padStart(32, '0'), updated = java.time.OffsetDateTime.now().toString())
+                    }
+                    else -> return ApiResult(400, null)
+                }
+                demoChats[key] = chat
+                ok(buildJsonObject { put("ok", true); put("id", id); put("etag", chat.etag) }.toString())
+            }
             else -> ApiResult(400, buildJsonObject { put("ok", false) })
         }
     }

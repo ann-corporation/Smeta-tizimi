@@ -261,6 +261,12 @@
     <string name="ja_q_fact">Fact status by object</string>
     <string name="ja_q_fact_text">What is the fact status by object? What is done and what is left?</string>
     <string name="ja_new_chat">New chat</string>
+    <string name="ja_save_failed">The chat could not be saved. Your messages are still in this window.</string>
+    <string name="ja_save_stale">The chat changed on another device. Your messages are still in this window.</string>
+    <string name="ja_save_retry">Retry save</string>
+    <string name="ja_discard_title">What should happen to unsaved messages?</string>
+    <string name="ja_discard_body">Starting a new chat closes the view with unsaved messages.</string>
+    <string name="ja_discard_confirm">Start new chat</string>
     <string name="ja_chats">Chats (%1$d)</string>
     <string name="ja_chats_empty">No chats yet</string>
     <string name="ja_q_money">Object total with VAT</string>
