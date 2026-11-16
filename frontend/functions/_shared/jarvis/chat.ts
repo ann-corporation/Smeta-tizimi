@@ -7,6 +7,8 @@ import { xotiraBloklari } from '../../../src/lib/smeta-ai/tajriba';
 import { kimMendan, kimPromptBloki } from '../../../src/lib/yordamchi/kim';
 import { pulJavobi, pulSorovi } from '../agent-pul-javob';
 import { objectTotalAnswer, objectTotalIntent } from './object-finance';
+import { normAnswer, normReference } from './normative';
+import type { NormativEnv } from '../normativ-read';
 import { suhbatTarixi, faktMatni, kasbPrompti, mavzuTaqiqi, radMatni, toifalarniTanla, harakatMatni, javobniAjrat, MAVZU_NOMI, type KasbMalumoti, type Toifa } from '../agent-kasb';
 import { bilimBolimi, dbBilimYozuvlari, navigatsiyaSorovi, sahifaQidirish, yolTekshir } from '../agent-bilim';
 import { uslubBolimi, uslubYangila, type UslubXususiyat } from '../agent-uslub';
@@ -15,7 +17,7 @@ import { qidiruvSozlari } from '../../../src/lib/jarvis/qidiruv-sozlari';
 import { studioKontekstTekshir } from '../../../src/lib/jarvis/studio-kontekst';
 import type { AiEnv } from '../ai';
 
-export type JarvisEnv = AiEnv & AgentRpcEnv & { AGENT_ISH_YOQILGAN?: string };
+export type JarvisEnv = AiEnv & AgentRpcEnv & Partial<NormativEnv> & { AGENT_ISH_YOQILGAN?: string };
 const sonmi = (v: unknown) => v != null && v !== '' && Number.isSafeInteger(Number(v)) && Number(v) > 0;
 const matn = (v: unknown, n: number) => (v == null || String(v).trim() === '' ? null : String(v).trim().slice(0, n));
 
@@ -98,6 +100,12 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
         actor, company: kid, question: savol, history: so.tarix, objectId: sonmi(so.obyekt_id) ? Number(so.obyekt_id) : null,
       }, total).catch(() => ({ javob: 'Jami summani tizimdan olib bo‘lmadi. Keyinroq qayta urinib ko‘ring.' }))
       : { javob: 'Bu obyekt summasini ko‘rish uchun ruxsat kerak.', rad: true as const };
+    return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
+  }
+  const norm = so.studio == null ? normReference(savol) : null;
+  if (norm) {
+    const answer = await normAnswer(env, actor, kid, norm, men ?? null)
+      .catch(() => ({ javob: 'Normativ manbasini hozir tekshirib bo‘lmadi. Keyinroq qayta urinib ko‘ring.' }));
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
   }
   const toifalar = toifalarniTanla(savol, kasb.kategoriyalar, matn(so.sahifa, 160));

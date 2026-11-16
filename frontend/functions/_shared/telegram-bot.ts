@@ -11,7 +11,7 @@
  *    (ikki bosqichli tasdiq, mavjud t2_hujjat_zanjir_qaror_v1 — rol/navbat bazada tekshiriladi).
  *  • Fakt summasi/hajmi YOZILMAYDI. Xabar matni, rasm, summa, chat_id loglanmaydi.
  */
-import { type TgEnv, type TgTil, miniAppYoliTugma, tgFaylOl, tgRpc, tgT } from './telegram';
+import { type TgEnv, type TgTil, miniAppYoliTugma, saytUrl, tgFaylOl, tgRpc, tgT } from './telegram';
 import { botChaqiruv } from './telegram-amal';
 import { FOTO_BOLIMLAR } from './telegram-tugma';
 import { onRequest as middleware } from '../api/_middleware';
@@ -131,6 +131,12 @@ export async function jarvisJavobi(env: BotEnv, uid: number, til: TgTil, savol: 
   if (r.status === 200 && r.body?.ok && typeof r.body.javob === 'string' && r.body.javob.trim()) {
     const yol = r.body.dalil?.yol;
     if (!yol) return { matn: r.body.javob.trim().slice(0, 3800) };
+    if (yol.startsWith('/api/normativ-qidir?')) {
+      const absolute = saytUrl(env) + yol;
+      const suffix = '\n\n[Normativ manbasini ochish](' + yol + ')';
+      const answer = r.body.javob.endsWith(suffix) ? r.body.javob.slice(0, -suffix.length) : r.body.javob;
+      return { matn: answer.trim().slice(0, 3800), markup: { inline_keyboard: [[{ text: tgT('Tizimni ochish', til), url: absolute }]] } };
+    }
     const sourceLink = '\n\n[Manbani ochish](' + yol + ')';
     const answer = r.body.javob.endsWith(sourceLink) ? r.body.javob.slice(0, -sourceLink.length) : r.body.javob;
     return { matn: answer.trim().slice(0, 3800), markup: { inline_keyboard: [[miniAppYoliTugma(env, til, yol)]] } };
