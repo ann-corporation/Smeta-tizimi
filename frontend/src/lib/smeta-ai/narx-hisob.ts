@@ -15,7 +15,7 @@
  *   • machine-hours / labour hours are never converted;
  *   • price is always WITHOUT VAT: with-VAT or unknown VAT → ÷ 1,12 (owner rule), unknown is flagged.
  */
-import { NDS_SUKUT_FOIZ, qqsSizNarx, yaxlit2 } from '../hisob-yadro';
+import { NDS_SUKUT_FOIZ, qqsKoef, qqsSizNarx, yaxlit2 } from '../hisob-yadro';
 import { birlikNormKalit, narxBirlikKoef, type Qadoq } from './narx-birlik';
 
 export type Zichlik = { /** tonnes per m3 */ tm3: number; /** where it comes from */ manba: string; /** true when it comes from a reference table (an assumption), false when written in the source text */ taxmin: boolean };
@@ -84,7 +84,7 @@ export type NarxHisobXato = { ok: false; sabab: string };
 
 /** 12500000 → «12 500 000», 11160.714 → «11 160,71». */
 export function pulMatni(v: number): string {
-  const r = Math.round(v * 100) / 100;
+  const r = yaxlit2(v);
   const [a, b] = Math.abs(r).toFixed(2).split('.');
   return (r < 0 ? '-' : '') + a.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + (b === '00' ? '' : ',' + b.replace(/0$/, ''));
 }
@@ -110,7 +110,7 @@ export function narxHisobla(k: NarxKirish): NarxHisob | NarxHisobXato {
   const src = `${pulMatni(k.narx)} so'm/${birlikMatni(k.manbaBirlik)}`;
   if (nds === 'siz') qadamlar.push(`${src} (QQS siz)`);
   else {
-    qadamlar.push(`${src} (${nds === 'bilan' ? 'QQS bilan' : 'QQS holati noma‘lum — QQS bilan deb olindi'}) ÷ ${String(1 + NDS_SUKUT_FOIZ / 100).replace('.', ',')} = ${pulMatni(qqsSiz)} so'm/${birlikMatni(k.manbaBirlik)} (QQS siz)`);
+    qadamlar.push(`${src} (${nds === 'bilan' ? 'QQS bilan' : 'QQS holati noma‘lum — QQS bilan deb olindi'}) ÷ ${String(qqsKoef(NDS_SUKUT_FOIZ)).replace('.', ',')} = ${pulMatni(qqsSiz)} so'm/${birlikMatni(k.manbaBirlik)} (QQS siz)`);
     if (nds === 'nomalum') taxmin.push('QQS holati noma‘lum: narx QQS bilan deb olindi va ÷ 1,12 qilindi');
   }
   const done = (koef: number, usul: NarxHisob['usul'], narx: number): NarxHisob => ({ ok: true, narx: yaxlit2(narx), qqsSiz, koef, usul, qadamlar, taxmin });
