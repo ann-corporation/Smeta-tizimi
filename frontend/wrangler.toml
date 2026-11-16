@@ -32,3 +32,5 @@ bucket_name = "smeta-tizimi-canonical"
 OBYEKT_PAKET_ETAG = "1"
 PUBLIC_ORIGIN = "https://qurai.uz"
 BREND_URL = "https://qurai.uz"
+# Eski hostdan 301: Google OAuth origin va BotFather /setdomain qilingach '1' ga o'zgartiriladi.
+ESKI_HOST_YONLANTIRISH = "0"
