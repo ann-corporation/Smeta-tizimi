@@ -185,7 +185,7 @@ private fun DocCard(d: ApprovalDetail, doc: ApprovalDoc?) {
             Fact(stringResource(R.string.p2_appr_type), docTypeRes(typeKey)?.let { stringResource(it) } ?: typeKey.ifBlank { "—" })
             Fact(stringResource(R.string.p2_appr_number), doc?.raqam ?: "—")
             Fact(stringResource(R.string.p2_appr_object), doc?.obyekt ?: "—")
-            Fact(stringResource(R.string.p2_appr_date), doc?.sana ?: "—")
+            Fact(stringResource(R.string.p2_appr_date), doc?.sana?.let { uz.anncorp.smeta.core.data.formatIsoStamp(it) } ?: "—")
             Fact(stringResource(R.string.p2_appr_total), formatMoney(doc?.jami), emphasize = true)
             Text(stringResource(R.string.p2_appr_total_note), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
         }

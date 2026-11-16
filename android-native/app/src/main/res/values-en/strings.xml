@@ -202,8 +202,8 @@
     <string name="hub_first_object_hint">Objects and estimates are added on the website for now. They appear here once added.</string>
     <string name="hub_first_object_action">Open the website</string>
     <string name="hub_web_title">Website</string>
-    <string name="hub_web_soon">Coming soon — open it on the website</string>
-    <string name="hub_web_soon_hint">This app cannot open inside the app yet. Open it in the browser.</string>
+    <string name="hub_web_soon">The page did not open</string>
+    <string name="hub_web_soon_hint">The server did not return the page. Retry or open it in the browser.</string>
     <string name="hub_web_open_browser">Open in browser</string>
     <string name="mod_objects">Objects</string>
     <string name="mod_objects_d">Objects and their status</string>

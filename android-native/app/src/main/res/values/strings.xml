@@ -203,8 +203,8 @@
     <string name="hub_first_object_hint">Obyekt va smeta hozircha saytda qo\'shiladi. Qo\'shilgach shu yerda ko\'rinadi.</string>
     <string name="hub_first_object_action">Saytda ochish</string>
     <string name="hub_web_title">Sayt</string>
-    <string name="hub_web_soon">Tez orada — saytda oching</string>
-    <string name="hub_web_soon_hint">Bu ilova hali ilova ichida ochilmaydi. Brauzerda oching.</string>
+    <string name="hub_web_soon">Sahifa hozir ochilmadi</string>
+    <string name="hub_web_soon_hint">Server sahifani bermadi. Qayta urinib ko‘ring yoki brauzerda oching.</string>
     <string name="hub_web_open_browser">Brauzerda ochish</string>
     <string name="mod_objects">Obyektlar</string>
     <string name="mod_objects_d">Obyektlar va ularning holati</string>

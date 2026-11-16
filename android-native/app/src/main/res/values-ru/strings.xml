@@ -202,8 +202,8 @@
     <string name="hub_first_object_hint">Объекты и сметы пока добавляются на сайте. После добавления они появятся здесь.</string>
     <string name="hub_first_object_action">Открыть сайт</string>
     <string name="hub_web_title">Сайт</string>
-    <string name="hub_web_soon">Скоро — откройте на сайте</string>
-    <string name="hub_web_soon_hint">Это приложение пока не открывается внутри приложения. Откройте в браузере.</string>
+    <string name="hub_web_soon">Страница сейчас не открылась</string>
+    <string name="hub_web_soon_hint">Сервер не отдал страницу. Повторите попытку или откройте в браузере.</string>
     <string name="hub_web_open_browser">Открыть в браузере</string>
     <string name="mod_objects">Объекты</string>
     <string name="mod_objects_d">Объекты и их состояние</string>

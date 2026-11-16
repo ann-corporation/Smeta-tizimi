@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bajarilishMaxraji, manbaTaqsimot, reestrUlush } from './reestr-korinish';
+import { bajarilishMaxraji, manbaTaqsimot, ozgarishlarPaketdan, reestrUlush } from './reestr-korinish';
 
 const s = (malum: number, soni = 1, nomalum = 0) => ({ malum, soni, nomalum });
 
@@ -46,4 +46,11 @@ describe('F2 reestri ko‘rinishi — smeta = 100% ga nisbatan chiziq', () => {
   it('manba taqsimoti: aniqlanmagan qism alohida', () => {
     expect(manbaTaqsimot({ tasdiqlangan: s(100), tasdiqImport: s(50), tasdiqTizim: s(30) })).toEqual({ import: 50, tizim: 30, boshqa: 20, jami: 100 });
   });
+});
+
+it('ozgarishlarPaketdan: smeta_joriy - smeta; joriy yoki asl noma\'lum obyekt kiritilmaydi', () => {
+  const p = (u: number) => ({ ustamasiz: u });
+  const m = ozgarishlarPaketdan([{ obyekt_id: 1, smeta: p(100), smeta_joriy: p(130.5) }, { obyekt_id: 2, smeta: p(100), smeta_joriy: null }, { obyekt_id: 3, smeta: null, smeta_joriy: p(5) }, { obyekt_id: 4, smeta: p(7) }]);
+  expect([...m]).toEqual([[1, 30.5]]);
+  expect(ozgarishlarPaketdan(undefined).size).toBe(0);
 });
