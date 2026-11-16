@@ -7,6 +7,7 @@ import { xotiraBloklari } from '../../../src/lib/smeta-ai/tajriba';
 import { kimMendan, kimPromptBloki } from '../../../src/lib/yordamchi/kim';
 import { pulJavobi, pulSorovi } from '../agent-pul-javob';
 import { objectTotalAnswer, objectTotalIntent } from './object-finance';
+import { f2RegisterAnswer, f2RegisterIntent } from './f2-register';
 import { normAnswer, normReference } from './normative';
 import type { NormativEnv } from '../normativ-read';
 import { suhbatTarixi, faktMatni, kasbPrompti, mavzuTaqiqi, radMatni, toifalarniTanla, harakatMatni, javobniAjrat, MAVZU_NOMI, type KasbMalumoti, type Toifa } from '../agent-kasb';
@@ -71,6 +72,13 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
     qd('👋', 'Salomlashuv — model kerak emas, token sarflanmadi');
     await yozJurnal('salom', javob, qadamlar, {});
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', javob } };
+  }
+  const register = so.studio == null ? f2RegisterIntent(savol) : null;
+  if (register) {
+    const answer = await f2RegisterAnswer((name, body) => rpcData(env, name, body), {
+      actor, company: kid, question: savol, history: so.tarix, objectId: sonmi(so.obyekt_id) ? Number(so.obyekt_id) : null,
+    }, register);
+    return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
   }
   const taqiq = mavzuTaqiqi(savol, kasb.kategoriyalar);
   if (taqiq) {

@@ -1,6 +1,5 @@
 import { jarvisMoney } from '../../../src/lib/jarvis/answers';
-import { obyektTanla, type PulObyekt } from '../agent-pul-javob';
-import type { RpcNatija, Yuk } from '../agent-rpc';
+import { resolveJarvisObject, type JarvisObjectScope, type JarvisReadRpc } from './object-scope';
 
 const metrics = {
   f2: { label: 'Tasdiqlangan F2 jami', path: '/admin/f2-tarix', empty: 'Tasdiqlangan F2 topilmadi.' },
@@ -8,8 +7,6 @@ const metrics = {
 } as const;
 
 type Metric = keyof typeof metrics;
-type Rpc = (name: string, body: Yuk) => Promise<RpcNatija>;
-type Scope = { actor: number; company: number; question: string; history: unknown; objectId: number | null };
 const sourceRpc = 't2_object_financials_v1';
 const period = /(?:\boy\b|oylik|oyda|davr|yilda|yilgi|hafta|bugun|kecha|chorak|yanvar|fevral|martda|aprel|iyun|iyul|avgust|sentabr|sentyabr|oktabr|oktyabr|noyabr|dekabr|месяц|недел|период|сегодня|январ|феврал|март|апрел|июн|июл|август|сентябр|октябр|ноябр|декабр|йил|ойлик|ҳафта|давр|\d{4}|\d+[./]\d+)/u;
 const otherMeasure = /(?:qqs|nds|ндс|ққс|устама|ustama|nakrutk|накрутк|hajm|ҳажм|объ[её]м|narx|цена|%)/u;
@@ -39,17 +36,10 @@ function amountOf(value: unknown): Amount | null {
   return { known, unknown, present };
 }
 
-export async function objectTotalAnswer(rpc: Rpc, scope: Scope, metric: Metric): Promise<TotalAnswer> {
-  const list = await rpc('t2_agent_fakt_v1', {
-    p_actor_id: scope.actor, p_kompaniya_id: scope.company, p_kategoriyalar: ['obyektlar'], p_obyekt_id: null,
-  });
-  if (!list.ok) return list.status === 403 ? denied : unavailable;
-  const rows = (list.data.fakt as { obyektlar?: unknown } | undefined)?.obyektlar;
-  if (!Array.isArray(rows)) return unavailable;
-  const objects: PulObyekt[] = rows.flatMap((row: Partial<PulObyekt> | null) =>
-    row && typeof row.id === 'number' && Number.isSafeInteger(row.id) && row.id > 0 && typeof row.nom === 'string'
-      ? [{ id: row.id, nom: row.nom }] : []);
-  const selected = obyektTanla(scope.question, scope.history, objects, scope.objectId);
+export async function objectTotalAnswer(rpc: JarvisReadRpc, scope: JarvisObjectScope, metric: Metric): Promise<TotalAnswer> {
+  const selected = await resolveJarvisObject(rpc, scope);
+  if (selected.tur === 'unavailable') return unavailable;
+  if (selected.tur === 'denied') return denied;
   if (selected.tur === 'noaniq') return { javob: 'Qaysi obyekt? ' + selected.variantlar.map(row => row.nom).join(' · ') };
   if (selected.tur === 'yoq') return { javob: 'Summani qaysi obyekt bo‘yicha ko‘ray? Obyekt nomini yozing.' };
   const { id, nom } = selected.obyekt;

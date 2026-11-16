@@ -8,17 +8,20 @@ vi.mock('../_shared/agent-hisob', async (load) => ({
 import { ByudjetXatosi } from '../_shared/agent-hisob';
 import { kontekstKeshTozala } from '../_shared/agent-kontekst-kesh';
 import { objectTotalIntent } from '../_shared/jarvis/object-finance';
+import { f2RegisterIntent } from '../_shared/jarvis/f2-register';
 import { onRequestPost } from './ai-savol';
 
 const object = { id: 34, nom: 'Sinov Bino' };
 let categories: string[];
 let finance: () => Response;
+let register: () => Response;
 const rpc = vi.fn(async (input: string, _init?: RequestInit) => {
   switch (input.split('/').at(-1)) {
     case 't2_agent_kasb_v1': return Response.json({ ok: true, nom: 'Sinov', rol: 'pto', profil: 'company_access', vazifa: 'Sinov', boshqalar: [], namuna_savollar: [], kategoriyalar: categories });
     case 't2_agent_fakt_v1': return Response.json({ ok: true, fakt: { obyektlar: [object] }, ishlatilgan: categories });
     case 't2_obyekt_nakrutka_v1': return Response.json({ ok: true, nk_manba: 'smeta_podvali', nakrutka: { pryamye: 100, itogo4: 125, vsego: 140 } });
     case 't2_object_financials_v1': return finance();
+    case 't2_akt_reestr_obyekt_v1': return register();
     case 't2_agent_muhit_v1': return Response.json({ ok: true, qoidalar: [], xotira: [], manbalar: [] });
     default: return Response.json({ ok: true });
   }
@@ -36,6 +39,12 @@ beforeEach(() => {
   finance = () => Response.json({ ok: true, kompaniya_id: 17, basis: 'direct', objects: [{
     obyekt_id: 34, f2: { known: -102.75, unknown: 1, present: true }, fakt: { known: null, unknown: 2, present: true },
   }] });
+  const base = { obyekt_id: 34, kompaniya_id: 17, tur: 'f2', oy: '2026-06-01' };
+  register = () => Response.json({ ok: true, qatorlar: [
+    { ...base, id: 51, raqam: 'S-1', holat: 'tasdiqlangan', lifecycle_status: 'approved' },
+    { ...base, id: 52, raqam: 'S-2', holat: 'qoralama', lifecycle_status: 'submitted' },
+    { ...base, id: 53, raqam: 'S-3', holat: 'bekor', lifecycle_status: 'draft' },
+  ] });
   vi.stubGlobal('fetch', rpc);
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -132,3 +141,57 @@ it.each(['Shu oy F2 jami qancha?', 'Сумма по КС-2 за ноябрь', '
     expect(objectTotalIntent(savol)).toBeNull();
   },
 );
+
+it('F2 status is read from the same object register, without requiring access to financial totals', async () => {
+  const body = await (await run('Статус КС-2 № S-2', 17, { obyekt_id: 34, actor: 400 })).json();
+  expect(body).toMatchObject({
+    provider: 'local', javob: expect.stringContaining('№ S-2 · 2026-06 · Yuborilgan'),
+    dalil: { tur: 'f2-reestr', id: 34, akt_ids: [52], yol: '/admin/f2-tarix?obyekt=34' },
+  });
+  expect(JSON.parse(String(called('t2_akt_reestr_obyekt_v1')[0][1]?.body))).toEqual({ p_actor_id: 7, p_obyekt_id: 34, p_tur: 'f2' });
+  expect(ai).not.toHaveBeenCalled();
+});
+
+it('F2 listing excludes archived drafts and can filter a period and status', async () => {
+  const list = await (await run('Ф2 рўйхати', 17, { obyekt_id: 34 })).json();
+  expect(list).toMatchObject({ dalil: { akt_ids: [51, 52] } });
+  const filtered = await (await run('Sinov Bino 2026-06 tasdiqlangan F2 ro‘yxati')).json();
+  expect(filtered).toMatchObject({ dalil: { akt_ids: [51] } });
+  expect(ai).not.toHaveBeenCalled();
+});
+
+it('current object is verified by ID when it falls outside the company snapshot', async () => {
+  const original = rpc.getMockImplementation()!;
+  rpc.mockImplementation(async (url, init) => {
+    if (url.endsWith('/t2_agent_fakt_v1') && JSON.parse(String(init?.body)).p_obyekt_id === null) {
+      return Response.json({ ok: true, fakt: { obyektlar: [] } });
+    }
+    return original(url, init);
+  });
+  try {
+    expect(await (await run('F2 ro‘yxati', 17, { obyekt_id: 34 })).json())
+      .toMatchObject({ dalil: { id: 34, akt_ids: [51, 52] } });
+    const asks = called('t2_agent_fakt_v1').map(([, init]) => JSON.parse(String(init?.body)).p_obyekt_id);
+    expect(asks).toEqual([null, 34]);
+  } finally {
+    rpc.mockImplementation(original);
+  }
+});
+
+it('F2 register rejects a mixed-company payload and never falls back to LLM', async () => {
+  register = () => Response.json({ ok: true, qatorlar: [{ id: 70, obyekt_id: 34, kompaniya_id: 99, tur: 'f2', raqam: 'Private', oy: '2026-06-01', holat: 'tasdiqlangan' }] });
+  const bad = await (await run('Sinov Bino F2 reestri')).json();
+  expect(bad).not.toHaveProperty('dalil');
+  expect(bad).toMatchObject({ javob: expect.not.stringContaining('Private') });
+  register = () => Response.json({ code: '42501' }, { status: 403 });
+  expect(await (await run('Sinov Bino F2 reestri')).json()).toMatchObject({ rad: true });
+  expect(ai).not.toHaveBeenCalled();
+});
+
+it('an ambiguous month is clarified and write or amount intents do not enter the register reader', async () => {
+  const body = await (await run('Shu oy F2 ro‘yxati', 17, { obyekt_id: 34 })).json();
+  expect(body).toMatchObject({ javob: expect.stringContaining('YYYY-MM') });
+  expect(called('t2_akt_reestr_obyekt_v1')).toHaveLength(0);
+  expect(f2RegisterIntent('F2 № S-2 ni tasdiqla')).toBeNull();
+  expect(f2RegisterIntent('F2 reestri summasi qancha')).toBeNull();
+});
