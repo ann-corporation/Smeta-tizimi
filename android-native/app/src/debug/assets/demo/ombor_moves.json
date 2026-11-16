@@ -1,0 +1,6 @@
+{"ok":true,"soni":5,"jamiServerda":5,"toliq":true,"qatorlar":[
+ {"id":905,"kompaniya_id":1,"obyekt_id":101,"operatsiya":"rasxod","turi":"material","sana":"2026-11-16","nomi":"Sement M400 (qop 50 kg)","birligi":"qop","obyomi":40,"izoh":"Poydevor","kim":"omborchi"},
+ {"id":904,"kompaniya_id":1,"obyekt_id":101,"operatsiya":"prixod","turi":"material","sana":"2026-11-15","nomi":"Sement M400 (qop 50 kg)","birligi":"qop","obyomi":240,"izoh":"Nakladnaya 118","kim":"omborchi"},
+ {"id":903,"kompaniya_id":1,"obyekt_id":102,"operatsiya":"prixod","turi":"material","sana":"2026-11-14","nomi":"Armatura A500C d12","birligi":"t","obyomi":3.5,"izoh":null,"kim":"prorab"},
+ {"id":902,"kompaniya_id":1,"obyekt_id":101,"operatsiya":"prixod","turi":"material","sana":"2026-11-12","nomi":"Gvozd 100 mm","birligi":"kg","obyomi":15.75,"izoh":null,"kim":"omborchi"},
+ {"id":901,"kompaniya_id":1,"obyekt_id":101,"operatsiya":"rasxod","turi":"material","sana":"2026-11-11","nomi":"Gvozd 100 mm","birligi":"kg","obyomi":5,"izoh":null,"kim":"omborchi"}]}

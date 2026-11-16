@@ -1,0 +1,13 @@
+{
+  "sana": "2026-11-17",
+  "sarlavha": "QURAI Android 0.1.9 — omborchi va rahbar uchun yangi ekranlar",
+  "bandlar": [
+    "Ombor: kirim va chiqim ro'yxatlari, material kartasi va harakatlar tarixi; qidiruv xato yozilgan va lotin/kirill so'zlarni ham topadi.",
+    "Ombor: mikrofonni bosib turib gapiring yoki buyruq yozing, ilova tushungan narsani ko'rsatadi, tasdiqlasangiz saqlanadi (aloqa bo'lmasa navbatga tushadi).",
+    "F-2 reestri: butun kompaniya bo'yicha obyektlar, tasdiqlangan va qoralama F-2, bajarilish foizi; obyektning F-2 hujjatini yuklab olish.",
+    "Nakopitelniy: har oy uchun vedomostni serverdan PDF yoki Excel qilib olish.",
+    "Fakt qabuli: usta kiritgan hajmni qabul qilish yoki sabab yozib rad etish (PIN bilan tasdiqlanadi).",
+    "Rahbar: qarzdorlar ro'yxati va har obyekt uchun panel; resurs vedomost: smeta, F-2 va qoldiq.",
+    "Direktor pulti va Rahbar paneli endi ro'yxatda bitta qator."
+  ]
+}

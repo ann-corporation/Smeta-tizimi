@@ -140,6 +140,7 @@ fun WsAction.open(): WsOpen? {
         "rahbar" -> WsOpen.Native(NativeTarget.RAHBAR)
         "zayavka" -> WsOpen.Native(NativeTarget.ZAYAVKA)
         "onboarding" -> WsOpen.Onboard
-        else -> web
+        // Every other module the app has a native screen for (M-29, naryad, documents, F-2 registry, cumulative, debtors, acceptance, resources...).
+        else -> nativeTargetFor(target.code)?.let { WsOpen.Native(it) } ?: web
     }
 }
