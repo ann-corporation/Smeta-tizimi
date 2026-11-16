@@ -4,12 +4,12 @@
  */
 
 /** Qisqa `instructions` (MCP initialize javobi). */
-export const KORSATMA = 'Smeta tizimi (T2) bazasi bilan to\'g\'ridan-to\'g\'ri ishlash. Pul: NDS siz; ustamasiz + ustamali (ИТОГО-4), NDS alohida; null — noma\'lum (0 emas). '
+export const KORSATMA = 'QURAI (T2) bazasi bilan to\'g\'ridan-to\'g\'ri ishlash. Pul: NDS siz; ustamasiz + ustamali (ИТОГО-4), NDS alohida; null — noma\'lum (0 emas). '
   + 'Yozuvchi toollar avtomatik snapshot oladi (snapshot sxemasi bo\'lsa), bazaga audit yozadi; dry_run:true — preview + ROLLBACK. '
   + 'RPC aktori: SMETA_AKTOR_ID yoki aktor_tanla. Sxema: `sxema` tooli.';
 
 /** Domen qoidalari (har LLM to'g'ri ishlatishi uchun; masofaviy serverda `smeta://qoidalar` resursi). */
-export const QOIDALAR = `# Smeta tizimi (T2) — domen qoidalari
+export const QOIDALAR = `# QURAI (T2) — domen qoidalari
 
 ## Pul
 - Barcha narx va summalar **NDS (QQS) siz**. QQS faqat alohida yorliq bilan ko'rsatiladi («QQS bilan»).
