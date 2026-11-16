@@ -419,6 +419,18 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
     return chiqar(await rpcData(env, 't2_agent_xotira_yoz_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_profil: profil, p_kalit: String(so.kalit ?? ''), p_mazmun: String(so.mazmun ?? '').slice(0, 4000) }));
   }
   /* JARVIS SUHBATLARI (serverda, t2_jarvis_suhbat): faqat egasi o'qiydi; actor sessiyadan, a'zolik bazada (scope_guard); model chaqirilmaydi. */
+  if (amal === 'suhbat_sync') {
+    if (kid == null) return xato('Kompaniyani tanlang', 422);
+    const id = so.klient_id;
+    const etag = so.etag;
+    if ((id != null && (typeof id !== 'string' || !/^[A-Za-z0-9_.-]{1,40}$/.test(id))) ||
+        (etag != null && (id == null || typeof etag !== 'string' || !/^[a-f0-9]{32}$/.test(etag)))) {
+      return xato('Suhbat sinxronlash so‘rovi noto‘g‘ri');
+    }
+    return chiqar(await rpcData(env, 't2_jarvis_suhbat_sync_v1', {
+      p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: id ?? null, p_etag: etag ?? null,
+    }));
+  }
   if (amal === 'suhbat_royxat' || amal === 'suhbat_ol' || amal === 'suhbat_saqla' || amal === 'suhbat_ochir') {
     if (kid == null) return xato('Kompaniyani tanlang', 422);
     const klient = String(so.klient_id ?? '');

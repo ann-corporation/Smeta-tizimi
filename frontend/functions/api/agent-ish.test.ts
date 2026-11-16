@@ -22,6 +22,23 @@ beforeEach(() => { kontekstKeshTozala(); m.tekshir.mockResolvedValue({ foydalanu
 afterEach(() => vi.unstubAllGlobals());
 
 describe('agent-ish shlyuzi', () => {
+  it('sync reads one company using the session actor and a validated conversation cache key', async () => {
+    const fetcher = vi.fn(async (_url: string, _init?: RequestInit) => rpcJavob({ ok: true, royxat: [], suhbat: null }));
+    vi.stubGlobal('fetch', fetcher);
+    const etag = 'a'.repeat(32);
+    const response = await post({ amal: 'suhbat_sync', kompaniya_id: 17, klient_id: 'chat-1', etag, p_actor_id: 99 });
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher.mock.calls[0][0]).toMatch(/\/rpc\/t2_jarvis_suhbat_sync_v1$/);
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toEqual({
+      p_actor_id: 7, p_kompaniya_id: 17, p_klient_id: 'chat-1', p_etag: etag,
+    });
+    expect((await post({ amal: 'suhbat_sync', kompaniya_id: 17, etag })).status).toBe(400);
+    expect((await post({ amal: 'suhbat_sync', kompaniya_id: 17, klient_id: '../x' })).status).toBe(400);
+    expect((await post({ amal: 'suhbat_sync' })).status).toBe(422);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
   it('yoqilmagan bo‘lsa 503 (hech narsa chaqirilmaydi)', async () => {
     const f = vi.fn(); vi.stubGlobal('fetch', f);
     const r = await post({ amal: 'savol', savol: 'salom' }, env({ AGENT_ISH_YOQILGAN: '0' }));
