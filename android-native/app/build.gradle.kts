@@ -20,7 +20,12 @@ android {
         versionCode = 2_000_005
         // Format must match the server's ilovaVersiya() regex: d{1,4}.d{1,4}.d{1,6}
         versionName = "0.1.6"
-        buildConfigField("String", "API_BASE_URL", "\"https://smeta-tizimi.pages.dev\"")
+        // Domain move (qurai.uz): ONE source for the API host. Canonical host first; the fallback list (comma separated, tried in order
+        // on a network failure, see core/data/HostFallback.kt) keeps old/other hosts reachable. Override: -PapiBase=... -PapiFallbacks=...
+        val apiBase = (project.findProperty("apiBase") as String?) ?: "https://qurai.uz"
+        val apiFallbacks = (project.findProperty("apiFallbacks") as String?) ?: "https://smeta-tizimi.pages.dev"
+        buildConfigField("String", "API_BASE_URL", "\"$apiBase\"")
+        buildConfigField("String", "API_FALLBACK_URLS", "\"$apiFallbacks\"")
         resourceConfigurations += listOf("uz", "ru", "en")
     }
 

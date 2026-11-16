@@ -47,7 +47,7 @@ describe('/api/bildirishnoma-yetkaz', () => {
         expect(b.chat_id).toBe(555);
         expect(b.text).toBe('Hujjat muddati o‘tib ketdi\nMuddat: 04.11.2026');
         // «Ko'rish» — Mini App chuqur havola (V2); tashqi url tugma emas.
-        expect(b.reply_markup.inline_keyboard[0][0].web_app.url).toBe('https://smeta-tizimi.pages.dev/tg?to=' + encodeURIComponent('/admin/hujjat-aylanish?xat=3'));
+        expect(b.reply_markup.inline_keyboard[0][0].web_app.url).toBe('https://qurai.uz/tg?to=' + encodeURIComponent('/admin/hujjat-aylanish?xat=3'));
         return json({ ok: true, result: {} });
       }
       if (url.endsWith('/rpc/t2_bildirishnoma_tg_natija_v1')) { natijaYuki.push(JSON.parse(String(init?.body))); return json({ ok: true, yangilandi: 2 }); }

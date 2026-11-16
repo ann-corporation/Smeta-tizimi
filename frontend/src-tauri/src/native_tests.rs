@@ -63,6 +63,7 @@ fn only_packaged_main_origin() {
     assert!(caller_tekshir("main", "child", &local).is_err());
     for url in [
         "https://smeta-tizimi.pages.dev",
+        "https://qurai.uz",
         "http://localhost:5173",
         "https://tauri.localhost",
         "http://tauri.localhost.evil",
