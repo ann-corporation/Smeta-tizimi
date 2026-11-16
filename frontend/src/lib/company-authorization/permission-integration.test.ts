@@ -69,7 +69,12 @@ describe('role integration architecture',()=>{
       'bildirishnoma-yetkaz',
       /* AI ishchilar fon bajaruvchisi (2026-11-13): sessiyasiz FON ISHI (GitHub Actions). Kirish faqat X-Kuzatuv-Kalit == KUZATUV_KALIT (>=24 belgi; sozlanmagan -> 503, noto'g'ri -> 401);
          javobda faqat sonlar; model chaqiruvi aiHisobli orqali (limit/hamyon), ish aktori — ishchini yoqqan odam, ruxsat har qadamda bazada qayta tekshiriladi (ai-ishchi.test.ts). */
-      'ai-ishchi-bajar']);
+      'ai-ishchi-bajar',
+      /* Tajriba indeksi (2026-11-16): /api/tajriba-indeks - GET, sessiya majburiy (tekshir, yo'q -> 401). Global qatlam faqat k-anonim sonlar (R2 oq ro'yxat nomlari);
+         kompaniya qatlami (kompaniya_id) faqat shu kompaniya a'zosi yoki superadmin uchun (aks holda 403); holat/kursor fayllari hech qachon berilmaydi (src/lib/smeta-ai/tajriba-indeks.test.ts).
+         /api/tajriba-tick - sessiyasiz tungi FON ISHI (GitHub Actions): faqat X-Cron-Kalit == BILDIRISHNOMA_CRON_KALIT (sozlanmagan -> 503, noto'g'ri -> 403);
+         javobda faqat sonlar, bazadan faqat o'qiydi (_shared/tajriba-tick.test.ts). */
+      'tajriba-indeks', 'tajriba-tick']);
     const routes=readdirSync(resolve(root,'frontend/functions/api')).filter(n=>n.endsWith('.ts')&&!n.endsWith('.test.ts')&&!n.startsWith('_')).map(n=>n.slice(0,-3));
     expect(routes.filter(n=>!SCOPED_APIS.has(n)&&!exceptions.has(n))).toEqual([]);
   });
