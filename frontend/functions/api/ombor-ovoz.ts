@@ -31,10 +31,10 @@ async function actor(ctx: Context): Promise<Sess | Response> {
 function access(session: Sess, kid: number): Response | null {
   if (!Number.isSafeInteger(kid) || kid<=0) return fail('COMPANY_REQUIRED',400);
   if (!session.foydalanuvchi_id || !session.permissionsByCompany) return fail('AUTHORITY_UNAVAILABLE',503);
-  if (!session.kompaniyalar?.some(c=>c.kompaniya_id===kid) ||
-      !session.permissionsByCompany[kid]?.includes('document.write') ||
-      session.explicitDenialsByCompany?.[kid]?.includes('document.write')) return fail('PERMISSION_DENIED',403);
-  if (yopiqModul('document.write',[kid],session.modullarOffByCompany)) return fail('MODULE_DISABLED',403);
+  /* Omborchi (warehouse.write) ham ovoz bilan ishlay oladi; aniq rad etilgan ruxsat ustun. */
+  const perm=['document.write','warehouse.write'].find(p=>session.permissionsByCompany?.[kid]?.includes(p)&&!session.explicitDenialsByCompany?.[kid]?.includes(p));
+  if (!session.kompaniyalar?.some(c=>c.kompaniya_id===kid) || !perm) return fail('PERMISSION_DENIED',403);
+  if (yopiqModul(perm,[kid],session.modullarOffByCompany)) return fail('MODULE_DISABLED',403);
   return null;
 }
 
