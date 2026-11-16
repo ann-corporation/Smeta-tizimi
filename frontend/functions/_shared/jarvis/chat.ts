@@ -107,12 +107,12 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
   }
   const pulMatni = isMoneyQuestion
     ? await pulJavobi((nom, yuk) => rpcData(env, nom, yuk), { actor, kid, savol, tarix: so.tarix, obyektId: sonmi(so.obyekt_id) ? Number(so.obyekt_id) : null, ruxsat: kasb.kategoriyalar })
-      .catch(() => 'Smeta qiymatini tizimdan olib bo‘lmadi. Keyinroq qayta urinib ko‘ring.')
+      .catch(() => ({ javob: 'Smeta qiymatini tizimdan olib bo‘lmadi. Keyinroq qayta urinib ko‘ring.' }))
     : null;
   if (pulMatni) {
     qd('💰', 'Smeta qiymati tizim hisobidan (nakrutka/QQS) — model chaqirilmadi, token sarflanmadi');
-    await yozJurnal('savol', pulMatni, qadamlar, {});
-    return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', javob: pulMatni } };
+    await yozJurnal('savol', pulMatni.javob, qadamlar, {});
+    return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...pulMatni } };
   }
   const total = objectTotalIntent(savol);
   if (total && so.studio == null) {

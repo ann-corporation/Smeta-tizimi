@@ -10,9 +10,9 @@ export type PulTarix = Array<{ rol?: unknown; matn?: unknown }>;
 
 const norm = (s: string) => s.toLocaleLowerCase('uz-UZ').replace(/[‘’ʻʼ'`]/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim().replace(/\s+/g, ' ');
 
-const USTAMA = /(nakrutk|ustama|накрутк|накладн|надбавк|overhead|markup)/;
+const USTAMA = /(nakrutk|ustama|устама|накрутк|накладн|надбавк|overhead|markup)/;
 const QQS = /(\bqqs\b|\bnds\b|\bqqc\b|ндс|ққс|\bkks\b)/;
-const QIYMAT = /(smeta|qiymat|summa|qancha|narx|turadi|jami|смет|стоимост|сумм|сколько|итого)/;
+const QIYMAT = /(smeta|qiymat|summa|qancha|narx|turadi|jami|смет|қиймат|қанча|нарх|туради|жами|стоимост|сумм|сколько|итого)/;
 
 /** Ustama/QQS bilan smeta qiymati so'ralganmi (sinonimlar: nakrutka, ustama, накладные, QQS, НДС, NDS). */
 export function pulSorovi(savol: string): boolean {
@@ -29,10 +29,19 @@ function nomMos(nom: string, matn: string): boolean {
   return t.every((a) => m.some((w) => w.startsWith(a)));
 }
 function topilgan(obyektlar: PulObyekt[], matn: string): PulObyekt[] {
-  const mos = obyektlar.filter((o) => nomMos(o.nom, matn));
-  if (mos.length <= 1) return mos;
-  const eng = Math.max(...mos.map((o) => norm(o.nom).length));
-  return mos.filter((o) => norm(o.nom).length === eng); // «Fast Food» «Fast Food 1-etaj» dan uzunrog'i aniqroq
+  // The scoped registry can spell a short name explicitly at the end of the official name.
+  // Prefer the complete official name. A shared short name must remain ambiguous.
+  const names = obyektlar.map(obyekt => {
+    const suffix = /\s+\((?:laqab|лақаб|псевдоним):\s*([^()]{3,40})\)$/iu.exec(obyekt.nom.trim());
+    return { obyekt, name: suffix ? obyekt.nom.trim().slice(0, suffix.index) : obyekt.nom, alias: suffix ? norm(suffix[1]) : '' };
+  });
+  const mos = names.filter(o => nomMos(o.name, matn));
+  if (!mos.length) {
+    const text = ` ${norm(matn)} `;
+    return names.filter(o => o.alias.length >= 3 && text.includes(` ${o.alias} `)).map(o => o.obyekt);
+  }
+  const eng = Math.max(...mos.map(o => norm(o.name).length));
+  return mos.filter(o => norm(o.name).length === eng).map(o => o.obyekt);
 }
 
 export type ObyektTanlov = { tur: 'bor'; obyekt: PulObyekt } | { tur: 'noaniq'; variantlar: PulObyekt[] } | { tur: 'yoq' };
@@ -88,19 +97,27 @@ export function pulJavobMatni(nom: string, r: Record<string, unknown>): string {
 }
 
 type Rpc = (nom: string, yuk: Record<string, unknown>) => Promise<{ ok: boolean; data: Record<string, unknown> }>;
+type PulJavob = {
+  javob: string;
+  dalil?: { tur: 'smeta-qiymat'; id: number; rpc: 't2_obyekt_nakrutka_v1'; yol: string };
+  sahifalar?: [{ yol: string; nom: string }];
+};
 
 /** To'liq oqim. null — bu savol emas (model davom etadi). Ruxsat: smeta_pul toifasi shu foydalanuvchiga ochiq bo'lishi shart. */
-export async function pulJavobi(rpc: Rpc, o: { actor: number; kid: number; savol: string; tarix: unknown; obyektId: number | null; ruxsat: readonly string[] }): Promise<string | null> {
+export async function pulJavobi(rpc: Rpc, o: { actor: number; kid: number; savol: string; tarix: unknown; obyektId: number | null; ruxsat: readonly string[] }): Promise<PulJavob | null> {
   if (!pulSorovi(o.savol) || !o.ruxsat.includes('smeta_pul')) return null;
   const f = await rpc('t2_agent_fakt_v1', { p_actor_id: o.actor, p_kompaniya_id: o.kid, p_kategoriyalar: ['obyektlar'], p_obyekt_id: null });
-  if (!f.ok) return 'Obyektlar ro‘yxatini tekshirib bo‘lmadi. Ruxsat va tizimga ulanishni tekshiring.';
+  if (!f.ok) return { javob: 'Obyektlar ro‘yxatini tekshirib bo‘lmadi. Ruxsat va tizimga ulanishni tekshiring.' };
   const lst = f.ok && Array.isArray(f.data.fakt ? (f.data.fakt as Record<string, unknown>).obyektlar : f.data.obyektlar)
     ? ((f.data.fakt ? (f.data.fakt as Record<string, unknown>).obyektlar : f.data.obyektlar) as Array<Record<string, unknown>>) : [];
-  const obyektlar: PulObyekt[] = lst.flatMap((x) => (typeof x.id === 'number' && typeof x.nom === 'string' ? [{ id: x.id, nom: x.nom }] : []));
-  if (!obyektlar.length) return 'Kompaniyada faol obyekt topilmadi — ustama va QQS bilan smeta qiymatini hisoblash uchun avval obyekt kerak.';
+  const obyektlar: PulObyekt[] = lst.flatMap((x) => (x && typeof x.id === 'number' && Number.isSafeInteger(x.id) && x.id > 0 && typeof x.nom === 'string' ? [{ id: x.id, nom: x.nom }] : []));
+  if (!obyektlar.length) return { javob: 'Kompaniyada faol obyekt topilmadi — ustama va QQS bilan smeta qiymatini hisoblash uchun avval obyekt kerak.' };
   const t = obyektTanla(o.savol, o.tarix, obyektlar, o.obyektId);
-  if (t.tur === 'noaniq') return 'Bir nechta obyekt mos keldi: ' + t.variantlar.map((v) => `«${v.nom}»`).join(', ') + '. Qaysi biri?';
-  if (t.tur === 'yoq') return 'Qaysi obyekt uchun? Nomini ayting (masalan: ' + obyektlar.slice(0, 3).map((v) => `«${v.nom}»`).join(', ') + ').';
+  if (t.tur === 'noaniq') return { javob: 'Bir nechta obyekt mos keldi: ' + t.variantlar.map((v) => `«${v.nom}»`).join(', ') + '. Qaysi biri?' };
+  if (t.tur === 'yoq') return { javob: 'Qaysi obyekt uchun? Nomini ayting (masalan: ' + obyektlar.slice(0, 3).map((v) => `«${v.nom}»`).join(', ') + ').' };
   const r = await rpc('t2_obyekt_nakrutka_v1', { p_obyekt_id: t.obyekt.id, p_actor_id: o.actor });
-  return pulJavobMatni(t.obyekt.nom, r.ok ? r.data : { ok: false });
+  const javob = pulJavobMatni(t.obyekt.nom, r.ok ? r.data : { ok: false });
+  if (!r.ok || r.data.ok !== true || !r.data.nakrutka) return { javob };
+  const yol = '/admin/holat/' + t.obyekt.id;
+  return { javob, dalil: { tur: 'smeta-qiymat', id: t.obyekt.id, rpc: 't2_obyekt_nakrutka_v1', yol }, sahifalar: [{ yol, nom: t.obyekt.nom }] };
 }

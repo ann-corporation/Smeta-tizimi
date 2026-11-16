@@ -61,9 +61,10 @@ describe('pulJavobi (oqim)', () => {
   });
   it('tarix orqali «shu obyekt»', async () => {
     const j = await pulJavobi(rpc(), { ...o, savol: 'nakrutkalari va QQS bilan smeta qiymati qancha shu obyektni', tarix: [{ rol: 'user', matn: 'boshqa bino obyektim haqida malumot ber' }], ruxsat: ['smeta_pul'] });
-    expect(j).toMatch(/Boshqa Bino/); expect(j).toMatch(/QQS bilan/);
+    expect(j?.javob).toMatch(/Boshqa Bino/); expect(j?.javob).toMatch(/QQS bilan/);
   });
   it('obyekt noma‘lum — so‘raydi', async () => {
-    expect(await pulJavobi(rpc(), { ...o, savol: 'nakrutka bilan smeta qancha', ruxsat: ['smeta_pul'] })).toMatch(/Qaysi obyekt/);
+    const j = await pulJavobi(rpc(), { ...o, savol: 'nakrutka bilan smeta qancha', ruxsat: ['smeta_pul'] });
+    expect(j?.javob).toMatch(/Qaysi obyekt/);
   });
 });
