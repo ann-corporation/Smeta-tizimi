@@ -15,7 +15,7 @@ import { jadvalArxivla, partiyaTikla, type ArxivDeps, type IshNatija } from '../
 import { qatorArxivRoyxati, siyosatOl } from '../_shared/arxiv-siyosat';
 import { r2Bosh, r2Oqi, r2Yoz, sha256Hex } from '../_shared/r2-saqlash';
 import { sovuqKalit } from '../../src/lib/snapshot-r2/sovuq';
-import { jarvisArchiveBatch } from '../_shared/jarvis-conversation-archive';
+import { jarvisArchiveBatch, jarvisArchivePurge } from '../_shared/jarvis-conversation-archive';
 
 type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; R2_CANONICAL?: R2Bucket; BILDIRISHNOMA_CRON_KALIT?: string; DB_LIMIT_MB?: string; ARXIV_OGOH_MB?: string; JARVIS_ARCHIVE_YOQILGAN?: string };
 const javob = (d: unknown, status = 200) => Response.json(d, { status, headers: { 'Cache-Control': 'no-store' } });
@@ -80,7 +80,10 @@ export async function arxivTickIsh(d: ArxivDeps, env: Pick<Env, 'DB_LIMIT_MB' | 
     ishlar.push(n);
   }
   ishlar.push(await snapshotSovut(d).catch((e): IshNatija => ({ jadval: 'snapshot.bolak_mazmun', partiya: 0, qator: 0, bayt: 0, xato: 'SNAP_' + String(e?.message ?? '').slice(0, 40), qoldi: false })));
-  if (env.JARVIS_ARCHIVE_YOQILGAN === '1' && env.R2_CANONICAL) ishlar.push(await jarvisArchiveBatch(d, env.R2_CANONICAL));
+  if (env.JARVIS_ARCHIVE_YOQILGAN === '1' && env.R2_CANONICAL) {
+    ishlar.push(await jarvisArchivePurge(d, env.R2_CANONICAL));
+    ishlar.push(await jarvisArchiveBatch(d, env.R2_CANONICAL));
+  }
   for (const n of ishlar) {
     await d.rpc('t2_arxiv_jurnal_yoz_v1', { p_jadval: n.jadval, p_rejim: n.jadval.startsWith('snapshot.') ? 'snapshot-sovuq' : 'qator-arxiv', p_qator: n.qator, p_r2_bayt: n.bayt, p_xato: n.xato }).catch(() => null);
     if (n.xato) xatolar.push(`${n.jadval}:${n.xato}`);

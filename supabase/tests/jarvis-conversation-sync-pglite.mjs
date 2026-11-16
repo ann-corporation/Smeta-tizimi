@@ -86,6 +86,45 @@ try {
   assert.deepEqual((await sync(7, 17, 'full-transcript')).suhbat, atCapacity);
   await assert.rejects(db.exec(extendedRollback), /preserve transcripts/);
   await db.exec('rollback');
+  const purge = await sql('../migrations/20270101002300_t2_jarvis_archive_purge.sql');
+  const purgeRollback = await sql('../migrations/20270101002300_t2_jarvis_archive_purge.rollback.sql');
+  await db.exec('begin');
+  await db.exec(purge);
+  await db.exec(purgeRollback);
+  await db.exec('rollback');
+  await db.exec('begin');
+  await db.exec(purge);
+  const bodyOf = async (s) => (await db.query("select jsonb_build_object('v', 1, 'row', id::text, 'turns', xabarlar)::text as body, id::text as row from public.t2_jarvis_suhbat where klient_id=$1", [s])).rows[0];
+  const dbRpc = async (name, args = []) => (await db.query(
+    `select public.t2_jarvis_suhbat_archive_${name}_v1(${args.map((_, i) => `$${i + 1}`).join(',')}) as value`, args)).rows[0].value;
+  const fingerprint = ({ row, body }) => [row, createHash('sha256').update(body).digest('hex'), Buffer.byteLength(body)];
+  for (const [owner, id] of [[7, 'old-archive'], [8, 'in-flight']]) {
+    assert.equal((await mutate(owner, 17, id, null, 'create', 'Synthetic', [{ r: 'user', m: id }])).ok, true);
+  }
+  await db.exec("update public.t2_jarvis_suhbat set yangilandi=now()-interval '92 days' where klient_id in ('old-archive','in-flight')");
+  const prior = fingerprint(await bodyOf('old-archive'));
+  const active = fingerprint(await bodyOf('in-flight'));
+  assert.equal((await dbRpc('commit', prior)).archived, true);
+  assert.equal((await dbRpc('stage', [active[0], 'a'.repeat(64), active[2]])).staged, false);
+  assert.equal((await dbRpc('stage', active)).staged, true);
+  assert.deepEqual(await dbRpc('purge_pick'), []);
+  assert.equal((await dbRpc('purge_ack', active.slice(0, 2))).acknowledged, false);
+  for (const role of ['anon', 'authenticated', 'service_role']) {
+    const privileges = await db.query(`select has_function_privilege($1, 'public.t2_jarvis_suhbat_archive_stage_v1(bigint,text,integer)', 'execute') as stage,
+        has_function_privilege($1, 'public.t2_jarvis_suhbat_archive_purge_pick_v1(integer)', 'execute') as pick,
+        has_function_privilege($1, 'public.t2_jarvis_suhbat_archive_purge_ack_v1(bigint,text)', 'execute') as ack,
+        has_table_privilege($1, 'public.t2_jarvis_suhbat_r2_purge', 'select') as read`, [role]);
+    assert.ok(Object.values(privileges.rows[0]).every(granted => granted === (role === 'service_role')));
+  }
+  assert.equal((await mutate(7, 17, 'old-archive', (await sync(7, 17, 'old-archive')).suhbat.etag, 'delete')).holat, 'missing');
+  await db.exec('delete from public.t2_foydalanuvchi where id=8');
+  assert.equal((await dbRpc('stage', active)).staged, false);
+  assert.equal((await dbRpc('commit', active)).archived, false);
+  assert.deepEqual(await dbRpc('purge_pick'), [prior, active].map(([row, sha256]) => ({ row, sha256 })));
+  assert.equal((await dbRpc('purge_ack', prior.slice(0, 2))).acknowledged, true);
+  assert.equal((await dbRpc('purge_ack', prior.slice(0, 2))).acknowledged, false);
+  await assert.rejects(db.exec(purgeRollback), /Preserve Jarvis R2 cleanup records/);
+  await db.exec('rollback');
   for (const role of ['anon', 'authenticated', 'service_role']) {
     for (const target of [signature, writeSignature, 'public.t2_jarvis_suhbat_archive_pick_v1(integer)',
       'public.t2_jarvis_suhbat_archive_commit_v1(bigint,text,integer)',

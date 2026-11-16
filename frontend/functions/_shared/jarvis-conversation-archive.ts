@@ -1,15 +1,20 @@
-import { r2Oqi, r2Yoz, sha256Hex, type R2Bucket } from './r2-saqlash';
+import { r2Bosh, r2Oqi, r2Yoz, sha256Hex, type R2Bucket } from './r2-saqlash';
 import type { ArxivDeps, IshNatija } from './arxiv';
 import { JARVIS_MAX_ARCHIVE_BYTES as MAX_BYTES, validJarvisTurns, type JarvisTurn } from '../../src/lib/jarvis/conversation-contract';
 
 type Turn = JarvisTurn;
-type ArchivePointer = { row: string; sha256: string; bytes: number };
+type ArchiveKey = { row: string; sha256: string };
+type ArchivePointer = ArchiveKey & { bytes: number };
 const ROW = /^[1-9]\d{0,18}$/;
 const SHA = /^[a-f0-9]{64}$/;
-const path = (p: ArchivePointer) => `jarvis-history/v1/${p.row}/${p.sha256}.json`;
+const path = (p: ArchiveKey) => `jarvis-history/v1/${p.row}/${p.sha256}.json`;
+const archiveKey = (value: unknown): value is ArchiveKey => {
+  const p = value as Partial<ArchiveKey> | null;
+  return !!p && typeof p.row === 'string' && ROW.test(p.row) && typeof p.sha256 === 'string' && SHA.test(p.sha256);
+};
 const pointer = (value: unknown): value is ArchivePointer => {
   const p = value as ArchivePointer | null;
-  return !!p && typeof p.row === 'string' && ROW.test(p.row) && typeof p.sha256 === 'string' && SHA.test(p.sha256) &&
+  return p !== null && archiveKey(p) &&
     Number.isInteger(p.bytes) && p.bytes >= 1 && p.bytes <= MAX_BYTES;
 };
 
@@ -46,7 +51,12 @@ export async function jarvisArchiveBatch(
       if (bytes.byteLength > MAX_BYTES) throw new Error('JARVIS_ARCHIVE_SIZE');
       parse(bytes, item.row);
       const p = { row: item.row, sha256: await sha256Hex(bytes), bytes: bytes.byteLength };
-      await r2Yoz(bucket, path(p), bytes, { httpMetadata: { contentType: 'application/json' } });
+      const reservation = await d.rpc('t2_jarvis_suhbat_archive_stage_v1', { p_row: p.row, p_sha256: p.sha256, p_bytes: p.bytes });
+      if (reservation?.ok !== true || typeof reservation.staged !== 'boolean') throw new Error('JARVIS_ARCHIVE_STAGE');
+      if (!reservation.staged) continue;
+      // A duplicate writer may reuse a verified object. A delayed writer cannot replace a purge marker.
+      const uploaded = await r2Yoz(bucket, path(p), bytes, { onlyIf: new Headers({ 'If-None-Match': '*' }), httpMetadata: { contentType: 'application/json' } });
+      if (uploaded === null && (await r2Bosh(bucket, path(p)))?.size === 0) continue;
       await jarvisArchiveRead(bucket, p);
       const ack = await d.rpc('t2_jarvis_suhbat_archive_commit_v1', { p_row: p.row, p_sha256: p.sha256, p_bytes: p.bytes });
       if (ack?.ok !== true || typeof ack.archived !== 'boolean') throw new Error('JARVIS_ARCHIVE_COMMIT');
@@ -55,5 +65,29 @@ export async function jarvisArchiveBatch(
     r.partiya = r.qator ? 1 : 0;
     r.qoldi = rows.length === limit && r.qator > 0;
   } catch { r.xato = 'JARVIS_ARCHIVE_FAILED'; }
+  return r;
+}
+
+export async function jarvisArchivePurge(
+  d: Pick<ArxivDeps, 'rpc'>, bucket: R2Bucket, limit = 20,
+): Promise<IshNatija> {
+  const r: IshNatija = { jadval: 't2_jarvis_suhbat_r2_purge', partiya: 0, qator: 0, bayt: 0, xato: null, qoldi: false };
+  try {
+    const rows: unknown = await d.rpc('t2_jarvis_suhbat_archive_purge_pick_v1', { p_limit: limit });
+    if (!Array.isArray(rows) || rows.length > limit || !rows.every(archiveKey)) throw new Error('JARVIS_PURGE_BATCH');
+    for (const row of rows) {
+      try {
+        const key = path(row);
+        // Keep an empty object at this never-reused key so an in-flight conditional PUT cannot resurrect the transcript.
+        await r2Yoz(bucket, key, new Uint8Array(0), { httpMetadata: { contentType: 'application/octet-stream' } });
+        if ((await r2Bosh(bucket, key))?.size !== 0) throw new Error('JARVIS_PURGE_VERIFY');
+        const ack = await d.rpc('t2_jarvis_suhbat_archive_purge_ack_v1', { p_row: row.row, p_sha256: row.sha256 });
+        if (ack?.ok !== true || typeof ack.acknowledged !== 'boolean') throw new Error('JARVIS_PURGE_ACK');
+        if (ack.acknowledged) r.qator++;
+      } catch { r.xato = 'JARVIS_ARCHIVE_PURGE_FAILED'; }
+    }
+    r.partiya = r.qator ? 1 : 0;
+    r.qoldi = rows.length === limit && r.qator > 0;
+  } catch { r.xato = 'JARVIS_ARCHIVE_PURGE_FAILED'; }
   return r;
 }
