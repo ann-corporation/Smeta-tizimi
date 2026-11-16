@@ -122,7 +122,7 @@ private fun DateRow(date: LocalDate, onPick: (LocalDate) -> Unit) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             FilterChip(selected = date == today, onClick = { onPick(today) }, label = { Text(stringResource(R.string.p1_today)) }, modifier = Modifier.heightIn(min = 48.dp))
             FilterChip(selected = date == today.minusDays(1), onClick = { onPick(today.minusDays(1)) }, label = { Text(stringResource(R.string.p1_yesterday)) }, modifier = Modifier.heightIn(min = 48.dp))
-            Text(date.toString(), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+            Text(uz.anncorp.smeta.core.data.formatIsoStamp(date.toString()), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }

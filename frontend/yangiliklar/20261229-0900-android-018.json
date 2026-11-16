@@ -1,0 +1,10 @@
+{
+  "sana": "2026-11-17",
+  "sarlavha": "QURAI Android 0.1.8 — qulayroq sahifalar va aniqroq xabarlar",
+  "bandlar": [
+    "Sayt ichida ochiladigan modul ochilmasa, endi «tez orada» deb aldamaydi: sababi aytiladi, «Qayta urinish» va «Brauzerda ochish» tugmalari bor.",
+    "Smeta daraxtida tepadagi tugmalar ixchamlashdi: «Hammasini ochish» va «Yopish» bitta tugma bo'lib almashadi, obyekt nomi to'liq ko'rinadi.",
+    "Tasdiq hujjati va fakt qoralamasidagi sanalar hamma joydagidek kun.oy.yil ko'rinishida.",
+    "Barcha modullar ro'yxati serverdagi sahifalar reestri bilan bir xil; har bir sahifa ilovada yoki sayt ichida ochiladi."
+  ]
+}
