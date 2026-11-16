@@ -50,10 +50,10 @@ export async function syncJarvisConversation(company: number, cursor: Cursor | n
 }
 
 export async function appendJarvisMessages(
-  company: number, id: string, etag: string, messages: Message[], operationId: string,
+  company: number, id: string, etag: string, messages: Message[], operationId: string, actor?: number,
 ): Promise<{ etag: string } | { stale: true } | null> {
   if (!messages.length || messages.length > 12) return null;
-  const result = await mutateJarvisConversation(company, id, etag, { harakat: 'append', xabarlar: messages, operation_id: operationId });
+  const result = await mutateJarvisConversation(company, id, etag, { harakat: 'append', xabarlar: messages, operation_id: operationId }, actor);
   return result.status === 'saved' ? { etag: result.etag } : result.status === 'stale' ? { stale: true } : null;
 }
 
@@ -65,7 +65,7 @@ type Mutation =
 type MutationResult = { status: 'saved'; etag: string } | { status: 'deleted' | 'stale' | 'failed' };
 
 export async function mutateJarvisConversation(
-  company: number, id: string, etag: string | null, mutation: Mutation,
+  company: number, id: string, etag: string | null, mutation: Mutation, actor?: number,
 ): Promise<MutationResult> {
   if (!idPattern.test(id) || (mutation.harakat === 'create' ? etag !== null : !etag || !etagPattern.test(etag))) return { status: 'failed' };
   try {
@@ -74,6 +74,7 @@ export async function mutateJarvisConversation(
       signal: AbortSignal.timeout(8000),
       body: JSON.stringify({
         amal: 'suhbat_mutate', kompaniya_id: company, klient_id: id, etag, ...mutation,
+        ...(actor === undefined ? {} : { outbox_actor: actor }),
       }),
     });
     if (response.status === 409 || response.status === 404) return { status: 'stale' };

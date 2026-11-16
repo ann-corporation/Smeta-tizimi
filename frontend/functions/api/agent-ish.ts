@@ -434,6 +434,10 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
   if (amal === 'suhbat_mutate') {
     if (kid == null) return xato('Kompaniyani tanlang', 422);
     const { klient_id: id, etag, harakat, sarlavha, xabarlar, operation_id: operation } = so;
+    if (so.outbox_actor != null &&
+        ((harakat !== 'create' && harakat !== 'append') || so.outbox_actor !== k.actor)) {
+      return Response.json({ ok: false, code: 'JARVIS_ACTOR_SCOPE' }, { status: 403, ...JAVOB });
+    }
     if (typeof id !== 'string' || !/^[A-Za-z0-9_.-]{1,40}$/.test(id) ||
         (harakat === 'create' ? etag != null : typeof etag !== 'string' || !/^[a-f0-9]{32}$/.test(etag)) ||
         (harakat !== 'create' && harakat !== 'append' && harakat !== 'rename' && harakat !== 'delete')) return xato('Suhbat o‘zgarishi noto‘g‘ri');

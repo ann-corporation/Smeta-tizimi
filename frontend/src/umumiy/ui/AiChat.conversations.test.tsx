@@ -3,9 +3,10 @@ import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-libra
 import { MemoryRouter } from 'react-router-dom';
 import type { YordamchiUlanish } from './yordamchi/ishlov';
 import type { KasbIshchi } from '../../api/t2-agent-ish';
-const m=vi.hoisted(()=>({ask:vi.fn(),load:vi.fn(),list:vi.fn(),intent:vi.fn(),save:vi.fn(),sync:vi.fn(),append:vi.fn(),mutate:vi.fn()}));
+const m=vi.hoisted(()=>({ask:vi.fn(),load:vi.fn(),list:vi.fn(),intent:vi.fn(),save:vi.fn(),sync:vi.fn(),append:vi.fn(),mutate:vi.fn(),diskRead:vi.fn(),diskSave:vi.fn(),diskRemove:vi.fn()}));
 vi.mock('../../api/t2-agent-ish',()=>({niyatLlmOl:m.intent,suhbatRoyxatOl:m.list,suhbatServerga:m.save,suhbatServerdanOl:m.load,kasbSavolOqim:m.ask,tizimYordamSavol:vi.fn()}));
 vi.mock('../../api/jarvis-suhbat-sync',()=>({syncJarvisConversation:m.sync,appendJarvisMessages:m.append,mutateJarvisConversation:m.mutate}));
+vi.mock('../../lib/jarvis/conversation-outbox',()=>({jarvisOutboxRead:m.diskRead,jarvisOutboxStore:m.diskSave,jarvisOutboxRemove:m.diskRemove}));
 vi.mock('./AiBaho',()=>({AiBaho:()=>null}));vi.mock('./AiHarakatKarta',()=>({AiHarakatKarta:()=>null}));
 vi.mock('../../lib/yordamchi/niyat',()=>({niyatAniqla:()=>({tur:'nomalum',yaqin:[]})}));
 vi.mock('../../lib/yordamchi/niyat-llm',()=>({niyatLlmGaMosmi:()=>true}));
@@ -18,6 +19,9 @@ beforeEach(()=>{localStorage.clear();sessionStorage.clear();m.ask.mockReset();m.
  m.sync.mockReset().mockResolvedValue(null);
  m.append.mockReset().mockResolvedValue(null);
  m.mutate.mockReset().mockResolvedValue({status:'failed'});
+ m.diskRead.mockReset().mockResolvedValue(null);
+ m.diskSave.mockReset().mockResolvedValue(true);
+ m.diskRemove.mockReset().mockResolvedValue(true);
  localStorage.setItem('jarvis-suhbatlar:7:17',JSON.stringify(['a','b'].map(id=>({id,sarlavha:'Chat '+id,yangilandi:Date.now(),xabarlar:[{rol:'user',matn:'Message '+id}]}))));});
 afterEach(()=>{vi.useRealTimers();cleanup();});
 const send=(text:string)=>{fireEvent.change(screen.getByRole('textbox'),{target:{value:text}});fireEvent.keyDown(screen.getByRole('textbox'),{key:'Enter'});};
@@ -29,6 +33,42 @@ function remoteFixture() {
  m.load.mockResolvedValue({ xabarlar: [{ r: 'ai', m: 'Before phone update' }], qisqartma: null });
  return row;
 }
+
+it('restores an encrypted queued append after reopening and removes it only after acknowledgment', async () => {
+ const {row,etag} = await openVersionedChat();
+ m.ask.mockResolvedValue({ok:true,javob:'Synthetic pending answer'});
+ m.append.mockResolvedValueOnce(null);
+ send('First pending question');await tick(0);await tick(1000);
+ const sent = m.append.mock.calls[0];
+ const [owner,record] = m.diskSave.mock.calls[0];
+ expect(owner).toEqual({actor:7,company:17});
+ expect(record).toMatchObject({kind:'append',id:row.id,etag,operation:sent[4]});
+ expect(m.diskRemove).not.toHaveBeenCalled();
+ cleanup();
+ m.diskRead.mockResolvedValueOnce(record);
+ m.append.mockResolvedValueOnce({etag:'b'.repeat(32)});
+ render(view());await tick(0);
+ expect(screen.getByText('Synthetic pending answer')).toBeTruthy();
+ await tick(1000);
+ expect(m.append.mock.calls[1]).toEqual(sent);
+ expect(m.diskRemove).toHaveBeenCalledWith(owner,record.operation);
+});
+
+it('discards only the local outbox after explicit confirmation of a stored conflict', async () => {
+ vi.useFakeTimers();
+ const turns = [{r:'user',m:'Synthetic unsent question'}];
+ m.diskRead.mockResolvedValueOnce({kind:'append',id:'remote',etag:'a'.repeat(32),operation:'frozen',turns,preview:turns,stale:true});
+ render(view());await tick(0);await tick(1000);
+ expect(m.append).not.toHaveBeenCalled();
+ expect(screen.getByText('Synthetic unsent question')).toBeTruthy();
+ fireEvent.click(screen.getByRole('button',{name:'Yuborilmagan xabarlarni bekor qilish'}));
+ expect(m.diskRemove).not.toHaveBeenCalled();
+ fireEvent.click(screen.getByRole('button',{name:'O‘chirishni tasdiqlash'}));
+ await tick(0);
+ expect(m.diskRemove).toHaveBeenCalledWith({actor:7,company:17},'frozen');
+ expect(screen.queryByText('Synthetic unsent question')).toBeNull();
+ expect(m.mutate).not.toHaveBeenCalled();
+});
 
 it('retries an unacknowledged append with its original operation and drains newer turns after it', async () => {
  const {row,etag} = await openVersionedChat();
@@ -205,10 +245,11 @@ it('a missing remote chat does not wipe the message being typed', async () => {
 });
 it('conversation switch remains visible during a conversation',async()=>{render(view());await act(async()=>{});choose('a');expect(screen.getByText('Message a', {selector:'p'})).toBeTruthy();expect(screen.getByLabelText('Suhbatni tanlash')).toBeTruthy();choose('b');expect(screen.queryByText('Message a', {selector:'p'})).toBeNull();expect(screen.getByText('Message b', {selector:'p'})).toBeTruthy();});
 it('new conversation invalidates a late model answer',async()=>{let done!:(v:unknown)=>void;m.ask.mockReturnValue(new Promise(r=>done=r));render(view());
+ await act(async()=>{});
  fireEvent.change(screen.getByRole('textbox'),{target:{value:'Tekshir'}});fireEvent.keyDown(screen.getByRole('textbox'),{key:'Enter'});
  await waitFor(()=>expect(m.ask).toHaveBeenCalledTimes(1));fireEvent.click(screen.getByRole('button',{name:'Yangi suhbat'}));
  await act(async()=>done({ok:true,javob:'OLD ANSWER'}));expect(screen.queryByText('OLD ANSWER')).toBeNull();});
-it('changing actor cannot copy the previous user history into the new archive',async()=>{const v=render(view());choose('a');v.rerender(view(8));await waitFor(()=>expect(screen.queryByText('Message a', {selector:'p'})).toBeNull());expect(localStorage.getItem('jarvis-suhbatlar:8:17')).toBeNull();expect(sessionStorage.getItem('jarvis-chat:8:17')).toBeNull();});
+it('changing actor cannot copy the previous user history into the new archive',async()=>{const v=render(view());await act(async()=>{});choose('a');expect(screen.getByText('Message a',{selector:'p'})).toBeTruthy();v.rerender(view(8));await waitFor(()=>expect(screen.queryByText('Message a', {selector:'p'})).toBeNull());expect(localStorage.getItem('jarvis-suhbatlar:8:17')).toBeNull();expect(sessionStorage.getItem('jarvis-chat:8:17')).toBeNull();});
 it('late server conversation cannot overwrite a newer local selection',async()=>{let done!:(v:unknown)=>void;m.list.mockResolvedValue([{id:'remote',sarlavha:'Remote',yangilandi:new Date().toISOString()}]);m.load.mockReturnValue(new Promise(r=>done=r));render(view());await screen.findByRole('option',{name:'Remote'});choose('remote');choose('b');await act(async()=>done({xabarlar:[{r:'ai',m:'OLD SERVER'}]}));expect(screen.queryByText('OLD SERVER')).toBeNull();expect(screen.getByText('Message b', {selector:'p'})).toBeTruthy();});
 
 it('late intent cannot unlock a newer conversation request',async()=>{
@@ -217,6 +258,7 @@ it('late intent cannot unlock a newer conversation request',async()=>{
  m.ask.mockResolvedValue({ok:true,javob:'OK'});
  const active={...helper,sahifalar:[{yol:'/admin',nom:'Admin'}]} as YordamchiUlanish;
  render(<MemoryRouter><AiChat kompaniyaId={17} foydalanuvchiId={7} kasb={role} sahifa="/admin" generatsiya={0} yordamchi={active}/></MemoryRouter>);
+ await act(async()=>{});
  send('Birinchi vazifani tekshir');await waitFor(()=>expect(m.intent).toHaveBeenCalledTimes(1));
  fireEvent.click(screen.getByRole('button',{name:'Yangi suhbat'}));send('Ikkinchi vazifani tekshir');await waitFor(()=>expect(m.intent).toHaveBeenCalledTimes(2));
  await act(async()=>oldDone(null));send('Uchinchi vazifani tekshir');expect(m.intent).toHaveBeenCalledTimes(2);
@@ -318,15 +360,15 @@ it('a failed server load keeps the in-flight answer of the current conversation'
 });
 
 it('a late model answer is dropped after switching through the conversation selector',async()=>{
- let done!:(v:unknown)=>void;m.ask.mockReturnValue(new Promise(r=>done=r));render(view());send('Tekshir');await waitFor(()=>expect(m.ask).toHaveBeenCalledTimes(1));
+ let done!:(v:unknown)=>void;m.ask.mockReturnValue(new Promise(r=>done=r));render(view());await act(async()=>{});send('Tekshir');await waitFor(()=>expect(m.ask).toHaveBeenCalledTimes(1));
  choose('b');await act(async()=>done({ok:true,javob:'OLD ANSWER'}));expect(screen.queryByText('OLD ANSWER')).toBeNull();expect(screen.getByText('Message b',{selector:'p'})).toBeTruthy();
 });
 
 it('changing the company cannot copy the previous company history into the new archive',async()=>{
- const v=render(view());choose('a');v.rerender(view(7,18));await waitFor(()=>expect(screen.queryByText('Message a',{selector:'p'})).toBeNull());
+ const v=render(view());await act(async()=>{});choose('a');expect(screen.getByText('Message a',{selector:'p'})).toBeTruthy();v.rerender(view(7,18));await waitFor(()=>expect(screen.queryByText('Message a',{selector:'p'})).toBeNull());
  expect(localStorage.getItem('jarvis-suhbatlar:7:18')).toBeNull();expect(sessionStorage.getItem('jarvis-chat:7:18')??'').not.toContain('Message a');
 });
-it('reopening preserves the selected conversation identity without duplicate archives',async()=>{const v=render(view());choose('a');v.unmount();render(view());await act(async()=>{});const archive=JSON.parse(localStorage.getItem('jarvis-suhbatlar:7:17')!);expect(archive.map((q:{id:string})=>q.id).sort()).toEqual(['a','b']);expect(screen.getByText('Message a',{selector:'p'})).toBeTruthy();});
+it('reopening preserves the selected conversation identity without duplicate archives',async()=>{const v=render(view());await act(async()=>{});choose('a');v.unmount();render(view());await act(async()=>{});const archive=JSON.parse(localStorage.getItem('jarvis-suhbatlar:7:17')!);expect(archive.map((q:{id:string})=>q.id).sort()).toEqual(['a','b']);expect(screen.getByText('Message a',{selector:'p'})).toBeTruthy();});
 
 it('remote loading is visible and cancellation preserves the current conversation',async()=>{
  let done!:(v:unknown)=>void;m.list.mockResolvedValue([{id:'remote',sarlavha:'Remote',yangilandi:new Date().toISOString()}]);m.load.mockReturnValue(new Promise(r=>done=r));
@@ -352,11 +394,11 @@ it('late previous load does not clear the current loading indicator',async()=>{
 it('the model receives the initial goal and complete long constraints after many turns',async()=>{
  const goal='Maqsad: '+ 'x'.repeat(1500)+' oxirgi muhim talab';
  sessionStorage.setItem('jarvis-chat:7:17',JSON.stringify(Array.from({length:24},(_,i)=>({id:'old-'+i,rol:i%2?'ai':'user',matn:i?'Turn '+i:goal}))));
- m.ask.mockResolvedValue({ok:true,javob:'OK'});render(view());send('Davom et');await waitFor(()=>expect(m.ask).toHaveBeenCalledTimes(1));
+ m.ask.mockResolvedValue({ok:true,javob:'OK'});render(view());await act(async()=>{});send('Davom et');await waitFor(()=>expect(m.ask).toHaveBeenCalledTimes(1));
  const history=m.ask.mock.calls[0][2].tarix;expect(history[0].matn).toBe(goal);expect(history).toHaveLength(16);expect(history.at(-1).matn).toBe('Turn 23');
 });
 it('a repeated question does not erase an earlier identical user message',async()=>{
  sessionStorage.setItem('jarvis-chat:7:17',JSON.stringify([{id:'old',rol:'user',matn:'Takror tekshir'},{id:'reply',rol:'ai',matn:'Old result'}]));
- m.ask.mockResolvedValue({ok:true,javob:'OK'});render(view());send('Takror tekshir');await waitFor(()=>expect(m.ask).toHaveBeenCalledTimes(1));
+ m.ask.mockResolvedValue({ok:true,javob:'OK'});render(view());await act(async()=>{});send('Takror tekshir');await waitFor(()=>expect(m.ask).toHaveBeenCalledTimes(1));
  expect(m.ask.mock.calls[0][2].tarix).toEqual([{rol:'user',matn:'Takror tekshir'},{rol:'assistant',matn:'Old result'}]);
 });

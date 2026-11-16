@@ -28,7 +28,8 @@ describe('agent-ish shlyuzi', () => {
     const operation_id = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
     const request = { amal: 'suhbat_mutate', kompaniya_id: 17, klient_id: 'chat-1', etag: 'a'.repeat(32),
       harakat: 'append', operation_id, xabarlar: [{ r: 'user', m: 'Synthetic question' }] };
-    expect((await post(request)).status).toBe(200);
+    expect((await post({ ...request, outbox_actor: 8 })).status).toBe(403);
+    expect((await post({ ...request, outbox_actor: 7 })).status).toBe(200);
     expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toMatchObject({ p_actor_id: 7, p_operation_id: operation_id });
     expect((await post({ ...request, operation_id: 'bad-id' })).status).toBe(400);
     expect((await post({ ...request, harakat: 'rename', xabarlar: null, sarlavha: 'New title' })).status).toBe(400);
