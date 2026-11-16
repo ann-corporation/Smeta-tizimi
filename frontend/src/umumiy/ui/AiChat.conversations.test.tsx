@@ -249,6 +249,21 @@ it('a late poll cannot replace a different conversation selected during the requ
  expect(m.save).not.toHaveBeenCalled();
 });
 
+it('refreshes the open conversation immediately after reconnect instead of waiting for the backoff', async () => {
+ vi.useFakeTimers();
+ const row = remoteFixture();
+ m.sync.mockResolvedValueOnce(null).mockResolvedValueOnce({ royxat: [row], suhbat: {
+  id: row.id, holat: 'changed', etag: 'a'.repeat(32), sarlavha: row.sarlavha,
+  xabarlar: [{ r: 'ai', m: 'Available after reconnect' }], qisqartma: null,
+ } });
+ render(view()); await tick(0); choose(row.id); await tick(0); await tick(3000);
+ expect(m.sync).toHaveBeenCalledTimes(1);
+ fireEvent(window, new Event('online'));
+ await tick(1);
+ expect(screen.getByText('Available after reconnect')).toBeTruthy();
+ expect(m.sync).toHaveBeenCalledTimes(2);
+});
+
 it('a missing remote chat does not wipe the message being typed', async () => {
  vi.useFakeTimers();
  const row = remoteFixture();

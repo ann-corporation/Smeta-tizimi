@@ -42,6 +42,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -59,6 +60,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -72,12 +74,14 @@ import uz.anncorp.smeta.core.data.ChatCursor
 import uz.anncorp.smeta.core.data.ChatPageCursor
 import uz.anncorp.smeta.core.data.ChatSnapshot
 import uz.anncorp.smeta.core.data.ChatWrite
+import uz.anncorp.smeta.core.data.ConnectivityMonitor
 import uz.anncorp.smeta.core.data.JarvisRepository
 import uz.anncorp.smeta.core.data.JarvisResult
 import uz.anncorp.smeta.core.data.JarvisPendingStore
 import uz.anncorp.smeta.core.data.PendingJarvisWrite
 import uz.anncorp.smeta.core.data.ObjectsRepository
 import uz.anncorp.smeta.core.data.WorkContext
+import uz.anncorp.smeta.core.demo.Demo
 import uz.anncorp.smeta.core.ui.WorkTopBar
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -460,9 +464,13 @@ fun JarvisScreen(onBack: () -> Unit, vm: JarvisViewModel = hiltViewModel()) {
     val currentText by rememberUpdatedState(text)
     val list = rememberLazyListState()
     val owner = LocalLifecycleOwner.current
-    LaunchedEffect(owner) {
+    val appContext = LocalContext.current.applicationContext
+    val connectivity = remember(appContext) { ConnectivityMonitor(appContext) { Demo.forcedOffline(appContext) } }
+    LaunchedEffect(owner, connectivity) {
         owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            while (true) delay(if (vm.refresh { currentText.isNotBlank() }) POLL_MS else 30_000L)
+            connectivity.online.collectLatest { online ->
+                if (online) while (true) delay(if (vm.refresh { currentText.isNotBlank() }) POLL_MS else 30_000L)
+            }
         }
     }
     LaunchedEffect(ui.bubbles.size, ui.busy) { if (ui.bubbles.isNotEmpty()) list.animateScrollToItem(ui.bubbles.size) }

@@ -476,19 +476,39 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     let stopped = false;
     let timer: ReturnType<typeof setTimeout>;
     let request: AbortController | null = null;
+    let refreshAfterRequest = false;
     const schedule = (ms: number) => { if (!stopped) timer = setTimeout(() => { void poll(); }, ms); };
     async function poll() {
       if (document.visibilityState === 'hidden') { schedule(3000); return; }
       const active = new AbortController();
       request = active;
       const timeout = setTimeout(() => active.abort(), 8000);
+      let ok = false;
       try {
-        const ok = await readPoll.current(active.signal);
-        schedule(ok ? 3000 : 30000);
-      } finally { clearTimeout(timeout); request = null; }
+        ok = await readPoll.current(active.signal);
+      } finally {
+        clearTimeout(timeout);
+        request = null;
+        schedule(refreshAfterRequest ? 0 : ok ? 3000 : 30000);
+        refreshAfterRequest = false;
+      }
     }
+    const refreshNow = () => {
+      if (document.visibilityState === 'hidden') return;
+      if (request) { refreshAfterRequest = true; return; }
+      clearTimeout(timer);
+      schedule(0);
+    };
     schedule(3000);
-    return () => { stopped = true; clearTimeout(timer); request?.abort(); };
+    window.addEventListener('online', refreshNow);
+    document.addEventListener('visibilitychange', refreshNow);
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+      request?.abort();
+      window.removeEventListener('online', refreshNow);
+      document.removeEventListener('visibilitychange', refreshNow);
+    };
   }, [tarixKalit, kompaniyaId, scope]);
   /* Ko'rinadigan ro'yxat: brauzer nusxasi + faqat serverda bor (boshqa qurilma) suhbatlar. */
   const allServerRows = useMemo(() => [...new Map([...(history?.rows ?? []), ...serverRoyxat].map(row => [row.id, row])).values()],
