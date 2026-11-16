@@ -1,0 +1,28 @@
+{
+  "Siz yozdingiz": { "ru": "Вы написали", "en": "You wrote" },
+  "Yangi Jarvis suhbati": { "ru": "Новая беседа Jarvis", "en": "New Jarvis conversation" },
+  "Jarvis suhbatini ochib bo‘lmadi. /jarvis orqali qayta tanlang.": {
+    "ru": "Не удалось открыть беседу Jarvis. Выберите её снова через /jarvis.",
+    "en": "Could not open the Jarvis conversation. Select it again with /jarvis."
+  },
+  "Savolingizni shu xabarga javob qilib yozing.": {
+    "ru": "Напишите вопрос в ответ на это сообщение.",
+    "en": "Reply to this message with your question."
+  },
+  "Jarvis uchun kompaniyani tanlang.": {
+    "ru": "Выберите компанию для Jarvis.",
+    "en": "Select a company for Jarvis."
+  },
+  "Eski suhbat qisqartmasi. Davom etish uchun /jarvis orqali yangi suhbat oching.": {
+    "ru": "Это краткое содержание старой беседы. Чтобы продолжить, откройте новую беседу через /jarvis.",
+    "en": "This is a summary of an old conversation. Open a new one with /jarvis to continue."
+  },
+  "Jarvis suhbatini tanlang.": {
+    "ru": "Выберите беседу Jarvis.",
+    "en": "Select a Jarvis conversation."
+  },
+  "Xabar suhbatga saqlanmadi. /jarvis orqali yangilangan suhbatni oching.": {
+    "ru": "Сообщение не сохранилось. Откройте обновлённую беседу через /jarvis.",
+    "en": "The message was not saved. Open the updated conversation with /jarvis."
+  }
+}

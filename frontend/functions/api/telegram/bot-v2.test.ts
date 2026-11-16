@@ -161,7 +161,7 @@ describe('/jarvis — mavjud ai-savol (aiHisobli: limit + token yechish)', () =>
     await updateIshla(envAi as never, msg('/jarvis') as never);
     await updateIshla(envAi as never, msg('/jarvis ' + 'x'.repeat(1001)) as never);
     expect(ai.hisobli).not.toHaveBeenCalled(); expect(c.rpc).not.toContain('t2_ai_umumiy');
-    expect(javobMatni(c)).toContain('/jarvis <savol>'); expect(javobMatni(c)).toContain('juda uzun');
+    expect(javobMatni(c)).toContain('Jarvis uchun kompaniyani tanlang.'); expect(javobMatni(c)).toContain('juda uzun');
   });
   it('soʻrov limiti: daqiqada 5 tadan keyin AI chaqirilmaydi', async () => {
     ai.hisobli.mockResolvedValue({ text: 'ok', provider: 'p', model: 'm' });
@@ -175,6 +175,38 @@ describe('/jarvis — mavjud ai-savol (aiHisobli: limit + token yechish)', () =>
     await updateIshla(envAi as never, msg('/jarvis Narxlar haqida tushuntir') as never);
     expect(ai.hisobli).not.toHaveBeenCalled(); expect(c.rpc).not.toContain('t2_ai_umumiy');
   });
+});
+
+it('lists shared Jarvis chats only through the bound actor and selected company', async () => {
+  const tag = 'a'.repeat(32);
+  const row = { id: 'test-chat', sarlavha: 'Synthetic chat', yangilandi: '2026-11-16T10:00:00Z', toliq: true };
+  const c = net(asos({
+    t2_jarvis_suhbat_sync_v1: (body) => ({ ok: true, royxat: [row], suhbat: body.p_klient_id ? {
+      id: row.id, holat: 'changed', etag: tag, xabarlar: [{ r: 'ai', m: 'Shared synthetic answer' }], qisqartma: null,
+    } : null }),
+    t2_agent_kasb_v1: () => ({ ok: true, rol: 'pto', profil: 'pto', nom: 'Synthetic assistant',
+      vazifa: 'Synthetic remit', kategoriyalar: [], namuna_savollar: [] }),
+    t2_jarvis_suhbat_mutate_v1: () => ({ ok: true, id: row.id, etag: 'b'.repeat(32) }),
+  }));
+  expect(await updateIshla(ENV, msg('/jarvis') as never)).toBe('jarvis');
+  expect(await updateIshla(ENV, cb('j:c:17') as never)).toBe('cb:jarvis');
+  expect(await updateIshla(ENV, cb('j:o:17:test-chat') as never)).toBe('cb:jarvis');
+  expect(await updateIshla(ENV, cb('j:o:18:test-chat') as never)).toBe('cb:jarvis');
+  expect(c.yuk.t2_jarvis_suhbat_sync_v1).toEqual([
+    { p_actor_id: UID, p_kompaniya_id: 17, p_klient_id: null, p_etag: null },
+    { p_actor_id: UID, p_kompaniya_id: 17, p_klient_id: 'test-chat', p_etag: null },
+  ]);
+  const sends = c.tg.filter(x => x.metod === 'sendMessage').map(x => x.yuk);
+  expect(sends.some(x => x.reply_markup?.inline_keyboard?.some((r: any[]) => r[0].callback_data === 'j:o:17:test-chat'))).toBe(true);
+  expect(sends.some(x => x.text.includes('Shared synthetic answer'))).toBe(true);
+  const prompt = sends.find(x => x.reply_markup?.force_reply && x.entities?.[0].url.includes('#jarvis-tg='));
+  expect(prompt).toBeTruthy();
+  expect(await updateIshla(ENV, msg('Salom', { reply_to_message: { from: { is_bot: true }, entities: prompt.entities } }) as never)).toBe('jarvis_reply');
+  expect(c.yuk.t2_jarvis_suhbat_mutate_v1).toEqual([{
+    p_actor_id: UID, p_kompaniya_id: 17, p_klient_id: row.id, p_etag: tag, p_amal: 'append',
+    p_sarlavha: null, p_xabarlar: [{ r: 'user', m: 'Salom' }, { r: 'ai', m: expect.stringContaining('Synthetic assistant') }],
+  }]);
+  expect(ai.hisobli).not.toHaveBeenCalled();
 });
 
 describe('/kunlik on|off', () => {

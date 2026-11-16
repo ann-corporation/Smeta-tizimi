@@ -15,6 +15,7 @@ import matnlar from '../../src/i18n/lugat/qism/telegram-bot.json';
 import kirishMatnlar from '../../src/i18n/lugat/qism/telegram-kirish.json';
 import bot2Matnlar from '../../src/i18n/lugat/qism/telegram-bot-2.json';
 import usernameMatnlar from '../../src/i18n/lugat/qism/telegram-username.json';
+import jarvisMatnlar from '../../src/i18n/lugat/qism/telegram-jarvis.json';
 
 export type TgEnv = {
   SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT?: string;
@@ -41,7 +42,7 @@ export function tilAniqla(languageCode: unknown): TgTil {
   return s.startsWith('ru') ? 'ru' : s.startsWith('en') ? 'en' : 'uz';
 }
 export function tgT(kalit: string, til: TgTil | null | undefined, p?: Record<string, string | number>): string {
-  const s = til === 'ru' || til === 'en' ? (LUG[kalit]?.[til] ?? kalit) : kalit;
+  const s = til === 'ru' || til === 'en' ? (LUG[kalit]?.[til] ?? (jarvisMatnlar as typeof LUG)[kalit]?.[til] ?? kalit) : kalit;
   return p ? s.replace(/\{(\w+)\}/g, (m, k: string) => (k in p ? String(p[k]) : m)) : s;
 }
 
