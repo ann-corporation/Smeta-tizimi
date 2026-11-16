@@ -65,6 +65,12 @@ function tarixYoz(kalit: string, x: readonly Xabar[]) {
 
 /** AI ko'rsatgan sahifalarga o'tish tugmalari (yo'llar serverda katalog bilan tekshirilgan). */
 function xabarImzo(a: { rol: string; matn: string }[]): string { return a.map((x) => `${x.rol}:${x.matn}`).join('\u0001'); }
+function ixchamXabarlar(xabarlar: Xabar[]) {
+  return xabarlar.flatMap(x => {
+    const m = Array.from(x.matn.trim()).slice(0, 400).join('');
+    return m ? [{ r: x.rol, m }] : [];
+  });
+}
 
 function OtishTugmalari({ royxat, ochish }: { royxat?: SahifaIshora[]; ochish: (yol: string) => void }) {
   if (!royxat?.length) return null;
@@ -110,6 +116,12 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const remoteAnchor = useRef<{
     id: string; etag: string | null; count: number; base: Array<{ r: 'user' | 'ai'; m: string }>;
   } | null>(null);
+  const appendPending = useRef<typeof remoteAnchor.current>(null);
+  const yangiServerSuhbat = useRef<{
+    id: string; start: number; sending?: boolean; stale?: boolean;
+    first?: { title: string; messages: ReturnType<typeof ixchamXabarlar>; count: number; signature: string };
+  } | null>(null);
+  const [saqlashQadami, setSaqlashQadami] = useState(0);
   /** Serverdan faqat qisqartma sifatida yuklangan suhbat id si: yangi xabar qo'shilganda asl nusxa ustiga yozilmaydi, yangi suhbat (fork) bo'ladi. */
   const qisqartmaDan = useRef<string | null>(null);
   const yuklashNomer = useRef(0);
@@ -122,6 +134,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const [tahrirBand, setTahrirBand] = useState(false);
   const suhbatToxtat = () => {
     remoteAnchor.current = null;
+    yangiServerSuhbat.current = null;
     setSuhbatTahriri(null);
     setYuklanayotgan(null); yuklashNomer.current++; suhbatAvlod.current++; gen.current = `${scope}|${suhbatAvlod.current}`;
     abort.current?.abort(); busy.current = false; kutish.current = null; davomRef.current = null;
@@ -131,16 +144,25 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     return () => { abort.current?.abort(); };
   }, [scope, tarixKalit]);
   useEffect(() => { if (tarixKalit && tarixEga === tarixKalit) {
-    if (qisqartmaDan.current && xabarImzo(xabarlar) !== yuklanganImzo.current) { suhbatId.current = crypto.randomUUID(); qisqartmaDan.current = null; }
+    if (qisqartmaDan.current && xabarImzo(xabarlar) !== yuklanganImzo.current) {
+      suhbatId.current = crypto.randomUUID();
+      yangiServerSuhbat.current = { id: suhbatId.current, start: remoteAnchor.current?.count ?? 0 };
+      qisqartmaDan.current = null;
+    }
     if (remoteAnchor.current && remoteAnchor.current.id !== suhbatId.current) remoteAnchor.current = null;
-    if (remoteAnchor.current) return;
+    if (remoteAnchor.current || yangiServerSuhbat.current?.id === suhbatId.current) return;
     tarixYoz(tarixKalit, xabarlar);
     try { sessionStorage.setItem(tarixKalit + ':id', suhbatId.current); } catch { /* xotira yopiq */ }
   } }, [xabarlar, tarixKalit, tarixEga]);
   useEffect(() => { oxir.current?.scrollIntoView?.({ behavior: 'smooth' }); }, [xabarlar]);
   /* «Yangi suhbat»: tarix tozalanadi (sarlavhadagi tugma `ai:yangi-suhbat` hodisasini yuboradi). */
   useEffect(() => {
-    const f = () => { suhbatToxtat(); yuklanganImzo.current = ''; qisqartmaDan.current = null; setXabarlar([]); suhbatId.current = crypto.randomUUID(); if (tarixKalit) { try { sessionStorage.removeItem(tarixKalit); } catch { /* xotira yopiq */ } } };
+    const f = () => {
+      suhbatToxtat(); yuklanganImzo.current = ''; qisqartmaDan.current = null; setXabarlar([]);
+      suhbatId.current = crypto.randomUUID();
+      if (kompaniyaId != null) yangiServerSuhbat.current = { id: suhbatId.current, start: 0 };
+      if (tarixKalit) { try { sessionStorage.removeItem(tarixKalit); sessionStorage.removeItem(tarixKalit + ':id'); } catch { /* xotira yopiq */ } }
+    };
     window.addEventListener('ai:yangi-suhbat', f);
     return () => window.removeEventListener('ai:yangi-suhbat', f);
   }, [tarixKalit, scope]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -168,8 +190,10 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     setArxiv(foydalanuvchiId != null ? suhbatOqi(arxivKalit) : []);
     let oldId: string | null = null;
     try { oldId = tarixKalit ? sessionStorage.getItem(tarixKalit + ':id') : null; } catch { /* xotira yopiq */ }
-    suhbatId.current = oldId && /^[a-zA-Z0-9-]{1,100}$/.test(oldId) ? oldId : crypto.randomUUID();
-  }, [arxivKalit, foydalanuvchiId, tarixKalit]);
+    const restored = oldId && /^[a-zA-Z0-9-]{1,100}$/.test(oldId) ? oldId : null;
+    suhbatId.current = restored ?? crypto.randomUUID();
+    yangiServerSuhbat.current = !restored && kompaniyaId != null ? { id: suhbatId.current, start: 0 } : null;
+  }, [arxivKalit, foydalanuvchiId, tarixKalit, kompaniyaId]);
   useEffect(() => {
     if (!yordamchi || !tarixKalit || tarixEga !== tarixKalit || !xabarlar.length) return;
     /* Javob oqayotgan paytda oldingi saqlash bekor bo'ladi: yorliq «saqlanmoqda» bo'lib qotib qolmasin. */
@@ -180,32 +204,68 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     if (anchor && anchor.id === suhbatId.current) {
       if (kompaniyaId == null) return;
       const avlod = gen.current;
-      let active = true;
-      const stillActive = () => active && gen.current === avlod && remoteAnchor.current === anchor;
-      const delta = xabarlar.slice(anchor.count).flatMap(x => {
-        const m = Array.from(x.matn.trim()).slice(0, 400).join('');
-        return m ? [{ r: x.rol, m }] : [];
-      });
+      const stillCurrent = () => gen.current === avlod && remoteAnchor.current === anchor;
+      const delta = ixchamXabarlar(xabarlar.slice(anchor.count));
       if (!delta.length || delta.length > 12) { setSaqlashHolati('local'); return; }
       setSaqlashHolati('saving');
       const save = async () => {
-        let etag = anchor.etag;
-        if (!etag) {
-          const result = await syncJarvisConversation(kompaniyaId, { id: anchor.id, etag: null }, AbortSignal.timeout(8000));
-          const snapshot = result?.suhbat;
-          if (snapshot?.holat === 'changed' && snapshot.xabarlar?.length === anchor.base.length &&
-              snapshot.xabarlar.every((x, i) => x.r === anchor.base[i].r && x.m === anchor.base[i].m)) etag = snapshot.etag;
+        if (!stillCurrent() || appendPending.current === anchor) return;
+        appendPending.current = anchor;
+        try {
+          let etag = anchor.etag;
+          if (!etag) {
+            const result = await syncJarvisConversation(kompaniyaId, { id: anchor.id, etag: null }, AbortSignal.timeout(8000));
+            const snapshot = result?.suhbat;
+            if (snapshot?.holat === 'changed' && snapshot.xabarlar?.length === anchor.base.length &&
+                snapshot.xabarlar.every((x, i) => x.r === anchor.base[i].r && x.m === anchor.base[i].m)) etag = snapshot.etag;
+          }
+          if (!stillCurrent()) return;
+          const result = etag ? await appendJarvisMessages(kompaniyaId, anchor.id, etag, delta) : null;
+          if (!stillCurrent()) return;
+          if (!result) { setSaqlashHolati('local'); return; }
+          remoteAnchor.current = { ...anchor, etag: result.etag, count: xabarlar.length };
+          yuklanganImzo.current = xabarImzo(xabarlar);
+          setSaqlashHolati('saved');
+          if (xabarlarRef.current !== xabarlar) setSaqlashQadami(i => i + 1);
+        } finally {
+          if (appendPending.current === anchor) appendPending.current = null;
         }
-        if (!stillActive()) return;
-        const result = etag ? await appendJarvisMessages(kompaniyaId, anchor.id, etag, delta) : null;
-        if (!stillActive()) return;
-        if (!result) { setSaqlashHolati('local'); return; }
-        remoteAnchor.current = { ...anchor, etag: result.etag, count: xabarlar.length };
-        yuklanganImzo.current = xabarImzo(xabarlar);
-        setSaqlashHolati('saved');
       };
       const timer = setTimeout(() => { void save(); }, 1000);
-      return () => { active = false; clearTimeout(timer); };
+      return () => clearTimeout(timer);
+    }
+    const fresh = yangiServerSuhbat.current;
+    if (fresh?.id === suhbatId.current && kompaniyaId != null) {
+      if (fresh.stale) { setSaqlashHolati('local'); return; }
+      setSaqlashHolati('saving');
+      const avlod = gen.current;
+      const timer = setTimeout(() => {
+        if (fresh.sending || gen.current !== avlod || yangiServerSuhbat.current !== fresh) return;
+        const messages = ixchamXabarlar(xabarlar.slice(fresh.start));
+        if (!fresh.first) {
+          if (!messages.length || messages.length > 12) { setSaqlashHolati('local'); return; }
+          const title = (messages.find(x => x.r === 'user') ?? messages[0]).m.replace(/\s+/g, ' ').slice(0, 80).trim();
+          fresh.first = { title, messages, count: xabarlar.length, signature: xabarImzo(xabarlar) };
+        }
+        const first = fresh.first;
+        fresh.sending = true;
+        void mutateJarvisConversation(kompaniyaId, fresh.id, null, { harakat: 'create', sarlavha: first.title, xabarlar: first.messages }).then(result => {
+          fresh.sending = false;
+          if (gen.current !== avlod || yangiServerSuhbat.current !== fresh) return;
+          if (result.status !== 'saved') {
+            fresh.stale = result.status === 'stale';
+            if (fresh.stale) toast(t('Suhbat boshqa qurilmada o‘zgargan. Yangilangan suhbatni tekshiring.'), 'warn');
+            setSaqlashHolati('local');
+            return;
+          }
+          remoteAnchor.current = { id: fresh.id, etag: result.etag, count: first.count, base: first.messages };
+          yangiServerSuhbat.current = null;
+          yuklanganImzo.current = first.signature;
+          setSaqlashHolati('saved');
+          setSaqlashQadami(i => i + 1);
+        });
+      }, 1000);
+      return () => clearTimeout(timer);
     }
     const yangi = suhbatArxivla(suhbatOqi(arxivKalit), suhbatId.current, xabarlar.map((x) => ({ rol: x.rol, matn: x.matn, jonli: x.jonli })));
     suhbatYoz(arxivKalit, yangi); setArxiv(yangi);
@@ -219,7 +279,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
       if (tirik && gen.current === avlod && suhbatId.current === id) setSaqlashHolati(r?.ok ? 'saved' : 'local');
     }).catch(() => { if (tirik && gen.current === avlod && suhbatId.current === id) setSaqlashHolati('local'); }); }, 1500);
     return () => { tirik = false; clearTimeout(tm); };
-  }, [xabarlar, arxivKalit, yordamchi, tarixKalit, tarixEga]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [xabarlar, arxivKalit, yordamchi, tarixKalit, tarixEga, saqlashQadami]); // eslint-disable-line react-hooks/exhaustive-deps
   const [serverRoyxat, setServerRoyxat] = useState<ServerSuhbat[]>([]);
   const syncListed = useRef(false);
   useEffect(() => {
@@ -262,6 +322,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
       remoteAnchor.current = null;
       qisqartmaDan.current = null;
       suhbatId.current = crypto.randomUUID();
+      yangiServerSuhbat.current = { id: suhbatId.current, start: 0 };
       yuklanganImzo.current = xabarImzo([]);
       setXabarlar([]);
       return true;
@@ -338,6 +399,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
       suhbatToxtat();
       qisqartmaDan.current = null;
       suhbatId.current = crypto.randomUUID();
+      yangiServerSuhbat.current = { id: suhbatId.current, start: 0 };
       yuklanganImzo.current = xabarImzo([]);
       setXabarlar([]);
     }
@@ -571,6 +633,10 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
           <button type="button" onClick={() => { yuklashNomer.current++; setYuklanayotgan(null); }} className="rounded border border-border px-2 py-1">{t('Suhbat yuklashni bekor qilish')}</button>
         </div>}
         {saqlashHolati !== 'idle' && <p role="status" className="mt-1 text-xs text-text-dim">{saqlashHolati === 'saving' ? t('Suhbat serverga saqlanmoqda…') : saqlashHolati === 'saved' ? t('Suhbatning ixcham nusxasi serverga saqlandi') : t('Serverga saqlanmadi — bu oynani yopmang')}</p>}
+        {saqlashHolati === 'local' && yangiServerSuhbat.current?.first && !yangiServerSuhbat.current.stale && <button type="button"
+          onClick={() => setSaqlashQadami(i => i + 1)} className="mt-1 rounded border border-border px-2 py-1 text-xs">
+          {t('Qayta urinish')}
+        </button>}
       </div>}
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4" aria-live="polite">
         {studioScope && kasb?.kategoriyalar.includes('smeta_pul') && <p className="rounded-lg border border-border p-2 text-xs text-text-dim">{t('Jarvis joriy qoralamani o‘qiydi; u hali tasdiqlangan hujjat emas.')}</p>}

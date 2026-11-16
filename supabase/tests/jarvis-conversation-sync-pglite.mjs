@@ -98,10 +98,34 @@ try {
   const removed = await sync(7, 17, 'current', added.etag);
   assert.deepEqual(removed.suhbat, { id: 'current', holat: 'missing' });
   assert.equal(removed.royxat.some(row => row.id === 'current'), false);
+  const message = [{ r: 'user', m: 'Synthetic first message' }];
+  const create = (actor = 7, company = 17, title = 'New chat') =>
+    mutate(actor, company, 'new-chat', null, 'create', title, message);
+  assert.deepEqual(await create(7, 99), { ok: false, code: 'COMPANY_ACCESS_DENIED' });
+  const created = await create();
+  assert.equal(created.ok, true);
+  assert.deepEqual(await create(), created);
+  assert.deepEqual((await sync(7, 17, 'new-chat')).suhbat.xabarlar, message);
+  assert.deepEqual(await create(7, 17, 'Different'), { ok: false, code: 'SUHBAT_CONFLICT' });
+  const other = await create(8);
+  assert.equal(other.ok, true);
+  assert.notEqual(other.etag, created.etag);
+  const appended = await mutate(7, 17, 'new-chat', created.etag, 'append', null, [{ r: 'ai', m: 'Later answer' }]);
+  assert.equal(appended.ok, true);
+  assert.deepEqual(await create(), { ok: false, code: 'SUHBAT_CONFLICT' });
+  await mutate(7, 17, 'new-chat', appended.etag, 'delete');
+  assert.deepEqual(await create(), { ok: false, code: 'SUHBAT_NOT_FOUND' });
+  assert.equal((await sync(7, 17, 'new-chat')).suhbat.holat, 'missing');
+  for (let index = 0; index <= 20; index++) {
+    assert.equal((await mutate(7, 17, `synthetic-${index}`, null, 'create', 'Synthetic', message)).ok, true);
+  }
+  assert.equal((await db.query('select count(*)::int as total from public.t2_jarvis_suhbat where foydalanuvchi_id=7 and kompaniya_id=17')).rows[0].total, 20);
+  assert.deepEqual(await mutate(7, 17, 'synthetic-0', null, 'create', 'Synthetic', message), { ok: false, code: 'SUHBAT_NOT_FOUND' });
   await db.exec('reset role');
   await db.exec(await sql('../../docs/architecture/jarvis-conversation-sync.rollback.sql'));
   assert.equal(await registered(), false);
   assert.equal((await db.query('select to_regprocedure($1) as procedure', [writeSignature])).rows[0].procedure, null);
+  assert.equal((await db.query("select to_regclass('public.t2_jarvis_suhbat_create_receipt') as receipt")).rows[0].receipt, null);
   console.log('JARVIS_SYNC_READ_WRITE_ACCEPTANCE_PASS');
 } finally {
   await db.close();

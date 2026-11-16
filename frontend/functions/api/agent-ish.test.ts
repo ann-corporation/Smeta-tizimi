@@ -22,6 +22,20 @@ beforeEach(() => { kontekstKeshTozala(); m.tekshir.mockResolvedValue({ foydalanu
 afterEach(() => vi.unstubAllGlobals());
 
 describe('agent-ish shlyuzi', () => {
+  it('creates a new conversation only without a previous version, scoped to the signed-in actor', async () => {
+    const fetcher = vi.fn(async (_url: string, _init?: RequestInit) => rpcJavob({ ok: true, id: 'new-chat', etag: 'a'.repeat(32) }));
+    vi.stubGlobal('fetch', fetcher);
+    const request = { amal: 'suhbat_mutate', kompaniya_id: 17, klient_id: 'new-chat', harakat: 'create',
+      sarlavha: 'New synthetic chat', xabarlar: [{ r: 'user', m: 'Synthetic question' }], p_actor_id: 99 };
+    expect((await post(request)).status).toBe(200);
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toEqual({
+      p_actor_id: 7, p_kompaniya_id: 17, p_klient_id: 'new-chat', p_etag: null, p_amal: 'create',
+      p_sarlavha: request.sarlavha, p_xabarlar: request.xabarlar,
+    });
+    expect((await post({ ...request, etag: 'b'.repeat(32) })).status).toBe(400);
+    expect((await post({ ...request, xabarlar: [] })).status).toBe(400);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
   it('protects conversation changes by expected ETag using the session actor and reports a conflict', async () => {
     const fetcher = vi.fn(async (_url: string, _init?: RequestInit) => rpcJavob({ ok: false, code: 'SUHBAT_CONFLICT' }));
     vi.stubGlobal('fetch', fetcher);

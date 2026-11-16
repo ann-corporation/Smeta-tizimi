@@ -58,15 +58,16 @@ export async function appendJarvisMessages(
 }
 
 type Mutation =
+  | { harakat: 'create'; sarlavha: string; xabarlar: Message[] }
   | { harakat: 'append'; xabarlar: Message[] }
   | { harakat: 'rename'; sarlavha: string }
   | { harakat: 'delete' };
 type MutationResult = { status: 'saved'; etag: string } | { status: 'deleted' | 'stale' | 'failed' };
 
 export async function mutateJarvisConversation(
-  company: number, id: string, etag: string, mutation: Mutation,
+  company: number, id: string, etag: string | null, mutation: Mutation,
 ): Promise<MutationResult> {
-  if (!idPattern.test(id) || !etagPattern.test(etag)) return { status: 'failed' };
+  if (!idPattern.test(id) || (mutation.harakat === 'create' ? etag !== null : !etag || !etagPattern.test(etag))) return { status: 'failed' };
   try {
     const response = await fetch('/api/agent-ish', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },

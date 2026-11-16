@@ -190,7 +190,7 @@ it('new conversation invalidates a late model answer',async()=>{let done!:(v:unk
  fireEvent.change(screen.getByRole('textbox'),{target:{value:'Tekshir'}});fireEvent.keyDown(screen.getByRole('textbox'),{key:'Enter'});
  await waitFor(()=>expect(m.ask).toHaveBeenCalledTimes(1));fireEvent.click(screen.getByRole('button',{name:'Yangi suhbat'}));
  await act(async()=>done({ok:true,javob:'OLD ANSWER'}));expect(screen.queryByText('OLD ANSWER')).toBeNull();});
-it('changing actor cannot copy the previous user history into the new archive',async()=>{const v=render(view());choose('a');v.rerender(view(8));await waitFor(()=>expect(screen.queryByText('Message a', {selector:'p'})).toBeNull());expect(localStorage.getItem('jarvis-suhbatlar:8:17')).toBeNull();expect(sessionStorage.getItem('jarvis-chat:8:17')).not.toContain('Message a');});
+it('changing actor cannot copy the previous user history into the new archive',async()=>{const v=render(view());choose('a');v.rerender(view(8));await waitFor(()=>expect(screen.queryByText('Message a', {selector:'p'})).toBeNull());expect(localStorage.getItem('jarvis-suhbatlar:8:17')).toBeNull();expect(sessionStorage.getItem('jarvis-chat:8:17')).toBeNull();});
 it('late server conversation cannot overwrite a newer local selection',async()=>{let done!:(v:unknown)=>void;m.list.mockResolvedValue([{id:'remote',sarlavha:'Remote',yangilandi:new Date().toISOString()}]);m.load.mockReturnValue(new Promise(r=>done=r));render(view());await screen.findByRole('option',{name:'Remote'});choose('remote');choose('b');await act(async()=>done({xabarlar:[{r:'ai',m:'OLD SERVER'}]}));expect(screen.queryByText('OLD SERVER')).toBeNull();expect(screen.getByText('Message b', {selector:'p'})).toBeTruthy();});
 
 it('late intent cannot unlock a newer conversation request',async()=>{
@@ -210,7 +210,63 @@ it('late intent cannot unlock a newer conversation request',async()=>{
 it('server save failure is visible instead of silently claiming persistence',async()=>{
  vi.useFakeTimers();m.ask.mockResolvedValue({ok:true,javob:'OK'});render(view());await tick(0);
  send('Tekshir');await tick(0);expect(screen.getByText(/Suhbat serverga saqlanmoqda/)).toBeTruthy();
- await tick(1500);expect(m.save).toHaveBeenCalledTimes(1);expect(screen.getByRole('status').textContent).toContain('Serverga saqlanmadi');
+ await tick(1500);expect(m.mutate).toHaveBeenCalledTimes(1);expect(m.save).not.toHaveBeenCalled();expect(screen.getByRole('status').textContent).toContain('Serverga saqlanmadi');
+});
+
+it('retries creation with the same id and first messages then appends new turns using the returned version',async()=>{
+ vi.useFakeTimers();
+ m.ask.mockResolvedValue({ok:true,javob:'Verified answer'});
+ const tag = 'e'.repeat(32);
+ m.mutate.mockResolvedValueOnce({status:'failed'}).mockResolvedValueOnce({status:'saved',etag:tag});
+ m.append.mockResolvedValueOnce({etag:'f'.repeat(32)});
+ render(view());await tick(0);
+ send('First synthetic request');await tick(0);await tick(1000);
+ const [company,id,etag,payload] = m.mutate.mock.calls[0];
+ expect([company,etag,payload]).toEqual([17,null,{
+  harakat:'create',sarlavha:'First synthetic request',
+  xabarlar:[{r:'user',m:'First synthetic request'},{r:'ai',m:'Verified answer'}],
+ }]);
+ fireEvent.click(screen.getByRole('button',{name:'Qayta urinish'}));await tick(1000);
+ expect(m.mutate.mock.calls[1]).toEqual(m.mutate.mock.calls[0]);
+ send('Second synthetic request');await tick(0);await tick(1000);
+ expect(m.append.mock.calls[0]).toEqual([17,id,tag,[{r:'user',m:'Second synthetic request'},{r:'ai',m:'Verified answer'}]]);
+ expect(m.save).not.toHaveBeenCalled();
+ expect(sessionStorage.getItem('jarvis-chat:7:17')).toBeNull();
+ expect(localStorage.getItem('jarvis-suhbatlar:7:17')).not.toContain('First synthetic request');
+});
+
+it('keeps a second turn queued while the first create request is in flight',async()=>{
+ vi.useFakeTimers();
+ m.ask.mockResolvedValue({ok:true,javob:'Synthetic answer'});
+ let finish!: (answer: unknown) => void;
+ m.mutate.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+ m.append.mockResolvedValue({etag:'f'.repeat(32)});
+ render(view());await tick(0);
+ send('First request');await tick(0);await tick(1000);
+ send('Second request');await tick(0);await tick(1000);
+ expect(m.mutate).toHaveBeenCalledTimes(1);
+ expect(m.append).not.toHaveBeenCalled();
+ const tag = 'e'.repeat(32);
+ await act(async () => finish({status:'saved',etag:tag}));await tick(1000);
+ expect(m.append.mock.calls[0]).toEqual([17,m.mutate.mock.calls[0][1],tag,[
+  {r:'user',m:'Second request'},{r:'ai',m:'Synthetic answer'},
+ ]]);
+});
+
+it('serializes overlapping appends and uses the first committed version for the next turn',async()=>{
+ const {row,etag} = await openVersionedChat();
+ m.ask.mockResolvedValue({ok:true,javob:'Synthetic answer'});
+ let finish!: (answer: unknown) => void;
+ m.append.mockReturnValueOnce(new Promise(resolve => { finish = resolve; })).mockResolvedValueOnce({etag:'c'.repeat(32)});
+ send('First request');await tick(0);await tick(1000);
+ send('Second request');await tick(0);await tick(1000);
+ expect(m.append).toHaveBeenCalledTimes(1);
+ expect(m.append.mock.calls[0].slice(0,3)).toEqual([17,row.id,etag]);
+ const updated = 'b'.repeat(32);
+ await act(async () => finish({etag:updated}));await tick(1000);
+ expect(m.append.mock.calls[1]).toEqual([17,row.id,updated,[
+  {r:'user',m:'Second request'},{r:'ai',m:'Synthetic answer'},
+ ]]);
 });
 
 it('saving status does not stay stale while a streaming answer is in progress',async()=>{
@@ -231,7 +287,9 @@ it('a summary-only server conversation is never uploaded as the original, and a 
  render(view());await tick(0);choose('remote');await tick(0);expect(screen.getByText(/SUMMARY/,{selector:'p'})).toBeTruthy();
  await tick(3000);expect(m.save).not.toHaveBeenCalled();
  m.ask.mockResolvedValue({ok:true,javob:'OK'});send('Davom');await tick(0);await tick(1500);
- expect(m.save).toHaveBeenCalledTimes(1);expect(m.save.mock.calls[0][1]).not.toBe('remote');
+ expect(m.save).not.toHaveBeenCalled();
+ expect(m.mutate.mock.calls[0][1]).not.toBe('remote');
+ expect(m.mutate.mock.calls[0][3].xabarlar).toEqual([{r:'user',m:'Davom'},{r:'ai',m:'OK'}]);
 });
 
 it('a failed server load keeps the in-flight answer of the current conversation',async()=>{
