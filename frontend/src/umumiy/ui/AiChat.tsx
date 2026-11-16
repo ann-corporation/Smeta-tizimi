@@ -5,7 +5,7 @@ import { mdBolaklar } from '../../lib/yordamchi/jadval';
 import { ArrowRight, Bot, Mic, MicOff, Send, Square, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { kasbSavolOqim, niyatLlmOl, suhbatRoyxatOl, suhbatServerdanOl, suhbatServerga, type ServerSuhbat, tizimYordamSavol, type KasbIshchi, type KasbYakun, type Qadam, type SahifaIshora } from '../../api/t2-agent-ish';
-import { syncJarvisConversation } from '../../api/jarvis-suhbat-sync';
+import { appendJarvisMessages, syncJarvisConversation } from '../../api/jarvis-suhbat-sync';
 import { jarvisKichikGap } from '../../lib/jarvis/intent';
 import { katalogKonteksti, narxSavolimi, vaqtBilan, type KatalogKontekst } from '../../lib/jarvis/katalog-kontekst';
 import { t } from '../../i18n/til';
@@ -107,7 +107,9 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const [tarixEga, setTarixEga] = useState<string | null>(null);
   /** Yuklangan/tanlangan suhbat tarkibi imzosi: shu o'zgarmaguncha (haqiqiy yangi xabar yo'q) serverga/arxivga yozilmaydi va yangilandi ko'tarilmaydi. */
   const yuklanganImzo = useRef('');
-  const remoteAnchor = useRef<{ id: string; etag: string | null } | null>(null);
+  const remoteAnchor = useRef<{
+    id: string; etag: string | null; count: number; base: Array<{ r: 'user' | 'ai'; m: string }>;
+  } | null>(null);
   /** Serverdan faqat qisqartma sifatida yuklangan suhbat id si: yangi xabar qo'shilganda asl nusxa ustiga yozilmaydi, yangi suhbat (fork) bo'ladi. */
   const qisqartmaDan = useRef<string | null>(null);
   const yuklashNomer = useRef(0);
@@ -123,6 +125,8 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   }, [scope, tarixKalit]);
   useEffect(() => { if (tarixKalit && tarixEga === tarixKalit) {
     if (qisqartmaDan.current && xabarImzo(xabarlar) !== yuklanganImzo.current) { suhbatId.current = crypto.randomUUID(); qisqartmaDan.current = null; }
+    if (remoteAnchor.current && remoteAnchor.current.id !== suhbatId.current) remoteAnchor.current = null;
+    if (remoteAnchor.current) return;
     tarixYoz(tarixKalit, xabarlar);
     try { sessionStorage.setItem(tarixKalit + ':id', suhbatId.current); } catch { /* xotira yopiq */ }
   } }, [xabarlar, tarixKalit, tarixEga]);
@@ -165,6 +169,37 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     if (xabarlar.some((x) => x.jonli)) { setSaqlashHolati('idle'); return; }
     /* Faqat ochilgan/tanlangan suhbat (yangi xabar yo'q): arxivga/serverga yozilmaydi. */
     if (xabarImzo(xabarlar) === yuklanganImzo.current) return;
+    const anchor = remoteAnchor.current;
+    if (anchor && anchor.id === suhbatId.current) {
+      if (kompaniyaId == null) return;
+      const avlod = gen.current;
+      let active = true;
+      const stillActive = () => active && gen.current === avlod && remoteAnchor.current === anchor;
+      const delta = xabarlar.slice(anchor.count).flatMap(x => {
+        const m = Array.from(x.matn.trim()).slice(0, 400).join('');
+        return m ? [{ r: x.rol, m }] : [];
+      });
+      if (!delta.length || delta.length > 12) { setSaqlashHolati('local'); return; }
+      setSaqlashHolati('saving');
+      const save = async () => {
+        let etag = anchor.etag;
+        if (!etag) {
+          const result = await syncJarvisConversation(kompaniyaId, { id: anchor.id, etag: null }, AbortSignal.timeout(8000));
+          const snapshot = result?.suhbat;
+          if (snapshot?.holat === 'changed' && snapshot.xabarlar?.length === anchor.base.length &&
+              snapshot.xabarlar.every((x, i) => x.r === anchor.base[i].r && x.m === anchor.base[i].m)) etag = snapshot.etag;
+        }
+        if (!stillActive()) return;
+        const result = etag ? await appendJarvisMessages(kompaniyaId, anchor.id, etag, delta) : null;
+        if (!stillActive()) return;
+        if (!result) { setSaqlashHolati('local'); return; }
+        remoteAnchor.current = { ...anchor, etag: result.etag, count: xabarlar.length };
+        yuklanganImzo.current = xabarImzo(xabarlar);
+        setSaqlashHolati('saved');
+      };
+      const timer = setTimeout(() => { void save(); }, 1000);
+      return () => { active = false; clearTimeout(timer); };
+    }
     const yangi = suhbatArxivla(suhbatOqi(arxivKalit), suhbatId.current, xabarlar.map((x) => ({ rol: x.rol, matn: x.matn, jonli: x.jonli })));
     suhbatYoz(arxivKalit, yangi); setArxiv(yangi);
     /* Serverga (qurilmalar orasida): 1.5 s kutib, xato bo'lsa jim — brauzer nusxasi zaxira. */
@@ -201,7 +236,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     const requestId = suhbatId.current;
     const anchor = remoteAnchor.current;
     const pristine = () => !busy.current && !pollBlocked.current && xabarImzo(xabarlarRef.current) === yuklanganImzo.current;
-    const cursor = anchor?.id === requestId && pristine() ? anchor : null;
+    const cursor = anchor?.id === requestId && pristine() ? { id: anchor.id, etag: anchor.etag } : null;
     const sync = await syncJarvisConversation(kompaniyaId, cursor, signal);
     if (!sync || signal.aborted || gen.current !== avlod) return !!sync;
     syncListed.current = true;
@@ -226,7 +261,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     const next = messages.map((x, i) => ({ id: requestId + '-' + i, rol: x.r, matn: x.m, jarvis: x.r === 'ai' }));
     if (remote.xabarlar === null) qisqartmaDan.current = requestId;
     else qisqartmaDan.current = null;
-    remoteAnchor.current = { id: requestId, etag: remote.etag };
+    remoteAnchor.current = { id: requestId, etag: remote.etag, count: next.length, base: remote.xabarlar ?? [] };
     yuklanganImzo.current = xabarImzo(next);
     setXabarlar(next);
     return true;
@@ -270,7 +305,10 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     const x = r.xabarlar ?? (r.qisqartma ? [{ r: 'ai' as const, m: `${t('Eski suhbat (qisqartma)')}: ${r.qisqartma}` }] : []);
     suhbatToxtat();
     suhbatId.current = s.id; qisqartmaDan.current = toLiq || !x.length ? null : s.id;
-    remoteAnchor.current = { id: s.id, etag: null };
+    remoteAnchor.current = { id: s.id, etag: null, count: x.length, base: r.xabarlar ?? [] };
+    if (tarixKalit) {
+      try { sessionStorage.removeItem(tarixKalit); sessionStorage.removeItem(tarixKalit + ':id'); } catch { /* storage off */ }
+    }
     const yangi = x.map((q, i) => ({ id: `${s.id}-${i}`, rol: q.r, matn: q.m, jarvis: q.r === 'ai' }));
     yuklanganImzo.current = xabarImzo(yangi);
     setXabarlar(yangi);

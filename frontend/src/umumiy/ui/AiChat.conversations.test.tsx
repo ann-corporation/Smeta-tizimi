@@ -3,9 +3,9 @@ import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-libra
 import { MemoryRouter } from 'react-router-dom';
 import type { YordamchiUlanish } from './yordamchi/ishlov';
 import type { KasbIshchi } from '../../api/t2-agent-ish';
-const m=vi.hoisted(()=>({ask:vi.fn(),load:vi.fn(),list:vi.fn(),intent:vi.fn(),save:vi.fn(),sync:vi.fn()}));
+const m=vi.hoisted(()=>({ask:vi.fn(),load:vi.fn(),list:vi.fn(),intent:vi.fn(),save:vi.fn(),sync:vi.fn(),append:vi.fn()}));
 vi.mock('../../api/t2-agent-ish',()=>({niyatLlmOl:m.intent,suhbatRoyxatOl:m.list,suhbatServerga:m.save,suhbatServerdanOl:m.load,kasbSavolOqim:m.ask,tizimYordamSavol:vi.fn()}));
-vi.mock('../../api/jarvis-suhbat-sync',()=>({syncJarvisConversation:m.sync}));
+vi.mock('../../api/jarvis-suhbat-sync',()=>({syncJarvisConversation:m.sync,appendJarvisMessages:m.append}));
 vi.mock('./AiBaho',()=>({AiBaho:()=>null}));vi.mock('./AiHarakatKarta',()=>({AiHarakatKarta:()=>null}));
 vi.mock('../../lib/yordamchi/niyat',()=>({niyatAniqla:()=>({tur:'nomalum',yaqin:[]})}));
 vi.mock('../../lib/yordamchi/niyat-llm',()=>({niyatLlmGaMosmi:()=>true}));
@@ -16,6 +16,7 @@ const view=(uid=7,k=17)=><MemoryRouter><AiChat kompaniyaId={k} foydalanuvchiId={
 const choose=(id:string)=>fireEvent.change(screen.getByLabelText('Suhbatni tanlash'),{target:{value:id}});
 beforeEach(()=>{localStorage.clear();sessionStorage.clear();m.ask.mockReset();m.intent.mockReset();m.load.mockReset();m.list.mockReset().mockResolvedValue([]);m.save.mockReset().mockResolvedValue(null);
  m.sync.mockReset().mockResolvedValue(null);
+ m.append.mockReset().mockResolvedValue(null);
  localStorage.setItem('jarvis-suhbatlar:7:17',JSON.stringify(['a','b'].map(id=>({id,sarlavha:'Chat '+id,yangilandi:Date.now(),xabarlar:[{rol:'user',matn:'Message '+id}]}))));});
 afterEach(()=>{vi.useRealTimers();cleanup();});
 const send=(text:string)=>{fireEvent.change(screen.getByRole('textbox'),{target:{value:text}});fireEvent.keyDown(screen.getByRole('textbox'),{key:'Enter'});};
@@ -27,6 +28,63 @@ function remoteFixture() {
  m.load.mockResolvedValue({ xabarlar: [{ r: 'ai', m: 'Before phone update' }], qisqartma: null });
  return row;
 }
+
+it('appends only new turns to a server conversation and advances the expected version on success', async () => {
+ vi.useFakeTimers();
+ const row = remoteFixture();
+ const tag = 'a'.repeat(32);
+ const nextTag = 'b'.repeat(32);
+ m.sync.mockResolvedValue({ royxat: [row], suhbat: {
+  id: row.id, holat: 'changed', etag: tag, sarlavha: row.sarlavha,
+  xabarlar: [{ r: 'ai', m: 'Before phone update' }], qisqartma: null,
+ } });
+ m.append.mockResolvedValueOnce({ etag: nextTag }).mockResolvedValueOnce({ etag: 'c'.repeat(32) });
+ m.ask.mockResolvedValue({ ok: true, javob: 'Protected answer' });
+ render(view()); await tick(0); choose(row.id); await tick(0);
+ send('Yangi savol'); await tick(0); await tick(1000);
+ expect(m.append.mock.calls[0]).toEqual([17, row.id, tag, [
+  { r: 'user', m: 'Yangi savol' }, { r: 'ai', m: 'Protected answer' },
+ ]]);
+ send('Yana savol'); await tick(0); await tick(1000);
+ expect(m.append.mock.calls[1]).toEqual([17, row.id, nextTag, [
+  { r: 'user', m: 'Yana savol' }, { r: 'ai', m: 'Protected answer' },
+ ]]);
+ expect(m.save).not.toHaveBeenCalled();
+ expect(sessionStorage.getItem('jarvis-chat:7:17')).toBeNull();
+});
+
+it('preserves the local dialog when a guarded append is rejected and never retries with the old writer', async () => {
+ vi.useFakeTimers();
+ const row = remoteFixture();
+ m.sync.mockResolvedValue({ royxat: [row], suhbat: {
+  id: row.id, holat: 'changed', etag: 'd'.repeat(32), sarlavha: row.sarlavha,
+  xabarlar: [{ r: 'ai', m: 'Before phone update' }], qisqartma: null,
+ } });
+ m.append.mockResolvedValue(null);
+ m.ask.mockResolvedValue({ ok: true, javob: 'Keep this answer' });
+ render(view()); await tick(0); choose(row.id); await tick(0);
+ send('Yangi savol'); await tick(0); await tick(1000);
+ expect(screen.getByText('Keep this answer')).toBeTruthy();
+ expect(screen.getByText(/Serverga saqlanmadi/)).toBeTruthy();
+ expect(m.append).toHaveBeenCalledTimes(1);
+ expect(m.save).not.toHaveBeenCalled();
+});
+
+it('does not write if the first sync snapshot supersedes the legacy-opened history', async () => {
+ vi.useFakeTimers();
+ const row = remoteFixture();
+ m.sync.mockResolvedValue({ royxat: [row], suhbat: {
+  id: row.id, holat: 'changed', etag: 'e'.repeat(32), sarlavha: row.sarlavha,
+  xabarlar: [{ r: 'ai', m: 'Newer answer from another device' }], qisqartma: null,
+ } });
+ m.ask.mockResolvedValue({ ok: true, javob: 'Locally composed answer' });
+ render(view()); await tick(0); choose(row.id); await tick(0);
+ send('Yangi savol'); await tick(0); await tick(1000);
+ expect(screen.getByText('Locally composed answer')).toBeTruthy();
+ expect(screen.getByText(/Serverga saqlanmadi/)).toBeTruthy();
+ expect(m.append).not.toHaveBeenCalled();
+ expect(m.save).not.toHaveBeenCalled();
+});
 
 it('updates an open remote conversation and its title, then clears it after remote deletion', async () => {
  vi.useFakeTimers();

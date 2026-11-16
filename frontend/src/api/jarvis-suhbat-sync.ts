@@ -48,3 +48,22 @@ export async function syncJarvisConversation(company: number, cursor: Cursor | n
     return parseConversationSync(await response.json(), cursor);
   } catch { return null; }
 }
+
+export async function appendJarvisMessages(
+  company: number, id: string, etag: string, messages: Message[],
+): Promise<{ etag: string } | null> {
+  if (!idPattern.test(id) || !etagPattern.test(etag) || !messages.length || messages.length > 12) return null;
+  try {
+    const response = await fetch('/api/agent-ish', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(8000),
+      body: JSON.stringify({
+        amal: 'suhbat_mutate', kompaniya_id: company, klient_id: id, etag, harakat: 'append', xabarlar: messages,
+      }),
+    });
+    if (!response.ok) return null;
+    const data = record(await response.json());
+    return data?.ok === true && data.id === id && typeof data.etag === 'string' && etagPattern.test(data.etag)
+      ? { etag: data.etag } : null;
+  } catch { return null; }
+}
