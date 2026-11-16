@@ -113,7 +113,7 @@ private fun payloadCode(body: JsonElement?): String? = body.obj()?.get("code").s
 // ---------- notifications ----------
 
 /** [zanjirId] = the approval chain the notification points at (parametrlar.zanjir_id), so a tap can open it. */
-data class NotificationItem(val id: Long, val mavzu: String, val yaratildi: String?, val oqildi: Boolean, val zanjirId: Long? = null)
+data class NotificationItem(val id: Long, val mavzu: String, val yaratildi: String?, val oqildi: Boolean, val zanjirId: Long? = null, val xatId: Long? = null)
 data class NotificationList(val items: List<NotificationItem>, val unread: Int)
 
 fun parseNotifications(body: JsonElement?): NotificationList? {
@@ -124,6 +124,7 @@ fun parseNotifications(body: JsonElement?): NotificationList? {
         NotificationItem(
             o["id"].num()?.toLong() ?: return@mapNotNull null, o["mavzu"].str().orEmpty(), o["yaratildi"].str(), o["oqildi"].str() != null,
             o["parametrlar"].obj()?.get("zanjir_id").num()?.toLong()?.takeIf { it > 0 },
+            o["parametrlar"].obj()?.get("xat_id").num()?.toLong()?.takeIf { it > 0 },
         )
     }
     return NotificationList(items, p["oqilmagan"].num()?.toInt() ?: items.count { !it.oqildi })

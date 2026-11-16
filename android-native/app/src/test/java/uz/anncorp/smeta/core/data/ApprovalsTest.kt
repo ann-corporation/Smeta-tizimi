@@ -105,7 +105,7 @@ class ApprovalsTest {
 
     @Test fun notificationsAndMarkRead() {
         val n = parseNotifications(parse(res("notes.json")))!!
-        assertEquals(5, n.items.size); assertEquals(2, n.unread)
+        assertEquals(5, n.items.size); assertEquals(3, n.unread)
         assertFalse(n.items[0].oqildi); assertTrue(n.items[2].oqildi)
         assertEquals(NotifKind.APPROVAL_WAITING, notifKind(n.items[0].mavzu))
         assertEquals(NotifKind.OTHER, notifKind("yangi.mavzu"))
@@ -127,7 +127,7 @@ class ApprovalsTest {
             override suspend fun upload(companyId: Long, obyektId: Long, body: RequestBody): ApiResult = ApiResult(404, null)
         }
         val exec = TodayRepository(api).load(8, "pto")
-        assertEquals(2, exec.approvals); assertEquals(3, exec.f2Drafts); assertEquals(5, exec.faktDrafts); assertEquals(2, exec.unread); assertEquals(5, exec.notifications.size)
+        assertEquals(2, exec.approvals); assertEquals(3, exec.f2Drafts); assertEquals(5, exec.faktDrafts); assertEquals(3, exec.unread); assertEquals(5, exec.notifications.size)
         seen.clear()
         val field = TodayRepository(api).load(8, "usta")
         assertNull(field.f2Drafts); assertNull(field.faktDrafts)            // same as the bot: draft counters are for executive roles only

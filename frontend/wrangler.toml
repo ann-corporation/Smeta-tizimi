@@ -30,3 +30,7 @@ bucket_name = "smeta-tizimi-canonical"
 [vars]
 # D2 kompozit muhr/304 (obyekt-paket): muhr funksiyalari prodda; 304 ~50 ms vs 2-5 s
 OBYEKT_PAKET_ETAG = "1"
+PUBLIC_ORIGIN = "https://qurai.uz"
+BREND_URL = "https://qurai.uz"
+# Eski hostdan 301: Google OAuth origin va BotFather /setdomain qilingach '1' ga o'zgartiriladi.
+ESKI_HOST_YONLANTIRISH = "0"

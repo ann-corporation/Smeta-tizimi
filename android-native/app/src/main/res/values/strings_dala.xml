@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dala modullari: M-29, zayavka kuzatuvi, naryad, hujjat aylanishi -->
+    <string name="mod_m29">M-29 material sarfi</string>
+    <string name="mod_m29_d">Ombordan chiqim: obyekt va oy bo\'yicha</string>
+    <string name="mod_naryad">Naryad</string>
+    <string name="mod_naryad_d">Brigada topshirig\'i va bajarilgan ish</string>
+    <string name="dl_all_objects">Barcha obyektlar</string>
+    <string name="dl_close">Yopish</string>
+    <string name="dl_loading">Yuklanmoqda...</string>
+    <string name="dl_load_failed">Yuklab bo\'lmadi. Aloqani tekshirib, pastga tortib yangilang.</string>
+
+    <!-- M-29 -->
+    <string name="dl_m29_title">M-29 material sarfi</string>
+    <string name="dl_m29_new">Yangi chiqim</string>
+    <string name="dl_m29_hint">Oy bo\'yicha sarflangan materiallar. Miqdor noldan katta bo\'lsin.</string>
+    <string name="dl_m29_material">Material</string>
+    <string name="dl_m29_qty">Miqdor</string>
+    <string name="dl_m29_estimate">Smetada: %1$s</string>
+    <string name="dl_m29_add_line">Material</string>
+    <string name="dl_m29_from_work">Smeta ishidan</string>
+    <string name="dl_m29_remove_line">Qatorni o\'chirish</string>
+    <string name="dl_m29_prev_month">Oldingi oy</string>
+    <string name="dl_m29_next_month">Keyingi oy</string>
+    <string name="dl_m29_send">Chiqimni yuborish</string>
+    <string name="dl_m29_queued">Navbatga qo\'yildi. Aloqa bo\'lishi bilan yuboriladi.</string>
+    <string name="dl_m29_no_write">Siz M-29 ni faqat ko\'ra olasiz. Chiqim kiritish uchun prorab yoki PTO huquqi kerak.</string>
+    <string name="dl_m29_err_davr">Oy noto\'g\'ri.</string>
+    <string name="dl_m29_err_empty">Kamida bitta material kiriting.</string>
+    <string name="dl_m29_pending">Yuborilmaganlar</string>
+    <string name="dl_m29_waiting">Navbatda</string>
+    <string name="dl_m29_rejected">Rad etildi</string>
+    <string name="dl_m29_discard">Bekor qilish</string>
+    <string name="dl_m29_allow_negative">Qoldiq minusga tushsa ham yuborish</string>
+    <string name="dl_m29_replace_auto">Eski avtomatik chiqimlarni almashtirib yuborish</string>
+    <string name="dl_m29_short">%1$s: kerak %2$s, omborda %3$s %4$s</string>
+    <string name="dl_m29_err_period">Bu oy uchun M-29 allaqachon bajarilgan.</string>
+    <string name="dl_m29_err_stock">Omborda qoldiq yetmaydi. Kirim kiritilmagan bo\'lishi mumkin.</string>
+    <string name="dl_m29_err_trigger">Bu oyda Fakt orqali avtomatik chiqim bor. M-29 ularning o\'rniga yoziladi, qoldiq ikki marta yechilmaydi.</string>
+    <string name="dl_m29_err_forbidden">Bu amal uchun ruxsatingiz yo\'q.</string>
+    <string name="dl_m29_err_object">Obyekt tanlangan kompaniyaga tegishli emas.</string>
+    <string name="dl_m29_err_lines">Chiqim qilinadigan material yo\'q.</string>
+    <string name="dl_m29_err_other">Yuborilmadi.</string>
+    <string name="dl_m29_docs">Bajarilgan M-29</string>
+    <string name="dl_m29_done">Bajarilgan</string>
+    <string name="dl_m29_cancelled">Bekor qilingan</string>
+    <string name="dl_m29_empty">M-29 hujjati yo\'q</string>
+    <string name="dl_m29_negative_stock">Qoldiq minusga tushgan</string>
+    <string name="dl_m29_auto_replaced">%1$d ta eski avtomatik yozuv almashtirilgan</string>
+    <string name="dl_m29_cancel">Bekor qilish</string>
+    <string name="dl_m29_cancel_title">M-29 bekor qilinadi</string>
+    <string name="dl_m29_cancel_body">Ombordan chiqimlar qaytariladi. Sababini yozing.</string>
+    <string name="dl_m29_cancel_reason">Sabab</string>
+    <string name="dl_m29_cancel_failed">Bekor qilinmadi. Internetni tekshiring.</string>
+    <string name="dl_m29_pick_work">Smeta ishini tanlang</string>
+    <string name="dl_m29_search_work">Ish nomi yoki shifri</string>
+    <string name="dl_m29_no_materials">Bu ish bo\'yicha material topilmadi (smeta daraxti yuklanmagan bo\'lishi mumkin).</string>
+    <string name="dl_m29_outbox">M-29 %1$s: %2$d ta material</string>
+    <plurals name="dl_m29_materials">
+        <item quantity="one">%1$d ta material</item>
+        <item quantity="other">%1$d ta material</item>
+    </plurals>
+
+    <!-- Zayavka kuzatuvi -->
+    <string name="dl_zay_new">Yangi so\'rov</string>
+    <string name="dl_zay_search">Material yoki izoh</string>
+    <string name="dl_zay_empty">Bunday so\'rov yo\'q</string>
+    <string name="dl_zay_g_open">Ochiq</string>
+    <string name="dl_zay_g_delivering">Yo\'lda</string>
+    <string name="dl_zay_g_done">Yetkazilgan</string>
+    <string name="dl_zay_g_cancelled">Bekor</string>
+    <string name="dl_zay_overdue">Muddati o\'tgan: %1$s</string>
+    <string name="dl_zay_asked">So\'ralgan: %1$s %2$s</string>
+    <string name="dl_zay_delivered_total">Yetkazilgan: %1$s %2$s</string>
+    <string name="dl_zay_remaining">Qolgan: %1$s %2$s</string>
+    <string name="dl_zay_priority">Muhimlik: %1$s</string>
+    <string name="dl_zay_timeline">Holat yo\'li</string>
+    <string name="dl_zay_now">hozir</string>
+    <string name="dl_zay_passed">o\'tgan</string>
+    <string name="dl_zay_created">Yaratilgan: %1$s</string>
+    <string name="dl_zay_updated">Yangilangan: %1$s</string>
+
+    <!-- Naryad -->
+    <string name="dl_nar_title">Naryad</string>
+    <string name="dl_nar_search">Raqam, usta yoki brigada</string>
+    <string name="dl_nar_empty">Naryad yo\'q</string>
+    <string name="dl_nar_g_open">Ochiq</string>
+    <string name="dl_nar_s_given">Berilgan</string>
+    <string name="dl_nar_s_reported">Usta yubordi</string>
+    <string name="dl_nar_s_accepted">Qabul qilindi</string>
+    <string name="dl_nar_s_paid">Hisoblandi</string>
+    <string name="dl_nar_s_cancelled">Bekor qilindi</string>
+    <string name="dl_nar_queued">Yuborilmagan hisobotlar: %1$d</string>
+    <string name="dl_nar_paid_sum">Hisoblangan: %1$s so\'m (QQS siz)</string>
+    <string name="dl_nar_unpriced">Narxi kelishilmagan ishlar: %1$d</string>
+    <string name="dl_nar_cached">Aloqa yo\'q: oxirgi saqlangan nusxa ko\'rsatilmoqda.</string>
+    <string name="dl_nar_sent">Hisobot navbatga qo\'yildi. Aloqa bo\'lishi bilan yuboriladi.</string>
+    <string name="dl_nar_given">Berilgan: %1$s %2$s. Qoldi: %3$s</string>
+    <string name="dl_nar_reported">Yuborilgan: %1$s %2$s</string>
+    <string name="dl_nar_accepted">Prorab qabul qildi: %1$s %2$s</string>
+    <string name="dl_nar_price">Kelishilgan narx: %1$s so\'m / %2$s (QQS siz)</string>
+    <string name="dl_nar_no_price">Narx kelishilmagan</string>
+    <string name="dl_nar_did">Bajardim</string>
+    <string name="dl_nar_resend">Qayta yuborish</string>
+    <string name="dl_nar_photo">Foto dalil qo\'shish</string>
+    <string name="dl_nar_how_much">Qancha bajardingiz? (%1$s)</string>
+    <string name="dl_nar_others">Naryadda hali yuborilmagan %1$d ta ish bor.</string>
+    <string name="dl_nar_all_done">Hammasi tugadi - prorabga yuborish</string>
+    <string name="dl_nar_submit">Yuborish</string>
+    <string name="dl_nar_save">Saqlash, qolganlari keyin</string>
+    <string name="dl_nar_outbox">Naryad %1$s</string>
+    <plurals name="dl_nar_lines">
+        <item quantity="one">%1$d ta ish</item>
+        <item quantity="other">%1$d ta ish</item>
+    </plurals>
+
+    <!-- Hujjat aylanishi -->
+    <string name="dl_doc_title">Hujjat aylanishi</string>
+    <string name="dl_doc_t_inbox">Kiruvchi</string>
+    <string name="dl_doc_t_mine">Mening hujjatlarim</string>
+    <string name="dl_doc_t_letters">Xatlar</string>
+    <string name="dl_doc_waiting">Tasdiq kutmoqda</string>
+    <string name="dl_doc_waiting_none">Sizning navbatingizda hujjat yo\'q</string>
+    <string name="dl_doc_incoming_letters">Kiruvchi xatlar</string>
+    <string name="dl_doc_letters_none">Xat yo\'q</string>
+    <string name="dl_doc_chains_none">Hujjat yo\'q</string>
+    <string name="dl_doc_your_turn">Sizning navbatingiz</string>
+    <string name="dl_doc_late">Kechikkan</string>
+    <string name="dl_doc_due">Muddat: %1$s</string>
+    <string name="dl_doc_waiting_role">Kutilmoqda: %1$s</string>
+    <string name="dl_doc_c_running">Jarayonda</string>
+    <string name="dl_doc_c_approved">Tasdiqlangan</string>
+    <string name="dl_doc_c_rejected">Rad etilgan</string>
+    <string name="dl_doc_c_cancelled">Bekor qilingan</string>
+    <string name="dl_doc_c_returned">Qaytarilgan</string>
+    <string name="dl_doc_c_finished">Yakunlangan</string>
+    <string name="dl_doc_l_sent">Yuborilgan</string>
+    <string name="dl_doc_l_received">Olindi</string>
+    <string name="dl_doc_l_answered">Javob berilgan</string>
+    <string name="dl_doc_incoming">Kiruvchi</string>
+    <string name="dl_doc_outgoing">Chiquvchi</string>
+    <string name="dl_doc_number">Raqam: %1$s</string>
+    <string name="dl_doc_from">Kimdan: %1$s</string>
+    <string name="dl_doc_to">Kimga: %1$s</string>
+    <string name="dl_doc_answer_by">Javob muddati: %1$s</string>
+    <string name="dl_doc_receive">Xatni qabul qildim</string>
+    <string name="dl_doc_received_ok">Qabul qilingani belgilandi.</string>
+</resources>

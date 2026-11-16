@@ -3,7 +3,7 @@ name: ai-ishchilar
 # Fon AI ishchilari: rejalangan ishlarni navbatga qo'yadi (t2_ai_jadval_v1), AI xulosa va internet kuzatuvchi qadamlarini bajaradi.
 # Har chaqiruv — bitta HTTP so'rov (/api/ai-ishchi-bajar); javobda faqat sonlar. Limit/hamyon tekshiruvi serverda (aiHisobli); hamma ishchi sukut bo'yicha O'CHIQ,
 # shuning uchun yoqilgan ishchi yo'q bo'lsa bu workflow hech narsa sarflamaydi.
-# Yoqish: GitHub sir KUZATUV_KALIT (>= 24 belgi, bilim-kuzatuv bilan BIR XIL) + repo o'zgaruvchisi PROD_URL (masalan https://smeta-tizimi.pages.dev).
+# Yoqish: GitHub sir KUZATUV_KALIT (>= 24 belgi, bilim-kuzatuv bilan BIR XIL) + repo o'zgaruvchisi PROD_URL (masalan https://qurai.uz).
 # Cloudflare Pages sirlari: KUZATUV_KALIT (shu qiymat). Sozlanmasa ish jim o'tkazib yuboriladi.
 on:
   schedule:

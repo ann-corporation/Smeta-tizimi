@@ -2,7 +2,7 @@ name: bilim-kuzatuv
 
 # Boshqaruvchi agent: tasdiqlangan me'yor/qonun sahifalarini DAVRIY tekshiradi (har kuni). Sahifa o'zgarmagan bo'lsa token sarflanmaydi;
 # o'zgargan bo'lsa AI faqat bilim TAKLIFI tayyorlaydi — kuchga kirishi uchun Boshqaruv → AI markazi'da superadmin tasdig'i shart.
-# Yoqish: GitHub sir KUZATUV_KALIT (kamida 24 belgi) + repo o'zgaruvchisi PROD_URL (masalan https://smeta-tizimi.pages.dev);
+# Yoqish: GitHub sir KUZATUV_KALIT (kamida 24 belgi) + repo o'zgaruvchisi PROD_URL (masalan https://qurai.uz);
 # Cloudflare Pages sirlari: KUZATUV_KALIT (shu qiymat) va KUZATUV_ACTOR_ID (superadmin foydalanuvchi id). Sozlanmasa ish jim o'tkazib yuboriladi.
 on:
   schedule:

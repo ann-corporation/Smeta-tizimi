@@ -159,7 +159,7 @@ class ZayavkaViewModel @Inject constructor(
 }
 
 @Composable
-private fun statusLabel(code: String): String = stringResource(
+internal fun statusLabel(code: String): String = stringResource(
     when (code) {
         "submitted" -> R.string.zay_st_submitted
         "approved" -> R.string.zay_st_approved
@@ -174,7 +174,7 @@ private fun statusLabel(code: String): String = stringResource(
 )
 
 @Composable
-private fun priorityLabel(code: String): String = stringResource(
+internal fun priorityLabel(code: String): String = stringResource(
     when (code) { "past" -> R.string.zay_pr_low; "yuqori" -> R.string.zay_pr_high; else -> R.string.zay_pr_mid },
 )
 
@@ -246,22 +246,6 @@ fun ZayavkaScreen(onBack: () -> Unit, onOutbox: () -> Unit, vm: ZayavkaViewModel
                                 modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget),
                             ) { Text(stringResource(R.string.zay_send)) }
                             Text(stringResource(R.string.zay_offline_hint), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-                item { Text(stringResource(R.string.zay_mine), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(top = 8.dp)) }
-                if (ui.requests.isEmpty() && !ui.syncing) item { Text(stringResource(if (ui.result == SyncResult.Ok) R.string.zay_empty else R.string.zay_load_failed), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                items(ui.requests, key = { it.id }) { r ->
-                    WorkCard {
-                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                                Text(r.item, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface, maxLines = 2, modifier = Modifier.weight(1f))
-                                Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)) {
-                                    Text(statusLabel(r.status), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
-                                }
-                            }
-                            Text(formatQty(r.qty) + " " + r.unit.orEmpty() + if (r.delivered != null && r.delivered > 0) "  (" + stringResource(R.string.zay_delivered, formatQty(r.delivered)) + ")" else "", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-                            Text(names[r.obyektId].orEmpty() + (r.required?.let { "  -  " + stringResource(R.string.zay_need_by, uz.anncorp.smeta.core.data.formatIsoStamp(it)) } ?: ""), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }

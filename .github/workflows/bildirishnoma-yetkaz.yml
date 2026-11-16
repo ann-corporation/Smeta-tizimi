@@ -3,7 +3,7 @@ name: bildirishnoma-yetkaz
 # Hujjat aylanishi: muddat eslatmalari va tasdiq/xat bildirishnomalarini Telegram'ga yetkazish (har 15 daqiqada).
 # Eslatma yaratish va ilova ichidagi qo'ng'iroqcha bazada pg_cron bilan ishlaydi (migratsiya 20261203000500) — bu ish faqat
 # tashqi Telegram yuborishni bajaradi (bot tokeni bazaga yozilmaydi). Navbat bazada: qayta ishga tushsa ham xabar ikki marta ketmaydi.
-# Yoqish: GitHub sir BILDIRISHNOMA_CRON_KALIT (kamida 24 belgi) + repo o'zgaruvchisi PROD_URL (masalan https://smeta-tizimi.pages.dev);
+# Yoqish: GitHub sir BILDIRISHNOMA_CRON_KALIT (kamida 24 belgi) + repo o'zgaruvchisi PROD_URL (masalan https://qurai.uz);
 # Cloudflare Pages sirlari: BILDIRISHNOMA_CRON_KALIT (shu qiymat) va TELEGRAM_BOT_TOKEN (mavjud). Sozlanmasa ish jim o'tkazib yuboriladi.
 on:
   schedule:

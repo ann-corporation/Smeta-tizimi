@@ -106,7 +106,7 @@ class NotificationsViewModel @Inject constructor(private val today: TodayReposit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotificationsScreen(onBack: () -> Unit, onOpenApproval: (Long) -> Unit, vm: NotificationsViewModel = hiltViewModel()) {
+fun NotificationsScreen(onBack: () -> Unit, onOpenApproval: (Long) -> Unit, onOpenLetter: (Long) -> Unit = {}, vm: NotificationsViewModel = hiltViewModel()) {
     val ui by vm.state.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refresh() }
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
@@ -125,7 +125,7 @@ fun NotificationsScreen(onBack: () -> Unit, onOpenApproval: (Long) -> Unit, vm: 
                     }
                     if (ui.unread > 0) item { TextButton(onClick = { vm.markRead(ui.items.filter { !it.oqildi }.map { it.id }) }, modifier = Modifier.heightIn(min = TouchTarget)) { Text(stringResource(R.string.nt_mark_all)) } }
                     if (ui.shown.isEmpty()) item { CenterMessage(Icons.Filled.Notifications, stringResource(R.string.nt_empty), modifier = Modifier.padding(top = 24.dp)) }
-                    items(ui.shown, key = { it.id }) { n -> NotificationRow(n, onOpenApproval, vm::markRead) }
+                    items(ui.shown, key = { it.id }) { n -> NotificationRow(n, onOpenApproval, onOpenLetter, vm::markRead) }
                 }
             }
         }
@@ -152,10 +152,10 @@ private fun WaitingCard(waiting: List<ApprovalItem>, onOpen: (Long) -> Unit) {
 }
 
 @Composable
-private fun NotificationRow(n: NotificationItem, onOpenApproval: (Long) -> Unit, onMarkRead: (List<Long>) -> Unit) {
+private fun NotificationRow(n: NotificationItem, onOpenApproval: (Long) -> Unit, onOpenLetter: (Long) -> Unit, onMarkRead: (List<Long>) -> Unit) {
     WorkCard(modifier = Modifier.heightIn(min = TouchTarget), onClick = {
         onMarkRead(listOf(n.id).filter { !n.oqildi })
-        n.zanjirId?.let(onOpenApproval)
+        if (n.zanjirId != null) onOpenApproval(n.zanjirId) else n.xatId?.let(onOpenLetter)
     }) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(8.dp).clip(CircleShape).background(if (n.oqildi) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.primary))
@@ -166,7 +166,7 @@ private fun NotificationRow(n: NotificationItem, onOpenApproval: (Long) -> Unit,
                 )
                 n.yaratildi?.let { Text(uz.anncorp.smeta.core.data.formatIsoStamp(it), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
-            if (n.zanjirId != null) Icon(Icons.Filled.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (n.zanjirId != null || n.xatId != null) Icon(Icons.Filled.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
