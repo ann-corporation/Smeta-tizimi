@@ -124,11 +124,11 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const appendPending = useRef<typeof remoteAnchor.current>(null);
   const appendRetry = useRef<{
     anchor: NonNullable<typeof remoteAnchor.current>; etag: string; operationId: string;
-    delta: ReturnType<typeof ixchamXabarlar>; count: number; signature: string; stale?: boolean;
+    delta: ReturnType<typeof suhbatXabarlari>; count: number; signature: string; stale?: boolean;
   } | null>(null);
   const yangiServerSuhbat = useRef<{
     id: string; start: number; sending?: boolean; stale?: boolean;
-    first?: { title: string; messages: ReturnType<typeof ixchamXabarlar>; count: number; signature: string };
+    first?: { title: string; messages: ReturnType<typeof suhbatXabarlari>; count: number; signature: string };
   } | null>(null);
   const [saqlashQadami, setSaqlashQadami] = useState(0);
   const [outboxScope, setOutboxScope] = useState<string | null>(null);
