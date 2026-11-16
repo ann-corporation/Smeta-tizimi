@@ -97,7 +97,8 @@ fun QulfSettings(vm: QulfSettingsViewModel = hiltViewModel()) {
         Text(stringResource(if (bound) R.string.qulf_bio_bound else R.string.qulf_bio_unbound), style = MaterialTheme.typography.bodyMedium)
         if (activity != null && !BiometricGate.strongAvailable(activity)) Text(stringResource(R.string.qulf_bio_unavailable), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         else if (activity != null) {
-            if (!bound) Button(onClick = { run(R.string.qulf_bio_added) { c.registerDevice(activity, pt, android.os.Build.MODEL ?: "Android") } }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.qulf_bio_add)) }
+            if (!pinSet) Text(stringResource(R.string.qulf_bio_needs_pin), style = MaterialTheme.typography.bodySmall)
+            else if (!bound) Button(onClick = { run(R.string.qulf_bio_added) { c.registerDevice(activity, pt, android.os.Build.MODEL ?: "Android") } }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.qulf_bio_add)) }
             else OutlinedButton(onClick = { st?.devices?.firstOrNull { it.kind == "android" }?.let { d -> run(R.string.qulf_bio_removed) { c.removeDevice(d.id) } } }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.qulf_bio_remove)) }
         }
         msg?.let { Text(stringResource(it), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary) }

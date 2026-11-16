@@ -10,10 +10,10 @@ import { roleAuthority } from '../_shared/role-authority';
 import { qulfAmal, type Kontekst } from '../_shared/qulf-amal';
 import { QulfYoq, supabaseStore } from '../_shared/qulf-store';
 import { rpVaOrigin } from '../_shared/qulf-webauthn';
-import { tasdiqCookie, tasdiqOl } from '../_shared/qulf';
+import { qulfYoqilganmi, tasdiqCookie, tasdiqOl } from '../_shared/qulf';
 import { KANAL_HEADER } from '../_shared/qulf-darvoza';
 
-type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; QULF_RP_ID?: string; QULF_ORIGINS?: string };
+type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; QULF_RP_ID?: string; QULF_ORIGINS?: string; QULF_YOQILGAN?: string };
 const J = (body: unknown, status = 200, extra: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...extra } });
 const BODY_MAX = 32 * 1024;
@@ -26,7 +26,7 @@ async function ish(ctx: { request: Request; env: Env }, amal: string, b: Record<
   const kompaniyalar = (authority?.kompaniyalar ?? sess.kompaniyalar ?? []).map(a => a.kompaniya_id);
   const k: Kontekst = {
     store: supabaseStore(ctx.env), uid: uid as number, jti: sess.jti, iat: sess.exp - SESSIYA_MUDDAT_MS, kanal: ctx.request.headers.get(KANAL_HEADER) === 'mobil' ? 'mobil' : 'web',
-    kalit: ctx.env.SESSIYA_KALIT, hozir: Date.now(), ...rpVaOrigin(ctx.request.url, ctx.env), tasdiq: tasdiqOl(ctx.request), kompaniyalar,
+    kalit: ctx.env.SESSIYA_KALIT, ochiq: qulfYoqilganmi(ctx.env), hozir: Date.now(), ...rpVaOrigin(ctx.request.url, ctx.env), tasdiq: tasdiqOl(ctx.request), kompaniyalar,
     siyosatRuxsat: (kid) => authority?.rol === 'superadmin' || !!authority?.permissionsByCompany?.[kid]?.includes('control.company.write'),
   };
   try {

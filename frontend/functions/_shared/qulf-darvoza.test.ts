@@ -93,3 +93,16 @@ describe('qulfDarvoza', () => {
     expect((await qulfDarvoza(await sorov(), env, 'hujjat-aylanish', { amal: 'zanjir_qaror' }, so({})))!.status).toBe(403);
   });
 });
+
+describe('qulfDarvoza: global o\'chirgich va PINsiz kalit', () => {
+  it('QULF_YOQILGAN=0: step-up butunlay o\'chadi (default yoqiq)', async () => {
+    const off = { ...env, QULF_YOQILGAN: '0' };
+    expect(await qulfDarvoza(await sorov(), off, 'sb-yoz', { amal: 'bux_kassa_yoz_v1' }, so({}))).toBeNull();
+    expect((await qulfDarvoza(await sorov(), { ...env, QULF_YOQILGAN: '1' }, 'sb-yoz', { amal: 'bux_kassa_yoz_v1' }, so({})))!.status).toBe(403);
+  });
+  it('kalit bor, PIN yo\'q (eski Windows Hello): talab yo\'q -- pul amali PINsiz tasdiqni so\'ramaydi', async () => {
+    const st = xotiraStore();
+    st.kl.push({ id: 1, foydalanuvchi_id: 11, tur: 'webauthn', kredensial_id: 'cred-12345678', ochiq_kalit: 'x'.repeat(50), alg: -7, hisob: 0, transports: [], qurilma_nomi: 'Windows Hello', yaratildi: '', oxirgi_ishlatildi: null });
+    expect(await qulfDarvoza(await sorov(), env, 'sb-yoz', { amal: 'bux_kassa_yoz_v1' }, st)).toBeNull();
+  });
+});

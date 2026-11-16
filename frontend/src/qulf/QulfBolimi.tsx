@@ -4,8 +4,8 @@ import { Fingerprint, KeyRound, Smartphone, Trash2 } from 'lucide-react';
 import { Karta, INPUT_SINF, INPUT_STIL, Maydon, Nota, Qator, Skelet } from '../components/akkaunt/AkkauntUi';
 import { useKompaniya } from '../umumiy/kontekst/KompaniyaKontekst';
 import { t } from '../i18n/til';
-import { passkeyQosh, platformBiometrikBormi, qulfSoz, type QulfHolatJavob, type QulfJavob } from './api';
-import { BOSH_MAX_DAQ, BOSH_MIN_DAQ, PIN_MAX, PIN_MIN } from './mantiq';
+import { passkeyQosh, platformBiometrikBormi, qulfSoz, tauriMi, type QulfHolatJavob, type QulfJavob } from './api';
+import { BOSH_MAX_DAQ, BOSH_MIN_DAQ, PIN_MAX, PIN_MIN, biometrikIshlaydi } from './mantiq';
 import { useQulf } from './QulfProvider';
 
 const XATO: Record<string, string> = {
@@ -18,6 +18,7 @@ const XATO: Record<string, string> = {
   STEP_UP_KERAK: 'Avval PIN yoki biometrik bilan tasdiqlang.',
   QULF_YOQ: 'Xavfsizlik moduli hali yoqilmagan.',
   PIN_KALIT_BOSHQA:'PIN boshqa muhitda o\'rnatilgan. Qayta kirib, yangi PIN o\'rnating.',
+  PIN_AVVAL: 'Avval PIN o\'rnating: biometrik faqat PIN bilan birga ishlaydi.',
   BEKOR: 'Bekor qilindi',
 };
 const xabarOl = (r: QulfJavob) => (r.code && XATO[r.code] ? t(XATO[r.code]) : r.error ? t(r.error) : t('Amalni bajarib bo‘lmadi. Qayta urinib ko‘ring.'));
@@ -105,7 +106,9 @@ export function QulfBolimi() {
             <button type="button" className="fz-btn fz-btn--sm" aria-label={t('Qurilmani o‘chirish')} disabled={band} onClick={() => void ish('kalit_ochir', { id: q.id }, 'Qurilma o‘chirildi.')}><Trash2 size={14} aria-hidden="true" /></button>
           </div>
         ))}
-        {bio ? <div><button type="button" className="fz-btn" disabled={band} onClick={() => void qurilmaQosh()}><Fingerprint size={14} aria-hidden="true" /> {t('Shu qurilmani qo‘shish')}</button></div>
+        {!!h.kalit_pinsiz && <Nota tur="warn">{t('Biometrik PINsiz ishlamaydi. Avval PIN o\'rnating.')}</Nota>}
+        {!h.pin_bor ? <Nota tur="info">{t('Biometrik faqat PIN bilan birga ishlaydi. Avval yuqorida PIN o\'rnating.')}</Nota>
+          : bio && biometrikIshlaydi({ pinBor: true, webauthnKalit: true, rpId: h.rp_id, hostname: location.hostname, tauri: tauriMi(), webauthnMavjud: true }) ? <div><button type="button" className="fz-btn" disabled={band} onClick={() => void qurilmaQosh()}><Fingerprint size={14} aria-hidden="true" /> {t('Shu qurilmani qo‘shish')}</button></div>
           : <Nota tur="info">{t('Bu qurilma/brauzerda biometrik qo‘llab-quvvatlanmaydi. PIN dan foydalaning.')}</Nota>}
       </Karta>
 

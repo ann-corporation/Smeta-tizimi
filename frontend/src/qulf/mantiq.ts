@@ -14,13 +14,27 @@ export type QulfKirish = {
   yashirinBoshi: number | null; // ms: varaq yashirin bo'lgan payt
   hozir: number;
   daqiqa: number;             // sozlangan muddat (1..60)
+  sessiyaBoshi?: number | null; // ms: sessiya (kirish) boshlangan payt -- undan keyin SESSIYA_GRACE_MS ichida HECH QACHON qulflanmaydi
 };
+/** Kirishdan keyin shuncha vaqt qulflanmaydi (egasi 2026-11-16: kirgan zahoti qulflanib qoldi). */
+export const SESSIYA_GRACE_MS = 3 * 60_000;
+/** Server sessiya_iat bergan va u saqlangandan yangi bo'lsa -- bu yangi kirish: faollik 'hozir'ga qaytadi, eski qulf bayrog'i o'chadi. */
+export const yangiSessiyami = (iat: number | null | undefined, saqlangan: number): boolean => Number.isFinite(iat) && (iat as number) > saqlangan;
+
+export type BioKirish = { pinBor: boolean; webauthnKalit: boolean; rpId: string | null | undefined; hostname: string; tauri: boolean; webauthnMavjud: boolean };
+/** Biometrik tugma faqat shu yuzada ISHLAYDIGAN bo'lsa ko'rsatiladi: PIN zaxirasi bor, WebAuthn bor, Tauri qobig'i emas, rpId shu domenga mos. */
+export function biometrikIshlaydi(b: BioKirish): boolean {
+  if (!b.pinBor || !b.webauthnKalit || b.tauri || !b.webauthnMavjud || !b.rpId) return false;
+  const rp = b.rpId.toLowerCase(), h = b.hostname.toLowerCase();
+  return h === rp || h.endsWith('.' + rp);
+}
 
 export const muddatMs = (daq: number) => Math.min(BOSH_MAX_DAQ, Math.max(BOSH_MIN_DAQ, Math.round(Number(daq) || BOSH_STANDART_DAQ))) * 60_000;
 
 /** Qulflash kerakmi: harakatsiz muddat o'tdi YOKI varaq shuncha vaqt yashirin turdi (soat orqaga ketsa -- ehtiyot uchun qulflanmaydi, lekin yashirin-vaqt hisobi barqaror). */
 export function qulfKerakmi(s: QulfKirish): boolean {
   if (!s.yoqilgan) return false;
+  if (s.sessiyaBoshi != null && s.hozir - s.sessiyaBoshi >= 0 && s.hozir - s.sessiyaBoshi < SESSIYA_GRACE_MS) return false;
   const m = muddatMs(s.daqiqa);
   if (s.hozir - s.oxirgiFaol >= m) return true;
   return s.yashirinBoshi != null && s.hozir - s.yashirinBoshi >= m;

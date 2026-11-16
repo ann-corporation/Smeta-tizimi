@@ -6,17 +6,18 @@
 import { tekshir } from './auth';
 import { QulfYoq, supabaseStore } from './qulf-store';
 import type { QulfStore } from './qulf-amal';
-import { qabulUsullar, tasdiqOl, tasdiqTekshir } from './qulf';
+import { qabulUsullar, qulfYoqilganmi, tasdiqOl, tasdiqTekshir } from './qulf';
 import { stepUpKerak } from './write-command-policy';
 
 export const KANAL_HEADER = 'X-Qulf-Kanal';
-type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string };
+type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; QULF_YOQILGAN?: string };
 
 const rad = (status: number, code: string, extra: Record<string, unknown> = {}) => Response.json(
   { ok: false, code, error: code === 'STEP_UP_KERAK' ? 'Bu amal uchun PIN yoki biometrik tasdiq kerak.' : 'Xavfsizlik tekshiruvi vaqtincha mavjud emas. Qayta urinib ko\'ring.', ...extra },
   { status, headers: { 'Cache-Control': 'no-store' } });
 
 export async function qulfDarvoza(request: Request, env: Env, api: string, b: Record<string, unknown>, store?: QulfStore): Promise<Response | null> {
+  if (!qulfYoqilganmi(env)) return null; // global o'chirgich (QULF_YOQILGAN=0)
   if (!stepUpKerak(api, b)) return null;
   const sess = await tekshir(request.headers.get('Cookie'), env.SESSIYA_KALIT);
   const uid = sess?.foydalanuvchi_id;

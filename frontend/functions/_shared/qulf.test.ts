@@ -102,7 +102,7 @@ describe('siyosat', () => {
     expect(qabulUsullar('pin', { pin: true, kalit: true })).toEqual(['pin']);
     expect(qabulUsullar('pin', { pin: false, kalit: true })).toEqual([]);
     expect(qabulUsullar('biometric_or_pin', { pin: true, kalit: true })).toEqual(['pin', 'passkey', 'qurilma']);
-    expect(qabulUsullar('biometric_or_pin', { pin: false, kalit: true })).toEqual(['passkey', 'qurilma']);
+    expect(qabulUsullar('biometric_or_pin', { pin: false, kalit: true })).toEqual([]); // PINsiz qulf yo'q
   });
 });
 
