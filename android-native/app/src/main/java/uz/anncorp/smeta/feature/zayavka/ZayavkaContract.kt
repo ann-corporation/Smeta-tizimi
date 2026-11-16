@@ -71,6 +71,8 @@ fun requestsReadBody(companyId: Long): JsonObject = buildJsonObject {
 data class ZayavkaRow(
     val id: Long, val obyektId: Long, val item: String, val qty: Double?, val unit: String?, val status: String,
     val delivered: Double?, val required: String?, val priority: String?, val note: String?, val created: String?,
+    /** Server-side remaining quantity (null = the server did not say; never guessed as 0) and the last change stamp. Defaults keep older cached copies readable. */
+    val remaining: Double? = null, val updated: String? = null,
 )
 
 /** Status words of the web (ProcurementStatus + the old Uzbek ones) folded to the 9 canonical codes. */
@@ -87,5 +89,61 @@ fun parseRequests(rows: List<JsonObject>): List<ZayavkaRow> = rows.mapNotNull { 
         r["requested_qty"].num() ?: r["miqdor"].num(), r["unit"].str() ?: r["birlik"].str(), canonicalStatus(r["status"].str() ?: r["holat"].str()),
         r["delivered_qty"].num() ?: r["etkazilgan"].num(), r["required_date"].str() ?: r["sana_kerak"].str(), r["priority"].str() ?: r["prioritet"].str(),
         r["note"].str() ?: r["izoh"].str(), r["created_at"].str() ?: r["yaratilgan_vaqt"].str(),
+        r["remaining_qty"].num(), r["updated_at"].str(),
     )
+}
+
+// ---------- tracking: filter groups, status timeline, delivery progress ----------
+
+/** Filter chips of the tracking list. */
+enum class StatusGroup { ALL, OPEN, DELIVERING, DONE, CANCELLED }
+
+fun statusGroup(code: String): StatusGroup = when (code) {
+    "draft", "submitted", "approved", "procurement" -> StatusGroup.OPEN
+    "ordered", "partially_delivered" -> StatusGroup.DELIVERING
+    "delivered", "closed" -> StatusGroup.DONE
+    "cancelled" -> StatusGroup.CANCELLED
+    else -> StatusGroup.OPEN
+}
+
+/** Rows of a group per object / free text (name, note); text matches case-insensitively. */
+fun filterRequests(rows: List<ZayavkaRow>, group: StatusGroup, obyektId: Long?, query: String): List<ZayavkaRow> {
+    val q = query.trim()
+    return rows.filter { r ->
+        (group == StatusGroup.ALL || statusGroup(r.status) == group) && (obyektId == null || r.obyektId == obyektId) &&
+            (q.isEmpty() || r.item.contains(q, ignoreCase = true) || r.note.orEmpty().contains(q, ignoreCase = true))
+    }
+}
+
+fun groupCounts(rows: List<ZayavkaRow>): Map<StatusGroup, Int> =
+    StatusGroup.values().associateWith { g -> if (g == StatusGroup.ALL) rows.size else rows.count { statusGroup(it.status) == g } }
+
+/** The canonical route of a request (the server's ProcurementStatus order). `cancelled` is a side exit, not a step. */
+val STATUS_FLOW = listOf("draft", "submitted", "approved", "procurement", "ordered", "partially_delivered", "delivered", "closed")
+
+enum class StepState { DONE, CURRENT, TODO, CANCELLED }
+data class TimelineStep(val code: String, val state: StepState)
+
+/**
+ * Steps reached so far, the current one and what is still ahead. A cancelled request shows what was reached (we only know it was
+ * submitted) followed by the cancelled terminal step - the server keeps no per-step history, so nothing else is invented.
+ */
+fun timeline(status: String): List<TimelineStep> {
+    if (status == "cancelled") return listOf(TimelineStep("submitted", StepState.DONE), TimelineStep("cancelled", StepState.CANCELLED))
+    val at = STATUS_FLOW.indexOf(status).let { if (it < 0) 0 else it }
+    return STATUS_FLOW.mapIndexed { i, c -> TimelineStep(c, if (i < at) StepState.DONE else if (i == at) StepState.CURRENT else StepState.TODO) }
+}
+
+/** Delivered share 0..1 for the progress bar; null when the quantity is unknown or zero (no fake 0 %). */
+fun deliveredFraction(r: ZayavkaRow): Float? {
+    val q = r.qty ?: return null
+    if (q <= 0.0) return null
+    val d = r.delivered ?: return null
+    return (d / q).coerceIn(0.0, 1.0).toFloat()
+}
+
+/** Still open and past its required date. */
+fun isOverdue(r: ZayavkaRow, today: java.time.LocalDate): Boolean {
+    val due = r.required?.take(10)?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() } ?: return false
+    return statusGroup(r.status).let { it != StatusGroup.DONE && it != StatusGroup.CANCELLED } && due.isBefore(today)
 }

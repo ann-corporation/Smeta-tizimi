@@ -35,6 +35,8 @@ data class PhotoUi(
     val includeGps: Boolean = false,
     val row: QatorEntity? = null,
     val saving: Boolean = false,
+    /** The photo is evidence of a work-order (naryad) report: no estimate row is attached. */
+    val forNaryad: Boolean = false,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
@@ -44,10 +46,11 @@ class PhotoViewModel @Inject constructor(
     private val processor: PhotoProcessor, private val photos: PhotoRepository, private val ctx: WorkContext,
 ) : ViewModel() {
     val id: Long = checkNotNull(handle["id"])
+    private val naryadId: Long? = handle.get<Long>("naryad")?.takeIf { it > 0 }
     private val local = MutableStateFlow(PhotoUi())
     private val title = objects.observeOne(id)
 
-    val state: StateFlow<PhotoUi> = combine(local, title) { ui, o -> ui.copy(title = o?.nom.orEmpty()) }
+    val state: StateFlow<PhotoUi> = combine(local, title) { ui, o -> ui.copy(title = o?.nom.orEmpty(), forNaryad = naryadId != null) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PhotoUi())
 
     private val pickQuery = MutableStateFlow("")
@@ -80,7 +83,7 @@ class PhotoViewModel @Inject constructor(
         local.value = ui.copy(saving = true)
         viewModelScope.launch {
             val send = if (ui.includeGps) p else ProcessedPhoto(p.jpeg, p.width, p.height, p.sha256, null, null)
-            photos.enqueue(send, w.companyId, id, ui.title.ifBlank { "#$id" }, ui.row?.qatorId, ui.note)
+            photos.enqueue(send, w.companyId, id, ui.title.ifBlank { "#$id" }, if (naryadId != null) null else ui.row?.qatorId, ui.note, naryadId = naryadId)
             local.value = PhotoUi()
             onQueued()
         }

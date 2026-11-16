@@ -17,9 +17,9 @@ android {
         minSdk = 26
         targetSdk = 35
         // Tauri Android build: major*1e6+minor*1e3+patch (0.1.1 -> 1001). Start above it so a native release upgrades it in place.
-        versionCode = 2_000_004
+        versionCode = 2_000_005
         // Format must match the server's ilovaVersiya() regex: d{1,4}.d{1,4}.d{1,6}
-        versionName = "0.1.5"
+        versionName = "0.1.6"
         buildConfigField("String", "API_BASE_URL", "\"https://smeta-tizimi.pages.dev\"")
         resourceConfigurations += listOf("uz", "ru", "en")
     }

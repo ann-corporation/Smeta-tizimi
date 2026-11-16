@@ -214,7 +214,7 @@ private fun ReviewStage(ui: PhotoUi, vm: PhotoViewModel, onPickRow: () -> Unit, 
                 minLines = 2, maxLines = 4, modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(14.dp))
-            WorkCard(onClick = onPickRow) {
+            if (!ui.forNaryad) WorkCard(onClick = onPickRow) {
                 Row(Modifier.padding(14.dp).heightIn(min = 40.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(stringResource(R.string.p2_photo_row), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

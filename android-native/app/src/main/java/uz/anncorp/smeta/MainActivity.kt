@@ -120,7 +120,7 @@ private const val FAKT = "fakt/{id}"
 private const val DRAFT = "draft/{id}"
 private const val OUTBOX = "outbox"
 private const val APPROVAL = "approval/{id}"
-private const val PHOTO = "photo/{id}"
+private const val PHOTO = "photo/{id}?naryad={naryad}"
 private const val SIGNUP = "signup"
 private const val INVITE = "invite"
 private const val WEB = "web?path={path}&title={title}"
@@ -129,6 +129,10 @@ private const val PICK_PHOTO = "pick/photo"
 private const val JARVIS = "jarvis"
 private const val RAHBAR = "rahbar"
 private const val ZAYAVKA = "zayavka"
+private const val ZAYAVKA_NEW = "zayavka/new"
+private const val M29 = "m29"
+private const val NARYAD = "naryad"
+private const val HUJJAT = "hujjat?xat={xat}"
 private const val SMETA = "smeta/{id}"
 private const val F2LIST = "f2/{id}"
 private const val DOCS = "docs/{id}?f2={f2}"
@@ -168,7 +172,8 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
                 onOpenApproval = { nav.navigate("approval/$it") }, onOutbox = { nav.navigate(OUTBOX) },
                 onOpenWeb = { path, title -> nav.navigate("web?path=${Uri.encode(path)}&title=${Uri.encode(title)}") },
                 onPickFakt = { nav.navigate(PICK_FAKT) }, onPickPhoto = { nav.navigate(PICK_PHOTO) },
-                onJarvis = { nav.navigate(JARVIS) }, onRahbar = { nav.navigate(RAHBAR) }, onZayavka = { nav.navigate(ZAYAVKA) }, onInvite = { nav.navigate(PEOPLE_INVITE) }, onInvites = { nav.navigate(PEOPLE_INVITES) },
+                onJarvis = { nav.navigate(JARVIS) }, onRahbar = { nav.navigate(RAHBAR) }, onZayavka = { nav.navigate(ZAYAVKA) },
+                onModule = { t -> when (t) { uz.anncorp.smeta.core.data.NativeTarget.M29 -> nav.navigate(M29); uz.anncorp.smeta.core.data.NativeTarget.NARYAD -> nav.navigate(NARYAD); else -> nav.navigate("hujjat") } }, onInvite = { nav.navigate(PEOPLE_INVITE) }, onInvites = { nav.navigate(PEOPLE_INVITES) },
                 onNotifications = { nav.navigate(NOTIFICATIONS) },
             )
         }
@@ -181,7 +186,7 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
             DraftScreen(onBack = { nav.popBackStack() }, onOutbox = { nav.navigate(OUTBOX) }, onSaved = { nav.navigate(OUTBOX) { popUpTo(HOME) } })
         }
         composable(APPROVAL, idArg) { ApprovalDetailScreen(onBack = { nav.popBackStack() }) }
-        composable(PHOTO, idArg) {
+        composable(PHOTO, idArg + listOf(navArgument("naryad") { type = NavType.LongType; defaultValue = -1L })) {
             PhotoScreen(onBack = { nav.popBackStack() }, onQueued = { nav.navigate(OUTBOX) { popUpTo(PHOTO) { inclusive = true } } })
         }
         composable(WEB, listOf(navArgument("path") { type = NavType.StringType; defaultValue = "" }, navArgument("title") { type = NavType.StringType; defaultValue = "" })) { e ->
@@ -201,10 +206,14 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
             )
         }
         composable(DOCS, idArg + listOf(navArgument("f2") { type = NavType.BoolType; defaultValue = false })) { DocumentsScreen(onBack = { nav.popBackStack() }) }
-        composable(NOTIFICATIONS) { NotificationsScreen(onBack = { nav.popBackStack() }, onOpenApproval = { nav.navigate("approval/$it") }) }
+        composable(NOTIFICATIONS) { NotificationsScreen(onBack = { nav.popBackStack() }, onOpenApproval = { nav.navigate("approval/$it") }, onOpenLetter = { nav.navigate("hujjat?xat=$it") }) }
         composable(PEOPLE_INVITE) { CompanyInviteScreen(onBack = { nav.popBackStack() }) }
         composable(PEOPLE_INVITES) { InvitesScreen(onBack = { nav.popBackStack() }, onAccepted = { nav.navigate(HOME) { popUpTo(HOME) { inclusive = true } } }) }
-        composable(ZAYAVKA) { uz.anncorp.smeta.feature.zayavka.ZayavkaScreen(onBack = { nav.popBackStack() }, onOutbox = { nav.navigate(OUTBOX) }) }
+        composable(ZAYAVKA) { uz.anncorp.smeta.feature.zayavka.ZayavkaListScreen(onBack = { nav.popBackStack() }, onNew = { nav.navigate(ZAYAVKA_NEW) }, onOutbox = { nav.navigate(OUTBOX) }) }
+        composable(ZAYAVKA_NEW) { uz.anncorp.smeta.feature.zayavka.ZayavkaScreen(onBack = { nav.popBackStack() }, onOutbox = { nav.navigate(OUTBOX) }) }
+        composable(M29) { uz.anncorp.smeta.feature.m29.M29Screen(onBack = { nav.popBackStack() }, onOutbox = { nav.navigate(OUTBOX) }) }
+        composable(NARYAD) { uz.anncorp.smeta.feature.naryad.NaryadScreen(onBack = { nav.popBackStack() }, onOutbox = { nav.navigate(OUTBOX) }, onPhoto = { o, n -> nav.navigate("photo/$o?naryad=$n") }) }
+        composable(HUJJAT, listOf(navArgument("xat") { type = NavType.LongType; defaultValue = -1L })) { uz.anncorp.smeta.feature.hujjat.HujjatScreen(onBack = { nav.popBackStack() }, onOpenChain = { nav.navigate("approval/$it") }) }
         composable(OUTBOX) { OutboxScreen(onBack = { nav.popBackStack() }, onEditDraft = { nav.navigate("draft/$it") }) }
     }
 }
