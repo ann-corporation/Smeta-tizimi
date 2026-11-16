@@ -18,7 +18,7 @@ import uz.anncorp.smeta.R
 enum class ModuleKind { NATIVE, WEB }
 
 /** Native destinations the hub can jump to (the UI maps each to a tab or a route). */
-enum class NativeTarget { OBJECTS, FAKT, PHOTO, APPROVALS, TODAY, WAREHOUSE, JARVIS, RAHBAR, ZAYAVKA, M29, NARYAD, HUJJAT }
+enum class NativeTarget { OBJECTS, FAKT, PHOTO, APPROVALS, TODAY, WAREHOUSE, JARVIS, RAHBAR, ZAYAVKA, M29, NARYAD, HUJJAT, F2REESTR, NAKOP, QARZDOR, QABUL, RESURS }
 
 /**
  * One launcher entry. [anyOf] / [moduleCode] mirror the website gating (frontend/src/lib/reestr/sahifa.ts `ruxsat`/`modul`,
@@ -59,12 +59,15 @@ object ModuleCatalog {
         ModuleDef("bugun", R.string.mod_today, R.string.mod_today_d, ModuleKind.NATIVE, listOf("company.read"), target = NativeTarget.TODAY),
         ModuleDef("ombor", R.string.mod_warehouse, R.string.mod_warehouse_d, ModuleKind.NATIVE, listOf(BOSS, "warehouse.read"), "module.logistika", NativeTarget.WAREHOUSE, enabled = Features.NATIVE_WAREHOUSE),
         ModuleDef("jarvis", R.string.mod_jarvis, R.string.mod_jarvis_d, ModuleKind.NATIVE, listOf("company.read"), target = NativeTarget.JARVIS, enabled = Features.JARVIS),
-        ModuleDef("rahbar", R.string.mod_rahbar, R.string.mod_rahbar_d, ModuleKind.NATIVE, listOf(BOSS, "financial.write"), target = NativeTarget.RAHBAR),
+        ModuleDef("rahbar", R.string.mod_rahbar, R.string.mod_rahbar_d, ModuleKind.NATIVE, listOf(BOSS, "financial.write"), target = NativeTarget.RAHBAR, webPath = "/admin/dashboard"),
+        ModuleDef("qarzdor", R.string.mod_qarzdor, R.string.mod_qarzdor_d, ModuleKind.NATIVE, listOf(BOSS, "financial.write"), target = NativeTarget.QARZDOR, webPath = "/admin/qarzdorlik"),
+        ModuleDef("qabul", R.string.mod_qabul, R.string.mod_qabul_d, ModuleKind.NATIVE, listOf("fakt.write"), target = NativeTarget.QABUL),
+        ModuleDef("resurs", R.string.mod_resurs, R.string.mod_resurs_d, ModuleKind.NATIVE, listOf(BOSS, "smeta.write", "warehouse.read"), target = NativeTarget.RESURS),
         ModuleDef("smeta", R.string.mod_estimate, R.string.mod_estimate_d, ModuleKind.WEB, listOf(BOSS, "smeta.write"), webPath = "/admin/smeta-studio"),
         ModuleDef("narx", R.string.mod_prices, R.string.mod_prices_d, ModuleKind.WEB, listOf(BOSS, "narx.write"), webPath = "/admin/narxlar"),
         ModuleDef("f2", R.string.mod_f2, R.string.mod_f2_d, ModuleKind.WEB, listOf("f2.prepare"), webPath = "/admin/f2-tayyorlash"),
-        ModuleDef("f2reestr", R.string.mod_f2_registry, R.string.mod_f2_registry_d, ModuleKind.WEB, listOf("f2.read"), webPath = "/admin/f2-reestr"),
-        ModuleDef("nakop", R.string.mod_accum, R.string.mod_accum_d, ModuleKind.WEB, listOf("f2.read"), webPath = "/admin/nakopitelniy"),
+        ModuleDef("f2reestr", R.string.mod_f2_registry, R.string.mod_f2_registry_d, ModuleKind.NATIVE, listOf("f2.read"), target = NativeTarget.F2REESTR, webPath = "/admin/f2-reestr"),
+        ModuleDef("nakop", R.string.mod_accum, R.string.mod_accum_d, ModuleKind.NATIVE, listOf("f2.read"), target = NativeTarget.NAKOP, webPath = "/admin/nakopitelniy"),
         ModuleDef("moliya", R.string.mod_finance, R.string.mod_finance_d, ModuleKind.WEB, listOf(BOSS, "financial.write"), "module.moliya", webPath = "/admin/moliya"),
         ModuleDef("buxgalteriya", R.string.mod_accounting, R.string.mod_accounting_d, ModuleKind.WEB, listOf(BOSS, "accounting.write"), "module.moliya", webPath = "/admin/buxgalteriya"),
         ModuleDef("hujjat", R.string.mod_documents, R.string.mod_documents_d, ModuleKind.NATIVE, listOf(BOSS, "project.read", "document.write"), "module.hujjat", NativeTarget.HUJJAT, webPath = "/admin/hujjat-aylanish"),
@@ -75,7 +78,6 @@ object ModuleCatalog {
         ModuleDef("logistika", R.string.mod_logistics, R.string.mod_logistics_d, ModuleKind.WEB, listOf(BOSS, "project.write", "object.write", "warehouse.read", "procurement.read", "logistics.read"), "module.logistika", webPath = "/admin/logistika"),
         ModuleDef("hr", R.string.mod_hr, R.string.mod_hr_d, ModuleKind.WEB, listOf(BOSS, "project.write", "object.write", "hr.read", "machinery.read", "machinery.log"), "module.hr", webPath = "/admin/erp"),
         ModuleDef("sotuv", R.string.mod_sales, R.string.mod_sales_d, ModuleKind.WEB, listOf("sales.read"), "module.sotuv", webPath = "/admin/sotuv"),
-        ModuleDef("hisobot", R.string.mod_reports, R.string.mod_reports_d, ModuleKind.WEB, listOf(BOSS, "financial.write"), webPath = "/admin/dashboard"),
         ModuleDef("kompaniya", R.string.mod_company, R.string.mod_company_d, ModuleKind.WEB, listOf(BOSS, "company.member.manage", "company.profile.update"), webPath = "/admin/kompaniya"),
     )
 

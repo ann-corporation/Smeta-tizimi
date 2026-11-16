@@ -21,7 +21,14 @@ import uz.anncorp.smeta.core.db.ObyektEntity
 import java.math.BigDecimal
 import javax.inject.Inject
 
+/** Voice / typed command state: recording, waiting for the server, the preview card to confirm, or a short message. */
+data class CmdUi(val recording: Boolean = false, val working: Boolean = false, val preview: CommandPreview? = null, val message: CmdMessage? = null)
+enum class CmdMessage { NO_MIC, TOO_SHORT, OFFLINE, FORBIDDEN, NOT_UNDERSTOOD, UNAVAILABLE, FAILED }
+
 data class OmborUi(
+    val cmd: CmdUi = CmdUi(),
+    /** True when the balance list is computed from the movement history (the server stock table is empty). */
+    val computedBalance: Boolean = false,
     val access: OmborAccess = OmborAccess.None,
     val scope: OmborScope = OmborScope.AllObjects,
     val query: String = "",
@@ -35,6 +42,8 @@ data class OmborUi(
     val result: SyncResult? = null,
     val updatedAt: Long? = null,
     val noCompany: Boolean = false,
+    /** Every cached movement (kirim + chiqim) of the company; the screen filters it per tab / material. */
+    val moves: List<OmborMove> = emptyList(),
 ) {
     val objectNames: Map<Long, String> get() = objects.associate { it.id to it.nom }
     val scopes: List<OmborScope>
@@ -44,8 +53,10 @@ data class OmborUi(
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class OmborViewModel @Inject constructor(
-    private val repo: OmborRepository, private val objects: ObjectsRepository, private val ctx: WorkContext,
+    private val repo: OmborRepository, private val objects: ObjectsRepository, private val ctx: WorkContext, private val history: OmborHistoryRepository,
+    private val commands: OmborCommandApi, private val recorder: AudioRecorder,
 ) : ViewModel() {
+    private val cmd = MutableStateFlow(CmdUi())
     private val query = MutableStateFlow("")
     private val scope = MutableStateFlow<OmborScope>(OmborScope.AllObjects)
     private data class Sync(val syncing: Boolean = true, val result: SyncResult? = null)
@@ -53,7 +64,7 @@ class OmborViewModel @Inject constructor(
 
     private val company = ctx.current
 
-    private data class Data(val rows: List<StockRow>, val wh: List<Warehouse>, val objs: List<ObyektEntity>, val central: List<StockRow>, val ts: Long?)
+    private data class Data(val rows: List<StockRow>, val wh: List<Warehouse>, val objs: List<ObyektEntity>, val central: List<StockRow>, val ts: Long?, val moves: List<OmborMove>)
 
     private val central: Flow<List<StockRow>> = combine(company, scope) { w, s -> w to s }.flatMapLatest { (w, s) ->
         if (w != null && s is OmborScope.Central) repo.centralStock(w.companyId, s.id) else flowOf(emptyList())
@@ -64,22 +75,64 @@ class OmborViewModel @Inject constructor(
         company.flatMapLatest { w -> if (w == null) flowOf(emptyList()) else objects.observe(w.companyId) },
         central,
         company.flatMapLatest { w -> if (w == null) flowOf(null) else repo.updated(w.companyId) },
-    ) { a, b, c, d, e -> Data(a, b, c, d, e) }
+    ) { a, b, c, d, e -> Data(a, b, c, d, e, emptyList()) }.combine(company.flatMapLatest { w -> if (w == null) flowOf(emptyList<OmborMove>()) else history.observe(w.companyId) }) { d, f -> d.copy(moves = f) }
 
     val state: StateFlow<OmborUi> = combine(data, query, scope, sync, company) { d, q, s, sy, w ->
-        val base = if (s is OmborScope.Central) d.central else d.rows
+        val computed = s !is OmborScope.Central && d.rows.isEmpty() && d.moves.isNotEmpty()
+        val base = if (s is OmborScope.Central) d.central else if (computed) balanceFromMoves(d.moves) else d.rows
         OmborUi(
             access = OmborAccess.forRole(w?.rol), scope = s, query = q,
             rows = filterStock(base, s, q), scopeRows = filterStock(base, s, ""), allObjectRows = d.rows,
-            objects = d.objs, warehouses = d.wh, syncing = sy.syncing, result = sy.result, updatedAt = d.ts, noCompany = w == null,
+            objects = d.objs, warehouses = d.wh, syncing = sy.syncing, result = sy.result, updatedAt = d.ts, noCompany = w == null, moves = d.moves, computedBalance = computed,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), OmborUi())
+    }.combine(cmd) { s, c -> s.copy(cmd = c) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), OmborUi())
 
     init {
         viewModelScope.launch { company.collect { if (it != null) refresh() } }
     }
 
     fun setQuery(q: String) { query.value = q }
+
+    private fun lang(): String = if (java.util.Locale.getDefault().language == "ru") "ru" else "uz"
+
+    /** Press: start the microphone. False = not allowed / not available (the screen asks for permission). */
+    fun startRecording(): Boolean {
+        val ok = recorder.start()
+        cmd.value = if (ok) CmdUi(recording = true) else CmdUi(message = CmdMessage.NO_MIC)
+        return ok
+    }
+
+    /** Release: stop and send the recording; the server understands it and answers with a preview. */
+    fun stopRecording() {
+        val audio = recorder.stop()
+        val w = ctx.current.value
+        if (audio == null || w == null) { cmd.value = CmdUi(message = CmdMessage.TOO_SHORT); return }
+        run(w.companyId) { commands.audio(it, audio, lang()) }
+    }
+
+    fun cancelRecording() { recorder.cancel(); cmd.value = CmdUi() }
+
+    fun sendCommand(text: String) {
+        val w = ctx.current.value ?: return
+        if (text.isBlank()) return
+        run(w.companyId) { commands.text(it, text, lang()) }
+    }
+
+    private fun run(companyId: Long, call: suspend (Long) -> CommandOutcome) {
+        cmd.value = CmdUi(working = true)
+        viewModelScope.launch {
+            cmd.value = when (val o = call(companyId)) {
+                is CommandOutcome.Preview -> CmdUi(preview = o.preview)
+                CommandOutcome.Offline -> CmdUi(message = CmdMessage.OFFLINE)
+                CommandOutcome.Forbidden -> CmdUi(message = CmdMessage.FORBIDDEN)
+                CommandOutcome.NotUnderstood -> CmdUi(message = CmdMessage.NOT_UNDERSTOOD)
+                CommandOutcome.Unavailable -> CmdUi(message = CmdMessage.UNAVAILABLE)
+                is CommandOutcome.Failed -> CmdUi(message = CmdMessage.FAILED)
+            }
+        }
+    }
+
+    fun dismissCommand() { cmd.value = CmdUi() }
 
     fun setScope(s: OmborScope) { scope.value = s; if (s is OmborScope.Central) refresh() }
 
@@ -91,6 +144,7 @@ class OmborViewModel @Inject constructor(
             val objectsDone = objects.refresh(w.companyId)
             val r = repo.refresh(w.companyId)
             val c = if (s is OmborScope.Central) repo.refreshCentral(w.companyId, s.id) else SyncResult.Ok
+            launch { history.refresh(w.companyId) }
             sync.value = Sync(false, listOf(r, c, objectsDone).firstOrNull { it != SyncResult.Ok } ?: SyncResult.Ok)
         }
     }
