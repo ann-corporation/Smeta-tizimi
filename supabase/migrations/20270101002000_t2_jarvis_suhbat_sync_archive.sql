@@ -101,7 +101,7 @@ grant select, insert on public.t2_jarvis_suhbat_create_receipt to service_role;
 create table public.t2_jarvis_suhbat_append_receipt (
   suhbat_id bigint not null references public.t2_jarvis_suhbat(id) on delete cascade,
   operation_id uuid not null,
-  fingerprint bytea not null,
+  fingerprint text not null check (fingerprint ~ '^[a-f0-9]{64}$'),
   etag text not null,
   yozildi timestamptz not null default clock_timestamp(),
   primary key (suhbat_id, operation_id)
@@ -123,7 +123,7 @@ declare
   messages jsonb;
   receipt public.t2_jarvis_suhbat_create_receipt;
   append_receipt public.t2_jarvis_suhbat_append_receipt;
-  request_fingerprint bytea;
+  request_fingerprint text;
 begin
   if p_actor_id is null or p_actor_id < 1 or p_kompaniya_id is null or p_kompaniya_id < 1
      or coalesce(p_klient_id,'') !~ '^[A-Za-z0-9_.-]{1,40}$'
@@ -197,7 +197,7 @@ begin
     return jsonb_build_object('ok', false, 'code', 'SUHBAT_NOT_FOUND');
   end if;
   if p_operation_id is not null then
-    request_fingerprint := sha256(convert_to(jsonb_build_array(p_etag, messages)::text, 'UTF8'));
+    request_fingerprint := encode(sha256(convert_to(jsonb_build_array(p_etag, messages)::text, 'UTF8')), 'hex');
     select * into append_receipt from public.t2_jarvis_suhbat_append_receipt
     where suhbat_id = current_row.id and operation_id = p_operation_id;
     if found then
