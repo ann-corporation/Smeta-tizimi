@@ -44,6 +44,9 @@ const PUL_RUXSAT: Record<string, string> = {
   'lib/construction-document-control/calculation.ts': 'alohida hujjat-nazorat moduli (o\'z EPS yaxlitlashi), smeta puli emas',
   'lib/park-document-control/calculation.ts': 'alohida hujjat-nazorat moduli (o\'z EPS yaxlitlashi), smeta puli emas',
   'test02/Graf2D.tsx': 'grafik masshtabi (zoom 1,12), pul emas',
+  'lib/smeta-ai/moslash-eval.ts': 'baholash hisoboti: millisekund va o\'rtacha nomzod soni yaxlitlanadi (vaqt/son), pul emas',
+  'lib/smeta-ai/norm-moslash.ts': 'ish vaqtini (performance.now, ms) 2 xonaga yaxlitlash, pul emas',
+  'lib/smeta-ai/worker.ts': 'ish vaqtini (performance.now, ms) 2 xonaga yaxlitlash, pul emas',
 };
 const PUL_QOLIPLAR: RegExp[] = [
   /Math\.round\([^;]*\*\s*100\)\s*\/\s*100/, // Math.round(x * 100) / 100
