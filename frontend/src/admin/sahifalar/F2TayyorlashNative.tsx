@@ -56,7 +56,8 @@ import { dublikatTekshiruv, pereraschetBelgisi } from '../../lib/f2-dublikat/tek
 import { shifrKorinish } from '../../lib/f2-resurs-guruh';
 import { F2ResursVedomosti } from './F2ResursVedomosti';
 import { mazmunXeshi, tokenBilan } from '../../api/t2-token';
-import { f2HujjatKaliti, hujjatDizayniniYukla } from '../../api/f2-hujjat-kontekst';
+import { f2HujjatKaliti, f2HujjatKonteksti } from '../../api/f2-hujjat-kontekst';
+import { hujjatYarat as hujjatYaratYuklab } from '../../api/hujjat-yarat';
 import { shartnomaLiniyaOl } from '../../api/t2-shartnoma-liniya';
 import { imzoNomlariTomonlardan } from '../../lib/shartnoma-liniya';
 import type { ImzoNomlar } from '../../lib/hujjat-yozuvchi';
@@ -859,6 +860,16 @@ export function F2TayyorlashNative() {
     if (!validId || !(tayyor || eskiBloklar.length > 0)) return;
     const object = obyektlar.find((item) => item.id === obyektId);
     if (!object) { toast('Obyekt topilmadi.', 'danger'); return; }
+    // YAGONA hujjat dvigateli (egasi 2026-11-17): saqlangan va qulflangan (topshirilgan/tasdiqlangan) akt Ф-2 si SERVERDAN so'raladi —
+    // F2 tarixi, F2 reestr/paket va mobil ilova bilan aynan bir shablon, dizayn va imzo. Mijoz quruvchisi faqat ekrandagi
+    // SAQLANMAGAN qoralama uchun qoladi (server uni bilmaydi).
+    if (aktKorish && akt && joriy?.id) {
+      const r = await hujjatYaratYuklab({ kompaniyaId: joriy.id, obyektId, tur: 'f2', parametrlar: { akt_id: akt.id } });
+      if (!r.ok) { toast(r.xabar, 'danger', undefined, 9000); return; }
+      if (korish) korinish.ochish(r.bytes, r.faylNomi); else downloadBlob(r.bytes, r.faylNomi);
+      if (r.bepulTakror) toast('Bu hujjat avval to‘langan — qayta yuklash bepul', 'ok'); else if (r.sarflandi) toast(`${r.sarflandi} token`, 'ok');
+      return;
+    }
     // Eski F2 bloklari o'z hujjat podvali bilan yoziladi: podval o'qilmasa jim smeta podvaliga o'tilmaydi.
     if (eskiBloklar.length > 0 && aktPodval.holat !== 'tayyor') { toast(t('Hujjat podvallari o‘qilmadi — Excel tuzilmadi. Qayta urinib ko‘ring.'), 'danger'); return; }
     try {
@@ -866,12 +877,12 @@ export function F2TayyorlashNative() {
       const stavkaXom = ndsFoiz.trim() === '' ? NDS_SUKUT_FOIZ : Number(ndsFoiz.replace(',', '.'));
       const stavka = Number.isFinite(stavkaXom) ? stavkaXom : NDS_SUKUT_FOIZ;
       // Kompaniya «Hujjat dizayni» (qator balandligi, shrift, Тип …) — server qiymati hujjatdan oldin qo'llanadi.
-      const [nk] = await Promise.all([t2ObyektNakrutka(obyektId).catch(() => null), hujjatDizayniniYukla(joriy?.id)]);
+      const [nk, kont] = await Promise.all([t2ObyektNakrutka(obyektId).catch(() => null), joriy?.id ? f2HujjatKonteksti(joriy.id, obyektId).catch(() => null) : Promise.resolve(null)]); // kontekst: dizayn (yagona manba) + kanonik imzo
       const podval = await obyektPodvali(joriy?.id, obyektId, nk?.ok ? nk.shartnoma_id : null);
       // Qo'lda kiritilgan imzo (panel) — shartnomadagidan ustun; bo'sh maydon — shartnomadagi qoladi.
       const qolda = Object.fromEntries(Object.entries(tomonlar).filter(([, x]) => typeof x === 'string' && x.trim())) as ImzoNomlar;
       const h = f2Hujjat(bolimlar, qatorlar, {
-        obyektNom: object.nom, davr: oy, raqam, imzo: { ...avto.imzo, ...qolda }, shartnoma: avto.shartnoma,
+        obyektNom: object.nom, davr: oy, raqam, imzo: { ...avto.imzo, ...(kont?.imzo ?? {}), ...qolda }, shartnoma: kont?.shartnoma ?? avto.shartnoma,
         ndsFoiz: stavka,
         nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval, nkManba: nk?.ok ? nk.nk_manba ?? null : null, rows,
         // Svod yaxlit bo'lim qatorlari ustamasiz (imzolangan hujjat/server bilan bir xil).

@@ -8,7 +8,7 @@ import { obyektPodvaliOqi, ustamaKontekstXatosi } from './t2-nakrutka-podval';
 import { obyektImzoNomlari, shartnomaImzoNomlari } from '../lib/obyekt-imzochi';
 import { obyektImzochilarOl } from './obyekt-imzochi';
 import { kompaniyaSozlamaOl, type KompaniyaSozlama } from './kompaniya-sozlama';
-import { dizaynTozala, hujjatDizayniniSaqla, type ImzoNomlar } from '../lib/hujjat-yozuvchi';
+import { dizaynTozala, hujjatDizayniniOrnat, hujjatDizayniniSaqla, type ImzoNomlar } from '../lib/hujjat-yozuvchi';
 
 /**
  * Kompaniya «Hujjat dizayni» (`hujjat.dizayn._uslub`) → hujjat yozuvchining brauzer nusxasi (egasi 2026-11-06:
@@ -16,9 +16,19 @@ import { dizaynTozala, hujjatDizayniniSaqla, type ImzoNomlar } from '../lib/hujj
  * boshqa qurilmada/sessiyada F2 sukut dizayn bilan chiqardi. Endi har hujjat konteksti o'qilganda server qiymati qo'llanadi.
  */
 export function kompaniyaDizayniniQoy(soz: Pick<KompaniyaSozlama, 'sozlamalar'> | null | undefined): void {
-  const sv = soz?.sozlamalar['hujjat.dizayn']?.qiymat;
+  if (!soz) return; // server o'qilmadi — joriy nusxa qoladi (jim sukutga tushilmaydi)
+  const sv = soz.sozlamalar['hujjat.dizayn']?.qiymat;
   const u = sv && typeof sv === 'object' ? (sv as Record<string, unknown>)._uslub : null;
-  if (u && typeof u === 'object') hujjatDizayniniSaqla(dizaynTozala(u));
+  if (u && typeof u === 'object') {
+    const d = dizaynTozala(u);
+    hujjatDizayniniSaqla(d);   // brauzer: keyingi generatorlar localStorage dan o'qiydi
+    hujjatDizayniniOrnat(d);   // Worker (localStorage yo'q): shu so'rov uchun modul holati — server dvigateli ham kompaniya dizaynini qo'llaydi
+  } else {
+    // Kompaniya dizayni serverda YO'Q: yagona manba — sukut. Qurilmadagi eski mahalliy nusxa (boshqa oyna/qurilmada
+    // sinalgan) hujjat ko'rinishini farqlamasin: web, paket va mobil bir xil chiqaradi.
+    hujjatDizayniniSaqla(null);
+    hujjatDizayniniOrnat(null);
+  }
 }
 
 /** Faqat dizaynni sinxronlash (kontekstsiz eksport yo'llari uchun, masalan F2 tayyorlash). Xato — jim (joriy nusxa qoladi). */
