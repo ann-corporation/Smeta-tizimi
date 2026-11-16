@@ -1,4 +1,4 @@
-﻿-- ROLLBACK: T2-OMBOR-TAYYOR v1. Yozuvlar (ombor_* manbali t2_sklad_harakat qatorlari) o'chirilmaydi — jurnal append-only;
+-- ROLLBACK: T2-OMBOR-TAYYOR v1. Yozuvlar (ombor_* manbali t2_sklad_harakat qatorlari) o'chirilmaydi — jurnal append-only;
 -- ular qoldiq ko'rinishidan chiqib ketmasligi uchun avval ularni teskari yozuvlar bilan yoping yoki alohida egasi qarori bilan o'chiring.
 CREATE OR REPLACE VIEW public.t2_sklad_ombor_qoldiq_v1 AS
  SELECT h.kompaniya_id, h.c11_sklad_id AS sklad_id, s.nomi AS sklad_nomi, h.nomi AS material_nomi, h.birligi,
