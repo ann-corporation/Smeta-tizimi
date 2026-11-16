@@ -127,7 +127,9 @@ class JarvisViewModel @Inject constructor(private val repo: JarvisRepository, pr
     private var restored = false
     private var generation = 0L
     private var workplace = ctx.current.value
-    private data class PendingWrite(val cursor: ChatCursor, val title: String?, val turns: List<ChatMsg>)
+    private data class PendingWrite(
+        val cursor: ChatCursor, val title: String?, val turns: List<ChatMsg>, val operationId: String?,
+    )
     private var pending: PendingWrite? = null
 
     private fun companyId() = ctx.current.value?.companyId
@@ -174,14 +176,17 @@ class JarvisViewModel @Inject constructor(private val repo: JarvisRepository, pr
             _ui.update { it.copy(bubbles = it.bubbles + reply) }
             if (cid == null) { _ui.update { it.copy(busy = false) }; return@launch }
             val turns = toMessages(listOf(Bubble.Mine(q), reply))
-            val write = PendingWrite(target, if (target.etag == null) JarvisRepository.chatTitle(turns) else null, turns)
+            val write = PendingWrite(
+                target, if (target.etag == null) JarvisRepository.chatTitle(turns) else null, turns,
+                if (target.etag != null) UUID.randomUUID().toString() else null,
+            )
             pending = write
             save(cid, epoch, write)
         }
     }
 
     private suspend fun save(cid: Long, epoch: Long, write: PendingWrite) {
-        val result = repo.writeMessages(cid, write.cursor, write.title, write.turns)
+        val result = repo.writeMessages(cid, write.cursor, write.title, write.turns, write.operationId)
         if (!current(epoch, cid)) return
         val issue = when (result) {
             is ChatWrite.Saved -> {

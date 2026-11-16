@@ -117,6 +117,10 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     id: string; etag: string | null; count: number; base: Array<{ r: 'user' | 'ai'; m: string }>;
   } | null>(null);
   const appendPending = useRef<typeof remoteAnchor.current>(null);
+  const appendRetry = useRef<{
+    anchor: NonNullable<typeof remoteAnchor.current>; etag: string; operationId: string;
+    delta: ReturnType<typeof ixchamXabarlar>; count: number; signature: string; stale?: boolean;
+  } | null>(null);
   const yangiServerSuhbat = useRef<{
     id: string; start: number; sending?: boolean; stale?: boolean;
     first?: { title: string; messages: ReturnType<typeof ixchamXabarlar>; count: number; signature: string };
@@ -134,13 +138,14 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const [tahrirBand, setTahrirBand] = useState(false);
   const suhbatToxtat = () => {
     remoteAnchor.current = null;
+    appendRetry.current = null;
     yangiServerSuhbat.current = null;
     setSuhbatTahriri(null);
     setYuklanayotgan(null); yuklashNomer.current++; suhbatAvlod.current++; gen.current = `${scope}|${suhbatAvlod.current}`;
     abort.current?.abort(); busy.current = false; kutish.current = null; davomRef.current = null;
     setBand(false); setMatn(''); setSaqlashHolati('idle');
   };
-  useEffect(() => { setYuklanayotgan(null); setTarixEga(tarixKalit); kutish.current = null; const tiklangan = tarixKalit ? tarixOqi(tarixKalit) : []; yuklanganImzo.current = xabarImzo(tiklangan); remoteAnchor.current = null; qisqartmaDan.current = null; setXabarlar(tiklangan); setMatn(''); setBand(false); busy.current = false; davomRef.current = null; abort.current?.abort();
+  useEffect(() => { setYuklanayotgan(null); setTarixEga(tarixKalit); kutish.current = null; const tiklangan = tarixKalit ? tarixOqi(tarixKalit) : []; yuklanganImzo.current = xabarImzo(tiklangan); remoteAnchor.current = null; appendRetry.current = null; qisqartmaDan.current = null; setXabarlar(tiklangan); setMatn(''); setBand(false); busy.current = false; davomRef.current = null; abort.current?.abort();
     return () => { abort.current?.abort(); };
   }, [scope, tarixKalit]);
   useEffect(() => { if (tarixKalit && tarixEga === tarixKalit) {
@@ -205,14 +210,16 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
       if (kompaniyaId == null) return;
       const avlod = gen.current;
       const stillCurrent = () => gen.current === avlod && remoteAnchor.current === anchor;
-      const delta = ixchamXabarlar(xabarlar.slice(anchor.count));
-      if (!delta.length || delta.length > 12) { setSaqlashHolati('local'); return; }
+      const retry = appendRetry.current?.anchor === anchor ? appendRetry.current : null;
+      const until = Math.min(xabarlar.length, anchor.count + 12);
+      const delta = ixchamXabarlar(xabarlar.slice(anchor.count, until));
+      if (retry?.stale || (!retry && !delta.length)) { setSaqlashHolati('local'); return; }
       setSaqlashHolati('saving');
       const save = async () => {
         if (!stillCurrent() || appendPending.current === anchor) return;
         appendPending.current = anchor;
         try {
-          let etag = anchor.etag;
+          let etag = retry?.etag ?? anchor.etag;
           if (!etag) {
             const result = await syncJarvisConversation(kompaniyaId, { id: anchor.id, etag: null }, AbortSignal.timeout(8000));
             const snapshot = result?.suhbat;
@@ -220,13 +227,25 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
                 snapshot.xabarlar.every((x, i) => x.r === anchor.base[i].r && x.m === anchor.base[i].m)) etag = snapshot.etag;
           }
           if (!stillCurrent()) return;
-          const result = etag ? await appendJarvisMessages(kompaniyaId, anchor.id, etag, delta) : null;
+          if (!etag) { setSaqlashHolati('local'); return; }
+          const batch: NonNullable<typeof appendRetry.current> = retry ?? {
+            anchor, etag, delta, operationId: crypto.randomUUID(), count: until,
+            signature: xabarImzo(xabarlar.slice(0, until)),
+          };
+          appendRetry.current = batch;
+          const result = await appendJarvisMessages(kompaniyaId, anchor.id, batch.etag, batch.delta, batch.operationId);
           if (!stillCurrent()) return;
-          if (!result) { setSaqlashHolati('local'); return; }
-          remoteAnchor.current = { ...anchor, etag: result.etag, count: xabarlar.length };
-          yuklanganImzo.current = xabarImzo(xabarlar);
+          if (!result || 'stale' in result) {
+            batch.stale = !!result;
+            if (batch.stale) toast(t('Suhbat boshqa qurilmada o‘zgargan. Yangilangan suhbatni tekshiring.'), 'warn');
+            setSaqlashHolati('local');
+            return;
+          }
+          appendRetry.current = null;
+          remoteAnchor.current = { ...anchor, etag: result.etag, count: batch.count };
+          yuklanganImzo.current = batch.signature;
           setSaqlashHolati('saved');
-          if (xabarlarRef.current !== xabarlar) setSaqlashQadami(i => i + 1);
+          if (xabarlarRef.current.length > batch.count) setSaqlashQadami(i => i + 1);
         } finally {
           if (appendPending.current === anchor) appendPending.current = null;
         }
@@ -633,7 +652,8 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
           <button type="button" onClick={() => { yuklashNomer.current++; setYuklanayotgan(null); }} className="rounded border border-border px-2 py-1">{t('Suhbat yuklashni bekor qilish')}</button>
         </div>}
         {saqlashHolati !== 'idle' && <p role="status" className="mt-1 text-xs text-text-dim">{saqlashHolati === 'saving' ? t('Suhbat serverga saqlanmoqda…') : saqlashHolati === 'saved' ? t('Suhbatning ixcham nusxasi serverga saqlandi') : t('Serverga saqlanmadi — bu oynani yopmang')}</p>}
-        {saqlashHolati === 'local' && yangiServerSuhbat.current?.first && !yangiServerSuhbat.current.stale && <button type="button"
+        {saqlashHolati === 'local' && ((yangiServerSuhbat.current?.first && !yangiServerSuhbat.current.stale) ||
+          (appendRetry.current && !appendRetry.current.stale)) && <button type="button"
           onClick={() => setSaqlashQadami(i => i + 1)} className="mt-1 rounded border border-border px-2 py-1 text-xs">
           {t('Qayta urinish')}
         </button>}

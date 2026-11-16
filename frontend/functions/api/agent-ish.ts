@@ -433,10 +433,12 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
   }
   if (amal === 'suhbat_mutate') {
     if (kid == null) return xato('Kompaniyani tanlang', 422);
-    const { klient_id: id, etag, harakat, sarlavha, xabarlar } = so;
+    const { klient_id: id, etag, harakat, sarlavha, xabarlar, operation_id: operation } = so;
     if (typeof id !== 'string' || !/^[A-Za-z0-9_.-]{1,40}$/.test(id) ||
         (harakat === 'create' ? etag != null : typeof etag !== 'string' || !/^[a-f0-9]{32}$/.test(etag)) ||
         (harakat !== 'create' && harakat !== 'append' && harakat !== 'rename' && harakat !== 'delete')) return xato('Suhbat o‘zgarishi noto‘g‘ri');
+    if (operation != null && (harakat !== 'append' || typeof operation !== 'string' ||
+        !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(operation))) return xato('operation_id noto‘g‘ri');
     if (harakat === 'rename' || harakat === 'create' ? typeof sarlavha !== 'string' || !sarlavha.trim() || sarlavha.length > 80 : sarlavha != null) {
       return xato('Suhbat sarlavhasi noto‘g‘ri');
     }
@@ -449,6 +451,7 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
       p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: id, p_etag: etag ?? null, p_amal: harakat,
       p_sarlavha: sarlavha ?? null,
       p_xabarlar: Array.isArray(xabarlar) ? xabarlar.map(x => ({ r: x.r, m: x.m })) : null,
+      ...(operation ? { p_operation_id: operation } : {}),
     });
     if (result.data.code === 'SUHBAT_CONFLICT') return Response.json(result.data, { status: 409, ...JAVOB });
     if (result.data.code === 'SUHBAT_NOT_FOUND') return Response.json(result.data, { status: 404, ...JAVOB });

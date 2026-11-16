@@ -50,16 +50,16 @@ export async function syncJarvisConversation(company: number, cursor: Cursor | n
 }
 
 export async function appendJarvisMessages(
-  company: number, id: string, etag: string, messages: Message[],
-): Promise<{ etag: string } | null> {
+  company: number, id: string, etag: string, messages: Message[], operationId: string,
+): Promise<{ etag: string } | { stale: true } | null> {
   if (!messages.length || messages.length > 12) return null;
-  const result = await mutateJarvisConversation(company, id, etag, { harakat: 'append', xabarlar: messages });
-  return result.status === 'saved' ? { etag: result.etag } : null;
+  const result = await mutateJarvisConversation(company, id, etag, { harakat: 'append', xabarlar: messages, operation_id: operationId });
+  return result.status === 'saved' ? { etag: result.etag } : result.status === 'stale' ? { stale: true } : null;
 }
 
 type Mutation =
   | { harakat: 'create'; sarlavha: string; xabarlar: Message[] }
-  | { harakat: 'append'; xabarlar: Message[] }
+  | { harakat: 'append'; xabarlar: Message[]; operation_id: string }
   | { harakat: 'rename'; sarlavha: string }
   | { harakat: 'delete' };
 type MutationResult = { status: 'saved'; etag: string } | { status: 'deleted' | 'stale' | 'failed' };

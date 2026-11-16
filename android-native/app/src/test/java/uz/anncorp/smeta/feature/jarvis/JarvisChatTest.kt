@@ -150,6 +150,29 @@ class JarvisChatTest {
         }
         override suspend fun upload(companyId: Long, obyektId: Long, body: RequestBody) = error("Unexpected upload")
     }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test fun retriesAnAppendWithTheSameOperationAndMessages() = withJarvis { (vm, api, _) ->
+        val row = ChatInfo("one", "Synthetic", "2026-11-15T10:00:00+00:00")
+        api.answer = { snapshot(row.id, "a", "Before") }
+        vm.open(row)
+        runCurrent()
+        api.answer = {
+            if (api.actions.last() == "kasb_savol") payload(200, """{"ok":true,"javob":"Synthetic answer"}""")
+            else ApiResult(503, null)
+        }
+        vm.ask("Synthetic question")
+        runCurrent()
+        assertEquals(ChatSaveIssue.RETRY, vm.ui.value.saveIssue)
+        val first = api.requests.last()
+        assertTrue(Regex("^[a-f0-9-]{36}$").matches(first.getValue("operation_id").jsonPrimitive.content))
+        val tag = "b".repeat(32)
+        api.answer = { payload(200, """{"ok":true,"id":"one","etag":"$tag"}""") }
+        vm.retrySave()
+        runCurrent()
+        assertEquals(first, api.requests.last())
+        assertEquals(null, vm.ui.value.saveIssue)
+    }
     private data class Fixture(val vm: JarvisViewModel, val api: ChatApi, val workplace: WorkContext)
 
     @OptIn(ExperimentalCoroutinesApi::class)

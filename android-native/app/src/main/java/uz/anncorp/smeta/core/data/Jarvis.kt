@@ -73,13 +73,16 @@ class JarvisRepository(private val api: BffApi) {
             cursor?.let { put("klient_id", it.id); it.etag?.let { tag -> put("etag", tag) } }
         }), cursor)
 
-    suspend fun writeMessages(companyId: Long, cursor: ChatCursor, title: String?, messages: List<ChatMsg>): ChatWrite {
+    suspend fun writeMessages(
+        companyId: Long, cursor: ChatCursor, title: String?, messages: List<ChatMsg>, operationId: String? = null,
+    ): ChatWrite {
         val create = cursor.etag == null
         if (!CHAT_ID.matches(cursor.id) || (create && title.isNullOrBlank()) ||
             (!create && (!ETAG.matches(cursor.etag.orEmpty()) || title != null)) ||
             messages.size !in 1..MAX_SAVED || messages.any { it.text.isBlank() }) return ChatWrite.Failed
         return mutateChat(companyId, cursor, if (create) "create" else "append") {
             if (create) put("sarlavha", title)
+            else operationId?.let { put("operation_id", it) }
             put("xabarlar", buildJsonArray {
                 messages.forEach {
                     add(buildJsonObject { put("r", if (it.mine) "user" else "ai"); put("m", it.text.trim().take(MAX_SAVED_TEXT)) })

@@ -13,9 +13,9 @@ const sync = async (actor, company, id = null, etag = null) => {
   const result = await db.query('select public.t2_jarvis_suhbat_sync_v1($1,$2,$3,$4) as result', [actor, company, id, etag]);
   return result.rows[0].result;
 };
-const mutate = async (actor, company, id, etag, action, title = null, messages = null) => {
-  const { rows } = await db.query('select public.t2_jarvis_suhbat_mutate_v1($1,$2,$3,$4,$5,$6,$7::jsonb) as result',
-    [actor, company, id, etag, action, title, messages === null ? null : JSON.stringify(messages)]);
+const mutate = async (actor, company, id, etag, action, title = null, messages = null, op = null) => {
+  const { rows } = await db.query('select public.t2_jarvis_suhbat_mutate_v1($1,$2,$3,$4,$5,$6,$7::jsonb,$8::uuid) as result',
+    [actor, company, id, etag, action, title, messages === null ? null : JSON.stringify(messages), op]);
   return rows[0].result;
 };
 
@@ -42,7 +42,7 @@ try {
   await db.exec(mutation);
   await db.exec('rollback');
   const signature = 'public.t2_jarvis_suhbat_sync_v1(bigint,bigint,text,text)';
-  const writeSignature = 'public.t2_jarvis_suhbat_mutate_v1(bigint,bigint,text,text,text,text,jsonb)';
+  const writeSignature = 'public.t2_jarvis_suhbat_mutate_v1(bigint,bigint,text,text,text,text,jsonb,uuid)';
   const registered = async () => (await db.query('select to_regprocedure($1) is not null as present', [signature])).rows[0].present;
   assert.equal(await registered(), false);
   await db.exec(migration);
@@ -84,15 +84,25 @@ try {
   assert.deepEqual(await mutate(7, 99, 'current', rename.etag, 'delete'), { ok: false, code: 'COMPANY_ACCESS_DENIED' });
   assert.deepEqual(await mutate(7, 17, 'current', rename.etag, 'append', null, [{ r: 'system', m: 'Synthetic injection' }]),
     { ok: false, code: 'SUHBAT_INVALID' });
-  const added = await mutate(7, 17, 'current', rename.etag, 'append', null, [{ r: 'ai', m: 'Synthetic answer' }]);
+  const operation = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+  const turns = [{ r: 'ai', m: 'Synthetic answer' }];
+  const added = await mutate(7, 17, 'current', rename.etag, 'append', null, turns, operation);
   assert.equal(added.ok, true);
   assert.notEqual(added.etag, rename.etag);
+  assert.deepEqual(await mutate(7, 17, 'current', rename.etag, 'append', null, turns, operation), added);
+  assert.deepEqual(await mutate(7, 17, 'current', added.etag, 'append', null, [{ r: 'ai', m: 'Different' }], operation),
+    { ok: false, code: 'SUHBAT_CONFLICT' });
+  assert.deepEqual(await mutate(8, 17, 'current', rename.etag, 'append', null, turns, operation),
+    { ok: false, code: 'SUHBAT_CONFLICT' });
   assert.deepEqual(await mutate(7, 17, 'current', rename.etag, 'append', null, [{ r: 'ai', m: 'Synthetic answer' }]),
     { ok: false, code: 'SUHBAT_CONFLICT' });
   assert.deepEqual((await sync(7, 17, 'current')).suhbat.xabarlar.map(x => x.m), ['Synthetic request', 'Synthetic answer']);
   assert.equal((await db.query('select count(*)::int as total from public.t2_jarvis_suhbat')).rows[0].total, 5);
   const deleted = await mutate(7, 17, 'current', added.etag, 'delete');
   assert.equal(deleted.holat, 'missing');
+  assert.deepEqual(await mutate(7, 17, 'current', rename.etag, 'append', null, turns, operation),
+    { ok: false, code: 'SUHBAT_NOT_FOUND' });
+  assert.equal((await db.query('select count(*)::int as total from public.t2_jarvis_suhbat_append_receipt')).rows[0].total, 0);
   assert.deepEqual(await mutate(7, 17, 'current', added.etag, 'append', null, [{ r: 'user', m: 'Late message' }]),
     { ok: false, code: 'SUHBAT_NOT_FOUND' });
   const removed = await sync(7, 17, 'current', added.etag);
@@ -116,6 +126,18 @@ try {
   await mutate(7, 17, 'new-chat', appended.etag, 'delete');
   assert.deepEqual(await create(), { ok: false, code: 'SUHBAT_NOT_FOUND' });
   assert.equal((await sync(7, 17, 'new-chat')).suhbat.holat, 'missing');
+  const busyId = 'many-appends';
+  const busy = await mutate(7, 17, busyId, null, 'create', 'Synthetic', message);
+  let tag = busy.etag;
+  for (let index = 1; index <= 65; index++) {
+    const op = 'ffffffff-eeee-4ddd-8ccc-' + String(index).padStart(12, '0');
+    const result = await mutate(7, 17, busyId, tag, 'append', null, turns, op);
+    assert.equal(result.ok, true);
+    tag = result.etag;
+  }
+  assert.equal((await db.query('select count(*)::int as total from public.t2_jarvis_suhbat_append_receipt')).rows[0].total, 64);
+  assert.deepEqual(await mutate(7, 17, busyId, busy.etag, 'append', null, turns, 'ffffffff-eeee-4ddd-8ccc-000000000001'),
+    { ok: false, code: 'SUHBAT_CONFLICT' });
   for (let index = 0; index <= 20; index++) {
     assert.equal((await mutate(7, 17, `synthetic-${index}`, null, 'create', 'Synthetic', message)).ok, true);
   }
@@ -126,6 +148,7 @@ try {
   assert.equal(await registered(), false);
   assert.equal((await db.query('select to_regprocedure($1) as procedure', [writeSignature])).rows[0].procedure, null);
   assert.equal((await db.query("select to_regclass('public.t2_jarvis_suhbat_create_receipt') as receipt")).rows[0].receipt, null);
+  assert.equal((await db.query("select to_regclass('public.t2_jarvis_suhbat_append_receipt') as receipt")).rows[0].receipt, null);
   console.log('JARVIS_SYNC_READ_WRITE_ACCEPTANCE_PASS');
 } finally {
   await db.close();

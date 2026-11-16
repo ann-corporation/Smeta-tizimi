@@ -30,6 +30,24 @@ function remoteFixture() {
  return row;
 }
 
+it('retries an unacknowledged append with its original operation and drains newer turns after it', async () => {
+ const {row,etag} = await openVersionedChat();
+ m.ask.mockResolvedValue({ok:true,javob:'Synthetic answer'});
+ m.append.mockResolvedValueOnce(null)
+  .mockResolvedValueOnce({etag:'b'.repeat(32)}).mockResolvedValueOnce({etag:'c'.repeat(32)});
+ send('First question');await tick(0);await tick(1000);
+ expect(m.append.mock.calls[0][4]).toMatch(/^[a-f0-9-]{36}$/);
+ expect(screen.getByRole('button',{name:'Qayta urinish'})).toBeTruthy();
+ send('Second question');await tick(0);await tick(1000);
+ expect(m.append.mock.calls[1]).toEqual(m.append.mock.calls[0]);
+ await tick(1000);
+ expect(m.append.mock.calls[2].slice(0,4)).toEqual([17,row.id,'b'.repeat(32),[
+  {r:'user',m:'Second question'},{r:'ai',m:'Synthetic answer'},
+ ]]);
+ expect(m.append.mock.calls[2][4]).not.toBe(m.append.mock.calls[0][4]);
+ expect(m.append.mock.calls[0][2]).toBe(etag);
+});
+
 async function openVersionedChat() {
  vi.useFakeTimers();
  const row = remoteFixture();
@@ -97,11 +115,11 @@ it('appends only new turns to a server conversation and advances the expected ve
  m.ask.mockResolvedValue({ ok: true, javob: 'Protected answer' });
  render(view()); await tick(0); choose(row.id); await tick(0);
  send('Yangi savol'); await tick(0); await tick(1000);
- expect(m.append.mock.calls[0]).toEqual([17, row.id, tag, [
+ expect(m.append.mock.calls[0].slice(0,4)).toEqual([17, row.id, tag, [
   { r: 'user', m: 'Yangi savol' }, { r: 'ai', m: 'Protected answer' },
  ]]);
  send('Yana savol'); await tick(0); await tick(1000);
- expect(m.append.mock.calls[1]).toEqual([17, row.id, nextTag, [
+ expect(m.append.mock.calls[1].slice(0,4)).toEqual([17, row.id, nextTag, [
   { r: 'user', m: 'Yana savol' }, { r: 'ai', m: 'Protected answer' },
  ]]);
  expect(m.save).not.toHaveBeenCalled();
@@ -229,7 +247,7 @@ it('retries creation with the same id and first messages then appends new turns 
  fireEvent.click(screen.getByRole('button',{name:'Qayta urinish'}));await tick(1000);
  expect(m.mutate.mock.calls[1]).toEqual(m.mutate.mock.calls[0]);
  send('Second synthetic request');await tick(0);await tick(1000);
- expect(m.append.mock.calls[0]).toEqual([17,id,tag,[{r:'user',m:'Second synthetic request'},{r:'ai',m:'Verified answer'}]]);
+ expect(m.append.mock.calls[0].slice(0,4)).toEqual([17,id,tag,[{r:'user',m:'Second synthetic request'},{r:'ai',m:'Verified answer'}]]);
  expect(m.save).not.toHaveBeenCalled();
  expect(sessionStorage.getItem('jarvis-chat:7:17')).toBeNull();
  expect(localStorage.getItem('jarvis-suhbatlar:7:17')).not.toContain('First synthetic request');
@@ -248,7 +266,7 @@ it('keeps a second turn queued while the first create request is in flight',asyn
  expect(m.append).not.toHaveBeenCalled();
  const tag = 'e'.repeat(32);
  await act(async () => finish({status:'saved',etag:tag}));await tick(1000);
- expect(m.append.mock.calls[0]).toEqual([17,m.mutate.mock.calls[0][1],tag,[
+ expect(m.append.mock.calls[0].slice(0,4)).toEqual([17,m.mutate.mock.calls[0][1],tag,[
   {r:'user',m:'Second request'},{r:'ai',m:'Synthetic answer'},
  ]]);
 });
@@ -264,7 +282,7 @@ it('serializes overlapping appends and uses the first committed version for the 
  expect(m.append.mock.calls[0].slice(0,3)).toEqual([17,row.id,etag]);
  const updated = 'b'.repeat(32);
  await act(async () => finish({etag:updated}));await tick(1000);
- expect(m.append.mock.calls[1]).toEqual([17,row.id,updated,[
+ expect(m.append.mock.calls[1].slice(0,4)).toEqual([17,row.id,updated,[
   {r:'user',m:'Second request'},{r:'ai',m:'Synthetic answer'},
  ]]);
 });
