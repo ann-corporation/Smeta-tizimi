@@ -52,18 +52,35 @@ export async function syncJarvisConversation(company: number, cursor: Cursor | n
 export async function appendJarvisMessages(
   company: number, id: string, etag: string, messages: Message[],
 ): Promise<{ etag: string } | null> {
-  if (!idPattern.test(id) || !etagPattern.test(etag) || !messages.length || messages.length > 12) return null;
+  if (!messages.length || messages.length > 12) return null;
+  const result = await mutateJarvisConversation(company, id, etag, { harakat: 'append', xabarlar: messages });
+  return result.status === 'saved' ? { etag: result.etag } : null;
+}
+
+type Mutation =
+  | { harakat: 'append'; xabarlar: Message[] }
+  | { harakat: 'rename'; sarlavha: string }
+  | { harakat: 'delete' };
+type MutationResult = { status: 'saved'; etag: string } | { status: 'deleted' | 'stale' | 'failed' };
+
+export async function mutateJarvisConversation(
+  company: number, id: string, etag: string, mutation: Mutation,
+): Promise<MutationResult> {
+  if (!idPattern.test(id) || !etagPattern.test(etag)) return { status: 'failed' };
   try {
     const response = await fetch('/api/agent-ish', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
       signal: AbortSignal.timeout(8000),
       body: JSON.stringify({
-        amal: 'suhbat_mutate', kompaniya_id: company, klient_id: id, etag, harakat: 'append', xabarlar: messages,
+        amal: 'suhbat_mutate', kompaniya_id: company, klient_id: id, etag, ...mutation,
       }),
     });
-    if (!response.ok) return null;
+    if (response.status === 409 || response.status === 404) return { status: 'stale' };
+    if (!response.ok) return { status: 'failed' };
     const data = record(await response.json());
-    return data?.ok === true && data.id === id && typeof data.etag === 'string' && etagPattern.test(data.etag)
-      ? { etag: data.etag } : null;
-  } catch { return null; }
+    if (data?.ok !== true || data.id !== id) return { status: 'failed' };
+    if (mutation.harakat === 'delete') return { status: data.holat === 'missing' ? 'deleted' : 'failed' };
+    return typeof data.etag === 'string' && etagPattern.test(data.etag)
+      ? { status: 'saved', etag: data.etag } : { status: 'failed' };
+  } catch { return { status: 'failed' }; }
 }

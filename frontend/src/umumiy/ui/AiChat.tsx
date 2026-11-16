@@ -5,7 +5,7 @@ import { mdBolaklar } from '../../lib/yordamchi/jadval';
 import { ArrowRight, Bot, Mic, MicOff, Send, Square, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { kasbSavolOqim, niyatLlmOl, suhbatRoyxatOl, suhbatServerdanOl, suhbatServerga, type ServerSuhbat, tizimYordamSavol, type KasbIshchi, type KasbYakun, type Qadam, type SahifaIshora } from '../../api/t2-agent-ish';
-import { appendJarvisMessages, syncJarvisConversation } from '../../api/jarvis-suhbat-sync';
+import { appendJarvisMessages, mutateJarvisConversation, syncJarvisConversation } from '../../api/jarvis-suhbat-sync';
 import { jarvisKichikGap } from '../../lib/jarvis/intent';
 import { katalogKonteksti, narxSavolimi, vaqtBilan, type KatalogKontekst } from '../../lib/jarvis/katalog-kontekst';
 import { t } from '../../i18n/til';
@@ -114,8 +114,15 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const qisqartmaDan = useRef<string | null>(null);
   const yuklashNomer = useRef(0);
   const [yuklanayotgan, setYuklanayotgan] = useState<string | null>(null);
+  const [suhbatTahriri, setSuhbatTahriri] = useState<{
+    id: string; avlod: string; etag: string; amal: 'rename' | 'delete'; nom: string;
+  } | null>(null);
+  const tahrirVersiya = useRef(0);
+  const tahrirSorov = useRef<string | null>(null);
+  const [tahrirBand, setTahrirBand] = useState(false);
   const suhbatToxtat = () => {
     remoteAnchor.current = null;
+    setSuhbatTahriri(null);
     setYuklanayotgan(null); yuklashNomer.current++; suhbatAvlod.current++; gen.current = `${scope}|${suhbatAvlod.current}`;
     abort.current?.abort(); busy.current = false; kutish.current = null; davomRef.current = null;
     setBand(false); setMatn(''); setSaqlashHolati('idle');
@@ -229,16 +236,18 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const readPoll = useRef(async (_signal: AbortSignal) => false);
   const pollBlocked = useRef(false);
   pollBlocked.current = !!matn.trim() || yuklanayotgan !== null || saqlashHolati === 'saving' || saqlashHolati === 'local';
+  const suhbatSof = () => !busy.current && !pollBlocked.current && xabarImzo(xabarlarRef.current) === yuklanganImzo.current;
   readPoll.current = async (signal) => {
     if (kompaniyaId == null) return false;
+    if (tahrirSorov.current !== null) return true;
+    const versiya = tahrirVersiya.current;
     const avlod = gen.current;
     const loadNumber = yuklashNomer.current;
     const requestId = suhbatId.current;
     const anchor = remoteAnchor.current;
-    const pristine = () => !busy.current && !pollBlocked.current && xabarImzo(xabarlarRef.current) === yuklanganImzo.current;
-    const cursor = anchor?.id === requestId && pristine() ? { id: anchor.id, etag: anchor.etag } : null;
+    const cursor = anchor?.id === requestId && suhbatSof() ? { id: anchor.id, etag: anchor.etag } : null;
     const sync = await syncJarvisConversation(kompaniyaId, cursor, signal);
-    if (!sync || signal.aborted || gen.current !== avlod) return !!sync;
+    if (!sync || signal.aborted || gen.current !== avlod || tahrirVersiya.current !== versiya) return !!sync;
     syncListed.current = true;
     setServerRoyxat(current => current.length === sync.royxat.length && current.every((row, i) => {
       const fresh = sync.royxat[i];
@@ -246,7 +255,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     }) ? current : sync.royxat);
     const remote = sync.suhbat;
     if (!remote || !cursor || remoteAnchor.current !== anchor || suhbatId.current !== requestId ||
-        yuklashNomer.current !== loadNumber || !pristine()) return true;
+        yuklashNomer.current !== loadNumber || !suhbatSof()) return true;
     if (remote.holat === 'same') return true;
     davomRef.current = null;
     if (remote.holat === 'missing') {
@@ -291,6 +300,48 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     const sv = serverRoyxat.filter((s) => !bor.has(s.id)).map((s) => ({ id: s.id, sarlavha: s.sarlavha, yangilandi: Date.parse(s.yangilandi) || 0, xabarlar: [] as Suhbat['xabarlar'], server: true as const }));
     return [...arxiv.map((s) => ({ ...s, server: false as const })), ...sv].sort((a, b) => b.yangilandi - a.yangilandi);
   }, [arxiv, serverRoyxat]);
+  const serverSuhbat = serverRoyxat.find(s => s.id === suhbatId.current && s.id === remoteAnchor.current?.id);
+  const faolTahrir = suhbatTahriri?.avlod === gen.current && suhbatTahriri.id === serverSuhbat?.id ? suhbatTahriri : null;
+  const tahrirMumkin = serverSuhbat && remoteAnchor.current?.etag && suhbatSof() && !tahrirBand;
+  const tahrirOch = (amal: 'rename' | 'delete') => {
+    const etag = remoteAnchor.current?.etag;
+    if (!tahrirMumkin || !serverSuhbat || !etag) return;
+    setSuhbatTahriri({ id: serverSuhbat.id, avlod: gen.current, etag, amal, nom: serverSuhbat.sarlavha });
+  };
+  const tahrirSaqlash = async () => {
+    const draft = faolTahrir;
+    if (!draft || kompaniyaId == null || !suhbatSof() || tahrirSorov.current !== null) return;
+    const anchor = remoteAnchor.current;
+    const name = draft.nom.trim();
+    if (draft.amal === 'rename' && !name) return;
+    if (anchor?.id !== draft.id || anchor.etag !== draft.etag) {
+      setSuhbatTahriri(null);
+      toast(t('Suhbat boshqa qurilmada o‘zgargan. Yangilangan suhbatni tekshiring.'), 'warn');
+      return;
+    }
+    tahrirSorov.current = draft.avlod;
+    tahrirVersiya.current++;
+    setTahrirBand(true);
+    const result = await mutateJarvisConversation(kompaniyaId, draft.id, draft.etag,
+      draft.amal === 'delete' ? { harakat: 'delete' } : { harakat: 'rename', sarlavha: name });
+    tahrirSorov.current = null;
+    setTahrirBand(false);
+    if (gen.current !== draft.avlod || remoteAnchor.current !== anchor) return;
+    if (result.status === 'failed') { toast(t('Suhbatdagi o‘zgarish saqlanmadi.'), 'warn'); return; }
+    setSuhbatTahriri(null);
+    if (result.status === 'stale') { toast(t('Suhbat boshqa qurilmada o‘zgargan. Yangilangan suhbatni tekshiring.'), 'warn'); return; }
+    if (result.status === 'saved') {
+      remoteAnchor.current = { ...anchor, etag: result.etag };
+      setServerRoyxat(rows => rows.map(row => row.id === draft.id ? { ...row, sarlavha: name } : row));
+    } else {
+      setServerRoyxat(rows => rows.filter(row => row.id !== draft.id));
+      suhbatToxtat();
+      qisqartmaDan.current = null;
+      suhbatId.current = crypto.randomUUID();
+      yuklanganImzo.current = xabarImzo([]);
+      setXabarlar([]);
+    }
+  };
   const serverdanDavom = async (s: Suhbat) => {
     /* Avval yuklaymiz: xato bo'lsa joriy (oqayotgan) javob bekor qilinmaydi. */
     const boshlangich = gen.current; const nomer = ++yuklashNomer.current;
@@ -356,7 +407,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
 
   const yubor = async (savol: string, davom?: { id: string }) => {
     const s = savol.trim();
-    if (!s || (busy.current && !davom)) return;
+    if (!s || tahrirSorov.current === gen.current || (busy.current && !davom)) return;
     const boshlangich = gen.current;
     const id = davom?.id ?? Date.now().toString();
     if (!davom) setMatn('');
@@ -478,10 +529,11 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const tinglov = useRef<{ toxtat: () => void } | null>(null);
   useEffect(() => () => { tinglov.current?.toxtat(); }, []);
   function mikrofon() {
+    if (tahrirSorov.current === gen.current) return;
     if (tinglayapti) { tinglov.current?.toxtat(); return; }
     const bosh = matn.trim();
     const hd = ovozBoshla(ovozTil, {
-      natija: (m) => setMatn(bosh ? `${bosh} ${m}` : m),
+      natija: (m) => { if (tahrirSorov.current !== gen.current) setMatn(bosh ? `${bosh} ${m}` : m); },
       xato: (kod) => { setTinglayapti(false); toast(kod === 'not-allowed' || kod === 'service-not-allowed' ? t('Mikrofonga ruxsat berilmagan — matn bilan yozing.') : t('Ovoz tanilmadi — qayta urinib ko‘ring yoki matn bilan yozing.'), 'warn'); },
       tugadi: () => setTinglayapti(false),
     });
@@ -498,6 +550,21 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
           </select>
           {!ixcham && <button type="button" onClick={() => window.dispatchEvent(new Event('ai:yangi-suhbat'))} className="rounded border border-border px-2 py-1 text-sm">{t('Yangi suhbat')}</button>}
         </div>
+        {serverSuhbat && !faolTahrir && <div className="mt-1 flex flex-wrap gap-1.5 text-xs">
+          <button type="button" disabled={!tahrirMumkin || tinglayapti} onClick={() => tahrirOch('rename')} className="rounded border border-border px-2 py-1 disabled:opacity-50">{t('Suhbat nomini o‘zgartirish')}</button>
+          <button type="button" disabled={!tahrirMumkin || tinglayapti} onClick={() => tahrirOch('delete')} className="rounded border border-border px-2 py-1 disabled:opacity-50">{t('Suhbatni o‘chirish')}</button>
+        </div>}
+        {faolTahrir && <form className="mt-1 flex flex-wrap items-center gap-1.5 text-xs" onSubmit={e => { e.preventDefault(); void tahrirSaqlash(); }} aria-busy={tahrirBand}>
+          {faolTahrir.amal === 'rename' ? <input
+            aria-label={t('Suhbat nomi')} maxLength={80} value={faolTahrir.nom} disabled={tahrirBand}
+            onChange={e => setSuhbatTahriri({ ...faolTahrir, nom: e.target.value })}
+            className="min-w-24 flex-1 rounded border border-border bg-surface px-2 py-1"
+          /> : <span className="flex-1">{t('Serverdagi «{nom}» suhbatini o‘chirasizmi?', { nom: faolTahrir.nom })}</span>}
+          <button type="submit" disabled={!tahrirMumkin || tinglayapti || (faolTahrir.amal === 'rename' && !faolTahrir.nom.trim())} className="rounded border border-border px-2 py-1 disabled:opacity-50">
+            {faolTahrir.amal === 'rename' ? t('Saqlash') : t('O‘chirishni tasdiqlash')}
+          </button>
+          <button type="button" disabled={tahrirBand} onClick={() => setSuhbatTahriri(null)} className="rounded border border-border px-2 py-1 disabled:opacity-50">{t('Bekor qilish')}</button>
+        </form>}
         {!ixcham && <p className="mt-1 text-xs text-text-dim">{kompaniyaId == null ? t('Kontekst: umumiy suhbat') : t('Kontekst: kompaniya #{id}', { id: String(kompaniyaId) })}{yordamchi.joriyObyekt ? ' · ' + yordamchi.joriyObyekt.nom : ''}</p>}
         {yuklanayotgan !== null && <div className="mt-1 flex items-center gap-2 text-xs" data-testid="jarvis-conversation-loading">
           <span role="status">{t('Suhbat yuklanmoqda: {nom}', {nom: yuklanayotgan})}</span>
@@ -582,7 +649,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
       </div>
       <div className="shrink-0 border-t border-border bg-surface-2 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="relative">
-          <textarea value={matn} onChange={(e) => setMatn(e.target.value)} rows={2} id="jarvis-kirish" data-testid="jarvis-kirish" autoFocus={!!yordamchi && !ixcham && !sensorliQurilma()}
+          <textarea readOnly={tahrirBand} value={matn} onChange={(e) => setMatn(e.target.value)} rows={2} id="jarvis-kirish" data-testid="jarvis-kirish" autoFocus={!!yordamchi && !ixcham && !sensorliQurilma()}
             placeholder={yordamchi ? t('Masalan: «mindmapni och», «narxsiz qatorlar», «Yevropa 1 F2»') : t('Xabaringizni yozing...')}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void yubor(matn); } }}
             className={`max-h-[40vh] min-h-[72px] w-full resize-none [field-sizing:content] rounded-xl border border-border bg-surface py-3 pl-4 text-sm text-text focus:border-accent focus:outline-none ${ovozBor ? 'pr-28' : 'pr-12'}`} />

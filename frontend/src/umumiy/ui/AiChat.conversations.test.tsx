@@ -3,9 +3,9 @@ import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-libra
 import { MemoryRouter } from 'react-router-dom';
 import type { YordamchiUlanish } from './yordamchi/ishlov';
 import type { KasbIshchi } from '../../api/t2-agent-ish';
-const m=vi.hoisted(()=>({ask:vi.fn(),load:vi.fn(),list:vi.fn(),intent:vi.fn(),save:vi.fn(),sync:vi.fn(),append:vi.fn()}));
+const m=vi.hoisted(()=>({ask:vi.fn(),load:vi.fn(),list:vi.fn(),intent:vi.fn(),save:vi.fn(),sync:vi.fn(),append:vi.fn(),mutate:vi.fn()}));
 vi.mock('../../api/t2-agent-ish',()=>({niyatLlmOl:m.intent,suhbatRoyxatOl:m.list,suhbatServerga:m.save,suhbatServerdanOl:m.load,kasbSavolOqim:m.ask,tizimYordamSavol:vi.fn()}));
-vi.mock('../../api/jarvis-suhbat-sync',()=>({syncJarvisConversation:m.sync,appendJarvisMessages:m.append}));
+vi.mock('../../api/jarvis-suhbat-sync',()=>({syncJarvisConversation:m.sync,appendJarvisMessages:m.append,mutateJarvisConversation:m.mutate}));
 vi.mock('./AiBaho',()=>({AiBaho:()=>null}));vi.mock('./AiHarakatKarta',()=>({AiHarakatKarta:()=>null}));
 vi.mock('../../lib/yordamchi/niyat',()=>({niyatAniqla:()=>({tur:'nomalum',yaqin:[]})}));
 vi.mock('../../lib/yordamchi/niyat-llm',()=>({niyatLlmGaMosmi:()=>true}));
@@ -17,6 +17,7 @@ const choose=(id:string)=>fireEvent.change(screen.getByLabelText('Suhbatni tanla
 beforeEach(()=>{localStorage.clear();sessionStorage.clear();m.ask.mockReset();m.intent.mockReset();m.load.mockReset();m.list.mockReset().mockResolvedValue([]);m.save.mockReset().mockResolvedValue(null);
  m.sync.mockReset().mockResolvedValue(null);
  m.append.mockReset().mockResolvedValue(null);
+ m.mutate.mockReset().mockResolvedValue({status:'failed'});
  localStorage.setItem('jarvis-suhbatlar:7:17',JSON.stringify(['a','b'].map(id=>({id,sarlavha:'Chat '+id,yangilandi:Date.now(),xabarlar:[{rol:'user',matn:'Message '+id}]}))));});
 afterEach(()=>{vi.useRealTimers();cleanup();});
 const send=(text:string)=>{fireEvent.change(screen.getByRole('textbox'),{target:{value:text}});fireEvent.keyDown(screen.getByRole('textbox'),{key:'Enter'});};
@@ -28,6 +29,60 @@ function remoteFixture() {
  m.load.mockResolvedValue({ xabarlar: [{ r: 'ai', m: 'Before phone update' }], qisqartma: null });
  return row;
 }
+
+async function openVersionedChat() {
+ vi.useFakeTimers();
+ const row = remoteFixture();
+ const etag = 'a'.repeat(32);
+ m.sync.mockResolvedValueOnce({royxat:[row],suhbat:{
+  id:row.id,holat:'changed',etag,sarlavha:row.sarlavha,
+  xabarlar:[{r:'ai',m:'Before phone update'}],qisqartma:null,
+ }});
+ render(view()); await tick(0); choose(row.id); await tick(0); await tick(3000);
+ return {row,etag};
+}
+
+it('renames on the server, then deletes only after explicit confirmation with the new version', async () => {
+ const {row,etag} = await openVersionedChat();
+ const next = 'b'.repeat(32);
+ m.mutate.mockResolvedValueOnce({status:'saved',etag:next}).mockResolvedValueOnce({status:'deleted'});
+ fireEvent.click(screen.getByRole('button',{name:'Suhbat nomini o‘zgartirish'}));
+ fireEvent.change(screen.getByLabelText('Suhbat nomi'),{target:{value:'Weekly plan'}});
+ fireEvent.click(screen.getByRole('button',{name:'Saqlash'}));
+ await tick(0);
+ expect(m.mutate).toHaveBeenCalledWith(17,row.id,etag,{harakat:'rename',sarlavha:'Weekly plan'});
+ expect(screen.getAllByRole('option',{name:'Weekly plan'}).length).toBeGreaterThan(0);
+ fireEvent.click(screen.getByRole('button',{name:'Suhbatni o‘chirish'}));
+ expect(m.mutate).toHaveBeenCalledTimes(1);
+ fireEvent.click(screen.getByRole('button',{name:'O‘chirishni tasdiqlash'}));
+ await tick(0);
+ expect(m.mutate).toHaveBeenLastCalledWith(17,row.id,next,{harakat:'delete'});
+ expect(screen.queryByText('Before phone update')).toBeNull();
+ expect(screen.queryByRole('option',{name:'Weekly plan'})).toBeNull();
+ expect(screen.getByRole('option',{name:'Chat a'})).toBeTruthy();
+});
+
+it('keeps the current history when the server rejects an outdated deletion', async () => {
+ const {row,etag} = await openVersionedChat();
+ m.mutate.mockResolvedValueOnce({status:'stale'});
+ fireEvent.click(screen.getByRole('button',{name:'Suhbatni o‘chirish'}));
+ fireEvent.click(screen.getByRole('button',{name:'O‘chirishni tasdiqlash'}));
+ await tick(0);
+ expect(m.mutate).toHaveBeenCalledWith(17,row.id,etag,{harakat:'delete'});
+ expect(screen.getByText('Before phone update')).toBeTruthy();
+ expect(m.save).not.toHaveBeenCalled();
+});
+
+it('does not clear a different conversation after a pending deletion finishes', async () => {
+ await openVersionedChat();
+ let finish!: (answer: unknown) => void;
+ m.mutate.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+ fireEvent.click(screen.getByRole('button',{name:'Suhbatni o‘chirish'}));
+ fireEvent.click(screen.getByRole('button',{name:'O‘chirishni tasdiqlash'}));
+ choose('a');
+ await act(async () => finish({status:'deleted'}));
+ expect(screen.getByText('Message a')).toBeTruthy();
+});
 
 it('appends only new turns to a server conversation and advances the expected version on success', async () => {
  vi.useFakeTimers();
