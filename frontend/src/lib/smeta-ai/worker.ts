@@ -47,6 +47,26 @@ export function ishIndeksi(k: AiKatalog): IshIndeksi | null {
   return x;
 }
 const KOD = /^[EЕЦУCС]\d{1,3}(?:-\d+){1,4}$/i;
+const EXACT_WORKS = new WeakMap<AiKatalog, Map<string, NormWork[]>>();
+
+function exactCode(code: string): string {
+  return code.trim().toUpperCase().replace(/^Е/, 'E').replace(/^С/, 'C');
+}
+
+function exactWorkIndex(k: AiKatalog): Map<string, NormWork[]> {
+  let codes = EXACT_WORKS.get(k);
+  if (!codes) {
+    codes = new Map();
+    for (const work of k.allWorks!()) {
+      const workCode = exactCode(work.code);
+      const variants = codes.get(workCode);
+      if (variants) variants.push(work);
+      else codes.set(workCode, [work]);
+    }
+    EXACT_WORKS.set(k, codes);
+  }
+  return codes;
+}
 /** Ranked retrieval: every phrasing, collection hint as a boost, unit-incompatible works dropped, ≤3 variants per table. */
 /**
  * Norm variants carrying a condition the user never stated (production run: a plain brick wall became «с облицовкой лицевым
@@ -187,7 +207,7 @@ const TOPLAM_KOD = /^([EЕЦУ]\d+)-/i;
 export function qoshniToplamlar(ish: Pick<AiIsh, 'id' | 'bolim'>, boshqalar: readonly AiIsh[]): string[] {
   return boshqalar.filter(o => o.id !== ish.id && o.bolim === ish.bolim && o.tanlangan).map(o => TOPLAM_KOD.exec(o.tanlangan!.kod)?.[1]).filter((c): c is string => !!c);
 }
-export type AvtoNatija = { nomzodlar: TanlovNomzodi[]; avto: TanlanganIsh | null; holat: 'AVTO' | 'TEKSHIRISH' | 'TOPILMADI' | 'KOD'; ms: number };
+export type AvtoNatija = { nomzodlar: TanlovNomzodi[]; avto: TanlanganIsh | null; holat: 'AVTO' | 'TEKSHIRISH' | 'TOPILMADI' | 'KOD'; ms: number; kodTekshirish?: true };
 
 /** The text company memory is keyed on: the line's own normative phrase (the same text avtoTanlov searches with). */
 export const xotiraMatni = (ish: Pick<IshNiyati, 'qidiruv'> & { tavsif?: string }): string => ish.qidiruv.find(q => !KOD.test(q.trim())) ?? ish.tavsif ?? '';
@@ -195,12 +215,23 @@ export const xotiraMatni = (ish: Pick<IshNiyati, 'qidiruv'> & { tavsif?: string 
 const toNomzod =(n: MoslashNomzod): TanlovNomzodi => ({ id: n.id, kod: n.kod, nom: n.nom, birlik: n.birlik, jadval: n.jadval, toplam: n.toplam, ishonch: n.ishonch });
 
 export function avtoTanlov(k: AiKatalog, ish: Pick<IshNiyati, 'qidiruv' | 'birlik' | 'toplam'> & { tavsif?: string; id?: string; bolim?: string }, boshqalar: readonly AiIsh[] = [], limit = 20, xotira: Xotira | null = null): AvtoNatija | null {
-  const nm = moslashOl(k);
-  if (!nm) return null;
+  if (!k.allWorks) return null;
   const t0 = performance.now();
-  // An explicit norm code (the model or the user wrote «Е6-1-1» / «С310-1005») is looked up directly and wins.
-  const kodlar = ish.qidiruv.filter(q => KOD.test(q.trim())).flatMap(q => k.search(q.trim(), 0).rows.slice(0, 3));
+  const codeQueries = ish.qidiruv.filter(q => KOD.test(q.trim()));
+  const exact = new Map(codeQueries.flatMap(q => exactWorkIndex(k).get(exactCode(q)) ?? []).map(w => [w.id, w]));
+  if (exact.size) {
+    const compatible = [...exact.values()].map(w => ({ w, unitMatch: birlikMos(k, w, ish.birlik) })).filter(x => x.unitMatch !== false);
+    const candidates: TanlovNomzodi[] = compatible.slice(0, limit).map(({ w, unitMatch }) => ({ id: w.id, kod: w.code, nom: w.name ?? '',
+      birlik: workMeasure(k, w.unitCode), jadval: k.tableLabel(w.id), toplam: k.collectionTitle?.(w.collection) ?? w.collection ?? null,
+      ishonch: exact.size === 1 && unitMatch === true && w.name?.trim() ? 0.99 : 0.5 }));
+    const only = candidates[0];
+    const avto = only?.ishonch === 0.99 ? { workId: only.id, kod: only.kod, nom: only.nom, birlik: only.birlik, sabab: 'shifr bo‘yicha aniq topildi' } : null;
+    return { nomzodlar: candidates, avto, holat: avto ? 'KOD' : candidates.length ? 'TEKSHIRISH' : 'TOPILMADI',
+      ...(!avto && { kodTekshirish: true }), ms: Math.round((performance.now() - t0) * 100) / 100 };
+  }
   const matnli = ish.qidiruv.filter(q => !KOD.test(q.trim()));
+  if (codeQueries.length && !matnli.length) return { nomzodlar: [], avto: null, holat: 'TOPILMADI', kodTekshirish: true, ms: Math.round((performance.now() - t0) * 100) / 100 };
+  const nm = moslashOl(k)!;
   const izoh = `${ish.tavsif ?? ''} ${ish.qidiruv.join(' ')}`;
   const sonlar = tavsifSonlari(ish.tavsif);
   const hint = new Set((ish.toplam ?? []).map(c => c.replace(/^Е/, 'E')));
@@ -222,12 +253,9 @@ export function avtoTanlov(k: AiKatalog, ish: Pick<IshNiyati, 'qidiruv' | 'birli
   const r = nm.natija(raw);
   const shortlist = raw.map((h): TanlovNomzodi => { const top = r.nomzodlar.find(n => n.id === h.d.w.id); return top ? toNomzod(top) : { id: h.d.w.id, kod: h.d.w.code, nom: h.d.w.name ?? '', birlik: workMeasure(k, h.d.w.unitCode),
     jadval: k.tableLabel(h.d.w.id), toplam: k.collectionTitle?.(h.d.w.collection) ?? h.d.w.collection ?? null }; });
-  const direct = kodlar.map((w): TanlovNomzodi => ({ id: w.id, kod: w.code, nom: w.name ?? '', birlik: workMeasure(k, w.unitCode), jadval: k.tableLabel(w.id), toplam: k.collectionTitle?.(w.collection) ?? w.collection ?? null, ishonch: 0.99 }));
-  const nomzodlar = [...direct, ...shortlist.filter(n => !direct.some(d => d.id === n.id))].slice(0, limit);
   const ms = Math.round((performance.now() - t0) * 100) / 100;
-  if (direct.length) return { nomzodlar, avto: { workId: direct[0].id, kod: direct[0].kod, nom: direct[0].nom, birlik: direct[0].birlik, sabab: 'shifr bo‘yicha aniq topildi' }, holat: 'KOD', ms };
   const top = r.tanlangan;
-  return { nomzodlar, holat: r.holat, ms,
+  return { nomzodlar: shortlist, holat: r.holat, ms,
     avto: top ? { workId: top.id, kod: top.kod, nom: top.nom, birlik: top.birlik, sabab: `tizim tanlovi (ishonch ${Math.round(top.ishonch * 100)}%; ${top.sabab.join(', ') || 'nom bo‘yicha eng yaqin'}) — tekshiring` } : null };
 }
 

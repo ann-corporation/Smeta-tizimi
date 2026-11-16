@@ -149,9 +149,12 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
     // 1) Local matching pipeline (BM25 + strict unit filter + evidence + calibrated confidence): a confident line is marked at once,
     //    the model only reranks the shortlist of lines the pipeline is unsure about.
     const xotira = xotiraOl(kompaniyaId);   // company memory: codes confirmed here before for similar text come first
+    const kodTekshirish = new Set<string>();
     let next = list.map(i => {
-      if (i.nomzodlar.length) return i;
+      if (i.tanlangan) return i;
       const r = avtoTanlov(katalog, i, list, 20, xotira);
+      if (r?.kodTekshirish) kodTekshirish.add(i.id);
+      if (i.nomzodlar.length && !r?.kodTekshirish) return i;
       if (!r) return { ...i, nomzodlar: nomzodlarTop(katalog, i) };
       return { ...i, nomzodlar: r.nomzodlar, tanlangan: !i.tanlangan && r.avto ? r.avto : i.tanlangan };
     });
@@ -162,7 +165,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
     // Up to two rounds: when no candidate fits, the model rephrases in normative wording and the catalogue is searched again.
     let qaytaIds: Set<string> | null = null;
     for (let round = 0; round < 2; round++) {
-      const sor = next.filter(i => !i.tanlangan && (i.nomzodlar.length || round === 0) && (!qaytaIds || qaytaIds.has(i.id))).map(i => tanlovSorovi(i, next));
+      const sor = next.filter(i => !i.tanlangan && !kodTekshirish.has(i.id) && (i.nomzodlar.length || round === 0) && (!qaytaIds || qaytaIds.has(i.id))).map(i => tanlovSorovi(i, next));
       if (!sor.length) break;
       setBand('tanlash');
       // Only the lines the pipeline could not settle reach the model (it reranks ≤ 20 candidates each). Batches of 8 sent eight at a time:
@@ -191,7 +194,9 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
         }
         if (c && !c.ishId) qadam(t('«{i}»: mos norma topilmadi{q}', { i: i.tavsif, q: c.qidiruv?.length ? t(' — qayta qidiraman: {q}', { q: c.qidiruv.join('; ') }) : '' }), c.qidiruv?.length ? 'ishda' : 'savol');
         if (round === 0 && c?.qidiruv?.length) {
-          const extra = nomzodlarTop(katalog, { ...i, qidiruv: c.qidiruv });
+          const r = avtoTanlov(katalog, { ...i, qidiruv: c.qidiruv }, next);
+          if (r?.kodTekshirish) return { ...i, nomzodlar: r.nomzodlar };
+          const extra = r?.nomzodlar ?? nomzodlarTop(katalog, { ...i, qidiruv: c.qidiruv });
           const fresh = extra.filter(x => !i.nomzodlar.some(o => o.id === x.id));
           if (fresh.length) { qayta.add(i.id); return { ...i, nomzodlar: [...fresh, ...i.nomzodlar].slice(0, 20) }; }
         }
