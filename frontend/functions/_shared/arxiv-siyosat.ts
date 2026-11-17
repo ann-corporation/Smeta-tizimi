@@ -27,11 +27,11 @@ const QATOR = (jadval: string, kalit: string, kalitTur: 'bigint' | 'uuid', vaqt:
 const SAQLANADI = (jadval: string, izoh: string): ArxivSiyosat => ({ jadval, rejim: 'saqlanadi', saqlashKun: null, format: '-', tiklash: '-', izoh });
 
 export const ARXIV_SIYOSATLARI: readonly ArxivSiyosat[] = [
-  QATOR('t2_onboarding_command_log', 'operation_id', 'uuid', 'created_at', 30, 'buyruq payloadlari; faqat audit tarixi'),
-  QATOR('t2_addrepl_command', 'operation_id', 'uuid', 'created_at', 30, 'qo\'shimcha/zamena buyruq jurnali (idempotentlik kaliti 30 kundan keyin kerak emas)'),
-  QATOR('t2_ozgarish', 'id', 'bigint', 'vaqt', 30, 'qator o\'zgarish tarixi'),
-  QATOR('t2_audit_log', 'id', 'bigint', 'yaratilgan_vaqt', 30, 'audit jurnali'),
-  QATOR('t2_f2_import_draft_qator', 'id', 'bigint', 'yaratildi', 14, 'F2 import qoralama qatorlari; hal qilinmaganlari qoladi', { ustun: 'holat', emas: 'hal_qilinmagan' }),
+  QATOR('t2_onboarding_command_log', 'operation_id', 'uuid', 'created_at', 7, 'buyruq payloadlari; faqat audit tarixi'),
+  QATOR('t2_addrepl_command', 'operation_id', 'uuid', 'created_at', 7, 'qo\'shimcha/zamena buyruq jurnali (idempotentlik kaliti 7 kundan keyin kerak emas)'),
+  QATOR('t2_ozgarish', 'id', 'bigint', 'vaqt', 30, 'qator o\'zgarish tarixi (muhr farq ko\'rinishi o\'qiydi - 30 kundan kamaytirilmaydi)'),
+  QATOR('t2_audit_log', 'id', 'bigint', 'yaratilgan_vaqt', 7, 'audit jurnali'),
+  QATOR('t2_f2_import_draft_qator', 'id', 'bigint', 'yaratildi', 7, 'F2 import qoralama qatorlari; hal qilinmaganlari qoladi', { ustun: 'holat', emas: 'hal_qilinmagan' }),
   { jadval: 'snapshot.bolak_mazmun', rejim: 'snapshot-sovuq', saqlashKun: 30, format: 'json.gz', tiklash: 'snapshot.sovuq_tikla', izoh: 'snapshot blok mazmuni; 30 kundan eskisi R2 ga' },
   SAQLANADI('snapshot.obyekt_snapshot', 'kichik (3 MB) boshqaruv jadvali; mazmun bolak_mazmun orqali sovutiladi'),
   SAQLANADI('snapshot.obyekt_snapshot_bolak', 'kichik havolalar jadvali'),

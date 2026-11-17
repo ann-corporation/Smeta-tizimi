@@ -1,12 +1,15 @@
-﻿name: arxiv-tungi
+name: arxiv-tungi
 
 # Tungi sovuq-arxiv (R2): tarix/log/snapshot/qoralamalarning eski qismi R2 ga ko'chiriladi (docs/ops/MALUMOT_SAQLASH_SIYOSATI.md).
-# Postgres R2 ga yoza olmaydi - shu workflow Pages Function /api/arxiv-tick ni chaqiradi. Oyna 21:00-24:00 UTC (endpoint ham tekshiradi).
+# Postgres R2 ga yoza olmaydi - shu workflow Pages Function /api/arxiv-tick ni chaqiradi. Endpoint oynasi 17:00-06:00 UTC (endpoint ham tekshiradi). GitHub cron 3-6 soat kechikishi mumkin (01:16/04:04/18:24 UTC kuzatilgan) - shu sabab 3 xil vaqt va keng oyna;
+# qo'lda (workflow_dispatch) ishga tushirilsa oynani chetlab o'tadi (majbur). Ish bo'lmasa chaqiruv bir zumda tugaydi - ko'p vaqt zarar emas.
 # Sirlar telegram-kunlik bilan bir xil: BILDIRISHNOMA_CRON_KALIT + repo o'zgaruvchisi PROD_URL. Sozlanmasa ish jim o'tkazib yuboriladi.
 # IO byudjeti: har chaqiruv <= 2 partiya/jadval; chaqiruvlar orasida 30 s pauza; <= 40 chaqiruv.
 on:
   schedule:
     - cron: '30 21 * * *'
+    - cron: '40 0 * * *'
+    - cron: '50 2 * * *'
   workflow_dispatch:
 
 permissions:
@@ -23,6 +26,7 @@ jobs:
     env:
       BILDIRISHNOMA_CRON_KALIT: ${{ secrets.BILDIRISHNOMA_CRON_KALIT }}
       PROD_URL: ${{ vars.PROD_URL }}
+      TUN_BODY: ${{ github.event_name == 'workflow_dispatch' && '{"majbur":true}' || '{}' }}
     steps:
       - name: Arxivlash
         run: |
@@ -32,7 +36,7 @@ jobs:
           for i in $(seq 1 40); do
             code=$(curl -sS -o resp.json -w '%{http_code}' -X POST "$PROD_URL/api/arxiv-tick" \
               -H 'Content-Type: application/json' -H "X-Cron-Kalit: $BILDIRISHNOMA_CRON_KALIT" \
-              --data '{}' --max-time 120 || echo 000)
+              --data "$TUN_BODY" --max-time 120 || echo 000)
             echo "HTTP $code"; head -c 300 resp.json; echo
             if [ "$code" != "200" ]; then echo "::warning::arxiv-tungi muvaffaqiyatsiz (HTTP $code)"; exit 0; fi
             grep -q '"qoldi":true' resp.json || break
