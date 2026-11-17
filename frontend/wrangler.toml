@@ -36,4 +36,4 @@ BREND_URL = "https://qurai.uz"
 ESKI_HOST_YONLANTIRISH = "0"
 # Telegram brend kanali/guruhi (sir emas): /api/telegram/kanal faqat shu chatlar bilan ishlaydi. TG_GURUH: id (-100…) yoki @username — guruh ulanganda to'ldiriladi.
 TG_KANAL = "@qurai_uz"
-TG_GURUH = ""
+TG_GURUH = "-1004432615700"
