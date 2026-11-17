@@ -21,16 +21,7 @@ import uz.anncorp.smeta.core.db.QatorEntity
  *   /api/sb-yoz fakt_yoz_v2 -> FaktNatija                                       (frontend/src/api/t2-fakt.ts)
  */
 
-const val OBYEKT_COLUMNS = "id,nom,tur,kompaniya_id,qator_soni,jami,narxsiz,yangilandi"
 const val HOLAT_COLUMNS = "qator_id,tur,kod,nom,birlik,smeta_hajm,smeta_summa,fakt_hajm,fakt_summa,f2_hajm,f2_summa"
-
-fun objectsRequest(companyId: Long): JsonObject = buildJsonObject {
-    put("jadval", "t2_obyekt_jami")
-    put("filtr", "kompaniya_id=eq.$companyId")
-    put("ustunlar", OBYEKT_COLUMNS)
-    put("tartib", "nom.asc")
-    put("limit", 5000)
-}
 
 fun holatRequest(obyektId: Long): JsonObject = buildJsonObject {
     put("jadval", "t2_qator_holat")
