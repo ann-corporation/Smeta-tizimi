@@ -87,7 +87,7 @@ fun buildFeedRow(index: Int, o: JsonObject): FeedRow {
     val amountKey = AMOUNT_KEYS.firstOrNull { it != titleKey && o[it].num() != null && o[it].scalar() != null && o[it].num() != 0.0 } ?: AMOUNT_KEYS.firstOrNull { it != titleKey && o[it].num() != null }
     fun fact(k: String, v: JsonElement?) = FeedFact(humanKey(k), when {
         (v as? JsonPrimitive)?.booleanOrNull != null -> if (v.booleanOrNull == true) "✓" else "–"
-        v.num() != null && TEXT_NUMBER_KEYS.none { k.contains(it) } && !(v as JsonPrimitive).isString -> formatMoney(v.num(), if (v.num()!! % 1.0 == 0.0) 0 else 2)
+        v.num() != null && TEXT_NUMBER_KEYS.none { k == it || k.endsWith("_" + it) || k.startsWith(it + "_") } && !(v as JsonPrimitive).isString -> formatMoney(v.num(), if (v.num()!! % 1.0 == 0.0) 0 else 2)
         else -> short(v.scalar().orEmpty())
     }, v.num())
     val show = facts.filter { (k, _) -> k != titleKey && k != subKey && k != amountKey }.take(5).map { (k, v) -> fact(k, v) }
@@ -100,7 +100,7 @@ fun parseFeed(body: JsonElement?, source: FeedSource): List<FeedRow> {
         val rec = findFeedRecord(body) ?: return emptyList()
         // A record of scalars -> one card; a nested object of scalars (e.g. KPI groups) -> one card each.
         val nested = rec.entries.mapNotNull { (k, v) -> (v as? JsonObject)?.takeIf { o -> o.values.any { it.scalar() != null } }?.let { k to it } }
-        val own = buildFeedRow(0, rec).takeIf { rec.values.any { it.scalar() != null } }
+        val own = buildFeedRow(0, rec).takeIf { it.all.isNotEmpty() }
         return listOfNotNull(own?.let { if (it.title.startsWith("#")) it.copy(title = humanKey(source.key)) else it }) + nested.mapIndexed { i, (k, o) -> buildFeedRow(i + 1, o).let { r -> if (r.title.startsWith("#")) r.copy(title = humanKey(k)) else r } }
     }
     return findFeedRows(body, source.listKey).mapIndexed { i, o -> buildFeedRow(i, o) }

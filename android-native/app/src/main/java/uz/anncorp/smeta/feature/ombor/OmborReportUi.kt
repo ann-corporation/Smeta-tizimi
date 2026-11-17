@@ -123,13 +123,13 @@ internal fun OmborReportPanel(skladId: Long?, vm: OmborReportViewModel = hiltVie
     LaunchedEffect(skladId, period, from, to, op, date) { reload() }
 
     Column(Modifier.fillMaxSize()) {
-        ChipRow {
+        Column(Modifier.padding(horizontal = 16.dp)) { ChipRow {
             ReportPeriod.entries.forEach { p ->
                 FilterChip(selected = date == null && period == p.name, onClick = { date = null; period = p.name; from = null; to = null }, label = { Text(stringResource(periodLabel(p))) })
             }
             FilterChip(selected = date == null && period == null, onClick = { rangeDialog = true }, label = { Text(if (from != null || to != null) (from ?: "…") + " – " + (to ?: "…") else stringResource(R.string.t14_period_range)) },
                 leadingIcon = { Icon(Icons.Filled.CalendarMonth, null) })
-        }
+        } }
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             listOf(R.string.t14_op_all, R.string.t14_op_in, R.string.t14_op_out).forEachIndexed { i, res ->
                 FilterChip(selected = date == null && op == i, onClick = { date = null; op = i }, label = { Text(stringResource(res)) })

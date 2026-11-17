@@ -142,7 +142,7 @@ fun ModuleScreen(onBack: () -> Unit, onDebtors: () -> Unit = {}, vm: ModuleViewM
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
         WorkTopBar(stringResource(moduleTitle(m?.code.orEmpty())), onBack)
         if (m == null) { CenterMessage(Icons.Filled.Inbox, stringResource(R.string.t14_unknown_module)); return@Column }
-        if (m.sources.size > 1) ChipRow { m.sources.forEachIndexed { i, s -> FilterChip(selected = ui.tab == i, onClick = { vm.select(i) }, label = { Text(stringResource(tabTitle(s.key))) }) } }
+        if (m.sources.size > 1) Column(Modifier.padding(horizontal = 16.dp)) { ChipRow { m.sources.forEachIndexed { i, s -> FilterChip(selected = ui.tab == i, onClick = { vm.select(i) }, label = { Text(stringResource(tabTitle(s.key))) }) } } }
         val source = m.sources[ui.tab.coerceIn(0, m.sources.lastIndex)]
         val tab = ui.tabs[source.key]
         if (!source.single) {

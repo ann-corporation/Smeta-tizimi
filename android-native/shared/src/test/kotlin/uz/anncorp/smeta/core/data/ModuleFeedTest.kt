@@ -79,3 +79,4 @@ class ModuleFeedTest {
         assertNull(FeedCatalog.module("yo'q", "2026-11"))
     }
 }
+
