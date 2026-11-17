@@ -10,6 +10,7 @@
  *    (fail closed). Token hech qachon javob/logga chiqmaydi (tgApi buni ta'minlaydi).
  *  • Rasm — faqat o'z saytimiz originidan (https).
  */
+import { r2Yoz } from './r2-saqlash';
 import { type TgEnv, type TgTil, saytUrl, tgApi, tgRpc, tgT, xabarYubor } from './telegram';
 
 export type KanalEnv = TgEnv & {
@@ -43,7 +44,7 @@ export async function auditYoz(env: KanalEnv, amal: string, egasi: number, tafsi
   if (!env.R2_CANONICAL) return false;
   const vaqt = new Date().toISOString();
   const kalit = `${AUDIT_PREFIKS}${vaqt.replace(/[:.]/g, '-')}-${crypto.randomUUID().slice(0, 8)}-${amal}.json`;
-  try { await env.R2_CANONICAL.put(kalit, JSON.stringify({ vaqt, amal, egasi, ...tafsilot })); return true; } catch { return false; }
+  try { await r2Yoz(env.R2_CANONICAL as never, kalit, JSON.stringify({ vaqt, amal, egasi, ...tafsilot })); return true; } catch { return false; }
 }
 export async function qoralamaOl(env: KanalEnv, id: string): Promise<Qoralama | null> {
   if (!env.R2_CANONICAL || !/^[a-f0-9]{16}$/.test(id)) return null;
@@ -51,7 +52,7 @@ export async function qoralamaOl(env: KanalEnv, id: string): Promise<Qoralama | 
 }
 export async function qoralamaSaqla(env: KanalEnv, q: Qoralama): Promise<boolean> {
   if (!env.R2_CANONICAL) return false;
-  try { await env.R2_CANONICAL.put(QORALAMA_PREFIKS + q.id + '.json', JSON.stringify(q)); return true; } catch { return false; }
+  try { await r2Yoz(env.R2_CANONICAL as never, QORALAMA_PREFIKS + q.id + '.json', JSON.stringify(q)); return true; } catch { return false; }
 }
 const yangiId = () => [...crypto.getRandomValues(new Uint8Array(8))].map((x) => x.toString(16).padStart(2, '0')).join('');
 
