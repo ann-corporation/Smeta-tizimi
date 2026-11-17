@@ -217,20 +217,20 @@ const toNomzod =(n: MoslashNomzod): TanlovNomzodi => ({ id: n.id, kod: n.kod, no
 export function avtoTanlov(k: AiKatalog, ish: Pick<IshNiyati, 'qidiruv' | 'birlik' | 'toplam'> & { tavsif?: string; id?: string; bolim?: string }, boshqalar: readonly AiIsh[] = [], limit = 20, xotira: Xotira | null = null): AvtoNatija | null {
   if (!k.allWorks) return null;
   const t0 = performance.now();
-  const codeQueries = ish.qidiruv.filter(q => KOD.test(q.trim()));
-  const exact = new Map(codeQueries.flatMap(q => exactWorkIndex(k).get(exactCode(q)) ?? []).map(w => [w.id, w]));
+  const codeQueries = new Set(ish.qidiruv.filter(q => KOD.test(q.trim())).map(exactCode));
+  const exact = new Map([...codeQueries].flatMap(q => exactWorkIndex(k).get(q) ?? []).map(w => [w.id, w]));
   if (exact.size) {
     const compatible = [...exact.values()].map(w => ({ w, unitMatch: birlikMos(k, w, ish.birlik) })).filter(x => x.unitMatch !== false);
     const candidates: TanlovNomzodi[] = compatible.slice(0, limit).map(({ w, unitMatch }) => ({ id: w.id, kod: w.code, nom: w.name ?? '',
       birlik: workMeasure(k, w.unitCode), jadval: k.tableLabel(w.id), toplam: k.collectionTitle?.(w.collection) ?? w.collection ?? null,
-      ishonch: exact.size === 1 && unitMatch === true && w.name?.trim() ? 0.99 : 0.5 }));
+      ishonch: codeQueries.size === 1 && exact.size === 1 && unitMatch === true && w.name?.trim() ? 0.99 : 0.5 }));
     const only = candidates[0];
     const avto = only?.ishonch === 0.99 ? { workId: only.id, kod: only.kod, nom: only.nom, birlik: only.birlik, sabab: 'shifr bo‘yicha aniq topildi' } : null;
     return { nomzodlar: candidates, avto, holat: avto ? 'KOD' : candidates.length ? 'TEKSHIRISH' : 'TOPILMADI',
       ...(!avto && { kodTekshirish: true }), ms: Math.round((performance.now() - t0) * 100) / 100 };
   }
   const matnli = ish.qidiruv.filter(q => !KOD.test(q.trim()));
-  if (codeQueries.length && !matnli.length) return { nomzodlar: [], avto: null, holat: 'TOPILMADI', kodTekshirish: true, ms: Math.round((performance.now() - t0) * 100) / 100 };
+  if (codeQueries.size && !matnli.length) return { nomzodlar: [], avto: null, holat: 'TOPILMADI', kodTekshirish: true, ms: Math.round((performance.now() - t0) * 100) / 100 };
   const nm = moslashOl(k)!;
   const izoh = `${ish.tavsif ?? ''} ${ish.qidiruv.join(' ')}`;
   const sonlar = tavsifSonlari(ish.tavsif);
@@ -254,6 +254,7 @@ export function avtoTanlov(k: AiKatalog, ish: Pick<IshNiyati, 'qidiruv' | 'birli
   const shortlist = raw.map((h): TanlovNomzodi => { const top = r.nomzodlar.find(n => n.id === h.d.w.id); return top ? toNomzod(top) : { id: h.d.w.id, kod: h.d.w.code, nom: h.d.w.name ?? '', birlik: workMeasure(k, h.d.w.unitCode),
     jadval: k.tableLabel(h.d.w.id), toplam: k.collectionTitle?.(h.d.w.collection) ?? h.d.w.collection ?? null }; });
   const ms = Math.round((performance.now() - t0) * 100) / 100;
+  if (codeQueries.size) return { nomzodlar: shortlist, avto: null, holat: shortlist.length ? 'TEKSHIRISH' : 'TOPILMADI', kodTekshirish: true, ms };
   const top = r.tanlangan;
   return { nomzodlar: shortlist, holat: r.holat, ms,
     avto: top ? { workId: top.id, kod: top.kod, nom: top.nom, birlik: top.birlik, sabab: `tizim tanlovi (ishonch ${Math.round(top.ishonch * 100)}%; ${top.sabab.join(', ') || 'nom bo‘yicha eng yaqin'}) — tekshiring` } : null };

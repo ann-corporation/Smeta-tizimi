@@ -154,7 +154,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
       if (i.tanlangan) return i;
       const r = avtoTanlov(katalog, i, list, 20, xotira);
       if (r?.kodTekshirish) kodTekshirish.add(i.id);
-      if (i.nomzodlar.length && !r?.kodTekshirish) return i;
+      if (i.nomzodlar.length && !r?.kodTekshirish && r?.holat !== 'KOD') return i;
       if (!r) return { ...i, nomzodlar: nomzodlarTop(katalog, i) };
       return { ...i, nomzodlar: r.nomzodlar, tanlangan: !i.tanlangan && r.avto ? r.avto : i.tanlangan };
     });
