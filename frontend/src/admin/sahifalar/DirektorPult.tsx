@@ -14,6 +14,7 @@ import { SmetaJamiJuft } from '../../umumiy/ui/SmetaJamiJuft';
 import { smetaJuftlik } from '../../lib/smeta-jami';
 import { FmtN } from '../../lib/format';
 import { t } from '../../i18n/til';
+import { SinovBoshlash } from '../components/SinovBoshlash';
 import { useRahbarPult, type RahbarPult } from '../../api/t2-rahbar-pult';
 
 /** Plitka: sarlavha, katta raqam, izoh; butun plitka havola. */
@@ -109,6 +110,7 @@ export default function DirektorPult() {
         </button>
       </>}>
       <div className="os-workbench mx-auto flex w-full max-w-[1280px] flex-col gap-4 text-text">
+        <SinovBoshlash />
         {q.isLoading && <Skelet qatorlar={6} />}
         {q.isError && (
           <div role="alert" className="fz-note fz-note--danger">
