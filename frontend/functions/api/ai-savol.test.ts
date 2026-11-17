@@ -13,6 +13,7 @@ import { warehouseIntent } from '../_shared/jarvis/warehouse';
 import { discrepancyIntent } from '../_shared/jarvis/discrepancies';
 import { cumulativeIntent } from '../_shared/jarvis/cumulative';
 import { estimateRowIntent } from '../_shared/jarvis/estimate-row';
+import { approvalsIntent } from '../_shared/jarvis/approvals';
 import { onRequestPost } from './ai-savol';
 
 const object = { id: 34, nom: 'Sinov Bino' };
@@ -25,6 +26,8 @@ let discrepancies: () => Response;
 let cumulative: () => Response;
 let estimate: () => Response;
 let tasks: () => Response;
+let inbox: () => Response;
+let chain: (chainId: number) => Response;
 type TaskReply = { javob?: string; dalil?: unknown };
 const rpc = vi.fn(async (input: string, _init?: RequestInit) => {
   switch (input.split('/').at(-1)) {
@@ -39,6 +42,8 @@ const rpc = vi.fn(async (input: string, _init?: RequestInit) => {
     case 't2_nakopitelniy_v2': return cumulative();
     case 't2_jarvis_smeta_qator_aniq_v1': return estimate();
     case 't2_topshiriqlar_v1': return tasks();
+    case 't2_hujjat_kiruvchi_v1': return inbox();
+    case 't2_hujjat_zanjir_tafsilot_v1': return chain(JSON.parse(String(_init?.body)).p_zanjir_id);
     case 't2_agent_muhit_v1': return Response.json({ ok: true, qoidalar: [], xotira: [], manbalar: [] });
     default: return Response.json({ ok: true });
   }
@@ -62,6 +67,8 @@ beforeEach(() => {
   });
   cumulative = () => Response.json(cumulativeFixture());
   tasks = () => Response.json({ ok: true, qatorlar: [], keyingi_id: null });
+  inbox = () => Response.json({ ok: true, zanjirlar: [] });
+  chain = () => Response.json({ ok: false });
   estimate = () => Response.json({ ok: true, obyekt_id: 34, kompaniya_id: 17,
     qatorlar: [{ id: 21, kod: 'Е06-01-001-1 К-8', nom: 'Пример работы', tur: 'bl', hajm: null, birlik: 'м³',
       ierarxiya: ['Надземная часть', 'Узел А'], ierarxiya_toliq: true }] });
@@ -77,6 +84,38 @@ beforeEach(() => {
   vi.stubGlobal('fetch', rpc);
 });
 afterEach(() => vi.unstubAllGlobals());
+
+it.each([
+  ['Qaysi hujjatlarni tasdiqlashim kerak?', 'Tasdiqlash navbati'],
+  ['Қайси ҳужжатларни тасдиқлашим керак?', 'Тасдиқлаш навбати'],
+  ['Какие документы мне нужно согласовать?', 'Очередь согласования'],
+])('shows active decisions for the actor’s object and company: %s', async (question, title) => {
+  men = () => Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: 17, effective_role: 'pto', permissions: ['document.read'] }] });
+  inbox = () => Response.json({ ok: true, zanjirlar: [
+    { id: 50, sarlavha: 'Sinov hujjati', muddat: '2026-11-18' },
+    { id: 49, sarlavha: 'Другой объект', muddat: null },
+    { id: 48, sarlavha: 'Чужая очередь', muddat: null },
+    { id: 47, sarlavha: 'Неверный ответ', muddat: null },
+  ] });
+  chain = chainId => Response.json({ ok: true, zanjir: { id: chainId === 47 ? 400 : chainId,
+    holat: 'jarayonda', obyekt_id: chainId === 49 ? 35 : 34 }, qadamlar: [{ holat: 'navbat', men: chainId !== 48 }] });
+  const body = await (await run(question, 17, { obyekt_id: 34 })).json() as TaskReply;
+  expect(body).toMatchObject({ javob: expect.stringContaining(title), dalil: { zanjir_ids: [50], toliq: false, yol: '/admin/hujjat-aylanish' } });
+  expect(body.javob).toContain('[Sinov hujjati](/admin/hujjat-aylanish?zanjir=50) · 2026-11-18');
+  expect(body.javob).not.toMatch(/Другой|Чужая|Неверный/);
+  expect(JSON.parse(String(called('t2_hujjat_kiruvchi_v1')[0][1]?.body))).toEqual({ p_actor_id: 7, p_kompaniya_id: 17 });
+  expect(called('t2_hujjat_zanjir_qaror_v1')).toHaveLength(0);
+  expect(ai).not.toHaveBeenCalled();
+});
+
+it('refuses approval reads for roles without a decision right, and leaves writes on their own route', async () => {
+  men = () => Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: 17, effective_role: 'omborchi', permissions: ['document.read'] },
+    { kompaniya_id: 18, effective_role: 'pto', permissions: ['document.read'] }] });
+  expect(await (await run('Qaysi hujjatlarni tasdiqlashim kerak?')).json()).toMatchObject({ rad: true });
+  expect(called('t2_hujjat_kiruvchi_v1')).toHaveLength(0);
+  expect(approvalsIntent('Утверди документ, который ждёт моего согласования')).toBe(false);
+  expect(approvalsIntent('Тасдиқлаб бер, менинг тасдиғим керак')).toBe(false);
+});
 
 it.each([
   ['Bugungi topshiriqlarim qanday?', 'Bugun muddati'],

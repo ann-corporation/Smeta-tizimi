@@ -13,6 +13,7 @@ import { discrepancyAnswer, discrepancyIntent } from './discrepancies';
 import { cumulativeAnswer, cumulativeIntent } from './cumulative';
 import { estimateRowAnswer, estimateRowIntent } from './estimate-row';
 import { taskListAnswer, taskListIntent } from './tasks';
+import { approvalsAnswer, approvalsIntent } from './approvals';
 import { normAnswer, normReference } from './normative';
 import { jarvisLanguage, jarvisText } from './reply-language';
 import { callJarvisModel, type JarvisModelEnv } from './model';
@@ -108,6 +109,11 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
   if (estimateCode) {
     const signal = AbortSignal.timeout(3500);
     const answer = await estimateRowAnswer((name, body) => rpcData(env, name, body, signal), objectScope, estimateCode, men ?? null);
+    return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
+  }
+  if (so.studio == null && approvalsIntent(savol)) {
+    const signal = AbortSignal.timeout(3500);
+    const answer = await approvalsAnswer((name, body) => rpcData(env, name, body, signal), objectScope, men ?? null);
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
   }
   const tasks = so.studio == null && !navigatsiyaSorovi(savol) ? taskListIntent(savol) : null;
