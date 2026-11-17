@@ -103,9 +103,11 @@ export function kartaMatni(j: Javob, til: TgTil): string {
       return [tgT('Qaysi material? Aniqroq nomini yozing yoki ovoz yuboring:', til), ...nomz.slice(0, 5).map((x) => `• ${ish(x.nomi)} (${ish(x.birligi)}, ${SON_FORMAT(Number(x.qoldiq))})`)].join('\n');
     case 'qoldiq_yetmaydi': return `${tgT('Ostatka yetmaydi', til)}: ${SON_FORMAT(Number(j.hozirgi_qoldiq))} < ${SON_FORMAT(Number(j.sorlagan))}`;
     case 'yozuv_tanlang': return [tgT('Qaysi yozuv? Raqamini yozing (masalan: #123 ni 50 ga o‘zgartir):', til), ...(((j.nomzodlar_yozuv as Record<string, unknown>[] | undefined) ?? []).slice(0, 5).map((x) => `#${ish(x.id)} ${ish(x.sana)} ${ish(x.nomi)} ${SON_FORMAT(Number(x.obyomi))} ${ish(x.birligi)}`))].join('\n');
-    case 'toldirish_kerak': return tgT('Yetarli ma’lumot yo‘q: ', til) + ((j.yetishmaydi as string[] | undefined) ?? []).join(', ');
+    // Server bitta qisqa aniqlovchi savol beradi («kirimmi yoki chiqimmi?», «qaysi yetkazuvchi: A yoki B?») — foydalanuvchi to'liqroq yozib qayta yuboradi.
+    case 'savol': return typeof j.savol === 'string' && j.savol ? j.savol : tgT('Tushunmadim.', til);
+    case 'toldirish_kerak': return typeof j.savol === 'string' && j.savol ? j.savol : tgT('Yetarli ma’lumot yo‘q: ', til) + ((j.yetishmaydi as string[] | undefined) ?? []).join(', ');
     case 'obyekt_tanlang': return tgT('Qaysi obyekt?', til) + ' ' + ((j.nomzodlar_obyekt as { nom?: string }[] | undefined) ?? []).map((o) => o.nom).join(' / ');
-    case 'tushunilmadi': return tgT('Tushunmadim. Masalan: «sement 10 tonna keldi» yoki «mix 20 kg prorab Aliga berdim».', til);
+    case 'tushunilmadi': return typeof j.savol === 'string' && j.savol ? j.savol : tgT('Tushunmadim. Masalan: «sement 10 tonna keldi» yoki «mix 20 kg prorab Aliga berdim».', til);
     default: return tgT('Tushunmadim.', til);
   }
 }

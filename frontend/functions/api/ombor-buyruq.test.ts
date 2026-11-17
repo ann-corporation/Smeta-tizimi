@@ -9,7 +9,7 @@ vi.mock('../_shared/ai-hisobli', () => ({
   AiByudjetXatosi: class extends Error { constructor(readonly kod: string, readonly xabar: string) { super(kod); } },
 }));
 import { AiByudjetXatosi } from '../_shared/ai-hisobli';
-import { onRequestPost } from './ombor-buyruq';
+import { onRequestPost, taklifKeshTozala } from './ombor-buyruq';
 import { toshkentBugun } from '../../src/lib/ombor-moslash/davr';
 
 // Faqat sintetik ma'lumot.
@@ -43,7 +43,7 @@ beforeEach(() => {
     return Response.json(u.includes('/rest/v1/t2_sklad_harakat') ? harakatQator : u.includes('t2_ombor_narx_keyin') ? narxKeyin : []);
   }));
 });
-afterEach(() => { vi.unstubAllGlobals(); vakolatKeshTozala(); });
+afterEach(() => { vi.unstubAllGlobals(); vakolatKeshTozala(); taklifKeshTozala(1, 9); });
 const yozuvlar = () => chaqiruvlar.filter((c) => /^t2_ombor_(prixod|chiqim|tuzat|alias)/.test(c.nom));
 
 it('anonim so\'rov hech qanday chaqiruvsiz 401', async () => {
@@ -142,9 +142,9 @@ it('past ishonchli matn LLM ga (aiHisobli) o\'tadi; byudjet tugasa 402', async (
   expect(ai.aiHisobli).toHaveBeenCalledTimes(1); expect(ai.aiHisobli.mock.calls[0][1]).toBe(7);
   expect(j.llm).toBe(true); expect(j.holat).toBe('tasdiq_kerak');
   ai.aiHisobli.mockRejectedValueOnce(new AiByudjetXatosi('BYUDJET_TUGADI', 'limit tugadi'));
-  // byudjet tugasa: bepul tahlil natijasi saqlanadi, sabab ai_xabar da; hech narsa yozilmaydi
+  // byudjet tugasa: bepul tahlil natijasi saqlanadi (raqam so'zi «o'n besh» ham deterministik o'qiladi), sabab ai_xabar da; hech narsa yozilmaydi
   const r = await post({ amal: 'tahlil', kompaniya_id: 1, sklad_id: 9, matn: 'o\'n besh tonna sement keldi' });
-  expect(await r.json()).toMatchObject({ holat: 'toldirish_kerak', ai_xabar: 'limit tugadi' });
+  expect(await r.json()).toMatchObject({ holat: 'tasdiq_kerak', ai_xabar: 'limit tugadi', preview: { miqdor: 15 } });
   expect(yozuvlar().length).toBe(0);
   // hech narsa tushunilmasa — 402
   ai.aiHisobli.mockRejectedValueOnce(new AiByudjetXatosi('BYUDJET_TUGADI', 'limit tugadi'));

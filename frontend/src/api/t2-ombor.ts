@@ -24,7 +24,11 @@ export type OmborBuyruqNatija = {
   buyruq?: { amal: string; nomi: string | null; miqdor: number | null; birlik: string | null };
   preview?: Record<string, unknown>; nomzodlar?: OmborNomzod[]; nomzodlar_yozuv?: OmborHarakat[]; nomzodlar_obyekt?: { id: number; nom: string }[];
   material?: OmborNomzod; tarix?: OmborTarix; yetishmaydi?: string[]; hozirgi_qoldiq?: number; sorlagan?: number;
+  /** «Tushunmadim» o'rniga bitta qisqa aniqlovchi savol (+ bosiladigan takliflar; tanlov keyingi so'rovga `tanlov` sifatida qo'shiladi). */
+  savol?: string | null; variantlar?: OmborSavolVariant[];
 };
+export type OmborTanlov = { nomi?: string; birligi?: string; amal?: 'prixod' | 'chiqim'; kontragent?: string };
+export type OmborSavolVariant = { yorliq: string; tanlov: OmborTanlov };
 
 /** Aqlli taklif (kirim/chiqim): shu ombor tarixidan material, birlik, odatiy miqdor, narx (QQS siz/bilan), yetkazuvchi. */
 export type OmborTaklif = {
@@ -87,7 +91,7 @@ export const omborTuzat = (k: number, s: number, p: { harakat_id: number; yangi:
   chaqir<{ ok: true; takror?: boolean; teskari_id: number; yangi_id?: number }>({ amal: 'tuzat', ...asos(k, s), ...p });
 export const omborAlias = (k: number, s: number, kanonik: string, variantlar: string[], operationId: string) =>
   chaqir<{ ok: true; variantlar: number }>({ amal: 'alias', ...asos(k, s), kanonik, variantlar, operation_id: operationId });
-export const omborTahlilMatn = (k: number, s: number, matn: string, tanlov?: { nomi: string; birligi: string }, narxRejim?: 'bilan' | 'siz') =>
+export const omborTahlilMatn = (k: number, s: number, matn: string, tanlov?: OmborTanlov, narxRejim?: 'bilan' | 'siz') =>
   chaqir<OmborBuyruqNatija>({ amal: 'tahlil', ...asos(k, s), matn, ...(tanlov ? { tanlov } : {}), ...(narxRejim ? { narx_rejim: narxRejim } : {}) });
 export function omborTahlilOvoz(k: number, s: number, audio: Blob, til = 'auto') {
   const f = new FormData();
