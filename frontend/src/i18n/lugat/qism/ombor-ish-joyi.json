@@ -190,5 +190,9 @@
   "Omborchi": {
     "ru": "Кладовщик",
     "en": "Storekeeper"
+  },
+  "Boshqa nom kerakmi? Eslatmadan tanlang": {
+    "ru": "Нужно другое название? Выберите из ранее введённых",
+    "en": "Need another name? Pick from those entered before"
   }
 }

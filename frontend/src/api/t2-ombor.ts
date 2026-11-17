@@ -17,6 +17,8 @@ export type OmborXato = { ok: false; code?: string; xabar?: string };
 export type OmborFiltr = { qidir?: string; birlik?: string; tur?: string; musbat?: '1' | '0'; tartib?: 'nom' | 'qoldiq'; dan?: string; gacha?: string; operatsiya?: 'prixod' | 'rasxod'; yetkazuvchi?: string };
 
 export type OmborNomzod = { nomi: string; birligi: string; qoldiq: number; ball: number; kalit: string; variantlar_soni: number };
+/** Eslatma: shu ombor oldin kiritgan material (variant guruhi emas): nom, birlik, oxirgi yetkazuvchi / qabul qiluvchi, narx (bo'lsa). */
+export type OmborEslatma = { nomi: string; birligi: string; soni: number; oxirgi_sana: string | null; postavshik: string | null; qabul_qiluvchi: string | null; narx: number | null };
 export type OmborBuyruqNatija = {
   ok: true; holat: string; matn?: string; llm?: boolean; ai_xabar?: string; token?: string;
   buyruq?: { amal: string; nomi: string | null; miqdor: number | null; birlik: string | null };
@@ -44,6 +46,8 @@ export const omborRoyxat = (k: number, s: number, filtr: OmborFiltr = {}, limit 
   chaqir<OmborRoyxat>({ amal: 'royxat', ...asos(k, s), filtr, limit, offset });
 export const omborTarix = (k: number, s: number, kalit: string, birlik: string, limit = 100, offset = 0) =>
   chaqir<OmborTarix>({ amal: 'tarix', ...asos(k, s), kalit, birlik, limit, offset });
+export const omborEslatma = (k: number, s: number, q: string, limit = 8) =>
+  chaqir<{ ok: true; takliflar: OmborEslatma[] }>({ amal: 'eslatma', ...asos(k, s), q, limit });
 export type YozInput = { operatsiya: 'prixod' | 'chiqim'; nomi: string; birligi: string; miqdor: string; sana?: string; kontragent?: string; tur?: string; izoh?: string; obyekt_id?: number | null; operation_id: string };
 export const omborYoz = (k: number, s: number, y: YozInput) =>
   chaqir<{ ok: true; takror?: boolean; harakat_id: number; qoldiq_keyin?: number }>({ amal: 'yoz', ...asos(k, s), ...y });

@@ -21,6 +21,7 @@ import { onRequestGet as hujjatOlGet } from '../hujjat-ol';
 import { onRequestPost as hujjatYaratPost } from '../hujjat-yarat';
 import { onRequestGet as tomonGet, onRequestPost as tomonPost } from '../tomon';
 import { onRequestGet as telegramGet, onRequestPost as telegramPost } from '../telegram/index';
+import { onRequestPost as omborBuyruqPost } from '../ombor-buyruq';
 
 // Native Android BFF (P0). Same trust model as api/desktop/bff.ts: verified device Bearer -> server-only cookie -> unchanged
 // middleware + handler. Roles never come from the token; the unchanged middleware derives fresh authority from the database.
@@ -51,8 +52,10 @@ const handlers: Record<string, Record<string, PagesFunction<Env>>> = {
   // P10: texnadzor acceptance (tomon: nazorat sections + decision) and notification preferences (telegram: holat + sozlama). Allow-listed below.
   '/api/tomon': { GET: tomonGet, POST: tomonPost },
   '/api/telegram': { GET: telegramGet, POST: telegramPost },
+  // Omborchi yagona nuqtasi (matn/ovoz buyrug'i, eslatma, ostatka, tasdiq). Ruxsat/aktor serverda (sessiya cookie'si BFF'dan); ovoz JSON udio_b64 sifatida.
+  '/api/ombor-buyruq': { POST: omborBuyruqPost },
 } as never;
-export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|obyekt-tugun-summa|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol|agent-ish|qulf|hujjat-royxat|hujjat-ol|hujjat-yarat|tomon|telegram)(?:\?[^#\s]*)?$/;
+export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|obyekt-tugun-summa|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol|agent-ish|qulf|hujjat-royxat|hujjat-ol|hujjat-yarat|tomon|telegram|ombor-buyruq)(?:\?[^#\s]*)?$/;
 /** /api/profil also hosts account-security actions (parol, google/telegram ulash, hisob_birlashtir, usul_uz, birlashtir_*): the native device token may NOT reach them.
  *  Exposed: GET (own profile + session window), the @username / people-search / invite-answer actions (USERNAME_V1), `yangila` (name, phone, language, avatar colour)
  *  and `boshqa_sessiyalar_chiqish` (sign out everywhere; the BFF re-enrols THIS device so it stays signed in, see reissueDevice). */
@@ -62,6 +65,8 @@ export const MOBIL_TOMON_OQISH: ReadonlySet<string> = new Set(['nazorat_uy','naz
 export const MOBIL_TOMON_YOZISH: ReadonlySet<string> = new Set(['nazorat_qaror','izoh','qator_izoh']);
 /** /api/telegram: status + notification preferences only (never kod / uz / admin_*). */
 export const MOBIL_TELEGRAM_AMAL: ReadonlySet<string> = new Set(['sozlama']);
+/** /api/ombor-buyruq: omborchi buyrug'i va o'qishlar. eksport (ikkilik fayl, token yechiladi) va lias (variant birlashtirish) qurilmaga ochilmaydi. Ruxsat va yozish tokeni serverda. */
+export const MOBIL_OMBOR_AMAL: ReadonlySet<string> = new Set(['kontekst','qoldiq','royxat','tarix','eslatma','tahlil','tasdiq','yoz','tuzat']);
 /** /api/kirish-taklif is public-by-design (qabul = sign-up without a session): the device may only reach yarat (director creates a phone invite link/code). */
 export const MOBIL_TAKLIF_AMAL: ReadonlySet<string> = new Set(['yarat']);
 const amalRuxsat = (amallar: ReadonlySet<string>, method: string, body: unknown): boolean => {
@@ -78,6 +83,7 @@ export function yolRuxsat(target: URL, method: string, body: unknown): boolean {
     case '/api/profil': return method === 'GET' || amalRuxsat(MOBIL_PROFIL_AMAL, method, body);
     case '/api/kirish-taklif': return amalRuxsat(MOBIL_TAKLIF_AMAL, method, body);
     case '/api/agent-ish': return amalRuxsat(MOBIL_AGENT_AMAL, method, body);
+    case '/api/ombor-buyruq': return amalRuxsat(MOBIL_OMBOR_AMAL, method, body);
     case '/api/telegram': return method === 'GET' || amalRuxsat(MOBIL_TELEGRAM_AMAL, method, body);
     case '/api/tomon': return method === 'GET' ? MOBIL_TOMON_OQISH.has(target.searchParams.get('bolim') ?? '') : amalRuxsat(MOBIL_TOMON_YOZISH, method, body);
     default: return true;

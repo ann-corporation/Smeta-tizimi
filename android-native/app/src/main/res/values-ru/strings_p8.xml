@@ -146,5 +146,8 @@
     <string name="ombor_cmd_m_forbidden">У вас нет прав на это действие.</string>
     <string name="ombor_cmd_m_unclear">Не понял. Повторите или напишите.</string>
     <string name="ombor_cmd_m_unavailable">Голосовые команды на сервере ещё не включены.</string>
+    <string name="ombor_cmd_m_stock">На складе недостаточно остатка.</string>
+    <string name="ombor_cmd_m_nowarehouse">Центральный склад не найден. Сначала выберите склад.</string>
+    <string name="ombor_cmd_suggest">Ранее введённые названия</string>
     <string name="ombor_cmd_m_failed">Команда не выполнена. Повторите позже.</string>
     <string name="ombor_computed_note">Остаток рассчитан по движениям прихода и расхода.</string></resources>
