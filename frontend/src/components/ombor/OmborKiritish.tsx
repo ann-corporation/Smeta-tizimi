@@ -5,7 +5,7 @@ import { toast } from '../../umumiy/ui/Toast';
 import { yangiOperationId } from '../../api/supabase';
 import {
   omborTahlilMatn, omborTahlilOvoz, omborTaklif, omborTasdiq, omborYoz,
-  type OmborBuyruqNatija, type OmborKontragentTaklif, type OmborNomzod, type OmborTaklif,
+  type OmborBuyruqNatija, type OmborKontragentTaklif, type OmborNomzod, type OmborTaklif, type OmborTanlov,
 } from '../../api/t2-ombor';
 import { omborXatoMatni } from './ombor-xato';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
@@ -89,7 +89,7 @@ export function OmborKiritish({ kompaniyaId, skladId, onYozildi }: { kompaniyaId
     if (!r.ok) { setNatija(null); setXato(omborXatoMatni(r.code, r.xabar)); return; }
     setNatija(r); if (r.matn) setMatn(r.matn);
   };
-  const yubor = async (tanlov?: { nomi: string; birligi: string }, rejimTanlov?: Rejim) => {
+  const yubor = async (tanlov?: OmborTanlov, rejimTanlov?: Rejim) => {
     if (!matn.trim()) return; setXato(null); setBand(true); setOchiq(false);
     tahlilNatija(await omborTahlilMatn(kompaniyaId, skladId, matn.trim(), tanlov, rejimTanlov ?? rejimOl(kompaniyaId, skladId)));
   };
@@ -188,12 +188,12 @@ export function OmborKiritish({ kompaniyaId, skladId, onYozildi }: { kompaniyaId
         {band && <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />}{t('Saqlash')}</button>
     </form>}
 
-    {natija && <NatijaBlok natija={natija} band={band} onTasdiq={() => void tasdiqla()} onBekor={() => setNatija(null)} onTanlov={(g) => void yubor({ nomi: g.nomi, birligi: g.birligi })} onRejim={(r) => { rejimTanla(r); void yubor(undefined, r); }} />}
+    {natija && <NatijaBlok natija={natija} band={band} onTasdiq={() => void tasdiqla()} onBekor={() => setNatija(null)} onTanlov={(g) => void yubor({ nomi: g.nomi, birligi: g.birligi })} onVariant={(v) => void yubor(v)} onRejim={(r) => { rejimTanla(r); void yubor(undefined, r); }} />}
   </div>;
 }
 
 /* ───────────── gap/ovoz buyrug'i natijasi: tasdiq kartasi, ostatka, hisobot ───────────── */
-function NatijaBlok({ natija, band, onTasdiq, onBekor, onTanlov, onRejim }: { natija: OmborBuyruqNatija; band: boolean; onTasdiq: () => void; onBekor: () => void; onTanlov: (g: OmborNomzod) => void; onRejim: (r: Rejim) => void }) {
+function NatijaBlok({ natija, band, onTasdiq, onBekor, onTanlov, onVariant, onRejim }: { natija: OmborBuyruqNatija; band: boolean; onTasdiq: () => void; onBekor: () => void; onTanlov: (g: OmborNomzod) => void; onVariant: (v: OmborTanlov) => void; onRejim: (r: Rejim) => void }) {
   const p = natija.preview as Record<string, unknown> | undefined;
   const boshqalar = (natija.nomzodlar ?? []).filter((g) => g.nomi !== p?.nomi).slice(0, 4);
   if (natija.holat === 'tasdiq_kerak' && p) {
@@ -222,6 +222,13 @@ function NatijaBlok({ natija, band, onTasdiq, onBekor, onTanlov, onRejim }: { na
     {natija.tarix?.qatorlar?.slice(0, 8).map((x) => <p key={x.id} className="m-0 py-0.5">{x.sana} {x.operatsiya === 'prixod' ? '+' : '−'}{n(x.obyomi)} {x.birligi} #{x.id}</p>)}</div>;
   if (natija.holat === 'yozuv_tanlang') return <div className="text-[13px]"><p className="m-0 mb-1 text-text-dim">{t('Tuzatish uchun aniq yozuvni tanlang — ro‘yxatdan «Tuzatish» tugmasidan foydalaning yoki buyruqqa yozuv raqamini qo‘shing (#123).')}</p>
     {natija.nomzodlar_yozuv?.map((x) => <p key={x.id} className="m-0 py-0.5">#{x.id} {x.sana} {x.nomi} {n(x.obyomi)} {x.birligi}</p>)}</div>;
+  // «Tushunmadim» o'rniga: server bitta qisqa savol beradi (+ bosiladigan takliflar: kirim/chiqim, yetkazuvchi, material).
+  if (natija.savol && (natija.holat === 'savol' || natija.holat === 'tushunilmadi' || natija.holat === 'toldirish_kerak')) {
+    return <div className="rounded-md border border-border p-3 text-[13px]" role="status">
+      <p className="m-0 text-text">{natija.savol}</p>
+      {(natija.variantlar ?? []).length > 0 && <div className="mt-2 flex flex-wrap gap-2">{(natija.variantlar ?? []).map((v) => <button key={v.yorliq} type="button" className="fz-btn min-h-[40px]" disabled={band} onClick={() => onVariant(v.tanlov)}>{v.yorliq}</button>)}</div>}
+    </div>;
+  }
   return <p className="m-0 text-[13px] text-warn">{natija.holat === 'qoldiq_yetmaydi' ? `${t('Ostatka yetmaydi')}: ${n(natija.hozirgi_qoldiq)} < ${n(natija.sorlagan)}` : natija.holat === 'toldirish_kerak' ? `${t('Yetarli ma’lumot yo‘q')}: ${(natija.yetishmaydi ?? []).join(', ')}` : t('Tushunmadim yoki ma’lumot yetarli emas. Aniqroq ayting.')}</p>;
 }
 

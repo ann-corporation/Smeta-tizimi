@@ -9,6 +9,7 @@ import { nomTokenlari } from '../../src/lib/ombor-moslash/moslash';
 import { davrFiltrdan, toshkentBugun } from '../../src/lib/ombor-moslash/davr';
 import { savolTahlil } from '../../src/lib/ombor-moslash/savol';
 import { narxRejimMatndan, narxRejimTekshir, narxSoni, type NarxRejim } from '../../src/lib/ombor-moslash/narx';
+import { xomOqi, type Qisman } from '../../src/lib/ombor-moslash/tushun';
 
 export type Amal = 'prixod' | 'chiqim' | 'qoldiq' | 'tuzat' | 'bekor' | 'tarix' | 'hisobot';
 export const AMALLAR: readonly Amal[] = ['prixod', 'chiqim', 'qoldiq', 'tuzat', 'bekor', 'tarix', 'hisobot'];
@@ -70,11 +71,14 @@ export function buyruqTekshir(x: unknown): Buyruq | null {
     const i = bosh(yo.izoh, 1000); if (i) yangi.izoh = i;
   }
   const hid = Number(o.harakat_id);
+  // LLM «jami summa» bergan bo'lsa (narx_turi: 'jami') — birlik narxiga keltiriladi.
+  const miq = musbat(o.miqdor); let narx = musbat(o.narx);
+  if (narx != null && miq && /^(?:jami|total|umumiy)$/i.test(String(o.narx_turi ?? ''))) narx = Math.round((narx / miq) * 100) / 100;
   return {
-    amal, nomi: bosh(o.nomi, 500), miqdor: musbat(o.miqdor), birlik: bosh(o.birlik ?? o.birligi, 100),
+    amal, nomi: bosh(o.nomi, 500), miqdor: miq, birlik: bosh(o.birlik ?? o.birligi, 100),
     kontragent: bosh(o.kontragent ?? o.postavshik ?? o.qabul_qiluvchi, 500), obyekt: bosh(o.obyekt, 200), sana: sanaTekshir(o.sana),
     harakat_id: Number.isSafeInteger(hid) && hid > 0 ? hid : null, yangi: Object.keys(yangi).length ? yangi : null, izoh: bosh(o.izoh, 1000),
-    davr: amal === 'hisobot' ? davrTekshir(o) : null, operatsiya: o.operatsiya === 'prixod' || o.operatsiya === 'rasxod' ? o.operatsiya : null, narx: musbat(o.narx), narx_rejim: narxRejimTekshir(o.narx_rejim),
+    davr: amal === 'hisobot' ? davrTekshir(o) : null, operatsiya: o.operatsiya === 'prixod' || o.operatsiya === 'rasxod' ? o.operatsiya : null, narx, narx_rejim: narxRejimTekshir(o.narx_rejim),
   };
 }
 
@@ -110,9 +114,30 @@ const sana0 = (hozir: Date, kunFarq: number): string => { const d = new Date(hoz
  * Bepul, deterministik tahlil. `ishonch`: 'yuqori' — niyat+nom+miqdor aniq; aks holda chaqiruvchi LLM ga o'tadi.
  * Raqam so'zlari («o'n», «десять»), murakkab tuzatishlar — LLM ishi.
  */
-export function oddiyTahlil(matn: string, hozir: Date = new Date()): { buyruq: Buyruq | null; ishonch: 'yuqori' | 'past' } {
+export function qismanBuyruq(q: Qisman, amal: 'prixod' | 'chiqim'): Buyruq {
+  return { amal, nomi: q.nomi, miqdor: q.miqdor, birlik: q.birlik, kontragent: q.kontragent, obyekt: q.obyekt, sana: q.sana, harakat_id: null, yangi: null, izoh: null, davr: null, operatsiya: null,
+    narx: amal === 'prixod' ? q.narx : null, narx_rejim: amal === 'prixod' && q.narx != null ? q.narx_rejim : null };
+}
+
+/** LLM buyrug'ini deterministik qism-natija bilan to'ldiradi: LLM bo'sh qoldirgan maydonlar (kontragent, narx, sana, obyekt...) matndan olinadi. */
+export function buyruqBirlashtir(l: Buyruq, q: Qisman | null): Buyruq {
+  if (!q || (l.amal !== 'prixod' && l.amal !== 'chiqim')) return l;
+  const narx = l.amal === 'prixod' ? l.narx ?? q.narx : null;
+  return { ...l, nomi: l.nomi ?? q.nomi, miqdor: l.miqdor ?? q.miqdor, birlik: l.birlik ?? q.birlik, kontragent: l.kontragent ?? q.kontragent, obyekt: l.obyekt ?? q.obyekt, sana: l.sana ?? q.sana, narx, narx_rejim: narx != null ? l.narx_rejim ?? q.narx_rejim : null };
+}
+
+export type OddiyNatija = { buyruq: Buyruq | null; ishonch: 'yuqori' | 'past'; qisman?: Qisman | null };
+export function oddiyTahlil(matn: string, hozir: Date = new Date()): OddiyNatija {
   const t = String(matn ?? '').replace(/\s+/g, ' ').trim().slice(0, 1000);
   if (!t) return { buyruq: null, ishonch: 'past' };
+  // Kirim/chiqim buyrug'i («10 qop sement keldi», «Akmaldan 2 tonna armatura 12 lik oldik 8 mln», «5 ta lampa chiqdi 3-blokka», «пришло 20 мешков цемента»):
+  // savol/tuzatish so'zi bo'lmasa — yangi qism-qism tahlil (savol tahlilidan OLDIN, birlik/fe'l yozilishi ko'p bo'lgani uchun).
+  const xom = xomOqi(t, hozir);
+  const savolBelgisi = /\?|(?<![\p{L}])(qancha|nechta|necha|сколько|qoldiq\p{L}*|ostatk\p{L}*|остат\p{L}*|hisobot|отч[её]т\p{L}*|nima|qaysi)(?![\p{L}])/iu.test(t);
+  const tuzatBekor = NIYAT.slice(0, 2).some(([, re]) => re.test(t));
+  if (!savolBelgisi && !tuzatBekor && xom.yonalish && xom.nomi && xom.miqdor != null) {
+    return { buyruq: qismanBuyruq(xom, xom.yonalish === 'prixod' ? 'prixod' : 'chiqim'), ishonch: xom.miqdorSozdan ? 'past' : 'yuqori', qisman: xom };
+  }
   // Savol («o'tgan oy sement qancha keldi», «bugungi qoldiq»): hisobot yoki sanadagi ostatka — buyruqdan oldin tekshiriladi.
   const savol = savolTahlil(t, toshkentBugun(hozir.getTime()));
   if (savol) {
@@ -123,7 +148,10 @@ export function oddiyTahlil(matn: string, hozir: Date = new Date()): { buyruq: B
     return { ishonch: 'yuqori', buyruq: { ...bosh0, amal: 'qoldiq', nomi: savol.nomi, kontragent: null, sana: savol.davr?.gacha ?? null, operatsiya: null, davr: null } as Buyruq };
   }
   const niyat = NIYAT.find(([, re]) => re.test(t))?.[0];
-  if (!niyat) return { buyruq: null, ishonch: 'past' };
+  const foydali = xom.yonalish != null || xom.taxmin != null || xom.miqdor != null;
+  const qisman = foydali && !savolBelgisi ? xom : null;
+  if (!niyat) return { buyruq: xom.yonalish && !savolBelgisi ? qismanBuyruq(xom, xom.yonalish === 'prixod' ? 'prixod' : 'chiqim') : null, ishonch: 'past', qisman };
+  if ((niyat === 'prixod' || niyat === 'chiqim') && !savolBelgisi) return { buyruq: qismanBuyruq(xom, xom.yonalish ?? niyat), ishonch: xom.nomi && xom.miqdor != null && !xom.miqdorSozdan ? 'yuqori' : 'past', qisman: xom };
   const bil = (n: string) => BIRLIK_KANON[n.toLowerCase().replace(/[.\s]/g, '')] ?? n.toLowerCase();
   let harakatId: number | null = null;
   const hm = /(?:#|№|\bid\s*|harakat\s*)(\d{1,12})\b/i.exec(t);
@@ -181,8 +209,18 @@ export const LLM_TIZIM_MATNI = [
   'yangi ({miqdor, sana, nomi, birligi, kontragent, izoh} — tuzatishda faqat o\'zgargan maydonlar), izoh.',
   'hisobot = davr bo\'yicha kirim-chiqim jadvali yoki «qancha keldi / nima olganmiz» savoli: davr_dan, davr_gacha (YYYY-MM-DD, aytilmasa null), operatsiya (prixod | rasxod | null), nomi (material), kontragent (yetkazuvchi yoki qabul qiluvchi).',
   'qoldiq so\'rovida sana (YYYY-MM-DD) — shu sanadagi ostatka; nomi aytilmasa null (hammasi).',
+  'narx (kirimda aytilgan narx, faqat son; «8 mln» = 8000000, «50 ming» = 50000), narx_turi (birlik | jami: «har biri/narxi/по» = birlik, «jami/umumiy/итого» yoki narx miqdordan keyin yakka aytilsa = jami), narx_rejim (bilan = «QQS bilan/с НДС», siz = «QQS siz/без НДС», aytilmasa null).',
+  'Kirim so\'zlari: keldi, oldik, kirim, prixod, qabul, пришло, приход, получили, завезли. Chiqim so\'zlari: chiqdi, berildi, berdik, ketdi, sarflandi, расход, выдано, списано. «3-blokka» = obyekt «3-blok».',
+  'Matn o\'zbek lotin/kirill, rus yoki aralash, imlo xatosi bilan bo\'lishi mumkin: ma\'noga qarab tushun. Nomni qisqa va toza yoz (miqdor, birlik, narx, yetkazuvchisiz).',
   'Raqam so\'zlarini son qil («o\'n besh» = 15). Hech narsani o\'ylab topma: aytilmagan maydon null. Boshqa matn yozma, faqat JSON.',
 ].join(' ');
+
+/** LLM ga ombor tarixidan yaqin nomlar ishora sifatida beriladi (moslashtirish uchun; buyruq emas). */
+export function llmIshora(materiallar: readonly string[], kontragentlar: readonly string[]): string {
+  const k = (a: readonly string[]) => a.slice(0, 25).map((x) => x.replace(/[\r\n"]+/g, ' ').slice(0, 60)).join('; ');
+  const m = k(materiallar), y = k(kontragentlar);
+  return (m ? ` Ombor tarixidagi materiallar (ishora): ${m}.` : '') + (y ? ` Kontragentlar (ishora): ${y}.` : '') + (m || y ? ' Matndagi nom shulardan biriga yaqin bo\'lsa, aynan shu yozilishda ber; aks holda matndagicha.' : '');
+}
 
 // ── tasdiq tokeni (HMAC-SHA256, stateless; Telegram uchun xabar matnida saqlanadi) ───────────────────────────────────────────────
 const enc = new TextEncoder();

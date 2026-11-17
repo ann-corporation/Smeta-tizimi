@@ -25,7 +25,8 @@ import { cachedAuthority, yopiqModul } from '../_shared/permission-policy';
 import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shared/role-authority';
 import { AiByudjetXatosi, aiHisobli, type HisobEnv } from '../_shared/ai-hisobli';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
-import { LLM_TIZIM_MATNI, buyruqTekshir, llmJsonOl, oddiyTahlil, tokenTekshir, tokenYarat, type Buyruq } from '../_shared/ombor-buyruq-yadro';
+import { LLM_TIZIM_MATNI, buyruqBirlashtir, buyruqTekshir, llmIshora, llmJsonOl, oddiyTahlil, qismanBuyruq, tokenTekshir, tokenYarat, type Buyruq } from '../_shared/ombor-buyruq-yadro';
+import { savolYasa, tarixNomlari, tarixdanMosla, type Qisman, type TarixNomlari } from '../../src/lib/ombor-moslash/tushun';
 import { onRequestPost as ovozPost } from './ombor-ovoz';
 import { birlikKaliti, nomKaliti } from '../../src/lib/ombor-moslash/moslash';
 import { ESLATMA_MANBALARI, eslatmaYigish, type EslatmaYozuv } from '../../src/lib/ombor-moslash/eslatma';
@@ -165,9 +166,15 @@ async function matnOl(ctx: Context, audio: Blob, kid: number, til: string): Prom
   return j?.ok && j.text ? { matn: j.text } : fail(j?.code ?? 'VOICE_UNAVAILABLE', r.status >= 400 ? r.status : 502);
 }
 
-async function llmTahlil(env: Env, aktorId: number, kid: number, matn: string, bugun: string): Promise<Buyruq | null> {
+/** Shu omborning kirim/chiqim tarixidan noyob nomlar (20 soniya keshda; jadval/xato bo'lsa null — moslash o'tkazib yuboriladi). */
+async function tarixOl(env: Env, kid: number, sid: number, tur: 'prixod' | 'chiqim'): Promise<TarixNomlari | null> {
+  const yoz = await taklifYukla(env, kid, sid, tur).catch(() => null);
+  return yoz ? tarixNomlari(yoz, tur) : null;
+}
+
+async function llmTahlil(env: Env, aktorId: number, kid: number, matn: string, bugun: string, ishora = ''): Promise<Buyruq | null> {
   const r = await aiHisobli(env, aktorId, kid, 'document_control', 'ombor_buyruq', {
-    system: LLM_TIZIM_MATNI + ` Bugungi sana: ${bugun}.`, text: matn.slice(0, 1000), temperature: 0, maxOutputTokens: 400, workload: 'utility', reasoning: { effort: 'none' },
+    system: LLM_TIZIM_MATNI + ` Bugungi sana: ${bugun}.` + ishora, text: matn.slice(0, 1000), temperature: 0, maxOutputTokens: 500, workload: 'utility', reasoning: { effort: 'none' },
   });
   return buyruqTekshir(llmJsonOl(r.text));
 }
@@ -297,26 +304,43 @@ async function tahlil(ctx: Context, s: Sess, kid: number, sid: number, b: Record
   let matn = typeof b.matn === 'string' ? b.matn.trim().slice(0, 1000) : '';
   let manba: 'matn' | 'ovoz' | 'forma' = 'matn';
   let buyruq: Buyruq | null = null; let llmIshlatildi = false; let aiXabar: string | null = null;
+  let qisman: Qisman | null = null;
   const bugun = new Date(Date.now() + 5 * 3600_000).toISOString().slice(0, 10);
+  const tanlov = b.tanlov && typeof b.tanlov === 'object' ? b.tanlov as { nomi?: unknown; birligi?: unknown; amal?: unknown; kontragent?: unknown } : null;
+  // Aniqlovchi savolga javob (mijoz tugma bosdi): yo'nalish yoki yetkazuvchi tanlovi shu so'rovda qo'llanadi.
+  const tanlovAmal = tanlov?.amal === 'prixod' || tanlov?.amal === 'chiqim' ? tanlov.amal : null;
+  const tanlovKontragent = typeof tanlov?.kontragent === 'string' && tanlov.kontragent.trim() ? tanlov.kontragent.trim().slice(0, 200) : null;
 
   if (b.buyruq && typeof b.buyruq === 'object') { buyruq = buyruqTekshir(b.buyruq); manba = 'forma'; if (!buyruq) return fail('BUYRUQ_NOTOGRI', 400); }
   else {
     if (audio) { const t = await matnOl(ctx, audio, kid, String(b.til ?? 'auto')); if (t instanceof Response) return t; matn = t.matn.slice(0, 1000); manba = 'ovoz'; }
     if (!matn) return fail('MATN_YOQ', 400);
+    // 1) deterministik (bepul) tahlil; 2) aniq bo'lmasa LLM (ombor tarixidan ishora bilan); 3) hali ham noaniq bo'lsa — bitta aniqlovchi savol.
     const o = oddiyTahlil(matn);
-    buyruq = o.buyruq;
-    if (!buyruq || o.ishonch !== 'yuqori') {
-      try { const l = await llmTahlil(env, aid, kid, matn, bugun); llmIshlatildi = true; if (l) buyruq = l; }
-      catch (e) {
-        if ((e as object) instanceof AiByudjetXatosi) { if (!buyruq) return json({ ok: false, code: (e as AiByudjetXatosi).kod, xabar: (e as AiByudjetXatosi).xabar, matn }, 402); aiXabar = (e as AiByudjetXatosi).xabar; }
-        else if (!buyruq) return fail('AI_UNAVAILABLE', 503, { matn });
+    buyruq = o.buyruq; qisman = o.qisman ?? null;
+    if (qisman && tanlovAmal && (!buyruq || buyruq.amal === 'prixod' || buyruq.amal === 'chiqim')) buyruq = qismanBuyruq(qisman, tanlovAmal);
+    const aniq = o.ishonch === 'yuqori' || (tanlovAmal != null && !!buyruq?.nomi && !!buyruq.miqdor);
+    if (!buyruq || !aniq) {
+      try {
+        const tn = await tarixOl(env, kid, sid, 'prixod');
+        const l = await llmTahlil(env, aid, kid, matn, bugun, tn ? llmIshora(tn.materiallar, tn.kontragentlar) : '');
+        llmIshlatildi = true;
+        if (l) buyruq = buyruqBirlashtir(tanlovAmal && (l.amal === 'prixod' || l.amal === 'chiqim') ? { ...l, amal: tanlovAmal } : l, qisman);
+      } catch (e) {
+        if ((e as object) instanceof AiByudjetXatosi) { if (!buyruq && !qisman) return json({ ok: false, code: (e as AiByudjetXatosi).kod, xabar: (e as AiByudjetXatosi).xabar, matn }, 402); aiXabar = (e as AiByudjetXatosi).xabar; }
+        else if (!buyruq && !qisman) return fail('AI_UNAVAILABLE', 503, { matn });
       }
     }
   }
-  if (!buyruq) return json({ ok: true, holat: 'tushunilmadi', matn });
+  if (!buyruq) {
+    // «Tushunmadim» o'rniga: tushunilgan qismni ko'rsatib, BITTA qisqa savol (+ takliflar).
+    const tn = qisman && !qisman.nomi ? await tarixOl(env, kid, sid, qisman.yonalish === 'chiqim' ? 'chiqim' : 'prixod') : null;
+    const sv = savolYasa(qisman, { materiallar: tn?.materiallar });
+    await audit(env, kid, sid, 'ombor_buyruq_tahlil', aid, `manba=${manba}; amal=savol; llm=${llmIshlatildi}; kod=${sv?.kod ?? '-'}; uzunlik=${matn.length}; xesh=${matn ? await xesh(matn) : '-'}`);
+    return json({ ok: true, holat: qisman ? 'savol' : 'tushunilmadi', matn, llm: llmIshlatildi, savol: sv?.savol ?? null, variantlar: sv?.variantlar ?? [], ...(aiXabar ? { ai_xabar: aiXabar } : {}) });
+  }
   await audit(env, kid, sid, 'ombor_buyruq_tahlil', aid, `manba=${manba}; amal=${buyruq.amal}; llm=${llmIshlatildi}; uzunlik=${matn.length}; xesh=${matn ? await xesh(matn) : '-'}`);
 
-  const tanlov = b.tanlov && typeof b.tanlov === 'object' ? b.tanlov as { nomi?: unknown; birligi?: unknown } : null;
   const javob: Record<string, unknown> = { ok: true, manba, matn: manba === 'forma' ? undefined : matn, buyruq, llm: llmIshlatildi, ...(aiXabar ? { ai_xabar: aiXabar } : {}) };
 
   if (buyruq.amal === 'hisobot') {
@@ -361,11 +385,38 @@ async function tahlil(ctx: Context, s: Sess, kid: number, sid: number, b: Record
   }
 
   // prixod / chiqim
-  if (!buyruq.nomi || !buyruq.miqdor) return json({ ...javob, holat: 'toldirish_kerak', yetishmaydi: [!buyruq.nomi && 'nomi', !buyruq.miqdor && 'miqdor'].filter(Boolean) });
+  const tur: 'prixod' | 'chiqim' = buyruq.amal === 'prixod' ? 'prixod' : 'chiqim';
+  if (!buyruq.nomi && typeof tanlov?.nomi === 'string' && tanlov.nomi.trim()) buyruq = { ...buyruq, nomi: tanlov.nomi.trim().slice(0, 500) };
+  if (tanlovKontragent) buyruq = { ...buyruq, kontragent: tanlovKontragent };
+  const tn = await tarixOl(env, kid, sid, tur);
+  if (!buyruq.nomi || !buyruq.miqdor) {
+    const sv = savolYasa({ yonalish: tur, taxmin: null, nomi: buyruq.nomi, miqdor: buyruq.miqdor, kontragent: buyruq.kontragent }, { materiallar: tn?.materiallar });
+    return json({ ...javob, holat: 'toldirish_kerak', yetishmaydi: [!buyruq.nomi && 'nomi', !buyruq.miqdor && 'miqdor'].filter(Boolean), savol: sv?.savol ?? null, variantlar: sv?.variantlar ?? [] });
+  }
+  let nomiB: string = buyruq.nomi; const miqdorB: number = buyruq.miqdor;
+  const tarixEslatma: string[] = [...(qisman?.eslatmalar ?? [])];
+  // Kontragent va material nomini kompaniyaning O'Z tarixiga moslash (lotin/kirill, imlo xatosi). Aniq — tarixdagi yozilish olinadi;
+  // bir nechta yaqin yetkazuvchi/qabul qiluvchi — bitta qisqa savol; yangi nom — o'zi qabul qilinadi.
+  if (buyruq.kontragent && !tanlovKontragent && tn) {
+    const km = tarixdanMosla(buyruq.kontragent, tn.kontragentlar);
+    if (km.holat === 'aniq' && km.tanlangan) buyruq = { ...buyruq, kontragent: km.tanlangan };
+    else if (km.holat === 'noaniq') {
+      const sv = savolYasa({ yonalish: tur, taxmin: null, nomi: buyruq.nomi, miqdor: buyruq.miqdor, kontragent: buyruq.kontragent }, { kontragent: km });
+      if (sv) return json({ ...javob, holat: 'savol', savol: sv.savol, variantlar: sv.variantlar });
+    }
+  }
+  if (tur === 'prixod' && !tanlov?.nomi && tn) {
+    const mm = tarixdanMosla(nomiB, tn.materiallar);
+    if (mm.holat === 'aniq' && mm.tanlangan) {
+      if (mm.tanlangan !== nomiB) tarixEslatma.push(`«${nomiB}» ombor tarixidagi «${mm.tanlangan}» deb olindi.`);
+      nomiB = mm.tanlangan;
+      buyruq = { ...buyruq, nomi: nomiB, birlik: buyruq.birlik ?? tn.birlik.get(nomiB) ?? null };
+    }
+  }
   const m = tanlov?.nomi ? { xato: false as const, nomzodlar: [] as Nomzod[], holat: 'tanlandi' as const, tanlangan: { nomi: String(tanlov.nomi), birligi: String(tanlov.birligi ?? buyruq.birlik ?? ''), qoldiq: NaN, ball: 1, kalit: '', variantlar_soni: 0 } as Nomzod }
-    : await moslash(env, aid, kid, sid, buyruq.nomi, buyruq.birlik);
+    : await moslash(env, aid, kid, sid, nomiB, buyruq.birlik);
   if (m.xato) return fail('SERVER_XATO', 502);
-  const ogohlantirish: string[] = [];
+  const ogohlantirish: string[] = [...tarixEslatma];
   // Variant tanlash bosqichi YO'Q (egasi qarori). Aniq moslik — ombordagi yozilishi olinadi. Bir nechta o'xshash bo'lsa: chiqimda eng yaqini
   // (chiqim faqat mavjud materialdan), kirimda yozilgan nom O'ZI qabul qilinadi (yangi nom keyingi safar eslatma bo'ladi). Qolganlari `nomzodlar` da.
   const tl: Nomzod | null = m.tanlangan ?? (m.holat === 'tanlash' && buyruq.amal === 'chiqim' ? m.nomzodlar[0] ?? null : null);
@@ -374,15 +425,15 @@ async function tahlil(ctx: Context, s: Sess, kid: number, sid: number, b: Record
   let nom = tl?.nomi ?? null; let birl = buyruq.birlik ?? tl?.birligi ?? null;
   if (!tl) {
     if (buyruq.amal === 'chiqim') return json({ ...javob, holat: 'material_topilmadi', nomzodlar: m.nomzodlar });
-    yangiMaterial = true; nom = buyruq.nomi; if (m.holat === 'tanlash') ogohlantirish.push('Yozilgan nom o\'zi qabul qilindi (o\'xshash materiallar bor, pastda taklif qilinadi).'); else ogohlantirish.push('Ombor tarixida bunday material topilmadi — yangi material sifatida yoziladi.');
+    yangiMaterial = true; nom = nomiB; if (m.holat === 'tanlash') ogohlantirish.push('Yozilgan nom o\'zi qabul qilindi (o\'xshash materiallar bor, pastda taklif qilinadi).'); else ogohlantirish.push('Ombor tarixida bunday material topilmadi — yangi material sifatida yoziladi.');
   } else if (tl.birligi && buyruq.birlik && birlikKaliti(buyruq.birlik) !== birlikKaliti(tl.birligi)) {
     ogohlantirish.push(`Birlik farq qiladi: aytildi «${buyruq.birlik}», ombordagi material «${tl.birligi}». Ombordagi birlik ishlatiladi.`);
     birl = tl.birligi;
   }
   if (!birl) return json({ ...javob, holat: 'toldirish_kerak', yetishmaydi: ['birlik'] });
   const hozirgi = tl && Number.isFinite(tl.qoldiq) ? tl.qoldiq : null;
-  const keyin = hozirgi == null ? null : buyruq.amal === 'prixod' ? hozirgi + buyruq.miqdor : hozirgi - buyruq.miqdor;
-  if (buyruq.amal === 'chiqim' && keyin != null && keyin < 0) return json({ ...javob, holat: 'qoldiq_yetmaydi', material: tl, hozirgi_qoldiq: hozirgi, sorlagan: buyruq.miqdor });
+  const keyin = hozirgi == null ? null : buyruq.amal === 'prixod' ? hozirgi + miqdorB : hozirgi - miqdorB;
+  if (buyruq.amal === 'chiqim' && keyin != null && keyin < 0) return json({ ...javob, holat: 'qoldiq_yetmaydi', material: tl, hozirgi_qoldiq: hozirgi, sorlagan: miqdorB });
   let obyektId: number | null = null;
   if (buyruq.obyekt) {
     const ob = await obyektTop(env, kid, buyruq.obyekt);
