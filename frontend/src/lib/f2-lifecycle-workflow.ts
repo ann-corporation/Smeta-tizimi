@@ -67,6 +67,7 @@ export function avtoNarxsizSoni(qatorlar: ReadonlyArray<{ raw_snapshot?: unknown
 
 export function f2LifecycleError(code?: string): string {
   if (code === 'NARXSIZ_QATOR_BOR') return 'Hujjatda narxi aniqlanmagan qatorlar bor — «F2 tayyorlash»da narx kiriting yoki ongli «narxsiz» deb belgilang, so‘ng tasdiqlang.';
+  if (code === 'F2_RESURS_TUSHGAN') return 'F2 da ish qatori bor, lekin uning resurslari tushmagan — summa to‘liq emas. «F2 tayyorlash»da resurslarni qo‘shing, so‘ng yuboring.';
   if (code === 'SOD_TEKSHIRUVCHI_YUBORUVCHI') return 'Hujjatni yuborgan odam uni o‘zi tekshira olmaydi — boshqa xodim tekshirishi kerak.';
   if (code === 'SOD_TASDIQLOVCHI_TAKRORLANDI') return 'Hujjatni yuborgan yoki tekshirgan odam uni tasdiqlay olmaydi — uchinchi xodim tasdiqlashi kerak.';
   if (code === 'STALE_VERSION') return 'Hujjat boshqa joyda yangilangan. Joriy holat qayta yuklandi; tekshirib, amalni davom ettiring.';

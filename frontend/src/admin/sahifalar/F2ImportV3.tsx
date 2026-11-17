@@ -1480,6 +1480,8 @@ function Sessiya({ companyId }: { companyId: number }) {
         }
       }
       // Avto podval (server, 20261221810000): smeta podvali topilmasa qulf yo'q — faqat ogohlantirish.
+      { const rt = Number((r as { resurs_tushgan_soni?: unknown }).resurs_tushgan_soni ?? 0);
+        if (rt > 0) podvalIzoh += ` ${t('DIQQAT: {n} ta resurs qatori F2 ga tushmagan (ish qatori bor, resurslari yo‘q) — summa to‘liq emas, yuborishdan oldin «F2 tayyorlash»da qo‘shing.', { n: String(rt) })}`; }
       if (r.podval?.bor === false && r.podval.ogohlantirish) podvalIzoh += ` ${t('Diqqat: obyektning smeta podvali topilmadi, nakrutka foizlari shartnoma yoki standart stavka boʻyicha hisoblanadi.')}`;
       setTekshiruv((v) => v + 1);
       qadam('akt', 'tayyor', `#${r.akt_id ?? '?'} · ${payload.rows.length} ${t('qator')}`);
