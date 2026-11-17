@@ -54,3 +54,26 @@ describe('monitor', () => {
     expect(f.mock.calls.some((x) => String(x[0]).includes('telegram'))).toBe(false);
   });
 });
+describe('monitor: AI ishchilar holati', () => {
+  it('aiHolatMatni: yoqilgan yo\'q / ish yo\'q / xato ko\'p / joyida', async () => {
+    const { aiHolatMatni } = await import('./monitor');
+    expect(aiHolatMatni({ yoqilgan: 0, ish_24s: 0, xato_24s: 0 })).toMatch(/YO'Q/);
+    expect(aiHolatMatni({ yoqilgan: 2, ish_24s: 0, xato_24s: 0 })).toMatch(/HECH QANDAY/);
+    expect(aiHolatMatni({ yoqilgan: 2, ish_24s: 6, xato_24s: 4 })).toMatch(/xato/);
+    expect(aiHolatMatni({ yoqilgan: 2, ish_24s: 6, xato_24s: 0 })).toBeNull();
+  });
+  it('ai:true -> ishchi yoqilmagan bo\'lsa egasiga Telegram xabari; db tekshiruvisiz', async () => {
+    const f = vi.fn(async (url: string) => {
+      if (url.includes('t2_ai_ishchi_holat_v1')) return Response.json({ ok: true, yoqilgan: 0, ish_24s: 0, xato_24s: 0 });
+      if (url.includes('t2_telegram_manzil_v1')) return Response.json({ ok: true, yuborish: true, chat_id: 555 });
+      return Response.json({ ok: true });
+    }); vi.stubGlobal('fetch', f);
+    expect(await (await post({ ai: true })).json()).toMatchObject({ ai: 'ogoh', telegram: true });
+    expect(f.mock.calls.some((x) => String(x[0]).includes('t2_db_hajm_v1'))).toBe(false);
+    expect(f.mock.calls.some((x) => String(x[0]).includes('sendMessage'))).toBe(true);
+  });
+  it('ai:true -> migratsiya yo\'q (RPC xato) bo\'lsa jim', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 404 })));
+    expect(await (await post({ ai: true })).json()).toMatchObject({ ok: true, ai: null });
+  });
+});

@@ -5,6 +5,7 @@
  */
 import { aiCall as aiXom, aiPublicError, type AiEnv, type AiRequest, type AiResponse } from './ai';
 import { rpcData, type AgentRpcEnv, type RpcNatija } from './agent-rpc';
+import { telemetriyaYoz, xatoKodi, yuzaAniqla } from './ai-telemetriya';
 
 const JAVOB = { headers: { 'Cache-Control': 'no-store' } };
 
@@ -20,13 +21,22 @@ const BYUDJET_XABAR: Record<string, string> = {
 /** BARCHA model chaqiruvlari shu orqali: (1) limit tekshiruvi — limit yo'q/tugagan bo'lsa model CHAQIRILMAYDI; (2) chaqiruv; (3) haqiqiy sarf jurnalga. */
 export async function aiHisobli(env: AiEnv & AgentRpcEnv, actor: number, kid: number | null, profil: string | null, amal: string, req: AiRequest): Promise<AiResponse> {
   const t = await rpcData(env, 't2_agent_sarf_tekshir_v1', { p_actor_id: actor, p_kompaniya_id: kid });
-  if (!t.ok) { const c = String(t.data.code ?? ''); throw new ByudjetXatosi(c, BYUDJET_XABAR[c] ?? 'AI hozir mavjud emas'); }
+  if (!t.ok) { const c = String(t.data.code ?? ''); await telemetriyaYoz(env, { actor, kompaniyaId: kid, yuza: yuzaAniqla(amal, profil), ok: false, xatoKod: c || 'HISOB_XATOSI', niyat: amal }); throw new ByudjetXatosi(c, BYUDJET_XABAR[c] ?? 'AI hozir mavjud emas'); }
+  const t0 = Date.now();
+  const yuza = yuzaAniqla(amal, profil);
   try {
     const r = await aiXom(env, req);
-    await rpcData(env, 't2_agent_sarf_yoz_v1', { p_actor_id: actor, p_kompaniya_id: kid, p_profil: profil, p_amal: amal, p_model: r.model, p_kirish: r.usage?.inputTokens ?? 0, p_chiqish: r.usage?.outputTokens ?? 0, p_narx_usd: r.usage?.cost ?? null, p_muvaffaqiyat: true });
+    const kechikishMs = Date.now() - t0;
+    await Promise.all([
+      rpcData(env, 't2_agent_sarf_yoz_v1', { p_actor_id: actor, p_kompaniya_id: kid, p_profil: profil, p_amal: amal, p_model: r.model, p_kirish: r.usage?.inputTokens ?? 0, p_chiqish: r.usage?.outputTokens ?? 0, p_narx_usd: r.usage?.cost ?? null, p_muvaffaqiyat: true }),
+      telemetriyaYoz(env, { actor, kompaniyaId: kid, yuza, model: r.model, kechikishMs, ok: true, niyat: amal, kirish: r.usage?.inputTokens, chiqish: r.usage?.outputTokens, manba: 'model' }),
+    ]);
     return r;
   } catch (e) {
-    await rpcData(env, 't2_agent_sarf_yoz_v1', { p_actor_id: actor, p_kompaniya_id: kid, p_profil: profil, p_amal: amal, p_model: req.model ?? null, p_kirish: 0, p_chiqish: 0, p_narx_usd: 0, p_muvaffaqiyat: false }).catch(() => null);
+    await Promise.all([
+      rpcData(env, 't2_agent_sarf_yoz_v1', { p_actor_id: actor, p_kompaniya_id: kid, p_profil: profil, p_amal: amal, p_model: req.model ?? null, p_kirish: 0, p_chiqish: 0, p_narx_usd: 0, p_muvaffaqiyat: false }).catch(() => null),
+      telemetriyaYoz(env, { actor, kompaniyaId: kid, yuza, model: req.model ?? null, kechikishMs: Date.now() - t0, ok: false, xatoKod: xatoKodi(e), niyat: amal, manba: 'model' }),
+    ]);
     throw e;
   }
 }

@@ -14,6 +14,10 @@ describe('role integration architecture',()=>{
       'qulf',
       /* superadminActor: har chaqiruvda bazada qayta tekshiriladi (db-hajm.test.ts — superadmin bo'lmasa 403). */
       'db-hajm',
+      /* AI salomatligi hisoboti: superadminActor (har chaqiruvda bazada qayta tekshiriladi, ai-salomatlik.test.ts - superadmin bo'lmasa 403); faqat o'qiydi, sonlar/kodlar. */
+      'ai-salomatlik',
+      /* AI baho (yoqdi/yoqmadi): actor FAQAT sessiyadan, kompaniya a'zoligi handlerda + t2_agent_scope_guard_v1 (SQL); matn saqlanmaydi; origin tekshiruvi (ai-baho.test.ts). */
+      'ai-baho',
       /* Tungi sovuq-arxiv cron (arxiv-tick.test.ts): X-Cron-Kalit (BILDIRISHNOMA_CRON_KALIT, doimiy vaqtli taqqoslash) - sessiya/kompaniya yo'q, faqat tizim ishi. */
       'arxiv-tick',
       /* Global immutable reference data, not tenant rows: session + pinned file whitelist;
