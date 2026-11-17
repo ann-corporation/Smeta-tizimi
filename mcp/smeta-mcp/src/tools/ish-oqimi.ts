@@ -518,7 +518,10 @@ export const faktYoz = tool({
       const narxsiz = Number(res.narxsiz_soni) > 0 ? Number(res.narxsiz_soni) : 0;
       const narxsizQ = Array.isArray(res.narxsiz_qatorlar) ? (res.narxsiz_qatorlar as Array<{ qator_id: number; nom?: string | null }>) : [];
       if (narxsiz) ogoh.push(`narxsiz qator: summa bo'sh, narx_tuzat bilan narx qo'ying — ${narxsiz} ta (${narxsizQ.slice(0, 10).map((x) => `#${x.qator_id}`).join(', ')}${narxsiz > 10 ? ', …' : ''})`);
-      return { akt_id: res.akt_id ?? null, qatorlar: a.qatorlar.length, ...(narxsiz ? { narxsiz_soni: narxsiz, narxsiz_qatorlar: narxsizQ.slice(0, 50) } : {}), ...(n ? { namuna: a.qatorlar.slice(0, n).map((q) => ({ qator_id: q.qator_id, nom: qisqa(oldin.get(q.qator_id)?.nom, 50), delta: q.hajm, fakt: [oldin.get(q.qator_id)?.fakt_hajm ?? null, keyin.get(q.qator_id)?.fakt_hajm ?? null] })) } : {}) };
+      // MINUS juft: asos qatorga fakt yozilsa, DB (t2_fakt_yoz) uning «normaga keltirish» juftini ulush bo'yicha shu aktga qo'shadi.
+      const minusJuft = Number(res.minus_juft_soni) > 0 ? Number(res.minus_juft_soni) : 0;
+      if (minusJuft) ogoh.push(`MINUS juft: ${minusJuft} qator (normaga keltirish + bolalari) asos ulushi bo'yicha avtomatik fakt oldi (izoh «minus juft»).`);
+      return { akt_id: res.akt_id ?? null, qatorlar: a.qatorlar.length, ...(minusJuft ? { minus_juft_soni: minusJuft } : {}), ...(narxsiz ? { narxsiz_soni: narxsiz, narxsiz_qatorlar: narxsizQ.slice(0, 50) } : {}), ...(n ? { namuna: a.qatorlar.slice(0, n).map((q) => ({ qator_id: q.qator_id, nom: qisqa(oldin.get(q.qator_id)?.nom, 50), delta: q.hajm, fakt: [oldin.get(q.qator_id)?.fakt_hajm ?? null, keyin.get(q.qator_id)?.fakt_hajm ?? null] })) } : {}) };
     });
   },
 });

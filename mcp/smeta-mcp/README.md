@@ -112,7 +112,8 @@ audit → COMMIT). Javob ixcham: sonlar, summa **ustamasiz / ustamali (ИТОГ�
 | `narx_tuzat(sabab, narxlar? \| nusxa?)` | t2_qator (to'g'ridan) | narx → summa = hajm×narx, ish (bl) summasi qayta; boshqa versiyadan × koef |
 | `bajarilmadi(obyekt_id, amal, qatorlar, sabab_kod, faktni_nol?)` | `t2_bajarilmadi_belgila_v1` / `_bekor_v1` | «bajarilmadi» belgisi (+ faktni −delta bilan nolga) |
 | `qoshimcha_ish(obyekt_id, ish, resurslar, fakt_hajm?, sabab)` | `t2_ish_abc_saqla_v1` (additional) | smetadan tashqari ish + resurslar (+ fakt) |
-| `fakt_yoz(obyekt_id, qatorlar[{qator_id,hajm}], sana?, izoh?)` | `t2_fakt_yoz_v2` | fakt delta (minus — kamaytirish) |
+| `fakt_yoz(obyekt_id, qatorlar[{qator_id,hajm}], sana?, izoh?)` | `t2_fakt_yoz_v2` | fakt delta (minus — kamaytirish); asosga yozilsa MINUS («normaga keltirish») jufti ulush bo'yicha avtomatik ergashadi (izoh «minus juft») |
+| `minus_fakt(obyekt_id, amal: korik\|juftlar\|qollash, sana?)` | `t2_fakt_minus_juft_v1`, `t2_fakt_minus_korik_v1`, `t2_fakt_minus_qollash_v1` | eski MINUS fakt bo'shliqlarini ko'rish / aniqlanmagan juftlar / obyektma-obyekt to'ldirish (dry_run standart true) |
 
 Namunalar:
 
