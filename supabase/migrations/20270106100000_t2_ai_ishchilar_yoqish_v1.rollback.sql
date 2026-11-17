@@ -1,2 +1,2 @@
 -- Rollback: 20270106100000 - AI ishchilarni o'chirish (sozlama qatorlari yoqilgan=false; byudjet va fon ulushi qoladi - alohida qaror).
-update public.t2_ai_sozlama set yoqilgan = false, yangilandi = now() where (kompaniya_id = 17 and ishchi_kod in ('kunlik_nazoratchi', 'hujjat_tekshiruvchi')) or (kompaniya_id is null and ishchi_kod = 'tizim_sogligi');
+update public.t2_ai_sozlama set yoqilgan = false, yangilandi = now() where (kompaniya_id in (select id from public.t2_kompaniya where nom ilike '%new times%') and ishchi_kod in ('kunlik_nazoratchi', 'hujjat_tekshiruvchi')) or (kompaniya_id is null and ishchi_kod = 'tizim_sogligi');
