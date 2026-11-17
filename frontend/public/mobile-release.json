@@ -1,10 +1,10 @@
 {
   "android": {
-    "version": "0.1.11",
-    "generatedAtUtc": "2026-11-17T11:29:13Z",
-    "file": "qurai-0.1.11-native-release.apk",
-    "bytes": 46516782,
-    "sha256": "6fc9b0903ef0ada312634654e8fd77791ccab4d35abe81084022d7fae8ff3c0d",
+    "version": "0.1.12",
+    "generatedAtUtc": "2026-11-17T17:23:45Z",
+    "file": "qurai-0.1.12-native-release.apk",
+    "bytes": 46541358,
+    "sha256": "dcd7aaf21868b674493d3d7481112fb21c79753bd503a43394c3b23f74709e9e",
     "signed": true,
     "minSdk": 26
   },
