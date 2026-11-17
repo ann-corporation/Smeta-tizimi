@@ -14,6 +14,7 @@ import { discrepancyIntent } from '../_shared/jarvis/discrepancies';
 import { cumulativeIntent } from '../_shared/jarvis/cumulative';
 import { estimateRowIntent } from '../_shared/jarvis/estimate-row';
 import { approvalsIntent } from '../_shared/jarvis/approvals';
+import { documentIntent } from '../_shared/jarvis/documents';
 import { onRequestPost } from './ai-savol';
 
 const object = { id: 34, nom: 'Sinov Bino' };
@@ -28,6 +29,8 @@ let estimate: () => Response;
 let tasks: () => Response;
 let inbox: () => Response;
 let chain: (chainId: number) => Response;
+let canonicalDocument: () => Response;
+let documents: () => Response;
 type TaskReply = { javob?: string; dalil?: unknown };
 const rpc = vi.fn(async (input: string, _init?: RequestInit) => {
   switch (input.split('/').at(-1)) {
@@ -44,6 +47,8 @@ const rpc = vi.fn(async (input: string, _init?: RequestInit) => {
     case 't2_topshiriqlar_v1': return tasks();
     case 't2_hujjat_kiruvchi_v1': return inbox();
     case 't2_hujjat_zanjir_tafsilot_v1': return chain(JSON.parse(String(_init?.body)).p_zanjir_id);
+    case 't2_document_canonical_get_v1': return canonicalDocument();
+    case 't2_document_registry_v1': return documents();
     case 't2_agent_muhit_v1': return Response.json({ ok: true, qoidalar: [], xotira: [], manbalar: [] });
     default: return Response.json({ ok: true });
   }
@@ -69,6 +74,10 @@ beforeEach(() => {
   tasks = () => Response.json({ ok: true, qatorlar: [], keyingi_id: null });
   inbox = () => Response.json({ ok: true, zanjirlar: [] });
   chain = () => Response.json({ ok: false });
+  canonicalDocument = () => Response.json({ ok: true, document_id: 50, kompaniya_id: 17, original_filename: 'Sinov.xlsx', r2_key: 'private-key' });
+  documents = () => Response.json({ ok: true, kompaniya_id: 17, obyekt_id: 34, documents: [
+    { id: '50', filename: 'Sinov.xlsx', canonicalStatus: 'READY' },
+  ] });
   estimate = () => Response.json({ ok: true, obyekt_id: 34, kompaniya_id: 17,
     qatorlar: [{ id: 21, kod: 'Е06-01-001-1 К-8', nom: 'Пример работы', tur: 'bl', hajm: null, birlik: 'м³',
       ierarxiya: ['Надземная часть', 'Узел А'], ierarxiya_toliq: true }] });
@@ -84,6 +93,49 @@ beforeEach(() => {
   vi.stubGlobal('fetch', rpc);
 });
 afterEach(() => vi.unstubAllGlobals());
+
+it.each([
+  'Hujjat №50 ni och', 'Ҳужжат №50 ни кўрсат', 'Открой документ №50',
+])('links an authorized exact document to its preview and authenticated download: %s', async question => {
+  men = () => Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: 17, permissions: ['document.read'] }] });
+  const body = await (await run(question)).json() as TaskReply;
+  const path = '/admin/documents?document_id=50';
+  expect(body).toMatchObject({ dalil: { tur: 'hujjat', id: 50, yol: path } });
+  expect(body.javob).toContain(path);
+  expect(body.javob).toContain('/api/hujjat-ol?id=50');
+  expect(JSON.stringify(body)).not.toContain('private-key');
+  expect(JSON.parse(String(called('t2_document_canonical_get_v1')[0][1]?.body))).toEqual({ p_actor_id: 7, p_document_id: 50 });
+  expect(ai).not.toHaveBeenCalled();
+});
+
+it('uses the object registry and keeps identical filenames unresolved', async () => {
+  men = () => Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: 17, permissions: ['document.read'] }] });
+  documents = () => Response.json({ ok: true, kompaniya_id: 17, obyekt_id: 34, documents: [
+    { id: '50', filename: 'Sinov.xlsx', canonicalStatus: 'READY' },
+    { id: '49', filename: 'sinov.xlsx', canonicalStatus: 'READY' },
+    { id: '48', filename: 'Xato-Sinov.xlsx', canonicalStatus: 'READY' },
+  ] });
+  const body = await (await run('«Sinov.xlsx» ni top', 17, { obyekt_id: 34 })).json() as TaskReply;
+  expect(body.javob).toContain('document_id=50');
+  expect(body.javob).toContain('document_id=49');
+  expect(body.javob).not.toContain('document_id=48');
+  expect(body.dalil).toBeUndefined();
+  expect(called('t2_document_canonical_get_v1')).toHaveLength(0);
+  expect(JSON.parse(String(called('t2_document_registry_v1')[0][1]?.body))).toMatchObject({ p_kompaniya_id: 17, p_obyekt_id: 34 });
+});
+
+it('rejects unauthorized and foreign-company document lookups without exposing metadata', async () => {
+  const question = 'Hujjat №50 ni och';
+  expect(await (await run(question)).json()).toMatchObject({ rad: true });
+  expect(called('t2_document_canonical_get_v1')).toHaveLength(0);
+  men = () => Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: 17, permissions: ['document.read'] }] });
+  canonicalDocument = () => Response.json({ ok: true, document_id: 50, kompaniya_id: 18, original_filename: 'Other-company.xlsx' });
+  kontekstKeshTozala();
+  const body = await (await run(question)).json() as TaskReply;
+  expect(body.javob).not.toMatch(/Other-company|hujjat-ol/);
+  expect(body.dalil).toBeUndefined();
+  expect(documentIntent('Hujjat №50 ni och va imzo qo‘y')).toBeNull();
+});
 
 it.each([
   ['Qaysi hujjatlarni tasdiqlashim kerak?', 'Tasdiqlash navbati'],

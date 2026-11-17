@@ -9,15 +9,19 @@ import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
 import { FaylMenejer } from '../sahifalar/FaylMenejer';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
+import { useSearchParams } from 'react-router-dom';
 
 export default function DocumentsPage() {
   const { joriy } = useKompaniya();
+  const [params] = useSearchParams();
+  const requested = params.get('document_id') ?? '';
+  const documentId = /^[1-9]\d{0,14}$/.test(requested) ? Number(requested) : undefined;
   // Kompaniya konteksti majburiy: tanlanmagan bo'lsa — professional tanlash holati (KompaniyaKerak), xom matn emas.
   if (!joriy?.id) return <KompaniyaKerak nima="Hujjatlar" />;
   return (
     <Sahifa sarlavha="Hujjatlar" tavsif="Kompaniyaning barcha fayllari: Loyiha → Obyekt → Hujjat turi → Oy. Ko‘rish, yuklab olish, o‘z papkalari, savat va to‘liq ZIP arxiv.">
       <div className="flex h-full min-h-[calc(100vh-180px)] flex-col">
-        <FaylMenejer kompaniyaId={joriy.id} />
+        <FaylMenejer kompaniyaId={joriy.id} documentId={documentId} />
       </div>
     </Sahifa>
   );
