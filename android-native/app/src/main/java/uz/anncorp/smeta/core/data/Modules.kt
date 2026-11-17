@@ -18,7 +18,7 @@ import uz.anncorp.smeta.R
 enum class ModuleKind { NATIVE, WEB }
 
 /** Native destinations the hub can jump to (the UI maps each to a tab or a route). */
-enum class NativeTarget { OBJECTS, FAKT, PHOTO, APPROVALS, TODAY, WAREHOUSE, JARVIS, RAHBAR, ZAYAVKA, M29, NARYAD, HUJJAT, F2REESTR, NAKOP, QARZDOR, QABUL, RESURS }
+enum class NativeTarget { OBJECTS, FAKT, PHOTO, APPROVALS, TODAY, WAREHOUSE, JARVIS, RAHBAR, ZAYAVKA, M29, NARYAD, HUJJAT, F2REESTR, NAKOP, QARZDOR, QABUL, RESURS, NAZORAT }
 
 /**
  * One launcher entry. [anyOf] / [moduleCode] mirror the website gating (frontend/src/lib/reestr/sahifa.ts `ruxsat`/`modul`,
@@ -62,6 +62,7 @@ object ModuleCatalog {
         ModuleDef("rahbar", R.string.mod_rahbar, R.string.mod_rahbar_d, ModuleKind.NATIVE, listOf(BOSS, "financial.write"), target = NativeTarget.RAHBAR, webPath = "/admin/dashboard"),
         ModuleDef("qarzdor", R.string.mod_qarzdor, R.string.mod_qarzdor_d, ModuleKind.NATIVE, listOf(BOSS, "financial.write"), target = NativeTarget.QARZDOR, webPath = "/admin/qarzdorlik"),
         ModuleDef("qabul", R.string.mod_qabul, R.string.mod_qabul_d, ModuleKind.NATIVE, listOf("fakt.write"), target = NativeTarget.QABUL),
+        ModuleDef("nazorat", R.string.p10_mod_nazorat, R.string.p10_mod_nazorat_d, ModuleKind.NATIVE, listOf("quality.decide"), target = NativeTarget.NAZORAT, webPath = "/admin/nazorat"),
         ModuleDef("resurs", R.string.mod_resurs, R.string.mod_resurs_d, ModuleKind.NATIVE, listOf(BOSS, "smeta.write", "warehouse.read"), target = NativeTarget.RESURS),
         ModuleDef("smeta", R.string.mod_estimate, R.string.mod_estimate_d, ModuleKind.WEB, listOf(BOSS, "smeta.write"), webPath = "/admin/smeta-studio"),
         ModuleDef("narx", R.string.mod_prices, R.string.mod_prices_d, ModuleKind.WEB, listOf(BOSS, "narx.write"), webPath = "/admin/narxlar"),

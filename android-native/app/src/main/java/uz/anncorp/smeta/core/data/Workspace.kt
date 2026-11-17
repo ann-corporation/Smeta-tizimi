@@ -128,6 +128,8 @@ fun WsAction.open(): WsOpen? {
     val web = target.path?.takeIf { it.startsWith("/") }?.let { WsOpen.Web(it) }
     // The server still describes Material so'rovi as a web page (older clients and Windows keep using it); this client has the native screen.
     if (target.code == "zayavka") return WsOpen.Native(NativeTarget.ZAYAVKA)
+    // Same for texnadzor acceptance: the server action is a web page for older clients; this client has the native acceptance screen (P10).
+    if (target.code == "nazorat") return WsOpen.Native(NativeTarget.NAZORAT)
     if (!target.native) return web
     return when (target.code) {
         "obyektlar" -> WsOpen.Native(NativeTarget.OBJECTS)
