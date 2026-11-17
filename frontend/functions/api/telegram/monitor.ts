@@ -33,6 +33,34 @@ export function hajmBaho(dbBytes: number, limitMb: unknown, chegaraFoiz: unknown
   return { foiz, ogoh: foiz >= chegara };
 }
 
+/** AI ishchilar holati: "hech qachon ishlamagan" jim qolmasin. Sof: ogohlantirish matni yoki null (hammasi joyida). */
+export function aiHolatMatni(h: { yoqilgan?: unknown; ish_24s?: unknown; xato_24s?: unknown }): string | null {
+  const yoq = Number(h.yoqilgan); const ish = Number(h.ish_24s); const xato = Number(h.xato_24s);
+  if (![yoq, ish, xato].every(Number.isFinite)) return null;
+  if (yoq === 0) return 'AI ishchilar: yoqilgan ishchi YO\'Q (sukut o\'chiq). Ishlatilmayapti.';
+  if (ish === 0) return `AI ishchilar: ${yoq} ta yoqilgan, lekin oxirgi 24 soatda HECH QANDAY ish bo'lmadi (GitHub ai-ishchilar cron yoki KUZATUV_KALIT tekshirilsin).`;
+  if (xato >= 3 && xato * 2 >= ish) return `AI ishchilar: oxirgi 24 soatda ${ish} ishdan ${xato} tasi xato/limit bilan tugadi.`;
+  return null;
+}
+
+async function aiHolatTekshir(env: Env, egasi: number): Promise<Response> {
+  let h: Record<string, unknown> | null = null;
+  try {
+    const r = await fetch(supabaseBaseUrl(String(env.SUPABASE_URL)) + '/rest/v1/rpc/t2_ai_ishchi_holat_v1', {
+      method: 'POST', headers: { apikey: String(env.SUPABASE_KEY), Authorization: 'Bearer ' + env.SUPABASE_KEY, 'Content-Type': 'application/json' }, body: '{}',
+    });
+    h = r.ok ? await r.json().catch(() => null) as Record<string, unknown> | null : null;
+  } catch { h = null; }
+  if (!h || h.ok !== true) return javob({ ok: true, ai: null }); // migratsiya (20270106000000) qo'llanmagan - jim
+  const matn = aiHolatMatni(h);
+  if (!matn) return javob({ ok: true, ai: 'joyida', yoqilgan: Number(h.yoqilgan), ish_24s: Number(h.ish_24s) });
+  if (!tokenBormi(env)) return javob({ ok: true, ai: 'ogoh', telegram: false });
+  const m = await tgRpc<{ ok?: boolean; yuborish?: boolean; chat_id?: number }>(env, 't2_telegram_manzil_v1', { p_foydalanuvchi_id: egasi, p_tur: 'signal' });
+  if (!m?.ok || !m.yuborish || !Number.isSafeInteger(m.chat_id)) return javob({ ok: true, ai: 'ogoh', telegram: false });
+  const yuborildi = await xabarYubor(env, m.chat_id as number, matn);
+  return javob({ ok: true, ai: 'ogoh', telegram: true, yuborildi });
+}
+
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const env = ctx.env;
   const k = cronKalitTekshir(ctx.request, env.BILDIRISHNOMA_CRON_KALIT);
@@ -41,8 +69,9 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (!env.SUPABASE_URL || !env.SUPABASE_KEY) return javob({ ok: false, code: 'SERVER_SOZLANMAGAN' }, 503);
   const egasi = Number(env.MONITOR_EGASI_ID);
   if (!Number.isSafeInteger(egasi) || egasi <= 0) return javob({ ok: false, code: 'EGASI_SOZLANMAGAN' }, 503);
-  let b: { db?: unknown } = {};
+  let b: { db?: unknown; ai?: unknown } = {};
   try { b = await ctx.request.json(); } catch { b = {}; }
+  if (b.ai === true) return aiHolatTekshir(env, egasi);
   if (b.db !== true) return javob({ ok: true, tekshirildi: false });
 
   let dbBytes = NaN; let issiqBayt = NaN;

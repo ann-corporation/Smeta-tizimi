@@ -17,6 +17,10 @@ describe('saqlash siyosati reyestri', () => {
     for (const m of sql.matchAll(/^\s*\('([a-z0-9_.]+)',\s*'(qator-arxiv|snapshot-sovuq|saqlanadi)',\s*(null|\d+),/gm)) { rejim.set(m[1], m[2]); kun.set(m[1], m[3] === 'null' ? '' : m[3]); }
     for (const f of migratsiyalar().filter((x) => x > ASOS)) {
       const s = readFileSync(join(MIG, f), 'utf8').replace(/--.*$/gm, '');
+      /* Keyingi migratsiyalarda qo'shilgan yangi siyosat qatorlari (insert ... values ('jadval', 'rejim', kun, ...)). */
+      for (const m of s.matchAll(/^\s*\('([a-z0-9_.]+)',\s*'(qator-arxiv|snapshot-sovuq|saqlanadi)',\s*(null|\d+),/gm)) {
+        if (/insert\s+into\s+public\.t2_arxiv_siyosat/i.test(s)) { rejim.set(m[1], m[2]); kun.set(m[1], m[3] === 'null' ? '' : m[3]); }
+      }
       for (const m of s.matchAll(/update\s+public\.t2_arxiv_siyosat\s+set\s+saqlash_kun\s*=\s*(\d+)\s+where\s+jadval\s*=\s*'([a-z0-9_.]+)'/gi)) kun.set(m[2], m[1]);
     }
     const seed = [...rejim.keys()].map((j) => `${j}|${rejim.get(j)}|${kun.get(j)}`).sort();

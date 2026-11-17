@@ -52,7 +52,7 @@ describe('arxivTickIsh', () => {
     const c: string[] = [];
     const r = await arxivTickIsh(bosh(c), {}, new Date('2026-11-15T22:00:00Z'));
     expect(r.ok).toBe(true);
-    expect(c.filter((x) => x === 't2_arxiv_batch_v1')).toHaveLength(5);
+    expect(c.filter((x) => x === 't2_arxiv_batch_v1')).toHaveLength(6);
     expect(c).toContain('t2_arxiv_jurnal_yoz_v1');
     expect(c).not.toContain('t2_arxiv_ogohlantir_v1');
   });

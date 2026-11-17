@@ -7,6 +7,7 @@
  */
 import { supabaseBaseUrl } from './supabase-url';
 import { AiByudjetXatosi } from './ai-hisobli';
+import { telemetriyaYoz, xatoKodi } from './ai-telemetriya';
 
 export const CF_AMAL = 'jarvis_eski_cf';
 export const KUNLIK_FOYDALANUVCHI = 20;
@@ -55,15 +56,23 @@ export async function workersAiHisobli<T extends { usage?: { input_tokens?: numb
   if (u === null || k === null) throw new AiByudjetXatosi('HISOB_XATOSI', XABAR.HISOB_XATOSI);
   if (u >= lim(env.JARVIS_CF_KUNLIK_FOYDALANUVCHI, KUNLIK_FOYDALANUVCHI)) throw new AiByudjetXatosi('KUNLIK_FOYDALANUVCHI', XABAR.KUNLIK_FOYDALANUVCHI);
   if (k >= lim(env.JARVIS_CF_KUNLIK_KOMPANIYA, KUNLIK_KOMPANIYA)) throw new AiByudjetXatosi('KUNLIK_KOMPANIYA', XABAR.KUNLIK_KOMPANIYA);
+  const t0 = Date.now();
   try {
     const r = await chaqir();
-    await rpc(env, 't2_agent_sarf_yoz_v1', { p_actor_id: actor, p_kompaniya_id: kompaniyaId, p_profil: 'company_access', p_amal: CF_AMAL, p_model: null,
-      p_kirish: r.usage?.input_tokens ?? 0, p_chiqish: r.usage?.output_tokens ?? 0, p_narx_usd: 0, p_muvaffaqiyat: true });
+    const kechikishMs = Date.now() - t0;
+    await Promise.all([
+      rpc(env, 't2_agent_sarf_yoz_v1', { p_actor_id: actor, p_kompaniya_id: kompaniyaId, p_profil: 'company_access', p_amal: CF_AMAL, p_model: null,
+        p_kirish: r.usage?.input_tokens ?? 0, p_chiqish: r.usage?.output_tokens ?? 0, p_narx_usd: 0, p_muvaffaqiyat: true }),
+      telemetriyaYoz(env, { actor, kompaniyaId, yuza: 'workers_ai', kechikishMs, ok: true, niyat: CF_AMAL, kirish: r.usage?.input_tokens, chiqish: r.usage?.output_tokens, manba: 'model' }),
+    ]);
     return r;
   } catch (e) {
     /* Muvaffaqiyatsiz urinish ham kunlik hisobga kiradi (xato bilan aylanib o'tib cheksiz urinib bo'lmasin). */
-    await rpc(env, 't2_agent_sarf_yoz_v1', { p_actor_id: actor, p_kompaniya_id: kompaniyaId, p_profil: 'company_access', p_amal: CF_AMAL, p_model: null,
-      p_kirish: 0, p_chiqish: 0, p_narx_usd: 0, p_muvaffaqiyat: false }).catch(() => null);
+    await Promise.all([
+      rpc(env, 't2_agent_sarf_yoz_v1', { p_actor_id: actor, p_kompaniya_id: kompaniyaId, p_profil: 'company_access', p_amal: CF_AMAL, p_model: null,
+        p_kirish: 0, p_chiqish: 0, p_narx_usd: 0, p_muvaffaqiyat: false }).catch(() => null),
+      telemetriyaYoz(env, { actor, kompaniyaId, yuza: 'workers_ai', kechikishMs: Date.now() - t0, ok: false, xatoKod: xatoKodi(e), niyat: CF_AMAL, manba: 'model' }),
+    ]);
     throw e;
   }
 }

@@ -1,6 +1,7 @@
 import { tekshir, type Sess } from '../_shared/auth';
 import { cachedAuthority, yopiqModul } from '../_shared/permission-policy';
 import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shared/role-authority';
+import { telemetriyaYoz } from '../_shared/ai-telemetriya';
 
 type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; ELEVENLABS_API_KEY?: string; ELEVENLABS_COMPANY_IDS?: string; AI?: { run: (model: string, input: Record<string, unknown>) => Promise<unknown> } };
 type Context = Parameters<PagesFunction<Env>>[0];
@@ -64,7 +65,22 @@ export const onRequestGet: PagesFunction<Env> = async ctx => {
   return denied ?? json({ok:true,enabled:providerScope(ctx.env,Number(new URL(ctx.request.url).searchParams.get('kompaniya_id')))===null||!!ctx.env.AI,provider:providerScope(ctx.env,Number(new URL(ctx.request.url).searchParams.get('kompaniya_id')))===null?'elevenlabs':'workers-ai',draft_only:true});
 };
 
+type Meta = { actor?: number; kid?: number; model?: string };
+
+/** STT telemetriyasi (faqat sonlar/kodlar; audio va matn yozilmaydi): ruxsatdan o'tgan so'rovlar uchun kechikish + ok/xato kodi. */
 export const onRequestPost: PagesFunction<Env> = async ctx => {
+  const t0=Date.now();const meta:Meta={};
+  const res=await ovozPost(ctx,meta);
+  if(meta.kid){
+    let kod:string|null=null;
+    if(!res.ok){try{kod=String((await res.clone().json() as {code?:unknown}).code??'')||null;}catch{kod=null;}}
+    const yoz=telemetriyaYoz(ctx.env,{actor:meta.actor,kompaniyaId:meta.kid,yuza:'ombor_ovoz',model:meta.model,kechikishMs:Date.now()-t0,ok:res.ok,xatoKod:kod??`HTTP_${res.status}`,niyat:'stt',manba:'model'});
+    if(typeof ctx.waitUntil==='function')ctx.waitUntil(yoz);else await yoz;
+  }
+  return res;
+};
+
+async function ovozPost(ctx: Context, meta: Meta): Promise<Response> {
   const origin=ctx.request.headers.get('Origin');
   if(ctx.request.headers.get('Sec-Fetch-Site')==='cross-site'||(origin&&origin!==new URL(ctx.request.url).origin))return fail('ORIGIN_INVALID',403);
   const session=await actor(ctx);if(session instanceof Response)return session;
@@ -74,6 +90,7 @@ export const onRequestPost: PagesFunction<Env> = async ctx => {
   const denied=access(session,Number(form.get('kompaniya_id')));if(denied)return denied;
   // ElevenLabs sozlangan va kompaniya ruxsat etilgan bo'lsa — u; aks holda Cloudflare Workers AI (Whisper); ikkalasi yo'q bo'lsa — eski xato kodi.
   const scope=providerScope(ctx.env,Number(form.get('kompaniya_id')));if(scope&&!ctx.env.AI)return scope;
+  meta.actor=Number(session.foydalanuvchi_id);meta.kid=Number(form.get('kompaniya_id'));meta.model=scope?'whisper-large-v3-turbo':'elevenlabs-scribe_v2';
   const audio:unknown=form.get('audio');
   if(!(audio instanceof Blob)||audio.size===0)return fail('AUDIO_REQUIRED',400);
   if(audio.size>MAX_BODY)return fail('AUDIO_TOO_LARGE',413);
@@ -102,7 +119,7 @@ export const onRequestPost: PagesFunction<Env> = async ctx => {
     if(result.text.length>60_000)return fail('VOICE_RESULT_TOO_LARGE',502);
     return json({ok:true,text:result.text.trim(),language:typeof result.language_code==='string'?result.language_code.slice(0,8):null,draft_only:true});
   } catch {return fail(ctx.request.signal.aborted?'VOICE_CANCELED':'VOICE_UNAVAILABLE',ctx.request.signal.aborted?499:503);}
-};
+}
 
 /** Zaxira STT: Cloudflare Workers AI (kalitsiz binding). Kirish: base64 audio + til ishorasi; chiqish — faqat matn (hech narsa yozilmaydi). */
 async function whisper(ctx: Context, audio: Blob, language: string): Promise<Response> {
