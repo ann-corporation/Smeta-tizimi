@@ -23,6 +23,12 @@ describe('desktop release', () => {
     expect(parseDesktopRelease({ ...manifest, ...override })).toBeNull();
   });
 
+  it('accepts an MSI installer name and still rejects other extensions', () => {
+    expect(parseDesktopRelease({ ...manifest, file: 'QURAI-0.2.0.msi' })).not.toBeNull();
+    expect(parseDesktopRelease({ ...manifest, file: 'QURAI-0.2.0.zip' })).toBeNull();
+    expect(parseDesktopRelease({ ...manifest, file: 'QURAI.msi.exe.txt' })).toBeNull();
+  });
+
   it('accepts valid signed metadata', () => {
     expect(parseDesktopRelease({ ...manifest, signature: 'Valid', signerThumbprint: 'A'.repeat(40) })).not.toBeNull();
   });

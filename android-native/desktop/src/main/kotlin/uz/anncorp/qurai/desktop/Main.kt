@@ -26,7 +26,7 @@ fun main(args: Array<String>) {
     Log.i("start v${BuildInfo.VERSION} smoke=$smoke java=${System.getProperty("java.version")} os=${System.getProperty("os.name")}")
     val services = Services()
     application {
-        Window(onCloseRequest = { Log.i("exit"); exitApplication() }, title = "QURAI", state = rememberWindowState(size = DpSize(1180.dp, 760.dp))) {
+        Window(onCloseRequest = { Log.i("exit"); exitApplication() }, title = "QURAI", state = rememberWindowState(size = DpSize(1360.dp, 820.dp)), onPreviewKeyEvent = { Shortcuts.dispatch(it) }) {
             MaterialTheme(colorScheme = Scheme) { Root(services) }
             if (smoke) LaunchedEffect(Unit) {
                 delay(6_000)

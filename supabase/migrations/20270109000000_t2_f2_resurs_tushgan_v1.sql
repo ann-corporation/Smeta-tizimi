@@ -11,7 +11,7 @@ returns jsonb language sql stable security definer set search_path to 'public', 
   select coalesce(jsonb_agg(r order by (r->>'bl_id')::bigint, (r->>'qator_id')::bigint), '[]'::jsonb) from (
     select jsonb_build_object('bl_id', p.id, 'bl_kod', p.kod, 'qator_id', c.id, 'tur', c.tur, 'kod', c.kod,
              'nom', left(c.nom, 120), 'f2_mumkin_hajm', h.f2_mumkin_hajm, 'narx', h.smeta_narx,
-             'summa_taxmin', round((h.f2_mumkin_hajm * h.smeta_narx)::numeric, 2)) r
+             'summa_taxmin', h.f2_mumkin_hajm * h.smeta_narx) r
       from public.t2_akt_qator aq
       join public.t2_qator p on p.id = aq.qator_id and p.tur = 'bl'
       join public.t2_qator c on c.ota_id = p.id
@@ -370,3 +370,7 @@ begin
             then jsonb_build_object('ogohlantirish', 'PAKET_TOPSHIRILGAN', 'paketlar', public._t2_f2_akt_paket_v1(p_akt_id))
             else '{}'::jsonb end;
 end $function$;
+
+
+comment on function public.t2_f2_qoralama_yangila_v1(bigint, bigint, bigint, integer, jsonb, uuid, text) is
+  'F2 qoralama qatorlarini almashtiradi; smeta qatori faqat obyektga tegishliligini tekshirish uchun o''qiladi. versiya: texnik';

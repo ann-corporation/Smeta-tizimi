@@ -193,7 +193,7 @@ export function xomOqi(matn: string, hozir: Date = new Date()): Qisman {
   const BIRLIK_NARX = "narx\\p{L}*|цена|цене|цену|baho\\p{L}*|po|по|har\\s*bir\\p{L}*|har\\s+dona\\p{L}*|за\\s+(?:шт|штуку|единицу|кг|тонну|мешок)";
   const JAMI_NARX = "jami|umumiy|hammasi|barchasi|summa\\p{L}*|сумма|сумму|итого|всего|на\\s+сумму|за|stoimost\\p{L}*|стоимост\\p{L}*|to'lov|oplata|оплат\\p{L}*";
   const nm = rx(`(?<![\\p{L}\\d])(?:(${BIRLIK_NARX})|(${JAMI_NARX}))\\s*[:=-]?\\s*(${PUL_SON})(?:\\s*(${KOP_SOZ}))?(?:\\s*(?:${PUL_BIRLIK}))?(?!\\s*(?:${BIRLIK_HAMMASI})${R})(?![\\p{L}\\d])`).exec(w);
-  const pulOl = (m: RegExpExecArray, i: number, kop: number | null) => { narxXom = Math.round(sonOl(m[i]) * (kop ?? 1) * 100) / 100; };
+  const pulOl = (m: RegExpExecArray, i: number, kop: number | null) => { narxXom = yaxlit2(sonOl(m[i]) * (kop ?? 1)); };
   if (nm) { narxTur = nm[1] ? 'birlik' : 'jami'; pulOl(nm, 3, nm[4] ? KOP_QIYMAT(nm[4]) : null); w = w.slice(0, nm.index) + ' ' + w.slice(nm.index + nm[0].length); }
   if (narxXom == null) {
     const p2 = rx(`(?<![\\p{L}\\d.,§])(${SON})\\s*(${KOP_SOZ})(?![\\p{L}\\d])(?:\\s*(?:${PUL_BIRLIK}))?(?!\\s*(?:${BIRLIK_HAMMASI})${R})`).exec(w);
