@@ -43,31 +43,37 @@ import kotlin.math.roundToInt
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun JarvisOverlay(visible: Boolean, epoch: Int) {
+fun JarvisOverlay(visible: Boolean, epoch: Int, scrollHidden: Boolean = false) {
     if (!Features.JARVIS || !visible) return
     var open by rememberSaveable { mutableStateOf(false) }
-    var dx by rememberSaveable { mutableFloatStateOf(0f) }
-    var dy by rememberSaveable { mutableFloatStateOf(0f) }
+    // The dragged position is remembered across launches (offsets from the resting place, in px).
+    val prefs = androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("jarvis_fab", android.content.Context.MODE_PRIVATE)
+    var dx by rememberSaveable { mutableFloatStateOf(prefs.getFloat("dx", 0f)) }
+    var dy by rememberSaveable { mutableFloatStateOf(prefs.getFloat("dy", 0f)) }
     val imeOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val w = constraints.maxWidth.toFloat(); val h = constraints.maxHeight.toFloat()
-        val size = with(LocalDensity.current) { 48.dp.toPx() }
-        // Resting place: right edge, a little below the middle (clear of the top bar and the bottom navigation); the drag is kept on screen.
-        if (!imeOpen && !open) Surface(
-            shape = CircleShape, color = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary, shadowElevation = 6.dp,
-            modifier = Modifier.align(Alignment.CenterEnd).padding(end = 8.dp)
+        val size = with(LocalDensity.current) { 40.dp.toPx() }
+        // Resting place: bottom-right, just above the bottom navigation. Small and slightly transparent; it hides while the user scrolls down or types
+        // (so it never covers a field or a list) and comes back when scrolling up. The drag is kept on screen and remembered.
+        androidx.compose.animation.AnimatedVisibility(
+            visible = !imeOpen && !open && !scrollHidden, modifier = Modifier.align(Alignment.BottomEnd),
+            enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut(),
+        ) { Surface(
+            shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.88f), contentColor = MaterialTheme.colorScheme.onPrimary, shadowElevation = 4.dp,
+            modifier = Modifier.padding(end = 10.dp, bottom = 96.dp)
                 .offset { IntOffset(dx.roundToInt(), dy.roundToInt()) }
-                .size(48.dp)
+                .size(40.dp)
                 .pointerInput(w, h) {
-                    detectDragGestures { change, drag ->
+                    detectDragGestures(onDragEnd = { prefs.edit().putFloat("dx", dx).putFloat("dy", dy).apply() }) { change, drag ->
                         change.consume()
                         dx = (dx + drag.x).coerceIn(-(w - size - 16f), 0f)
-                        dy = (dy + drag.y).coerceIn(-(h / 2 - size), h / 2 - size)
+                        dy = (dy + drag.y).coerceIn(-(h - size - 200f), 0f)
                     }
                 }
                 .clickable { open = true },
-        ) { Icon(Icons.Filled.AutoAwesome, stringResource(R.string.mod_jarvis), Modifier.padding(12.dp)) }
+        ) { Icon(Icons.Filled.AutoAwesome, stringResource(R.string.mod_jarvis), Modifier.padding(10.dp)) } }
     }
 
     if (open) {

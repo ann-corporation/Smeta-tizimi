@@ -104,12 +104,12 @@ private fun isoOf(millis: Long?): String? = millis?.let { Instant.ofEpochMilli(i
 /** Kirim-chiqim report for ANY period (presets or a date range) and the balance on a chosen date. All numbers come from the server. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun OmborReportPanel(skladId: Long?, vm: OmborReportViewModel = hiltViewModel()) {
+/** [query] is the warehouse screen's ONE search field (shared with the stock tabs); there is no second field here. */
+internal fun OmborReportPanel(skladId: Long?, query: String, vm: OmborReportViewModel = hiltViewModel()) {
     val ui by vm.state.collectAsStateWithLifecycle()
     var period by rememberSaveable { mutableStateOf<String?>(ReportPeriod.MONTH.name) }
     var from by rememberSaveable { mutableStateOf<String?>(null) }
     var to by rememberSaveable { mutableStateOf<String?>(null) }
-    var query by rememberSaveable { mutableStateOf("") }
     var op by rememberSaveable { mutableStateOf(0) } // 0 all, 1 kirim, 2 chiqim
     var date by rememberSaveable { mutableStateOf<String?>(null) }
     var rangeDialog by rememberSaveable { mutableStateOf(false) }
@@ -120,7 +120,7 @@ internal fun OmborReportPanel(skladId: Long?, vm: OmborReportViewModel = hiltVie
         val d = date
         if (d != null) vm.loadDate(s, d, query) else vm.loadReport(s, period?.let { ReportPeriod.valueOf(it) }, from, to, query, when (op) { 1 -> false; 2 -> true; else -> null })
     }
-    LaunchedEffect(skladId, period, from, to, op, date) { reload() }
+    LaunchedEffect(skladId, period, from, to, op, date, query) { if (query.isNotBlank()) kotlinx.coroutines.delay(350); reload() }
 
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.padding(horizontal = 16.dp)) { ChipRow {
@@ -136,11 +136,6 @@ internal fun OmborReportPanel(skladId: Long?, vm: OmborReportViewModel = hiltVie
             }
             AssistChip(onClick = { dateDialog = true }, label = { Text(date?.let { stringResource(R.string.t14_balance_on, it) } ?: stringResource(R.string.t14_balance_date)) }, leadingIcon = { Icon(Icons.Filled.CalendarMonth, null) })
         }
-        OutlinedTextField(
-            query, { query = it }, singleLine = true, placeholder = { Text(stringResource(R.string.ombor_search_hint)) }, keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { reload() }),
-            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp).heightIn(min = TouchTarget),
-        )
         when {
             skladId == null -> CenterMessage(Icons.Filled.Warning, stringResource(R.string.ombor_cmd_m_nowarehouse))
             ui.loading -> SkeletonList(4)
