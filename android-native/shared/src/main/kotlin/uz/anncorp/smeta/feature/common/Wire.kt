@@ -1,4 +1,5 @@
-package uz.anncorp.qurai.desktop
+/* ONE code for two platforms: wire contracts + pure parsers shared by the Windows app and (additively) Android. */
+package uz.anncorp.smeta.feature.common
 
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -9,6 +10,8 @@ import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import uz.anncorp.smeta.core.data.ApiResult
+import uz.anncorp.smeta.core.data.formatMoney
+import uz.anncorp.smeta.core.data.formatVolume
 import uz.anncorp.smeta.core.data.ObjectMoney
 import uz.anncorp.smeta.core.data.arr
 import uz.anncorp.smeta.core.data.num
@@ -97,7 +100,7 @@ fun parseFaktOutcome(r: ApiResult): FaktOutcome {
     val o = r.body.obj()
     val ok = r.ok && o?.b("ok") != false
     val warn = mutableListOf<String>()
-    o?.get("ogohlantirish").arr()?.forEach { e -> e.obj()?.let { w -> warn += "${w.s("nom").orEmpty()}: ${w.n("bor")?.let { qty(it) } ?: T_DASH} + ${w.n("qoshilmoqda")?.let { qty(it) } ?: T_DASH} > ${w.n("chegara")?.let { qty(it) } ?: T_DASH}" } }
+    o?.get("ogohlantirish").arr()?.forEach { e -> e.obj()?.let { w -> warn += "${w.s("nom").orEmpty()}: ${w.n("bor")?.let { formatVolume(it) } ?: T_DASH} + ${w.n("qoshilmoqda")?.let { formatVolume(it) } ?: T_DASH} > ${w.n("chegara")?.let { formatVolume(it) } ?: T_DASH}" } }
     (o?.n("narxsiz_soni") ?: o?.n("narxsiz"))?.takeIf { it > 0 }?.let { warn += "${it.toInt()} ta qator narxsiz" }
     return FaktOutcome(ok, o?.s("error") ?: r.code, o?.s("raqam"), o?.n("jami"), warn)
 }
@@ -312,7 +315,7 @@ fun omborFmt(v: Double?): String = if (v == null) T_DASH else uz.anncorp.smeta.f
 /** Maps the `tahlil` answer. Never throws on an unexpected shape. */
 fun parseOmborReply(r: ApiResult): OmborReply {
     val root = r.body.obj()
-    if (r.networkError) return OmborReply.Fail(Tx.offlineWrite)
+    if (r.networkError) return OmborReply.Fail("Oflayn: yozib bo'lmaydi, tarmoqqa ulanib qayta urinib ko'ring")
     if (r.status == 402) return OmborReply.Fail(root?.s("xabar") ?: root?.s("error") ?: "Token yetarli emas")
     if (r.status == 403) return OmborReply.Fail("Bu ombor uchun ruxsat yo'q")
     if (!r.ok && root == null) return OmborReply.Fail(r.code ?: "Xato HTTP ${r.status}")
@@ -350,7 +353,7 @@ fun reportLines(h: JsonObject?): List<String> {
     fun per(key: String) = units.mapNotNull { u -> u.n(key)?.takeIf { it > 0 }?.let { omborFmt(it) + " " + u.s("birligi").orEmpty() } }.joinToString(", ").ifEmpty { T_DASH }
     val out = mutableListOf("Davr: ${davr?.s("dan") ?: "…"} — ${davr?.s("gacha") ?: "…"}")
     out += "Kirim: ${j.n("kirim_soni")?.toLong() ?: 0} ta, ${per("kirim")}"
-    j.n("kirim_summa")?.takeIf { it > 0 }?.let { out += "Kirim summasi: QQS siz ${money(it)}, QQS bilan ${money(j.n("kirim_summa_qqs"))}" }
+    j.n("kirim_summa")?.takeIf { it > 0 }?.let { out += "Kirim summasi: QQS siz ${moneyText(it)}, QQS bilan ${moneyText(j.n("kirim_summa_qqs"))}" }
     j.n("narxsiz_soni")?.takeIf { it > 0 }?.let { out += "Narxsiz kirim: ${it.toLong()} ta (jamiga kirmaydi)" }
     out += "Chiqim: ${j.n("chiqim_soni")?.toLong() ?: 0} ta, ${per("chiqim")}"
     return out
@@ -375,32 +378,6 @@ fun parseStockLines(body: JsonElement?): List<StockLine>? = rowsOf(body)?.mapNot
     StockLine(nm, o.s("birligi").orEmpty(), o.n("qoldiq"), o.n("kirim"), o.n("chiqim"), o.s("oxirgi_sana"))
 }
 
-// ---------- repository ----------
 
-/** All reads of the desktop app in one place; each is cached encrypted for offline viewing (see [Services.read]). */
-class Repo(private val sv: Services) {
-    private suspend fun sb(body: JsonObject) = sv.api.bff("/api/sb", "POST", body)
-
-    suspend fun objects(cid: Long) = sv.read("obyektlar:$cid", { sb(objectsRequest(cid)) }, ::parseObjs)
-    suspend fun money(cid: Long): Loaded<Map<Long, ObjectMoney>> = sv.read("money:$cid", { sb(rahbarPanelRequest(cid)) }, ::parseRahbarPanel)
-    suspend fun f2Acts(oid: Long) = sv.read("f2:$oid", { sb(f2ListRequest(oid)) }, ::parseF2List)
-    suspend fun packet(oid: Long) = sv.read("paket:$oid", { sv.api.bff("/api/obyekt-paket?obyekt_id=$oid") }, ::parsePacket)
-    suspend fun actRows(aktId: Long, names: Map<Long, SNode>) = sv.read("aktqator:$aktId", { sb(f2ActRowsRequest(aktId)) }) { parseActRows(it, names) }
-    suspend fun faktJournal(oid: Long) = sv.read("faktjurnal:$oid", { sb(faktJournalRequest(oid)) }, ::parseFaktJournal)
-    suspend fun narx(cid: Long) = sv.read("narx:$cid", { sb(narxRequest(cid)) }, ::parseNarx)
-    suspend fun debts(cid: Long) = sv.read("qarz:$cid", { sb(debtRequest(cid)) }, ::parseDebtRows)
-    suspend fun docs(cid: Long, oid: Long) = sv.read("hujjatlar:$cid:$oid", { sv.api.bff(docsPath(cid, oid)) }, ::parseDocs)
-    suspend fun warehouses(cid: Long): Loaded<List<Warehouse>> = sv.read("sklad:$cid", { sb(warehousesRequest(cid)) }) { b -> parseSb(b)?.let { parseWarehouses(it.rows) } }
-    suspend fun profile() = sv.read("profil", { sv.api.bff("/api/profil") }, ::parseProfile)
-
-    suspend fun stock(cid: Long, sid: Long, sana: String?) = sv.read("qoldiq:$cid:$sid:${sana ?: "bugun"}", {
-        sv.api.bff("/api/ombor-buyruq", "POST", omborBody("qoldiq", cid, sid) { put("limit", 500); if (sana != null) put("sana", sana) })
-    }, ::parseStockLines)
-
-    suspend fun omborCall(body: JsonObject): ApiResult = sv.api.bff("/api/ombor-buyruq", "POST", body)
-
-    suspend fun report(cid: Long, sid: Long, dan: String?, gacha: String?, qidir: String?, op: String?, offset: Int): ApiResult = omborCall(omborBody("hisobot", cid, sid) {
-        put("limit", 500); put("offset", offset)
-        put("filtr", buildJsonObject { dan?.let { put("dan", it) }; gacha?.let { put("gacha", it) }; qidir?.takeIf { it.isNotBlank() }?.let { put("qidir", it) }; op?.let { put("operatsiya", it) } })
-    })
-}
+/** Money text: unknown (null) is a dash, never 0. */
+fun moneyText(v: Double?): String = if (v == null) "\u2014" else formatMoney(v, 2)

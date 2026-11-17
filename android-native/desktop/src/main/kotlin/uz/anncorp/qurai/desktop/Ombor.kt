@@ -1,5 +1,7 @@
 package uz.anncorp.qurai.desktop
 
+import uz.anncorp.smeta.feature.common.*
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box

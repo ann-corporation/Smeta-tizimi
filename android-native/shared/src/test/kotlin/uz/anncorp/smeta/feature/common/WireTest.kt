@@ -1,4 +1,4 @@
-package uz.anncorp.qurai.desktop
+package uz.anncorp.smeta.feature.common
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -10,7 +10,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import uz.anncorp.smeta.core.data.ApiResult
 
-class DataTest {
+class WireTest {
     private val json = Json { ignoreUnknownKeys = true }
     private fun res(s: String, status: Int = 200) = ApiResult(status, json.parseToJsonElement(s))
 
