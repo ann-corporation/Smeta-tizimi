@@ -58,6 +58,7 @@ import uz.anncorp.smeta.core.ui.WorkTopBar
 import android.net.Uri
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.layout.statusBarsPadding
 import javax.inject.Inject
 
@@ -85,6 +86,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Default language is Uzbek (Latin) whatever the phone's system language is (most phones here run English or Russian UI); only an explicit
+        // choice in Settings (uz / ru / en) changes it. Must run once an activity exists: AppCompat ignores the call before that (API 33+), and it
+        // persists the choice itself (autoStoreLocales). The platform recreates the activity once on the very first launch.
+        if (androidx.appcompat.app.AppCompatDelegate.getApplicationLocales().isEmpty) androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(androidx.core.os.LocaleListCompat.forLanguageTags("uz"))
         // B9: the status / navigation bars follow the APP theme from the very first frame (no light bar flash before Compose runs).
         val systemDark = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
         applyBars(when (prefs.theme.value) { ThemeMode.DARK -> true; ThemeMode.LIGHT -> false; ThemeMode.SYSTEM -> systemDark })
@@ -168,7 +173,17 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
     }
     // Jarvis floating button: on every signed-in screen except where it would be in the way (start, sign-in, camera) or redundant (Jarvis itself).
     val jarvisHidden = route.isEmpty() || route == SPLASH || route == LOGIN || route == SIGNUP || route == INVITE || route.startsWith("jarvis") || route.startsWith("photo/")
-    Box(androidx.compose.ui.Modifier.fillMaxSize()) {
+    var fabHidden by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val fabScroll = androidx.compose.runtime.remember {
+        object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
+            override fun onPreScroll(available: androidx.compose.ui.geometry.Offset, source: androidx.compose.ui.input.nestedscroll.NestedScrollSource): androidx.compose.ui.geometry.Offset {
+                if (available.y < -8f) fabHidden = true else if (available.y > 8f) fabHidden = false
+                return androidx.compose.ui.geometry.Offset.Zero
+            }
+        }
+    }
+    LaunchedEffect(route) { fabHidden = false }
+    Box(androidx.compose.ui.Modifier.fillMaxSize().nestedScroll(fabScroll)) {
     NavHost(nav, startDestination = start) {
         composable(SPLASH) {
             SplashScreen(onRoute = { r ->
@@ -271,7 +286,7 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
         composable(HUJJAT, listOf(navArgument("xat") { type = NavType.LongType; defaultValue = -1L })) { uz.anncorp.smeta.feature.hujjat.HujjatScreen(onBack = { nav.popBackStack() }, onOpenChain = { nav.navigate("approval/$it") }) }
         composable(OUTBOX) { OutboxScreen(onBack = { nav.popBackStack() }, onEditDraft = { nav.navigate("draft/$it") }) }
     }
-    uz.anncorp.smeta.feature.jarvis.JarvisOverlay(visible = !jarvisHidden, epoch = jarvisEpoch)
+    uz.anncorp.smeta.feature.jarvis.JarvisOverlay(visible = !jarvisHidden, epoch = jarvisEpoch, scrollHidden = fabHidden)
     }
 }
 

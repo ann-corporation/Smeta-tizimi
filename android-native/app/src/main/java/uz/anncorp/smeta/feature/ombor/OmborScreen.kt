@@ -114,7 +114,7 @@ fun OmborScreen(onOutbox: () -> Unit, vm: OmborViewModel = hiltViewModel(), bann
         if (ui.computedBalance && tab == 0) Text(stringResource(R.string.ombor_computed_note), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.padding(horizontal = 20.dp))
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
-                tab == 3 -> OmborReportPanel((ui.scope as? OmborScope.Central)?.id ?: ui.warehouses.firstOrNull()?.id)
+                tab == 3 -> OmborReportPanel((ui.scope as? OmborScope.Central)?.id ?: ui.warehouses.firstOrNull()?.id, ui.query)
                 tab != 0 -> MovesList(filterMoves(ui.moves, tab == 1, ui.scope, ui.query), ui.objectNames, showObject = ui.scope !is OmborScope.Obyekt)
                 ui.rows.isEmpty() && ui.syncing && ui.updatedAt == null -> CenterMessage(null, stringResource(R.string.ombor_loading))
                 ui.rows.isEmpty() && ui.updatedAt == null -> when (ui.result) {
@@ -132,8 +132,9 @@ fun OmborScreen(onOutbox: () -> Unit, vm: OmborViewModel = hiltViewModel(), bann
                 }
             }
         }
-        if (ui.access.write) CommandBar(ui, vm)
-        if (ui.access.write) {
+        // The report tab needs the room: no command bar / action buttons there.
+        if (ui.access.write && tab != 3) CommandBar(ui, vm)
+        if (ui.access.write && tab != 3) {
             Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, tonalElevation = 3.dp) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(onClick = { preset = null; entryOp = OmborOp.RECEIVE.name }, modifier = Modifier.weight(1f).heightIn(min = TouchTarget)) { Text(stringResource(R.string.ombor_btn_receive)) }
