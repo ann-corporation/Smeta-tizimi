@@ -19,8 +19,16 @@ describe('AI hisob qoidasi', () => {
     expect(buzilgan).toEqual([]);
   });
   it('har model endpointi hisobli o‘ramni ishlatadi (ai-parse, ai-savol, smeta-ai, smeta-narx-agent, agent-ish, foto-ai, loyiha-ai-oqish)', () => {
-    for (const f of ['api/ai-parse.ts', '_shared/jarvis/chat.ts', 'api/smeta-ai.ts', 'api/smeta-narx-agent.ts', 'api/agent-ish.ts', 'api/foto-ai.ts', 'api/loyiha-ai-oqish.ts']) {
-      expect(readFileSync(join(ILDIZ, f), 'utf8'), f).toMatch(/aiHisobli/);
+    for (const f of ['api/ai-parse.ts', 'api/smeta-ai.ts', 'api/smeta-narx-agent.ts', 'api/agent-ish.ts', 'api/foto-ai.ts', 'api/loyiha-ai-oqish.ts']) {
+      expect(readFileSync(join(ILDIZ, f), 'utf8'), f).toMatch(/\baiHisobli\s*\(/);
     }
+  });
+  it('Jarvis goes through the billed adapter for both providers', () => {
+    const chat = readFileSync(join(ILDIZ, '_shared/jarvis/chat.ts'), 'utf8');
+    const adapter = readFileSync(join(ILDIZ, '_shared/jarvis/model.ts'), 'utf8');
+    expect(chat).toMatch(/import\s+\{\s*callJarvisModel\b[^}]*\}\s+from\s+['"]\.\/model['"]/);
+    expect(chat).toMatch(/\bcallJarvisModel\s*\(/);
+    expect(adapter).toMatch(/\breturn aiHisobli\s*\(/);
+    expect(adapter).toMatch(/\bworkersAiHisobli\([^\n]*\(\) => binding\.run\(/);
   });
 });

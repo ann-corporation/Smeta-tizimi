@@ -105,6 +105,17 @@ it.each(fixtures)('money/follow-up $key', async ({ lexicon, project }) => {
   expect(boundary.model).not.toHaveBeenCalled();
 });
 
+it.each(fixtures)('money/short-vat-follow-up $key', async ({ language, lexicon, project }) => {
+  const initial = lexicon.money(project.name);
+  const first = await query(initial);
+  expect(first.body.dalil).toMatchObject({ id: project.id });
+  const { body } = await query(lexicon.vatFollow, { tarix: [{ rol: 'user', matn: initial }, { rol: 'assistant', matn: first.body.javob }] });
+  expect(body.javob).toContain(localized[language].money[0]);
+  expect(moneyValues(body.javob ?? '')).toEqual(project.money);
+  expect(body.dalil).toMatchObject({ id: project.id, yol: `/admin/holat/${project.id}` });
+  expect(boundary.model).not.toHaveBeenCalled();
+});
+
 it.each(fixtures)('money/nickname $key', async ({ lexicon, project }) => {
   const { body } = await query(lexicon.nickname(project.alias));
   expect(moneyValues(body.javob ?? '')).toEqual(project.money);

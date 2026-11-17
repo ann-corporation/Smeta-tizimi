@@ -109,7 +109,7 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
     const answer = await estimateRowAnswer((name, body) => rpcData(env, name, body, signal), objectScope, estimateCode, men ?? null);
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
   }
-  const isMoneyQuestion = pulSorovi(savol);
+  const isMoneyQuestion = pulSorovi(savol, so.tarix);
   if (isMoneyQuestion && !kasb.kategoriyalar.includes('smeta_pul')) {
     const javob = text('Smeta qiymatini ko‘rish uchun lavozimingizga ruxsat kerak.', 'Для просмотра сметной стоимости нужен доступ.');
     await yozJurnal('rad', javob, qadamlar, { rad: true });

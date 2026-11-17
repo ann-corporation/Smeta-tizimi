@@ -10,6 +10,15 @@ describe('pulSorovi: ustama/QQS bilan smeta qiymati sinonimlari', () => {
     'НДС bilan smeta summasi', 'NDS bilan qiymati qancha', 'qqs bilan jami qancha', 'nakrutka bilan summa',
   ])('ha: %s', (q) => expect(pulSorovi(q)).toBe(true));
   it.each(['salom', 'QQS nima', 'obyekt haqida malumot ber', 'bugungi ishlarim'])('yo‘q: %s', (q) => expect(pulSorovi(q)).toBe(false));
+  it('requires a recent user estimate question to resolve a short VAT follow-up', () => {
+    const estimate = { rol: 'user', matn: 'Boshqa bino smetasi qancha?' };
+    const reply = { rol: 'assistant', matn: 'Podvaldan tekshiramiz' };
+    expect(pulSorovi('QQS bilan-chi?', [estimate, reply])).toBe(true);
+    expect(pulSorovi('QQS siz-chi?', [estimate, { rol: 'user', matn: 'QQS bilan-chi?' }, reply])).toBe(true);
+    expect(pulSorovi('QQS bilan-chi?', [{ ...estimate, rol: 'assistant' }])).toBe(false);
+    expect(pulSorovi('QQS bilan-chi?', [estimate, { rol: 'user', matn: 'Omborga nima keldi?' }])).toBe(false);
+    expect(pulSorovi('QQS nima?', [estimate, reply])).toBe(false);
+  });
 });
 
 describe('obyektTanla', () => {

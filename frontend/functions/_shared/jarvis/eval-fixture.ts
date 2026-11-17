@@ -15,6 +15,7 @@ export const evalLexicon = {
   'uz-Latn': {
     money: (name: string) => `${name} smeta qiymati QQS bilan qancha?`,
     follow: 'Shu obyekt ustamali qancha bo‘ladi?',
+    vatFollow: 'QQS bilan-chi?',
     nickname: (name: string) => `${name} uchun NDS bilan jami?`,
     status: (act: string) => `F2 № ${act} holati qanday?`,
     warehouse: (material: string) => `Ombor №7 qoldig‘i: ${material}`,
@@ -28,6 +29,7 @@ export const evalLexicon = {
   'uz-Cyrl': {
     money: (name: string) => `${name} смета қиймати ҚҚС билан қанча?`,
     follow: 'Шу объект устамали қанча бўлади?',
+    vatFollow: 'ҚҚС билан-чи?',
     nickname: (name: string) => `${name} учун ҚҚС билан жами?`,
     status: (act: string) => `Ф2 № ${act} ҳолати қандай?`,
     warehouse: (material: string) => `Омбор №7 қолдиғи: ${material}`,
@@ -41,6 +43,7 @@ export const evalLexicon = {
   ru: {
     money: (name: string) => `Какова стоимость сметы ${name} с НДС?`,
     follow: 'Сколько будет по этому объекту с накладными?',
+    vatFollow: 'А с НДС?',
     nickname: (name: string) => `Сумма с НДС по ${name}?`,
     status: (act: string) => `Статус КС-2 № ${act}?`,
     warehouse: (material: string) => `Остатки склада №7: ${material}`,

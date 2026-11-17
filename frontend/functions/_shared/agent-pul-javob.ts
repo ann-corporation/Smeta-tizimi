@@ -14,11 +14,23 @@ const norm = (s: string) => s.toLocaleLowerCase('uz-UZ').replace(/[‘’ʻʼ'`]
 const USTAMA = /(nakrutk|ustama|устама|накрутк|накладн|надбавк|overhead|markup)/;
 const QQS = /(\bqqs\b|\bnds\b|\bqqc\b|ндс|ққс|\bkks\b)/;
 const QIYMAT = /(smeta|qiymat|summa|qancha|narx|turadi|jami|смет|қиймат|қанча|нарх|туради|жами|стоимост|сумм|сколько|итого)/;
+const QISQA_PUL = /^(?:qqs (?:bilan|siz)|nds (?:bilan|siz)|ққс (?:билан|сиз)|(?:ustama|nakrutka) (?:bilan|siz)|устама (?:билан|сиз)|(?:а )?(?:с|без) (?:ндс|накладных))(?: (?:chi|чи))?$/u;
+const SMETA_JAMI = /(?:smeta|смет)/;
+const JAMI_SAVOL = /(?:qiymat|jami|qancha|қиймат|жами|қанча|стоимост|итого|сколько)/;
+
+function oxirgiSavol(tarix: unknown): string[] {
+  return Array.isArray(tarix) ? (tarix as PulTarix).slice(-6).reverse().flatMap(turn =>
+    turn?.rol === 'user' && typeof turn.matn === 'string' && turn.matn.trim() ? [turn.matn.slice(0, 6000)] : []) : [];
+}
+const smetaPul = (text: string) => (USTAMA.test(text) || QQS.test(text)) && QIYMAT.test(text);
 
 /** Ustama/QQS bilan smeta qiymati so'ralganmi (sinonimlar: nakrutka, ustama, накладные, QQS, НДС, NDS). */
-export function pulSorovi(savol: string): boolean {
+export function pulSorovi(savol: string, tarix?: unknown): boolean {
   const s = norm(savol);
-  return (USTAMA.test(s) || QQS.test(s)) && QIYMAT.test(s);
+  if (smetaPul(s)) return true;
+  if (!QISQA_PUL.test(s)) return false;
+  const previous = oxirgiSavol(tarix).map(norm).find(turn => !QISQA_PUL.test(turn));
+  return previous !== undefined && (smetaPul(previous) || (SMETA_JAMI.test(previous) && JAMI_SAVOL.test(previous)));
 }
 
 const sozlar = (s: string) => norm(s).split(' ').filter(Boolean);
@@ -54,10 +66,7 @@ export function obyektTanla(savol: string, tarix: unknown, obyektlar: PulObyekt[
   if (s.length > 1) return { tur: 'noaniq', variantlar: s.slice(0, 5) };
   const ochiq = ochiqId != null ? obyektlar.find((o) => o.id === ochiqId) : undefined;
   if (ochiqId != null) return ochiq ? { tur: 'bor', obyekt: ochiq } : { tur: 'yoq' };
-  const t = Array.isArray(tarix) ? (tarix as PulTarix).slice(-6) : [];
-  for (let i = t.length - 1; i >= 0; i--) {
-    const m = t[i]?.rol === 'user' && typeof t[i].matn === 'string' ? (t[i].matn as string).slice(0, 6000) : '';
-    if (!m) continue;
+  for (const m of oxirgiSavol(tarix)) {
     const h = topilgan(obyektlar, m);
     if (h.length === 1) return { tur: 'bor', obyekt: h[0] };
     if (h.length > 1) return { tur: 'noaniq', variantlar: h.slice(0, 5) };
@@ -110,7 +119,7 @@ type PulJavob = {
 
 /** To'liq oqim. null — bu savol emas (model davom etadi). Ruxsat: smeta_pul toifasi shu foydalanuvchiga ochiq bo'lishi shart. */
 export async function pulJavobi(rpc: Rpc, o: { actor: number; kid: number; savol: string; tarix: unknown; obyektId: number | null; ruxsat: readonly string[]; text?: JarvisText }): Promise<PulJavob | null> {
-  if (!pulSorovi(o.savol) || !o.ruxsat.includes('smeta_pul')) return null;
+  if (!pulSorovi(o.savol, o.tarix) || !o.ruxsat.includes('smeta_pul')) return null;
   const text = o.text ?? jarvisText();
   const f = await rpc('t2_agent_fakt_v1', { p_actor_id: o.actor, p_kompaniya_id: o.kid, p_kategoriyalar: ['obyektlar'], p_obyekt_id: null });
   if (!f.ok) return { javob: text('Obyektlar ro‘yxatini tekshirib bo‘lmadi. Ruxsat va tizimga ulanishni tekshiring.', 'Не удалось проверить список объектов. Проверьте доступ и подключение.') };
