@@ -125,3 +125,12 @@ describe('yordamchilar', () => {
     expect(x.html).toContain('123456');
   });
 });
+
+describe('Turnstile (TURNSTILE_SECRET bilan yoqiladi)', () => {
+  it('token yo\'q -> 403 TURNSTILE_KERAK, kod yaratilmaydi', async () => {
+    const f = mockFetch({});
+    const r = await post({ amal: 'kod', email: 'a@b.uz' }, { ...ENV, TURNSTILE_SECRET: 's' }, { Origin: 'https://t.example' });
+    expect(r.status).toBe(403); expect(await r.json()).toMatchObject({ code: 'TURNSTILE_KERAK' });
+    expect(f).not.toHaveBeenCalled();
+  });
+});

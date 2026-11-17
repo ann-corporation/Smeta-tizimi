@@ -9,11 +9,12 @@
  * Xavfsizlik: kodning o'zi bazaga yozilmaydi (HMAC xesh, SESSIYA_KALIT bilan); 10 daqiqa, 5 urinish, email/IP limitlari
  * bazada (t2_email_kod_yarat_v1). Hisob bor-yo'qligi kod bosqichida oshkor qilinmaydi. Origin tekshiruvi.
  */
-import { imzola, SESSIYA_MUDDAT_MS, type Rol } from '../_shared/auth';
+import { turnstileTekshir, turnstileXabar, turnstileYoqilgan } from '../_shared/turnstile';
+import { imzola, SESSIYA_MUDDAT_MS, tekshir, type Rol } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { KANONIK_ORIGIN, publicOrigin } from '../../src/lib/sayt-manzil';
 
-type Env = { PUBLIC_ORIGIN?: string; SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; RESEND_API_KEY?: string; EMAIL_FROM?: string };
+type Env = { TURNSTILE_SECRET?: string; PUBLIC_ORIGIN?: string; SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; RESEND_API_KEY?: string; EMAIL_FROM?: string };
 /** EMAIL_FROM berilmasa — Resend sinov manzili (domen tasdiqlanmaguncha kod faqat Resend hisobi egasiga yetadi). */
 export const STANDART_FROM = 'QURAI <onboarding@resend.dev>';
 /** Email tasdiqlanmagan parolli hisobga email kod bilan kirish rad etilgan (hisobni oldindan egallab olish himoyasi). */
@@ -67,7 +68,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const { SUPABASE_URL, SUPABASE_KEY, SESSIYA_KALIT, RESEND_API_KEY } = ctx.env;
   const EMAIL_FROM = ctx.env.EMAIL_FROM?.trim() || STANDART_FROM;
   if (originYaroqsiz(ctx.request)) return json({ ok: false, code: 'ORIGIN_INVALID' }, 403);
-  let b: { amal?: string; email?: string; tasdiqlash_id?: string; kod?: string; ism?: string; operation_id?: string } = {};
+  let b: { amal?: string; email?: string; tasdiqlash_id?: string; kod?: string; ism?: string; operation_id?: string; turnstile_token?: string } = {};
   try { b = await ctx.request.json(); } catch { return json({ ok: false, code: 'BODY_INVALID', xabar: 'Noto‘g‘ri so‘rov' }, 400); }
   const email = String(b.email || '').trim().toLowerCase().slice(0, 254);
   if (!EMAIL.test(email)) return json({ ok: false, code: 'EMAIL_NOTOGRI', xabar: 'Email manzilini to‘g‘ri kiriting.' }, 400);
@@ -77,6 +78,10 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   });
 
   if (b.amal === 'kod') {
+    /* Kirgan foydalanuvchi (hisob birlashtirish) bot emas — Turnstile faqat anonim so'rovga. */
+    const kirgan = turnstileYoqilgan(ctx.env) ? await tekshir(ctx.request.headers.get('Cookie'), SESSIYA_KALIT).catch(() => null) : null;
+    const ts = kirgan ? { ok: true as const } : await turnstileTekshir(ctx.env, b.turnstile_token, ctx.request.headers.get('CF-Connecting-IP'));
+    if (!ts.ok) return json({ ok: false, code: ts.code, xabar: turnstileXabar(ts.code) }, ts.code === 'TURNSTILE_XIZMAT' ? 503 : 403);
     if (!RESEND_API_KEY) return json({ ok: false, code: 'EMAIL_XIZMATI_SOZLANMAGAN', xabar: 'Email orqali kirish hali yoqilmagan. Google yoki login-parol bilan kiring.' }, 503);
     const kod = yangiKod();
     try {
