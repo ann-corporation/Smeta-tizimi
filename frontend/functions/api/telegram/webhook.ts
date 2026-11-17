@@ -187,6 +187,12 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
     case 'jarvis': await yubor(env, chatId, await jarvisJavobi(env, uid, til, b?.arg ?? '')); return 'jarvis';
     case 'kunlik': await yubor(env, chatId, await kunlikAmali(env, uid, til, b?.arg ?? '')); return 'kunlik';
     case 'fakt': await yubor(env, chatId, await faktTaklif(env, uid, til, b?.arg ?? '')); return 'fakt';
+    case 'hisobot': case 'qoldiq': case 'ostatka': {
+      // OMBOR: /hisobot o'tgan oy sement · /qoldiq 2026-11-01 — matn omborchi buyrug'i bilan bir xil yo'ldan (tahlil → kartochka) o'tadi.
+      const j = await omborBuyruq(env, uid, til, { matn: (b?.buyruq === 'hisobot' ? 'hisobot ' : 'qoldiq ') + (b?.arg ?? '') });
+      await yubor(env, chatId, j ?? { matn: tgT('Bu buyruq faqat omborchilar uchun.', til) });
+      return 'ombor_' + b?.buyruq;
+    }
     case 'yordam': case 'help':
       await xabarYubor(env, chatId, yordamMatni(til), { reply_markup: miniAppTugma(env, til) });
       return 'yordam';

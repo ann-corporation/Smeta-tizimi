@@ -66,7 +66,7 @@ export const MOBIL_TOMON_YOZISH: ReadonlySet<string> = new Set(['nazorat_qaror',
 /** /api/telegram: status + notification preferences only (never kod / uz / admin_*). */
 export const MOBIL_TELEGRAM_AMAL: ReadonlySet<string> = new Set(['sozlama']);
 /** /api/ombor-buyruq: omborchi buyrug'i va o'qishlar. eksport (ikkilik fayl, token yechiladi) va lias (variant birlashtirish) qurilmaga ochilmaydi. Ruxsat va yozish tokeni serverda. */
-export const MOBIL_OMBOR_AMAL: ReadonlySet<string> = new Set(['kontekst','qoldiq','royxat','tarix','eslatma','tahlil','tasdiq','yoz','tuzat']);
+export const MOBIL_OMBOR_AMAL: ReadonlySet<string> = new Set(['kontekst','qoldiq','royxat','tarix','eslatma','taklif','hisobot','vosita','narx_qoy','tahlil','tasdiq','yoz','tuzat']);
 /** /api/kirish-taklif is public-by-design (qabul = sign-up without a session): the device may only reach yarat (director creates a phone invite link/code). */
 export const MOBIL_TAKLIF_AMAL: ReadonlySet<string> = new Set(['yarat']);
 const amalRuxsat = (amallar: ReadonlySet<string>, method: string, body: unknown): boolean => {

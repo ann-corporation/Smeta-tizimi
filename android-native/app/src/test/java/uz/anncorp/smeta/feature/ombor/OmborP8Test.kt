@@ -124,7 +124,7 @@ class OmborP8Test {
         assertEquals("Obyekt", b["obyekt"].toString().trim('"')); assertEquals(null, b["izoh"])
         assertEquals("tasdiq", confirmBody(7, 3, "T")["amal"].toString().trim('"'))
         val s = suggestBody(7, 3, "  sem ")
-        assertEquals("eslatma", s["amal"].toString().trim('"')); assertEquals("sem", s["q"].toString().trim('"'))
+        assertEquals("taklif", s["amal"].toString().trim('"')); assertEquals("sem", s["q"].toString().trim('"'))
         for (body in listOf(t, a, e, confirmBody(7, 3, "T"), s)) assertFalse("the actor is never sent", body.containsKey("actor_id") || body.containsKey("p_actor_id"))
     }
 
@@ -159,4 +159,36 @@ class OmborP8Test {
         assertEquals(listOf("Sement"), BffOmborCommandApi(api(200, """{"ok":true,"takliflar":[{"nomi":"Sement","birligi":"qop"}]}""")).suggest(7, 3, "sem")!!.map { it.name })
         assertNull(BffOmborCommandApi(api(503, """{"ok":false}""")).suggest(7, 3, "sem"))
     }
-}
+
+    @Test fun receiptPriceIsOptionalAndTheServerGetsTheModeNotAComputedValue() {
+        val e = editedCommandBody(7, 3, CommandKind.RECEIVE, "Sement", "qop", 2.0, "Alfa", "", null, 1120.0, "bilan")
+        val b = e["buyruq"] as kotlinx.serialization.json.JsonObject
+        assertEquals("1120.0", b["narx"].toString()); assertEquals("bilan", b["narx_rejim"].toString().trim('"'))
+        val siz = editedCommandBody(7, 3, CommandKind.RECEIVE, "S", "m", 1.0, "", "", null, 5.0, "siz")["buyruq"] as kotlinx.serialization.json.JsonObject
+        assertEquals("siz", siz["narx_rejim"].toString().trim('"'))
+        // no price / issue: nothing about price is sent
+        assertEquals(null, (editedCommandBody(7, 3, CommandKind.RECEIVE, "S", "m", 1.0, "", "", null)["buyruq"] as kotlinx.serialization.json.JsonObject)["narx"])
+        assertEquals(null, (editedCommandBody(7, 3, CommandKind.ISSUE, "S", "m", 1.0, "", "", null, 5.0, "bilan")["buyruq"] as kotlinx.serialization.json.JsonObject)["narx"])
+        assertEquals("siz", textCommandBody(7, 3, "x", "uz", "siz")["narx_rejim"].toString().trim('"'))
+        assertEquals(null, textCommandBody(7, 3, "x", "uz")["narx_rejim"])
+    }
+
+    @Test fun previewCarriesBothPricesAndTheGentleAsk() {
+        val ask = parseCommandReply(Json.parseToJsonElement("""{"ok":true,"holat":"tasdiq_kerak","token":"T","preview":{"tur":"prixod","nomi":"A","birligi":"m","miqdor":1,"narx_sorov":true}}""")) as CommandOutcome.Preview
+        assertTrue(ask.preview.priceAsk); assertEquals(null, ask.preview.price)
+        val priced = parseCommandReply(Json.parseToJsonElement("""{"ok":true,"holat":"tasdiq_kerak","token":"T","preview":{"tur":"prixod","nomi":"A","birligi":"m","miqdor":1,"narx":1000,"narx_bilan":1120,"narx_rejim_sorov":true,"narx_sorov":false}}""")) as CommandOutcome.Preview
+        assertEquals(1000.0, priced.preview.price!!, 0.001); assertEquals(1120.0, priced.preview.priceGross!!, 0.001)
+        assertTrue(priced.preview.modeAsk); assertFalse(priced.preview.priceAsk)
+        assertTrue(priced.preview.canSave()) // the price never blocks saving
+    }
+
+    @Test fun suggestionsCarryUsualQuantityAndPriceFromTheSmartEndpoint() {
+        val s = parseSuggestions(Json.parseToJsonElement("""{"ok":true,"takliflar":[{"nomi":"Sement","birligi":"kg","miqdor_median":1500,"narx_oxirgi":1000,"narx_oxirgi_qqs":1120,"kontragent":"Alfa"}]}"""))!!
+        assertEquals(NameSuggestion("Sement", "kg", "Alfa", null, 1000.0, 1500.0, 1120.0), s[0])
+    }
+
+    @Test fun periodReportAnswerShowsBothSumsAndUnpricedCount() {
+        val o = parseCommandReply(Json.parseToJsonElement("""{"ok":true,"holat":"hisobot","hisobot":{"davr":{"dan":"2026-10-01","gacha":"2026-10-31"},"jami":{"kirim_soni":2,"chiqim_soni":1,"birliklar":[{"birligi":"kg","kirim":1500,"chiqim":300}],"kirim_summa":1600000,"kirim_summa_qqs":1792000,"narxsiz_soni":1}}}""")) as CommandOutcome.Preview
+        val t = o.preview.answer!!
+        assertTrue(t.contains("2026-10-01")); assertTrue(t.contains("QQS siz")); assertTrue(t.contains("QQS bilan")); assertTrue(t.contains("narxsiz: 1"))
+    }}
