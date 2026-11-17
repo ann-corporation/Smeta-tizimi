@@ -1,0 +1,9 @@
+{
+  "sana": "2026-11-17",
+  "sarlavha": "QURAI Android 0.1.12 — bepul sinov va «Birinchi qadamlar»",
+  "bandlar": [
+    "Yangi hisob uchun «Sinovni boshlash — 1000 token» tugmasi: bir bosishda shaxsiy sinov joyi ochiladi (kompaniya nomi yoki STIR kerak emas, token bir marta beriladi).",
+    "Bosh sahifada «Birinchi qadamlar» ro'yxati: namuna obyektni ochish, smeta yuklash, F-2, AI yordamchi, haqiqiy kompaniya ochish; token balansi ko'rinib turadi.",
+    "Sinov ish joyida «Haqiqiy kompaniya» tugmasi orqali kompaniya ochilsa, tokenlar saqlanadi."
+  ]
+}

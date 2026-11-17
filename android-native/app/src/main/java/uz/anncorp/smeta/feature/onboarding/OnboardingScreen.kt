@@ -60,7 +60,9 @@ private enum class Mode { CHOOSE, CREATE, JOIN }
  * "Kompaniyangizni oching": open your own company (you become its head), join with an invite code, or carry on without one.
  */
 @Composable
-fun OnboardingScreen(busy: Boolean, error: OnboardError?, onCreate: (String, String) -> Unit, onJoin: (String) -> Unit, onSkip: () -> Unit, onClearError: () -> Unit, onInvites: (() -> Unit)? = null) {
+fun OnboardingScreen(busy: Boolean, error: OnboardError?, onCreate: (String, String) -> Unit, onJoin: (String) -> Unit, onSkip: () -> Unit, onClearError: () -> Unit, onInvites: (() -> Unit)? = null,
+    trial: uz.anncorp.smeta.core.data.SinovState? = null, trialBusy: Boolean = false, trialError: uz.anncorp.smeta.core.data.SinovError? = null, onTrial: () -> Unit = {}, forced: Boolean = false,
+) {
     var mode by rememberSaveable { mutableStateOf(Mode.CHOOSE) }
     var name by rememberSaveable { mutableStateOf("") }
     var inn by rememberSaveable { mutableStateOf("") }
@@ -77,10 +79,11 @@ fun OnboardingScreen(busy: Boolean, error: OnboardError?, onCreate: (String, Str
                 Spacer(Modifier.height(24.dp))
                 when (mode) {
                     Mode.CHOOSE -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        if (trial != null) TrialCard(busy = trialBusy, error = trialError, onStart = onTrial)
                         Button(onClick = { onClearError(); mode = Mode.CREATE }, modifier = Modifier.fillMaxWidth().height(56.dp), shape = MaterialTheme.shapes.medium) { Text(stringResource(R.string.ob_create), style = MaterialTheme.typography.titleMedium) }
                         OutlinedButton(onClick = { onClearError(); mode = Mode.JOIN }, modifier = Modifier.fillMaxWidth().height(56.dp), shape = MaterialTheme.shapes.medium) { Text(stringResource(R.string.ob_join), style = MaterialTheme.typography.titleMedium) }
                         if (onInvites != null && uz.anncorp.smeta.core.data.Features.USERNAME) OutlinedButton(onClick = onInvites, modifier = Modifier.fillMaxWidth().height(56.dp), shape = MaterialTheme.shapes.medium) { Text(stringResource(R.string.pe_invites_title), style = MaterialTheme.typography.titleMedium) }
-                        TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text(stringResource(R.string.ob_skip)) }
+                        TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text(stringResource(if (forced) R.string.p1_back else R.string.ob_skip)) }
                     }
                     Mode.CREATE -> {
                         Text(stringResource(R.string.ob_create_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth())
@@ -104,6 +107,33 @@ fun OnboardingScreen(busy: Boolean, error: OnboardError?, onCreate: (String, Str
                     }
                 }
             }
+        }
+    }
+}
+
+@StringRes
+fun uz.anncorp.smeta.core.data.SinovError.messageRes(): Int = when (this) {
+    uz.anncorp.smeta.core.data.SinovError.LIMIT -> R.string.sn_err_limit
+    uz.anncorp.smeta.core.data.SinovError.ALREADY_HAS -> R.string.sn_err_already
+    uz.anncorp.smeta.core.data.SinovError.NO_DEMO -> R.string.sn_err_no_demo
+    uz.anncorp.smeta.core.data.SinovError.AUTH -> R.string.sn_err_auth
+    uz.anncorp.smeta.core.data.SinovError.NETWORK -> R.string.err_network
+    uz.anncorp.smeta.core.data.SinovError.SERVER -> R.string.err_server
+}
+
+/** One-tap trial start: personal trial workplace + [uz.anncorp.smeta.core.data.SINOV_TOKEN] tokens, no company name or tax id (same card as the website). */
+@Composable
+private fun TrialCard(busy: Boolean, error: uz.anncorp.smeta.core.data.SinovError?, onStart: () -> Unit) {
+    Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.sn_title), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
+            Text(stringResource(R.string.sn_hint, uz.anncorp.smeta.core.data.SINOV_TOKEN), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+            if (error != null) Text(stringResource(error.messageRes()), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            Button(onClick = onStart, enabled = !busy, modifier = Modifier.fillMaxWidth().height(56.dp), shape = MaterialTheme.shapes.medium) {
+                if (busy) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.5.dp, color = MaterialTheme.colorScheme.onPrimary)
+                else Text(stringResource(R.string.sn_start, uz.anncorp.smeta.core.data.SINOV_TOKEN), style = MaterialTheme.typography.titleMedium, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            }
+            Text(stringResource(R.string.sn_once), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
         }
     }
 }
