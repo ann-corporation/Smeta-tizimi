@@ -17,9 +17,9 @@ android {
         minSdk = 26
         targetSdk = 35
         // Tauri Android build: major*1e6+minor*1e3+patch (0.1.1 -> 1001). Start above it so a native release upgrades it in place.
-        versionCode = 2_000_011
+        versionCode = 2_000_012
         // Format must match the server's ilovaVersiya() regex: d{1,4}.d{1,4}.d{1,6}
-        versionName = "0.1.12"
+        versionName = "0.1.13"
         // Domain move (qurai.uz): ONE source for the API host. Canonical host first; the fallback list (comma separated, tried in order
         // on a network failure, see core/data/HostFallback.kt) keeps old/other hosts reachable. Override: -PapiBase=... -PapiFallbacks=...
         val apiBase = (project.findProperty("apiBase") as String?) ?: "https://qurai.uz"

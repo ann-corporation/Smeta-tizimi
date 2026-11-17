@@ -112,6 +112,11 @@ class ApiClient(
         .addInterceptor(NativeHeadersInterceptor({ tokens.token() }, versionName) { tokens.clear(); events.emitLogout() })
         .build()
 
+    /** Photo / avatar uploads on a slow mobile link: the default 10 s write and 45 s call limits cut a 1 MB body off half way. Same interceptors, longer limits. */
+    private val uploadHttp: OkHttpClient = http.newBuilder()
+        .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS).readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+        .callTimeout(150, java.util.concurrent.TimeUnit.SECONDS).build()
+
     /** Calls an allow-listed API path through POST /api/mobil/bff (the server derives all authority from the device). */
     override suspend fun bff(path: String, method: String, body: JsonElement?, etag: String?): ApiResult {
         val first = bffOnce(path, method, body, etag)
@@ -185,7 +190,7 @@ class ApiClient(
     override suspend fun upload(companyId: Long, obyektId: Long, body: okhttp3.RequestBody): ApiResult {
         val url = baseUrl.resolve("/api/mobil/yukla")!!.newBuilder()
             .addQueryParameter("kompaniya_id", companyId.toString()).addQueryParameter("obyekt_id", obyektId.toString()).build()
-        return send(Request.Builder().url(url).post(body).build())
+        return send(Request.Builder().url(url).post(body).build(), uploadHttp)
     }
 
     override suspend fun webTicket(path: String): ApiResult = post("/api/mobil/web-bilet", buildJsonObject { put("yol", path) })
@@ -205,7 +210,7 @@ class ApiClient(
     }
 
     override suspend fun avatarPut(bytes: ByteArray, mime: String): ApiResult =
-        send(Request.Builder().url(baseUrl.resolve(AVATAR_PATH)!!).post(bytes.toRequestBody(mime.toMediaType())).build())
+        send(Request.Builder().url(baseUrl.resolve(AVATAR_PATH)!!).post(bytes.toRequestBody(mime.toMediaType())).build(), uploadHttp)
 
     override suspend fun avatarDelete(): ApiResult = send(Request.Builder().url(baseUrl.resolve(AVATAR_PATH)!!).delete().build())
 
@@ -223,9 +228,9 @@ class ApiClient(
     private suspend fun post(path: String, body: JsonObject): ApiResult =
         send(Request.Builder().url(baseUrl.resolve(path)!!).post(body.toRequestBody()).build())
 
-    private suspend fun send(request: Request): ApiResult = withContext(Dispatchers.IO) {
+    private suspend fun send(request: Request, client: OkHttpClient = http): ApiResult = withContext(Dispatchers.IO) {
         try {
-            http.newCall(request).execute().use { r ->
+            client.newCall(request).execute().use { r ->
                 val text = r.body?.string().orEmpty()
                 val parsed = runCatching { json.parseToJsonElement(text) }.getOrNull()
                 val code = (parsed as? JsonObject)?.get("code")?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }

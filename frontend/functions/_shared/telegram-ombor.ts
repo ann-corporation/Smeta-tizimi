@@ -50,6 +50,28 @@ async function ovozYukla(env: BotEnv, fileId: string): Promise<Blob | null> {
 }
 
 const ish = (v: unknown) => (v == null || v === '' ? '—' : String(v));
+const pulFormat = (n: number) => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(n);
+
+type HisobotJavob = {
+  davr: { dan: string | null; gacha: string | null };
+  jami: { kirim_soni: number; chiqim_soni: number; birliklar: { birligi: string; kirim: number; chiqim: number }[]; kirim_summa: number; kirim_summa_qqs: number; chiqim_summa: number | null; narxsiz_soni: number; qqs_foiz: number };
+  chetlatilgan: number; qator_soni: number; qatorlar: { sana: string; operatsiya: string; nomi: string; birligi: string; obyomi: number; kontragent: string | null }[];
+};
+/** Kirim-chiqim hisoboti kartasi: davr, jami (birlik bo'yicha), summa QQS siz/bilan va oxirgi qatorlar. */
+export function hisobotMatni(h: HisobotJavob | undefined, til: TgTil): string {
+  if (!h) return tgT('Topilmadi.', til);
+  const dav = `${h.davr.dan ?? '…'} — ${h.davr.gacha ?? '…'}`;
+  if (!h.qator_soni) return `${tgT('Kirim-chiqim', til)}: ${dav}\n${tgT('Bu davrda yozuv yo‘q.', til)}`;
+  const j = h.jami;
+  const birl = (k: 'kirim' | 'chiqim') => j.birliklar.filter((b) => b[k] > 0).map((b) => `${SON_FORMAT(b[k])} ${b.birligi}`).join(', ') || '—';
+  return [`${tgT('Kirim-chiqim', til)}: ${dav}`,
+    `${tgT('Kirim', til)}: ${j.kirim_soni} · ${birl('kirim')}`,
+    ...(j.kirim_summa > 0 ? [`${tgT('Summa (QQS siz)', til)}: ${pulFormat(j.kirim_summa)} · ${tgT('QQS bilan', til)} (${j.qqs_foiz}%): ${pulFormat(j.kirim_summa_qqs)}`] : []),
+    ...(j.narxsiz_soni > 0 ? [`${tgT('Narxi yozilmagan kirim', til)}: ${j.narxsiz_soni}`] : []),
+    `${tgT('Chiqim', til)}: ${j.chiqim_soni} · ${birl('chiqim')}`, '',
+    ...h.qatorlar.slice(0, 10).map((x) => `${x.sana.slice(5)} ${x.operatsiya === 'prixod' ? '+' : '−'}${SON_FORMAT(x.obyomi)} ${x.birligi} ${x.nomi}${x.kontragent ? ' · ' + x.kontragent : ''}`),
+    ...(h.qator_soni > 10 ? [`… ${h.qator_soni - 10}`] : [])].join('\n');
+}
 
 /** Preview kartasi (Telegram matni). Faqat sintetik testlanadi. */
 export function kartaMatni(j: Javob, til: TgTil): string {
@@ -65,6 +87,7 @@ export function kartaMatni(j: Javob, til: TgTil): string {
     return [p.tur === 'prixod' ? tgT('KIRIM (prixod)', til) : tgT('CHIQIM (rasxod)', til),
       `${ish(p.nomi)} — ${SON_FORMAT(Number(p.miqdor))} ${ish(p.birligi)}`,
       `${tgT('Sana', til)}: ${ish(p.sana)}`,
+      ...(p.tur === 'prixod' && p.narx != null ? [`${tgT('QQS siz', til)}: ${pulFormat(Number(p.narx))} · ${tgT('QQS bilan', til)}: ${pulFormat(Number(p.narx_bilan))}`] : []),
       ...(p.kontragent ? [`${p.tur === 'prixod' ? tgT('Yetkazuvchi', til) : tgT('Kimga', til)}: ${ish(p.kontragent)}`] : []),
       ...(p.obyekt ? [`${tgT('Obyekt', til)}: ${ish(p.obyekt)}`] : []),
       ...(p.qoldiq_hozir != null ? [`${tgT('Ostatka', til)}: ${SON_FORMAT(Number(p.qoldiq_hozir))} → ${SON_FORMAT(Number(p.qoldiq_keyin))}`] : []),
@@ -74,7 +97,8 @@ export function kartaMatni(j: Javob, til: TgTil): string {
   switch (j.holat) {
     case 'javob':
       if (j.tarix) return [tgT('Oxirgi harakatlar:', til), ...(((j.tarix as { qatorlar?: Record<string, unknown>[] }).qatorlar ?? []).slice(0, 8).map((x) => `${ish(x.sana)} ${x.operatsiya === 'prixod' ? '+' : '−'}${SON_FORMAT(Number(x.obyomi))} ${ish(x.birligi)} #${ish(x.id)}`))].join('\n');
-      return nomz.length ? [tgT('Ostatka:', til), ...nomz.slice(0, 5).map((x) => `• ${ish(x.nomi)} — ${SON_FORMAT(Number(x.qoldiq))} ${ish(x.birligi)}`)].join('\n') : tgT('Topilmadi.', til);
+      return nomz.length ? [j.sana ? `${tgT('Ostatka:', til)} ${ish(j.sana)}` : tgT('Ostatka:', til), ...nomz.slice(0, j.sana ? 15 : 5).map((x) => `• ${ish(x.nomi)} — ${SON_FORMAT(Number(x.qoldiq))} ${ish(x.birligi)}`)].join('\n') : tgT('Topilmadi.', til);
+    case 'hisobot': return hisobotMatni(j.hisobot as HisobotJavob | undefined, til);
     case 'material_tanlang': case 'material_topilmadi':
       return [tgT('Qaysi material? Aniqroq nomini yozing yoki ovoz yuboring:', til), ...nomz.slice(0, 5).map((x) => `• ${ish(x.nomi)} (${ish(x.birligi)}, ${SON_FORMAT(Number(x.qoldiq))})`)].join('\n');
     case 'qoldiq_yetmaydi': return `${tgT('Ostatka yetmaydi', til)}: ${SON_FORMAT(Number(j.hozirgi_qoldiq))} < ${SON_FORMAT(Number(j.sorlagan))}`;

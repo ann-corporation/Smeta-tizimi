@@ -61,7 +61,7 @@ fun UpdateBanner(vm: UpdateViewModel = hiltViewModel()) {
             }
             TextButton(onClick = { hidden = true }, modifier = Modifier.heightIn(min = TouchTarget)) { Text(stringResource(R.string.upd_later)) }
             TextButton(
-                onClick = { runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(vm.url(rel))).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } },
+                onClick = { startApkDownload(ctx, vm.url(rel)) },
                 modifier = Modifier.heightIn(min = TouchTarget),
             ) { Text(stringResource(R.string.upd_get)) }
         }

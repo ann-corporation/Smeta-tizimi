@@ -813,6 +813,8 @@ export function F2TayyorlashNative() {
       }
       if (typeof r.versiya === 'number') aktVersiya.current.set(akt.id, r.versiya);
       toast(t('F2 qoralama yangilandi (akt #{id}, {n} qator). Tasdiqlash - F2 tarixida.', { id: String(akt.id), n: String(qatorlar.length) }), 'ok');
+      // 20270109000000: ish qatori bor-u resurslari tushmagan bo'lsa — jim o'tmaydi (summa to'liq emas, yuborish bloklanadi).
+      if ((r.resurs_tushgan_soni ?? 0) > 0) toast(f2YozishXatoMatni({ code: 'F2_RESURS_TUSHGAN', soni: r.resurs_tushgan_soni }, ''), 'danger', undefined, 20000);
       setQoralamaYozildi({ obyektId, n: qatorlar.length });
       await yuklash();
     } catch { toast(t('Javob olinmadi. Qayta urinib ko‘ring.'), 'danger'); }

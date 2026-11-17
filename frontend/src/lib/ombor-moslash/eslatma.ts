@@ -27,7 +27,7 @@ const toza = (v: unknown): string | null => { const s = typeof v === 'string' ? 
 const musbatSon = (v: unknown): number | null => { const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() ? Number(v) : NaN; return Number.isFinite(n) && n > 0 ? n : null; };
 
 /** So'rovdagi har bir token nom tokenlaridan birining BOSHIGA mos kelishi kerak (sinonimli va xom shakllarda). */
-function mosmi(sorov: string[], nomTok: Set<string>): boolean {
+export function mosmi(sorov: string[], nomTok: Set<string>): boolean {
   return sorov.every((q) => { for (const w of nomTok) if (w.startsWith(q)) return true; return false; });
 }
 
