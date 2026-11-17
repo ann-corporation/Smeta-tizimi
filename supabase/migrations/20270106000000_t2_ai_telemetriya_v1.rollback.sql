@@ -1,4 +1,4 @@
--- Rollback: 20270104000000 - AI telemetriyasi. Diqqat: t2_ai_telemetriya qatorlari va baho qatorlari (t2_agent_fikr.baho is not null) O'CHIRILADI (faqat o'lchov ma'lumoti).
+-- Rollback: 20270106000000 - AI telemetriyasi. Diqqat: t2_ai_telemetriya qatorlari va baho qatorlari (t2_agent_fikr.baho is not null) O'CHIRILADI (faqat o'lchov ma'lumoti).
 delete from public.t2_agent_fikr where baho is not null;
 drop function if exists public.t2_ai_telemetriya_yoz_v1(bigint, bigint, text, text, integer, boolean, text, text, text[], integer, integer, integer, text);
 drop function if exists public.t2_ai_baho_yoz_v1(bigint, bigint, integer, text, text);

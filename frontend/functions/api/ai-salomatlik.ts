@@ -2,7 +2,7 @@
  * GET /api/ai-salomatlik - "AI salomatligi" hisoboti (faqat platforma superadmini; har chaqiruvda bazada qayta tekshiriladi, superadminActor).
  * Oxirgi 7 va 30 kun, yuza (surface) bo'yicha: so'rovlar soni, xato foizi, p50/p95 kechikish, eng ko'p xato kodlari, yoqdi/yoqmadi, vosita statistikasi
  * + AI ishchilar holati. Faqat o'qiydi; matn/kompaniya ma'lumoti yo'q (faqat sonlar va kodlar).
- * Migratsiya (20270104000000) qo'llanmagan bo'lsa - 503 MIGRATSIYA_YOQ.
+ * Migratsiya (20270106000000) qo'llanmagan bo'lsa - 503 MIGRATSIYA_YOQ.
  */
 import { superadminActor, type SuperadminEnv } from '../_shared/superadmin';
 import { supabaseBaseUrl } from '../_shared/supabase-url';

@@ -51,7 +51,7 @@ async function aiHolatTekshir(env: Env, egasi: number): Promise<Response> {
     });
     h = r.ok ? await r.json().catch(() => null) as Record<string, unknown> | null : null;
   } catch { h = null; }
-  if (!h || h.ok !== true) return javob({ ok: true, ai: null }); // migratsiya (20270104000000) qo'llanmagan - jim
+  if (!h || h.ok !== true) return javob({ ok: true, ai: null }); // migratsiya (20270106000000) qo'llanmagan - jim
   const matn = aiHolatMatni(h);
   if (!matn) return javob({ ok: true, ai: 'joyida', yoqilgan: Number(h.yoqilgan), ish_24s: Number(h.ish_24s) });
   if (!tokenBormi(env)) return javob({ ok: true, ai: 'ogoh', telegram: false });

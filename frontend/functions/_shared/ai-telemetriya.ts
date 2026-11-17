@@ -2,7 +2,7 @@
  * AI telemetriyasi: har model chaqiruvi uchun ixcham o'lchov qatori (yuza, model, kechikish, ok/xato kodi, niyat, vosita nomlari, token).
  * Foydalanuvchi matni, savol/javob, kalit yoki fayl HECH QACHON yozilmaydi - faqat sonlar va qisqa kodlar (public repo + maxfiylik).
  * Yozuv "best effort": xato yoki sekin baza AI javobiga ta'sir qilmaydi (hech qachon throw qilmaydi, 2 soniyada to'xtaydi).
- * DB: t2_ai_telemetriya (20270104000000), 30 kunlik saqlash - arxiv-siyosat.ts. Migratsiya qo'llanmagan bo'lsa RPC 404 beradi - jim o'tkaziladi.
+ * DB: t2_ai_telemetriya (20270106000000), 30 kunlik saqlash - arxiv-siyosat.ts. Migratsiya qo'llanmagan bo'lsa RPC 404 beradi - jim o'tkaziladi.
  */
 import { supabaseBaseUrl } from './supabase-url';
 
