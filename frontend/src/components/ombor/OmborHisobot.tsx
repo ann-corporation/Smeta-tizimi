@@ -5,6 +5,7 @@ import { toast } from '../../umumiy/ui/Toast';
 import { omborEksport, omborHisobot, omborNarxQoy, type DavrBelgisi, type OmborHisobot, type OmborHisobotFiltr } from '../../api/t2-ombor';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { omborXatoMatni } from './ombor-xato';
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 
 /**
  * Kirim-chiqim hisoboti: tayyor davrlar (bugun, hafta, oy, o'tgan oy, ixtiyoriy), material/yetkazuvchi/qabul qiluvchi/obyekt filtrlari,
@@ -89,7 +90,7 @@ export function OmborHisobotPaneli({ kompaniyaId, skladId, yangilash, kompakt = 
         <td className="whitespace-nowrap p-2">{h.sana}</td><td className="p-2">{h.operatsiya === 'prixod' ? t('Kirim') : t('Chiqim')}</td><td className="p-2">{h.nomi}</td>
         <td className="whitespace-nowrap p-2 text-right">{n(h.obyomi)} {h.birligi}</td><td className="p-2">{h.kontragent}{h.obyekt ? ` · ${h.obyekt}` : ''}</td>
         {!kompakt && <td className="whitespace-nowrap p-2 text-right">{h.summa != null ? pul(h.summa) : h.operatsiya === 'prixod' ? (narxQoy?.id === h.id
-          ? <span className="inline-flex gap-1"><input aria-label={t('Narx (ixtiyoriy)')} inputMode="decimal" value={narxQoy.v} onChange={(e) => setNarxQoy({ id: h.id, v: e.target.value })} className="h-[40px] w-28 rounded-md border border-[var(--border-strong)] bg-bg px-2" />
+          ? <span className="inline-flex gap-1"><MoneyInput aria-label={t('Narx (ixtiyoriy)')} inputMode="decimal" value={narxQoy.v} onValueChange={(v) => setNarxQoy({ id: h.id, v })} className="h-[40px] w-28 rounded-md border border-[var(--border-strong)] bg-bg px-2" />
             <button type="button" className="fz-btn min-h-[40px]" onClick={() => void narxSaqla()}>{t('Saqlash')}</button></span>
           : <span className="text-warn">{t('narxsiz')}{yozishMumkin && <button type="button" className="fz-btn ml-2 min-h-[36px]" onClick={() => setNarxQoy({ id: h.id, v: '' })}>{t('Narx qo‘yish')}</button>}</span>) : ''}</td>}
         {!kompakt && <td className="whitespace-nowrap p-2 text-right">{h.summa_qqs == null ? '' : pul(h.summa_qqs)}</td>}</tr>)}

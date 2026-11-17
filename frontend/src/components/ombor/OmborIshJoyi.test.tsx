@@ -70,7 +70,7 @@ describe('kirim: aqlli taklif -> bir bosishlik karta', () => {
     expect((screen.getByLabelText('Birlik') as HTMLInputElement).value).toBe('m');
     expect((screen.getByLabelText('Miqdor') as HTMLInputElement).value).toBe('8');
     expect((screen.getByLabelText('Yetkazuvchi') as HTMLInputElement).value).toBe('Sintetik MChJ');
-    expect((screen.getByLabelText('Narx (ixtiyoriy)') as HTMLInputElement).value).toBe('1120'); // sukut «QQS bilan»
+    expect((screen.getByLabelText('Narx (ixtiyoriy)') as HTMLInputElement).value.replace(/\s/g, '')).toBe('1120'); // sukut «QQS bilan»
     expect(screen.getByRole('button', { name: 'QQS bilan' }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByText('1 000', { exact: false })).toBeTruthy(); // QQS siz ham ko'rinadi
     fireEvent.change(screen.getByLabelText('Miqdor'), { target: { value: '5,5' } });
@@ -101,7 +101,7 @@ describe('kirim: aqlli taklif -> bir bosishlik karta', () => {
     api.omborTaklif.mockResolvedValue({ ok: true, tur: 'prixod', qqs_foiz: 12, kontragentlar: [], takliflar: [T('Test truba f25', 'm', { narx_oxirgi: 1000, narx_oxirgi_qqs: 1120 })] });
     montaj(); await taklifTanla(/Test truba f25/);
     fireEvent.click(screen.getByRole('button', { name: 'QQS siz' }));
-    expect((screen.getByLabelText('Narx (ixtiyoriy)') as HTMLInputElement).value).toBe('1000');
+    expect((screen.getByLabelText('Narx (ixtiyoriy)') as HTMLInputElement).value.replace(/\s/g, '')).toBe('1000');
     expect(localStorage.getItem('ombor-narx-rejim:1:9')).toBe('siz');
     fireEvent.click(screen.getByRole('button', { name: 'Saqlash' }));
     await waitFor(() => expect(api.omborYoz).toHaveBeenCalled());

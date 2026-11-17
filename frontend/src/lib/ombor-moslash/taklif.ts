@@ -5,6 +5,7 @@
  * Tartib: so'rov mosligi + ishlatilish chastotasi + yangilik (yarim umr 45 kun). Hech narsa o'ylab topilmaydi: tarixda bo'lmagan maydon null.
  */
 import { NDS_SUKUT_FOIZ, qqsBilan } from '../hisob-yadro/nds';
+import { yaxlit2 } from '../hisob-yadro/yaxlit';
 import { birlikKaliti, nomKaliti, nomTokenlari, nomTokenlariXom } from './moslash';
 import { mosmi } from './eslatma';
 import { matnMosmi } from './hisobot';
@@ -29,7 +30,7 @@ export type KontragentTaklif = {
 const toza = (v: unknown): string | null => { const s = typeof v === 'string' ? v.replace(/\s+/g, ' ').trim() : ''; return s || null; };
 const musbat = (v: unknown): number | null => { const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() ? Number(v) : NaN; return Number.isFinite(n) && n > 0 ? n : null; };
 const yaxlit = (n: number) => Math.round(n * 10000) / 10000;
-const pul = (n: number) => Math.round(n * 100) / 100;
+const pul = yaxlit2;
 const kunFarq = (a: string, b: string) => Math.max(0, Math.round((Date.parse(a + 'T00:00:00Z') - Date.parse(b + 'T00:00:00Z')) / 86400_000));
 
 export function median(x: readonly number[]): number | null {

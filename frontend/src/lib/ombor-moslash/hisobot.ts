@@ -9,6 +9,7 @@
  *  - Variant guruhi bosqichi yo'q (egasi qarori): guruh kaliti = lotin/kirill farqsiz nom + birlik.
  */
 import { NDS_SUKUT_FOIZ, qqsBilan } from '../hisob-yadro/nds';
+import { yaxlit2 } from '../hisob-yadro/yaxlit';
 import { birlikKaliti, nomKaliti, nomTokenlari, nomTokenlariXom } from './moslash';
 import { mosmi } from './eslatma';
 
@@ -29,7 +30,7 @@ export const OSTATKA_MANBALARI: readonly string[] = ['c11_warehouse_receipt_v1',
 const son = (v: unknown): number | null => { const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() ? Number(v) : NaN; return Number.isFinite(n) ? n : null; };
 const toza = (v: unknown): string | null => { const s = typeof v === 'string' ? v.replace(/\s+/g, ' ').trim() : ''; return s || null; };
 const yaxlit = (n: number, k = 4) => Math.round(n * 10 ** k) / 10 ** k;
-const pul = (n: number) => Math.round(n * 100) / 100;
+const pul = yaxlit2;
 
 /** Erkin matn filtri (material, yetkazuvchi): so'rovdagi har bir so'z nom so'zlaridan birining BOSHIGA mos (lotin/kirill farqsiz). */
 export function matnMosmi(sorov: string | null | undefined, matn: string | null | undefined): boolean {

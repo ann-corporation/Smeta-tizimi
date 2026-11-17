@@ -8,6 +8,7 @@ import {
   type OmborBuyruqNatija, type OmborKontragentTaklif, type OmborNomzod, type OmborTaklif,
 } from '../../api/t2-ombor';
 import { omborXatoMatni } from './ombor-xato';
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { narxBilanga, narxSizga } from '../../lib/ombor-moslash/narx';
 
 /**
@@ -173,7 +174,7 @@ export function OmborKiritish({ kompaniyaId, skladId, onYozildi }: { kompaniyaId
       <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <input ref={miqdorRef} aria-label={t('Miqdor')} placeholder={t('Miqdor')} inputMode="decimal" value={karta.miqdor} onChange={(e) => setKarta({ ...karta, miqdor: e.target.value })} className={inp} />
         <input aria-label={t('Birlik')} placeholder={t('Birlik')} value={karta.birligi} onChange={(e) => setKarta({ ...karta, birligi: e.target.value })} className={inp} />
-        {kirimMi && <input aria-label={t('Narx (ixtiyoriy)')} placeholder={t('Narx (ixtiyoriy, QQS siz)')} inputMode="decimal" value={karta.narx} onChange={(e) => setKarta({ ...karta, narx: e.target.value })} className={inp} />}
+        {kirimMi && <MoneyInput aria-label={t('Narx (ixtiyoriy)')} placeholder={t('Narx (ixtiyoriy, QQS siz)')} inputMode="decimal" value={karta.narx} onValueChange={(v) => setKarta({ ...karta, narx: v })} className={inp} />}
         <input aria-label={kirimMi ? t('Yetkazuvchi') : t('Kimga (prorab / brigada)')} placeholder={kirimMi ? t('Yetkazuvchi') : t('Kimga (prorab / brigada)')} value={karta.kontragent} onChange={(e) => setKarta({ ...karta, kontragent: e.target.value })} className={inp} />
       </div>
       {kirimMi && <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-text-dim" role="group" aria-label={t('Narx QQS bilan yoki QQS siz')}>

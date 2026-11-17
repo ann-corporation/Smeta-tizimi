@@ -3,9 +3,10 @@
  * Sof funksiyalar: web, Android, Telegram, Jarvis va server bir xil hisoblaydi. Matndan: «50 ming QQS bilan», «ndssiz 45 ming», «цена 1200 с НДС».
  */
 import { NDS_SUKUT_FOIZ, qqsBilan } from '../hisob-yadro/nds';
+import { yaxlit2 } from '../hisob-yadro/yaxlit';
 
 export type NarxRejim = 'bilan' | 'siz';
-const yaxlit2 = (n: number) => Math.round(n * 100) / 100;
+
 
 /** Kiritilgan narx (rejim bo'yicha) -> kanonik QQS siz narx. Yaroqsiz -> null. */
 export function narxSizga(qiymat: number | null | undefined, rejim: NarxRejim, foiz: number = NDS_SUKUT_FOIZ): number | null {
@@ -34,5 +35,5 @@ export function narxSoni(raqam: string, soz?: string | null): number | null {
   const n = Number(String(raqam).replace(/\s/g, '').replace(',', '.'));
   if (!Number.isFinite(n) || n <= 0) return null;
   const k = soz ? KO_PAYTIRGICH.find(([re]) => re.test(soz))?.[1] ?? 1 : 1;
-  return Math.round(n * k * 100) / 100;
+  return yaxlit2(n * k);
 }
