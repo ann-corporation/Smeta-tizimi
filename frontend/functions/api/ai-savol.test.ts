@@ -34,6 +34,7 @@ let inbox: () => Response;
 let chain: (chainId: number) => Response;
 let canonicalDocument: () => Response;
 let documents: () => Response;
+let estimatePrices: () => Response;
 type TaskReply = { javob?: string; dalil?: unknown };
 const rpc = vi.fn(async (input: string, _init?: RequestInit) => {
   switch (input.split('/').at(-1)) {
@@ -52,6 +53,7 @@ const rpc = vi.fn(async (input: string, _init?: RequestInit) => {
     case 't2_hujjat_zanjir_tafsilot_v1': return chain(JSON.parse(String(_init?.body)).p_zanjir_id);
     case 't2_document_canonical_get_v1': return canonicalDocument();
     case 't2_document_registry_v1': return documents();
+    case 't2_agent_qidiruv_v1': return estimatePrices();
     case 't2_agent_muhit_v1': return Response.json({ ok: true, qoidalar: [], xotira: [], manbalar: [] });
     default: return Response.json({ ok: true });
   }
@@ -78,6 +80,7 @@ beforeEach(() => {
   inbox = () => Response.json({ ok: true, zanjirlar: [] });
   chain = () => Response.json({ ok: false });
   canonicalDocument = () => Response.json({ ok: true, document_id: 50, kompaniya_id: 17, original_filename: 'Sinov.xlsx', r2_key: 'private-key' });
+  estimatePrices = () => Response.json({ ok: true, ruxsat: true, narx_ruxsat: true, obyektlar: [object], qatorlar: [] });
   documents = () => Response.json({ ok: true, kompaniya_id: 17, obyekt_id: 34, documents: [
     { id: '50', filename: 'Sinov.xlsx', canonicalStatus: 'READY' },
   ] });
@@ -96,6 +99,42 @@ beforeEach(() => {
   vi.stubGlobal('fetch', rpc);
 });
 afterEach(() => vi.unstubAllGlobals());
+
+it.each([
+  'Sinov Bino smetada M200 beton qanchadan?', 'Sinov Bino сметада М200 бетон қанчадан?', 'Сколько стоит бетон М200 в смете Sinov Bino?',
+])('reads matched source units and nullable prices from one estimate: %s', async question => {
+  men = () => Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: 17, permissions: ['smeta.read'] }] });
+  const base = { obyekt: object.nom, birlik: 'м³', qator_soni: 1, narxsiz_qator: 0, tur: 'mat' };
+  estimatePrices = () => Response.json({ ok: true, ruxsat: true, narx_ruxsat: true, obyektlar: [object], qatorlar: [
+    { ...base, nom: 'БЕТОН М200', narx_min: 0, narx_max: 0, summa: 999999 },
+    { ...base, nom: 'БЕТОН М-200, вариант 2', narxsiz_qator: 1 },
+    { ...base, nom: 'БЕТОН М2000', narx_min: 111111, narx_max: 111111 },
+    { ...base, nom: 'БЕТОН М200 работа', tur: 'bl', narx_min: 222222, narx_max: 222222 },
+  ] });
+  const bucket = priceBucket();
+  const body = await (await run(question, 17, {}, { R2_CANONICAL: bucket })).json() as TaskReply;
+  expect(body).toMatchObject({ dalil: { tur: 'smeta-resurs-narxi', id: 34, yol: '/admin/holat/34' } });
+  expect(body.javob).toContain('БЕТОН М200 · м³ · 0,00');
+  expect(body.javob).toContain('БЕТОН М-200, вариант 2 · м³');
+  expect(body.javob).not.toMatch(/111\s*111|222\s*222|999\s*999|М2000/);
+  expect(JSON.parse(String(called('t2_agent_qidiruv_v1')[0][1]?.body))).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 17,
+    p_obyekt_id: 34, p_obyekt_sozlar: [], p_resurs_sozlar: expect.arrayContaining(['БЕТОН', 'М200']) });
+  expect(bucket.get).not.toHaveBeenCalled();
+  expect(ai).not.toHaveBeenCalled();
+});
+
+it('requires the estimate permission and rejects a foreign object response', async () => {
+  const question = 'Sinov Bino smetada M200 beton qanchadan?';
+  expect(await (await run(question)).json()).toMatchObject({ rad: true });
+  expect(called('t2_agent_qidiruv_v1')).toHaveLength(0);
+  men = () => Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: 17, permissions: ['smeta.read'] }] });
+  estimatePrices = () => Response.json({ ok: true, ruxsat: true, narx_ruxsat: true, obyektlar: [{ id: 35, nom: 'Foreign fixture' }], qatorlar: [] });
+  kontekstKeshTozala();
+  const body = await (await run(question)).json() as TaskReply;
+  expect(body.javob).toContain('tekshirib bo‘lmadi');
+  expect(body.javob).not.toContain('Foreign fixture');
+  expect(body.dalil).toBeUndefined();
+});
 
 const priceRevision = 'a'.repeat(16);
 function priceBucket(indexed = false) {

@@ -16,6 +16,7 @@ import { taskListAnswer, taskListIntent } from './tasks';
 import { approvalsAnswer, approvalsIntent } from './approvals';
 import { documentAnswer, documentIntent } from './documents';
 import { priceRowAnswer, priceRowIntent, priceSearchAnswer, priceSearchIntent, verifiedPriceCandidates } from './prices';
+import { estimatePriceAnswer, estimatePriceIntent } from './estimate-prices';
 import { normAnswer, normReference } from './normative';
 import { jarvisLanguage, jarvisText } from './reply-language';
 import { callJarvisModel, type JarvisModelEnv } from './model';
@@ -107,6 +108,12 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
   }
   const norm = so.studio == null ? normReference(savol) : null;
+  const estimatePrice = so.studio == null && norm === null ? estimatePriceIntent(savol) : [];
+  if (estimatePrice.length) {
+    const signal = AbortSignal.timeout(3500);
+    const answer = await estimatePriceAnswer((name, body) => rpcData(env, name, body, signal), objectScope, estimatePrice, men ?? null, kasb.kategoriyalar.includes('smeta_pul'));
+    return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
+  }
   const priceRow = so.studio == null && norm === null ? priceRowIntent(savol) : null;
   if (priceRow !== null) {
     const answer = await priceRowAnswer(env.R2_CANONICAL, priceRow, text);
