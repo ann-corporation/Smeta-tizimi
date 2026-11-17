@@ -24,6 +24,8 @@ let men: () => Response;
 let discrepancies: () => Response;
 let cumulative: () => Response;
 let estimate: () => Response;
+let tasks: () => Response;
+type TaskReply = { javob?: string; dalil?: unknown };
 const rpc = vi.fn(async (input: string, _init?: RequestInit) => {
   switch (input.split('/').at(-1)) {
     case 't2_agent_kasb_v1': return Response.json({ ok: true, nom: 'Sinov', rol: 'pto', profil: 'company_access', vazifa: 'Sinov', boshqalar: [], namuna_savollar: [], kategoriyalar: categories });
@@ -36,6 +38,7 @@ const rpc = vi.fn(async (input: string, _init?: RequestInit) => {
     case 't2_aosr_slichitelniy_v1': return discrepancies();
     case 't2_nakopitelniy_v2': return cumulative();
     case 't2_jarvis_smeta_qator_aniq_v1': return estimate();
+    case 't2_topshiriqlar_v1': return tasks();
     case 't2_agent_muhit_v1': return Response.json({ ok: true, qoidalar: [], xotira: [], manbalar: [] });
     default: return Response.json({ ok: true });
   }
@@ -58,6 +61,7 @@ beforeEach(() => {
     ok: true, obyekt_id: 34, tayyorlik: { farqli: 6, ortiq: 6, kam: 0, tasdiqlagan: null }, yetishmaydi_jami: 2,
   });
   cumulative = () => Response.json(cumulativeFixture());
+  tasks = () => Response.json({ ok: true, qatorlar: [], keyingi_id: null });
   estimate = () => Response.json({ ok: true, obyekt_id: 34, kompaniya_id: 17,
     qatorlar: [{ id: 21, kod: 'Е06-01-001-1 К-8', nom: 'Пример работы', tur: 'bl', hajm: null, birlik: 'м³',
       ierarxiya: ['Надземная часть', 'Узел А'], ierarxiya_toliq: true }] });
@@ -73,6 +77,56 @@ beforeEach(() => {
   vi.stubGlobal('fetch', rpc);
 });
 afterEach(() => vi.unstubAllGlobals());
+
+it.each([
+  ['Bugungi topshiriqlarim qanday?', 'Bugun muddati'],
+  ['Бугун қандай топшириқларим бор?', 'Бугун муддати'],
+  ['Какие у меня задачи сегодня?', 'Задачи со сроком'],
+])('reads only the actor’s open tasks due today in Tashkent: %s', async (question, title) => {
+  men = () => Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: 17, permissions: ['company.read'] }] });
+  const base = { holat: 'berildi', muddat: '2026-11-18', obyekt_id: 34, ijrochi_kompaniya_id: 17, ijrochi_foydalanuvchi_id: 7 };
+  tasks = () => Response.json({ ok: true, keyingi_id: null, qatorlar: [
+    { ...base, id: 6, sarlavha: 'Sinov topshirig‘i' },
+    { ...base, id: 5, sarlavha: 'Другой сотрудник', ijrochi_foydalanuvchi_id: 8 },
+    { ...base, id: 4, sarlavha: 'Общая задача', ijrochi_foydalanuvchi_id: null },
+    { ...base, id: 3, sarlavha: 'Вчерашняя задача', muddat: '2026-11-17' },
+    { ...base, id: 2, sarlavha: 'Готовая задача', holat: 'bajarildi' },
+  ] });
+  vi.setSystemTime(new Date('2026-11-17T20:15:00Z'));
+  try {
+    const body = await (await run(question, 17, { obyekt_id: 34 })).json() as TaskReply;
+    expect(body).toMatchObject({ javob: expect.stringContaining(title), dalil: { topshiriq_ids: [6], toliq: true, yol: '/admin/topshiriqlar' } });
+    expect(body.javob).toContain('Sinov topshirig‘i');
+    expect(body.javob).not.toMatch(/сотрудник|Общая|Вчерашняя|Готовая/);
+    expect(JSON.parse(String(called('t2_topshiriqlar_v1')[0][1]?.body))).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 17, p_obyekt_id: 34, p_yonalish: 'menga' });
+    expect(ai).not.toHaveBeenCalled();
+  } finally { vi.useRealTimers(); }
+});
+
+it('keeps task reads closed for missing authority and corrupted tenant scope', async () => {
+  const question = 'Mening ochiq topshiriqlarim';
+  expect(await (await run(question)).json()).toMatchObject({ rad: true });
+  expect(called('t2_topshiriqlar_v1')).toHaveLength(0);
+  men = () => Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: 17, permissions: ['company.read'] }] });
+  kontekstKeshTozala();
+  tasks = () => Response.json({ ok: true, keyingi_id: null, qatorlar: [{ id: 6, sarlavha: 'Boshqa tenant', holat: 'berildi',
+    muddat: null, obyekt_id: null, ijrochi_kompaniya_id: 18, ijrochi_foydalanuvchi_id: 7 }] });
+  const body = await (await run(question)).json() as TaskReply;
+  expect(body.javob).toMatch(/tekshirib bo‘lmadi/);
+  expect(body.dalil).toBeUndefined();
+  expect(ai).not.toHaveBeenCalled();
+});
+
+it('reports a partial task scan after a timeout and uses the canonical cursor', async () => {
+  men = () => Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: 17, permissions: ['company.read'] }] });
+  const otherTask = { sarlavha: 'Другой сотрудник', holat: 'berildi', muddat: null, obyekt_id: null, ijrochi_kompaniya_id: 17, ijrochi_foydalanuvchi_id: 8 };
+  tasks = () => called('t2_topshiriqlar_v1').length === 1 ? Response.json({ ok: true, keyingi_id: 1,
+    qatorlar: Array.from({ length: 100 }, (_, i) => ({ ...otherTask, id: 100 - i })) }) : new Response(null, { status: 503 });
+  const body = await (await run('Mening ochiq topshiriqlarim')).json() as TaskReply;
+  expect(body.javob).toContain('Tekshirilgan qismda');
+  expect(body.dalil).toMatchObject({ topshiriq_ids: [], toliq: false });
+  expect(called('t2_topshiriqlar_v1').map(([, init]) => JSON.parse(String(init?.body)).p_keyin_id)).toEqual([null, 1]);
+});
 
 it.each([
   ['Smetadan E06-01-001-1 K-8 bandini top', 'Hajm: noma’lum'],
