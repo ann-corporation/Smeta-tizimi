@@ -84,7 +84,7 @@ const MUMKIN_SQL = (baj: boolean) => `
   select q.id as qator_id, q.ota_id, q.tur, q.kod, q.nom, q.birlik, q.kat, h.f2_mumkin_hajm as mumkin, h.smeta_narx
     from public.t2_qator q join public.t2_qator_holat h on h.qator_id = q.id
    where q.obyekt_id = $1 and coalesce(q.versiya_holat, 'faol') = 'faol' and q.tur in ('bl','rs','mat','ob')
-     and h.f2_mumkin_hajm > 0.000001 and ($2::bigint[] is null or q.id = any($2::bigint[]))
+     and abs(h.f2_mumkin_hajm) > 0.000001 and ($2::bigint[] is null or q.id = any($2::bigint[]))
      ${baj ? "and not exists (select 1 from public.t2_qator_bajarilmadi b where b.qator_id = q.id and b.holat = 'faol')" : ''}
    order by q.tartib nulls last, q.id`;
 
@@ -108,7 +108,7 @@ export async function aktOl(m: Mijoz, id: number): Promise<AktRow> {
 
 export const f2QoralamaYarat = tool({
   nom: 'f2_qoralama_yarat',
-  tavsif: 'Fakt qoldig\'idan (t2_qator_holat.f2_mumkin_hajm > 0, faol versiya, faol «bajarilmadi» belgisiz) bir yoki ko\'p obyekt uchun F2 QORALAMA (t2_akt_yarat_v2, manba frontend_v2). '
+  tavsif: 'Fakt qoldig\'idan (t2_qator_holat.f2_mumkin_hajm ≠ 0 — MINUS qatorlar («normaga keltirish») ham, manfiy hajm bilan; faol versiya, faol «bajarilmadi» belgisiz) bir yoki ko\'p obyekt uchun F2 QORALAMA (t2_akt_yarat_v2, manba frontend_v2). '
     + 'Ish (bl) — narxsiz; resurs narxi = smeta narxi yoki `narx_override` {qator_id:{narx,manba}}; narxi yo\'q resurs — avto narxsiz (tasdiqdan oldin narx kerak). '
     + '`chang_pul` — ish+resurslari ma\'lum qiymati shundan kam bo\'lsa tashlanadi. Obyektda ochiq F2 qoralama bo\'lsa — o\'tkaziladi (`majburiy:true` — baribir). '
     + 'Javob: har obyekt qator soni, summa ustamasiz/ustamali/QQS bilan, namuna. Masalan: {obyekt_idlar:[11,12], oy:"2026-10"} → keyin dry_run:false.',
@@ -557,7 +557,7 @@ export const yoyilma = tool({
         const fh = r.fakt_hajm == null ? null : Number(r.fakt_hajm);
         if (fh != null && Math.abs(fh) > 1e-9) fK.qosh(r.kat, o != null ? y2(fh * o) : r.fakt_summa);
         const mh = r.mumkin == null ? 0 : Number(r.mumkin);
-        if (mh > 1e-6) {
+        if (Math.abs(mh) > 1e-6) {
           if (r.baj) { bajSoni++; continue; }
           const nr = o ?? (r.smeta_narx == null ? null : Number(r.smeta_narx));
           mK.qosh(r.kat, nr == null ? null : y2(mh * nr));

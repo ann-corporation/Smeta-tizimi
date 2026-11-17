@@ -3,7 +3,7 @@
  * Pul: QQS siz; null — noma'lum (0 EMAS). F2 qator shakli `ish-oqimi.ts → f2Qator` bilan bir xil.
  */
 import {
-  CHANG_HAJM, f2Qator, mavjudYuk, stornomi, y2, y6, type F2YukQator, type MavjudAktQator, type MumkinQator,
+  CHANG_HAJM, f2Qator, mavjudYuk, mumkinBor, stornomi, y2, y6, type F2YukQator, type MavjudAktQator, type MumkinQator,
 } from './ish-oqimi';
 
 // ───────────────────────────── Daraxt: qator → bo'lim ─────────────────────────────
@@ -78,7 +78,7 @@ export function f2YangilaYuki(mavjud: readonly MavjudAktQator[], rows: readonly 
   let qoshildi = 0; let ozgardi = 0; let ozgarmadi = 0; let berilganNarx = 0;
   const kirdi = new Set<number>();
   for (const r of rows) {
-    if (!(Number.isFinite(r.mumkin) && r.mumkin > CHANG_HAJM) || !['bl', 'rs', 'mat', 'ob'].includes(r.tur)) continue;
+    if (!mumkinBor(r.mumkin) || !['bl', 'rs', 'mat', 'ob'].includes(r.tur)) continue;
     const eski = oddiy.get(r.qator_id);
     if (o.faqatMavjud && !eski) continue;
     let ov: { narx: number; manba?: string } | undefined;
@@ -103,6 +103,17 @@ export function f2YangilaYuki(mavjud: readonly MavjudAktQator[], rows: readonly 
   }
   const olindi = [...oddiy.keys()].filter((id) => !kirdi.has(id));
   return { yuk, qoshildi, ozgardi, ozgarmadi, olindi, berilgan_narx: berilganNarx, storno: storno.length };
+}
+
+/**
+ * Ostatka holati ishora bilan: smeta hajmi MINUS (normaga keltirish) bo'lsa qoldiq ham manfiy bo'ladi va bu NORMAL
+ * («qoldiq»); «ortiqcha» — qoldiq smeta ishorasiga qarama-qarshi (smetadan oshgan).
+ */
+export function qoldiqHolati(smetaHajm: number | null | undefined, qoldiqHajm: number | null | undefined, chang = 1e-6): 'qoldiq' | 'ortiqcha' | 'nol' {
+  const q = qoldiqHajm ?? 0;
+  if (Math.abs(q) <= chang) return 'nol';
+  const manfiy = smetaHajm != null && Number.isFinite(smetaHajm) && smetaHajm !== 0 ? smetaHajm < 0 : false;
+  return (q > 0) === !manfiy ? 'qoldiq' : 'ortiqcha';
 }
 
 // ───────────────────────────── F2 (certified) qatorlari ─────────────────────────────
