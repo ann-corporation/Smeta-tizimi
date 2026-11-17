@@ -16,6 +16,8 @@ import { estimateRowIntent } from '../_shared/jarvis/estimate-row';
 import { approvalsIntent } from '../_shared/jarvis/approvals';
 import { documentIntent } from '../_shared/jarvis/documents';
 import { verifiedPriceCandidates } from '../_shared/jarvis/prices';
+import { buildCatalogSearch } from '../../src/lib/narx-katalog/catalog-search';
+import type { PriceRow } from '../../src/lib/narx-katalog/price-shards';
 import { onRequestPost } from './ai-savol';
 
 const object = { id: 34, nom: 'Sinov Bino' };
@@ -96,22 +98,52 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 const priceRevision = 'a'.repeat(16);
-function priceBucket() {
+function priceBucket(indexed = false) {
   const prefix = `narx-katalog/${priceRevision}/`;
+  const rows: PriceRow[] = [
+    [50, 0, 'CODE-50', 'БЕТОН М200', 0, '0.000125', 0, -1, 0, -1, null, null, -1, -1],
+    [49, 0, 'CODE-49', 'БЕТОН М200', 0, '99', 0, -1, 1, -1, null, null, -1, -1],
+    [48, 0, 'CODE-48', 'БЕТОН М300', 0, '73', 0, -1, 0, -1, null, null, -1, -1],
+    [47, 0, 'CODE-47', 'БЕТОН ТЯЖЕЛЫЙ М250', 0, '80', 0, -1, 0, -1, null, null, -1, -1],
+  ];
+  const search = indexed ? buildCatalogSearch(rows) : new Map<string, string>();
   const files: Record<string, unknown> = {
     'narx-katalog/CURRENT.json': { revision: priceRevision },
-    [prefix + 'manifest.json']: { revision: priceRevision, files: { dict: { path: 'dict.json' }, lookup: [{ from: 1, to: 50, path: 'i/0000.json' }] } },
+    [prefix + 'manifest.json']: { revision: priceRevision, files: { dict: { path: 'dict.json' }, lookup: [{ from: 1, to: 50, path: 'i/0000.json' }],
+      ...(indexed ? { search: [...search.keys()].map(path => ({ path })) } : {}) } },
     [prefix + 'dict.json']: { birlik: ['м³'], hudud: ['Sinov hududi'], zavod: [], ndsHolati: ['nds_siz', 'nds_bilan'], ndsIzoh: [],
       variant: [], guruh: [], manba: { id: 1, nom: 'Sinov manba', tur: 'katalog', sana: '2026-10-05', yil: 2026, kvartal: 4 } },
-    [prefix + 'i/0000.json']: { rows: [
-      [50, 0, 'CODE-50', 'БЕТОН М200', 0, '0.000125', 0, -1, 0, -1, null, null, -1, -1],
-      [49, 0, 'CODE-49', 'БЕТОН М200', 0, '99', 0, -1, 1, -1, null, null, -1, -1],
-      [48, 0, 'CODE-48', 'БЕТОН М300', 0, '73', 0, -1, 0, -1, null, null, -1, -1],
-    ] },
+    [prefix + 'i/0000.json']: { rows },
+    ...Object.fromEntries([...search].map(([path, text]) => [prefix + path, JSON.parse(text)])),
   };
   return { get: vi.fn(async (key: string) => key in files
     ? { text: async () => JSON.stringify(files[key]), arrayBuffer: async () => new ArrayBuffer(0) } : null) };
 }
+
+it.each([
+  'Katalogda M200 beton narxi qancha?', 'Каталогда «Бетон М200» нархи қанча?', 'Какая цена «Бетон М200» в каталоге?', 'Katalogda kod CODE-50 narxi qancha?',
+])('searches the published price index with no browser candidates: %s', async question => {
+  const bucket = priceBucket(true);
+  const body = await (await run(question, 17, {}, { R2_CANONICAL: bucket })).json() as TaskReply;
+  expect(body).toMatchObject({ dalil: { rows: [{ id: 50, revision: priceRevision, source_id: 1 }] } });
+  expect(body.javob).toContain('0,000125');
+  expect(body.javob).not.toMatch(/\b99\b|М300/);
+  expect(bucket.get.mock.calls.map(([key]) => key).filter(key => key.includes('/s/'))).toHaveLength(1);
+  expect(ai).not.toHaveBeenCalled();
+});
+
+it('keeps the exact row lookup usable when an older release has no search index', async () => {
+  const body = await (await run('Katalogda M200 beton narxi qancha?', 17, {}, { R2_CANONICAL: priceBucket() })).json() as TaskReply;
+  expect(body.javob).toContain('Qator raqamini kiriting');
+  expect(ai).not.toHaveBeenCalled();
+});
+
+it('finds a longer source description by the specified family and grade', async () => {
+  const body = await (await run('Katalogda M250 beton narxi qancha?', 17, {}, { R2_CANONICAL: priceBucket(true) })).json() as TaskReply;
+  expect(body).toMatchObject({ dalil: { rows: [{ id: 47, revision: priceRevision, source_id: 1 }] } });
+  expect(body.javob).toContain('БЕТОН ТЯЖЕЛЫЙ М250');
+  expect(ai).not.toHaveBeenCalled();
+});
 
 it.each([
   'Katalogdagi #50 narxi qancha?', 'Каталогдаги #50 нархи қанча?', 'Какая цена в каталоге №50?',

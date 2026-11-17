@@ -15,7 +15,7 @@ import { estimateRowAnswer, estimateRowIntent } from './estimate-row';
 import { taskListAnswer, taskListIntent } from './tasks';
 import { approvalsAnswer, approvalsIntent } from './approvals';
 import { documentAnswer, documentIntent } from './documents';
-import { priceRowAnswer, priceRowIntent, verifiedPriceCandidates } from './prices';
+import { priceRowAnswer, priceRowIntent, priceSearchAnswer, priceSearchIntent, verifiedPriceCandidates } from './prices';
 import { normAnswer, normReference } from './normative';
 import { jarvisLanguage, jarvisText } from './reply-language';
 import { callJarvisModel, type JarvisModelEnv } from './model';
@@ -111,6 +111,12 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
   if (priceRow !== null) {
     const answer = await priceRowAnswer(env.R2_CANONICAL, priceRow, text);
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
+  }
+  const priceSearch = so.studio == null && norm === null ? priceSearchIntent(savol) : null;
+  if (priceSearch) {
+    const answer = await priceSearchAnswer(env.R2_CANONICAL, priceSearch, text);
+    if (answer || !Array.isArray(so.katalog) || !so.katalog.length) return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local',
+      ...(answer ?? { javob: text('Katalogning nom va shifr bo‘yicha qidiruvini tekshirib bo‘lmadi. Qator raqamini kiriting.', 'Поиск по названию и коду сейчас недоступен. Укажите номер строки каталога.') }) } };
   }
   const estimateCode = so.studio == null && !norm ? estimateRowIntent(savol) : null;
   if (estimateCode) {

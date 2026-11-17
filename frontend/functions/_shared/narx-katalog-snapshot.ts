@@ -4,9 +4,11 @@
  * Function verifies the row in the ACTIVE revision and passes a snapshot to the RPC, so Supabase keeps
  * the evidence without holding the 213k-row catalogue. Only small lookup files (~1000 rows) are parsed.
  */
+import { searchPath } from '../../src/lib/narx-katalog/catalog-search';
+
 type R2 = { get(key: string): Promise<{ text(): Promise<string>; arrayBuffer(): Promise<ArrayBuffer>; httpMetadata?: { contentEncoding?: string } } | null> };
 type Lookup = { path: string; from: number; to: number };
-type Manifest = { revision: string; files: { dict: { path: string }; lookup?: Lookup[] } };
+type Manifest = { revision: string; files: { dict: { path: string }; lookup?: Lookup[]; search?: { path: string }[] } };
 type Manba = { id: number; nom: string; tur: string; sana: string | null; yil: number | null; kvartal: number | null; region: string | null; nds_holati: string | null };
 type Dict = { birlik: string[]; hudud: string[]; zavod: string[]; ndsHolati: string[]; ndsIzoh: string[]; variant: string[]; guruh: string[]; manbalar?: Manba[];
   manba: { id: number; nom: string; tur: string; sana: string | null; yil: number | null; kvartal: number | null; region: string | null; nds_holati: string | null } };
@@ -32,11 +34,43 @@ const at = <T,>(l: T[], i: number): T | null => (i < 0 ? null : l[i] ?? null);
 /** Returns a snapshot for every requested id found in the active revision (missing ids are simply absent). */
 export async function katalogSnapshotlari(r2: R2, ids: number[]): Promise<Map<number, KatalogSnapshot>> {
   const want = [...new Set(ids.filter(n => Number.isSafeInteger(n) && n > 0))];
-  const out = new Map<number, KatalogSnapshot>();
-  if (!want.length) return out;
+  return want.length ? snapshots(r2, await activeManifest(r2), want) : new Map();
+}
+
+async function activeManifest(r2: R2) {
   const { revision } = await json<{ revision: string }>(r2, 'narx-katalog/CURRENT.json');
   if (!/^[a-f0-9]{16}$/.test(revision)) throw new Error('PRICE_REVISION_INVALID');
   const manifest = await json<Manifest>(r2, `narx-katalog/${revision}/manifest.json`);
+  if (manifest.revision !== revision) throw new Error('PRICE_MANIFEST_INVALID');
+  return manifest;
+}
+
+export async function findKatalogSnapshots(r2: R2, keys: readonly string[]) {
+  const manifest = await activeManifest(r2);
+  if (!Array.isArray(manifest.files.search) || !manifest.files.search.length) return null;
+  const shards = new Map<string, Record<string, unknown>>();
+  for (const key of keys.slice(0, 2)) {
+    const path = searchPath(key);
+    if (!manifest.files.search.some(file => file.path === path)) continue;
+    let shard = shards.get(path);
+    if (!shard) {
+      shard = await json<Record<string, unknown>>(r2, `narx-katalog/${manifest.revision}/${path}`);
+      shards.set(path, shard);
+    }
+    const hit = shard[key] as { ids?: unknown; more?: unknown } | undefined;
+    if (hit === undefined) continue;
+    if (!Array.isArray(hit.ids) || hit.ids.length > 12 || !hit.ids.every(n => Number.isSafeInteger(n) && n > 0) ||
+        new Set(hit.ids).size !== hit.ids.length || typeof hit.more !== 'boolean') throw new Error('PRICE_SEARCH_INVALID');
+    const rows = [...(await snapshots(r2, manifest, hit.ids)).values()];
+    if (rows.length !== hit.ids.length) throw new Error('PRICE_SEARCH_INCOMPLETE');
+    return { key, rows, more: hit.more };
+  }
+  return { key: null, rows: [], more: false };
+}
+
+async function snapshots(r2: R2, manifest: Manifest, want: number[]): Promise<Map<number, KatalogSnapshot>> {
+  const { revision } = manifest;
+  const out = new Map<number, KatalogSnapshot>();
   const lookups = manifest.files.lookup ?? [];
   const byFile = new Map<string, number[]>();
   for (const id of want) {
