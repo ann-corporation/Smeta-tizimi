@@ -1,8 +1,9 @@
 import { obyektTanla, type PulObyekt } from '../agent-pul-javob';
 import type { RpcNatija, Yuk } from '../agent-rpc';
+import type { JarvisText } from './reply-language';
 
 export type JarvisReadRpc = (name: string, body: Yuk) => Promise<RpcNatija>;
-export type JarvisObjectScope = { actor: number; company: number; question: string; history: unknown; objectId: number | null };
+export type JarvisObjectScope = { actor: number; company: number; question: string; history: unknown; objectId: number | null; text?: JarvisText };
 
 function readObjects(data: Yuk): PulObyekt[] | null {
   const rows = (data.fakt as { obyektlar?: unknown } | undefined)?.obyektlar;

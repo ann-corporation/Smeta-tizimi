@@ -11,7 +11,16 @@ vi.mock('../agent-hisob', async load => ({ ...(await load<typeof import('../agen
 const env = { SESSIYA_KALIT: 'synthetic', SUPABASE_URL: 'https://eval.supabase.co', SUPABASE_KEY: 'synthetic' };
 const objects = evalProjects.map(project => ({ id: project.id, nom: `${project.name} (laqab: ${project.alias})` }));
 const foreignObject = 99777;
-const moneyLabels = ['QQS bilan', 'Ustamali, QQS siz', 'Ustamasiz'];
+type EvalLanguage = keyof typeof evalLexicon;
+const localized = {
+  'uz-Latn': { money: ['QQS bilan', 'Ustamali, QQS siz', 'Ustamasiz'], unknownFooter: 'smeta podvali', noData: 'Ma’lumot yo‘q', unknownActual: 'Summa noma’lum. 2 qatorning summasi noma’lum.', unavailable: 'tizimdan olib bo‘lmadi', warehouse: 'Markaziy ombor', denied: 'ruxsat kerak' },
+  'uz-Cyrl': { money: ['ҚҚС билан', 'Устамали, ҚҚС сиз', 'Устамасиз'], unknownFooter: 'смета подвали', noData: 'Маълумот йўқ', unknownActual: 'Сумма номаълум. 2 қаторнинг суммаси номаълум.', unavailable: 'тизимдан олиб бўлмади', warehouse: 'Марказий омбор', denied: 'рухсат керак' },
+  ru: { money: ['С НДС', 'С накладными расходами, без НДС', 'Прямые затраты'], unknownFooter: 'Итоговый расчёт сметы объекта отсутствует', noData: 'Нет данных', unknownActual: 'Сумма неизвестна. Позиции с неизвестной суммой: 2.', unavailable: 'Не удалось получить итоговую сумму', warehouse: 'Центральный склад', denied: 'нужен доступ' },
+} as const;
+const actStatuses = {
+  approved: ['Тасдиқланган', 'Утверждён'], submitted: ['Юборилган', 'Отправлен'], checked: ['Текширилган', 'Проверен'],
+  draft: ['Қоралама', 'Черновик'], rejected: ['Рад этилган', 'Отклонён'], superseded: ['Янги версия билан алмаштирилган', 'Заменён новой версией'],
+} as const;
 const billingUsage = { inputTokens: 180, outputTokens: 40 };
 const baseCategories = ['obyektlar', 'smeta_pul', 'f2_fakt_pul', 'ombor'];
 let configuration = { categories: baseCategories, missingFooter: false, foreignResponse: false };
@@ -62,7 +71,7 @@ const query = async (savol: string, payload: Record<string, unknown> = {}, inter
   return { status: result.status, body: await result.json() as ResponseBody };
 };
 const rpc = (name: string) => remote.mock.calls.filter(([url]) => url.endsWith('/' + name)).map(([, init]) => JSON.parse(String(init?.body)));
-const moneyValues = (text: string) => [...text.matchAll(/(-?\d(?:[\d\u00a0\u202f ]*\d)?,\d{2})\s+so‘m/gu)]
+const moneyValues = (text: string) => [...text.matchAll(/(-?\d(?:[\d\u00a0\u202f ]*\d)?,\d{2})\s+(?:so‘m|сўм|сум)(?!\p{L})/gu)]
   .map(match => Number(match[1].replace(/[\s\u00a0\u202f]/g, '').replace(',', '.')));
 const mockModel = (answer: string, material: string) => boundary.model.mockResolvedValue({
   text: JSON.stringify({ javob: answer, harakatlar: [{ amal: 'ombor_kirim', parametrlar: { nomi: material }, tushuntirish: 'Sinov taklifi', aniq: true }] }),
@@ -70,15 +79,16 @@ const mockModel = (answer: string, material: string) => boundary.model.mockResol
 });
 
 const fixtures = Object.entries(evalLexicon).flatMap(([language, lexicon]) =>
-  evalProjects.map(project => ({ key: `${language}/${project.id}`, lexicon, project })));
+  evalProjects.map(project => ({ key: `${language}/${project.id}`, language: language as EvalLanguage, lexicon, project })));
 
-it.each(fixtures)('money/official $key', async ({ lexicon, project }) => {
+it.each(fixtures)('money/official $key', async ({ language, lexicon, project }) => {
   const { status, body } = await query(lexicon.money(project.name));
   expect(status).toBe(200);
   expect(moneyValues(body.javob ?? '')).toEqual(project.money);
   const lines = (body.javob ?? '').split('\n').slice(1);
   expect(lines).toHaveLength(3);
-  moneyLabels.forEach((label, index) => expect(lines[index]).toContain(label));
+  localized[language].money.forEach((label, index) => expect(lines[index]).toContain(label));
+  expect(body.javob).toContain(`**${project.name} (laqab: ${project.alias})**`);
   expect(body.dalil).toMatchObject({ id: project.id, rpc: 't2_obyekt_nakrutka_v1', yol: `/admin/holat/${project.id}` });
   expect(rpc('t2_obyekt_nakrutka_v1')).toEqual([{ p_actor_id: evalActor, p_obyekt_id: project.id }]);
   expect(boundary.model).not.toHaveBeenCalled();
@@ -99,26 +109,29 @@ it.each(fixtures)('money/nickname $key', async ({ lexicon, project }) => {
   expect(boundary.model).not.toHaveBeenCalled();
 });
 
-it.each(fixtures)('status/act $key', async ({ lexicon, project }) => {
+it.each(fixtures)('status/act $key', async ({ language, lexicon, project }) => {
   const { body } = await query(lexicon.status(project.act), { obyekt_id: project.id });
-  expect(body.javob).toContain(`№ ${project.act} · 2026-06 · ${project.status}`);
+  const expected = language === 'uz-Latn' ? project.status : actStatuses[project.state][language === 'ru' ? 1 : 0];
+  expect(body.javob).toContain(`№ ${project.act} · 2026-06 · ${expected}`);
   expect(body.dalil).toMatchObject({ id: project.id, akt_ids: [project.actId], yol: `/admin/f2-tarix?obyekt=${project.id}` });
   expect(moneyValues(body.javob ?? '')).toEqual([]);
   expect(boundary.model).not.toHaveBeenCalled();
 });
 
-it.each(fixtures)('status/warehouse $key', async ({ lexicon, project }) => {
+it.each(fixtures)('status/warehouse $key', async ({ language, lexicon, project }) => {
   const { body } = await query(lexicon.warehouse(project.material));
   expect(body.javob).toContain(`${project.material} · ${String(project.stock).replace('.', ',')} kg`);
+  expect(body.javob).toContain(localized[language].warehouse);
   expect(body.dalil).toMatchObject({ id: 7, tur: 'ombor', yol: '/admin/logistika' });
   expect(moneyValues(body.javob ?? '')).toEqual([]);
   expect(boundary.model).not.toHaveBeenCalled();
 });
 
-it.each(fixtures)('permission/finance $key', async ({ lexicon, project }) => {
+it.each(fixtures)('permission/finance $key', async ({ language, lexicon, project }) => {
   configuration.categories = ['obyektlar'];
   const { body } = await query(lexicon.money(project.name));
   expect(body.rad).toBe(true);
+  expect(body.javob).toContain(localized[language].denied);
   expect(moneyValues(body.javob ?? '')).toEqual([]);
   expect(rpc('t2_obyekt_nakrutka_v1')).toEqual([]);
   expect(boundary.model).not.toHaveBeenCalled();
@@ -133,10 +146,10 @@ it.each(fixtures)('tenant/request $key', async ({ lexicon, project }) => {
   expect(boundary.model).not.toHaveBeenCalled();
 });
 
-it.each(fixtures)('tenant/response $key', async ({ lexicon, project }) => {
+it.each(fixtures)('tenant/response $key', async ({ language, lexicon, project }) => {
   configuration.foreignResponse = true;
   const { body } = await query(lexicon.actual, { obyekt_id: project.id });
-  expect(body.javob).toContain('tizimdan olib bo‘lmadi');
+  expect(body.javob).toContain(localized[language].unavailable);
   expect(body.javob).not.toContain('990099');
   expect(body.dalil).toBeUndefined();
   expect(moneyValues(body.javob ?? '')).toEqual([]);
@@ -144,18 +157,18 @@ it.each(fixtures)('tenant/response $key', async ({ lexicon, project }) => {
   expect(boundary.model).not.toHaveBeenCalled();
 });
 
-it.each(fixtures)('unknown/footer $key', async ({ lexicon, project }) => {
+it.each(fixtures)('unknown/footer $key', async ({ language, lexicon, project }) => {
   configuration.missingFooter = true;
   const { body } = await query(lexicon.unknown(project.name));
-  expect(body.javob).toContain('smeta podvali');
-  expect(body.javob?.match(/Ma’lumot yo‘q/g)).toHaveLength(2);
+  expect(body.javob).toContain(localized[language].unknownFooter);
+  expect(body.javob?.split(localized[language].noData)).toHaveLength(3);
   expect(moneyValues(body.javob ?? '')).toEqual([project.money[2]]);
   expect(boundary.model).not.toHaveBeenCalled();
 });
 
-it.each(fixtures)('unknown/actual $key', async ({ lexicon, project }) => {
+it.each(fixtures)('unknown/actual $key', async ({ language, lexicon, project }) => {
   const { body } = await query(lexicon.actual, { obyekt_id: project.id });
-  expect(body.javob).toContain('Summa noma’lum. 2 qatorning summasi noma’lum.');
+  expect(body.javob).toContain(localized[language].unknownActual);
   expect(moneyValues(body.javob ?? '')).toEqual([]);
   expect(body.dalil).toMatchObject({ id: project.id, maydon: 'fakt', yol: `/admin/fakt?obyekt=${project.id}` });
   expect(boundary.model).not.toHaveBeenCalled();

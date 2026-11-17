@@ -70,12 +70,16 @@ function permitComparison() {
   ] });
 }
 
-it.each(['Smeta va fakt farqi', 'Сравни смету и факт', 'Смета ва факт фарқи'])(
-  'reads comparison and AOSR readiness without fabricating a missing count: %s', async question => {
+it.each([
+  ['Smeta va fakt farqi', /farq qilgan ishlar: 6[\s\S]*hajmi kam: 0[\s\S]*asosi tasdiqlangan: noma’lum[\s\S]*asos yetishmaydi: 2/],
+  ['Сравни смету и факт', /фактического объёма: 6[\s\S]*объём ниже: 0[\s\S]*АОСР подтверждён: неизвестно[\s\S]*основания: 2/],
+  ['Смета ва факт фарқи', /фарқ қилган ишлар: 6[\s\S]*ҳажми кам: 0[\s\S]*асоси тасдиқланган: номаълум[\s\S]*асос етишмайди: 2/],
+])(
+  'reads comparison and AOSR readiness without fabricating a missing count: %s', async (question, expected) => {
     permitComparison();
     const body = await (await run(question, 17, { obyekt_id: 34 })).json();
     expect(body).toMatchObject({
-      javob: expect.stringMatching(/farq qilgan ishlar: 6[\s\S]*hajmi kam: 0[\s\S]*asosi tasdiqlangan: noma’lum[\s\S]*asos yetishmaydi: 2/),
+      javob: expect.stringMatching(expected),
       dalil: { tur: 'smeta-fakt-solishtiruv', id: 34, rpc: 't2_aosr_slichitelniy_v1', yol: '/admin/fakt?obyekt=34' },
     });
     expect(JSON.parse(String(called('t2_aosr_slichitelniy_v1')[0][1]?.body))).toEqual({
@@ -189,11 +193,15 @@ it('sessiyasiz help ham yopiq', async () => {
   expect((await run('nimalar qila olasan')).status).toBe(401);
 });
 
-it.each(['Sinov Bino F2 jami qancha?', 'Итого по КС-2', 'Ф2 жами қанча?'])('canonical F2 with evidence: %s', async (savol) => {
+it.each([
+  ['Sinov Bino F2 jami qancha?', /Ma’lum qismi -102,75.*1 qatorning summasi noma’lum/],
+  ['Итого по КС-2', /Известная часть — -102,75.*Позиции с неизвестной суммой: 1/],
+  ['Ф2 жами қанча?', /Маълум қисми -102,75.*1 қаторнинг суммаси номаълум/],
+])('canonical F2 with evidence: %s', async (savol, expected) => {
   categories.push('f2_fakt_pul');
   const response = await run(savol, 17, { actor: 400, tarix: [{ rol: 'user', matn: 'Sinov Bino haqida' }] });
   expect(await response.json()).toMatchObject({
-    provider: 'local', javob: expect.stringMatching(/Ma’lum qismi -102,75.*1 qatorning summasi noma’lum/),
+    provider: 'local', javob: expect.stringMatching(expected),
     dalil: { tur: 'obyekt', id: 34, rpc: 't2_object_financials_v1', maydon: 'f2', yol: '/admin/f2-tarix?obyekt=34' },
   });
   expect(JSON.parse(String(called('t2_object_financials_v1')[0][1]?.body))).toEqual({ p_actor_id: 7, p_kompaniya_id: 17, p_object_ids: [34] });
@@ -240,7 +248,7 @@ it.each(['Shu oy F2 jami qancha?', 'Сумма по КС-2 за ноябрь', '
 it('F2 status is read from the same object register, without requiring access to financial totals', async () => {
   const body = await (await run('Статус КС-2 № S-2', 17, { obyekt_id: 34, actor: 400 })).json();
   expect(body).toMatchObject({
-    provider: 'local', javob: expect.stringContaining('№ S-2 · 2026-06 · Yuborilgan'),
+    provider: 'local', javob: expect.stringContaining('№ S-2 · 2026-06 · Отправлен'),
     dalil: { tur: 'f2-reestr', id: 34, akt_ids: [52], yol: '/admin/f2-tarix?obyekt=34' },
   });
   expect(JSON.parse(String(called('t2_akt_reestr_obyekt_v1')[0][1]?.body))).toEqual({ p_actor_id: 7, p_obyekt_id: 34, p_tur: 'f2' });

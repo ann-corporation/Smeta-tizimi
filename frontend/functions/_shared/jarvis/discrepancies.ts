@@ -1,10 +1,9 @@
 import type { RpcNatija } from '../agent-rpc';
 import { jarvisHasPermission } from './authority';
 import { resolveJarvisObject, type JarvisObjectScope, type JarvisReadRpc } from './object-scope';
+import { jarvisText } from './reply-language';
 
 const source = 't2_aosr_slichitelniy_v1';
-const unavailable = { javob: 'Smeta va fakt solishtiruvini hozir tekshirib bo‘lmadi. Keyinroq qayta urinib ko‘ring.' };
-const denied = { rad: true, javob: 'Solishtiruvni ko‘rish uchun fakt va hujjatlarni o‘qish ruxsati kerak.' } as const;
 
 export function discrepancyIntent(question: string): boolean {
   const q = question.toLowerCase().replace(/[’ʻʼ‘']/g, '');
@@ -15,24 +14,27 @@ export function discrepancyIntent(question: string): boolean {
 }
 
 const fields = [
-  ['farqli', 'Smeta va fakt hajmi farq qilgan ishlar'],
-  ['ortiq', 'Fakt hajmi ortiq'],
-  ['kam', 'Fakt hajmi kam'],
-  ['tasdiqlagan', 'Farqli ishlar ichida АОСР asosi tasdiqlangan'],
-  ['yetishmaydi_jami', 'Farqli ishlar ichida tasdiqlangan asos yetishmaydi'],
+  ['farqli', 'Smeta va fakt hajmi farq qilgan ishlar', 'Работы с расхождением сметного и фактического объёма'],
+  ['ortiq', 'Fakt hajmi ortiq', 'Фактический объём выше'],
+  ['kam', 'Fakt hajmi kam', 'Фактический объём ниже'],
+  ['tasdiqlagan', 'Farqli ishlar ichida АОСР asosi tasdiqlangan', 'Из работ с расхождениями АОСР подтверждён'],
+  ['yetishmaydi_jami', 'Farqli ishlar ichida tasdiqlangan asos yetishmaydi', 'Из работ с расхождениями нет подтверждённого основания'],
 ] as const;
 
 const count = (value: unknown) => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null;
 const plain = (value: string) => value.replace(/[\r\n<>\[\]*_\x60]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
 
 export async function discrepancyAnswer(rpc: JarvisReadRpc, scope: JarvisObjectScope, men: RpcNatija | null) {
+  const text = scope.text ?? jarvisText();
+  const unavailable = { javob: text('Smeta va fakt solishtiruvini hozir tekshirib bo‘lmadi. Keyinroq qayta urinib ko‘ring.', 'Не удалось сверить смету и факт. Повторите запрос позже.') };
+  const denied = { rad: true, javob: text('Solishtiruvni ko‘rish uchun fakt va hujjatlarni o‘qish ruxsati kerak.', 'Для сверки нужен доступ к факту и документам.') } as const;
   if (!jarvisHasPermission(men, scope.company, 'fakt.read') ||
       !jarvisHasPermission(men, scope.company, 'document.read')) return denied;
   const selected = await resolveJarvisObject(rpc, scope).catch(() => ({ tur: 'unavailable' as const }));
   if (selected.tur === 'denied') return denied;
   if (selected.tur === 'unavailable') return unavailable;
-  if (selected.tur === 'noaniq') return { javob: 'Qaysi obyekt? ' + selected.variantlar.map(row => plain(row.nom)).join(' · ') };
-  if (selected.tur === 'yoq') return { javob: 'Qaysi obyekt bo‘yicha smeta va faktni solishtiray? Obyekt nomini yozing.' };
+  if (selected.tur === 'noaniq') return { javob: text('Qaysi obyekt?', 'Какой объект?') + ' ' + selected.variantlar.map(row => plain(row.nom)).join(' · ') };
+  if (selected.tur === 'yoq') return { javob: text('Qaysi obyekt bo‘yicha smeta va faktni solishtiray? Obyekt nomini yozing.', 'По какому объекту сверить смету и факт? Укажите название.') };
   const { id, nom } = selected.obyekt;
   const result = await rpc(source, {
     p_actor_id: scope.actor, p_kompaniya_id: scope.company, p_obyekt_id: id, p_limit: 1,
@@ -41,11 +43,12 @@ export async function discrepancyAnswer(rpc: JarvisReadRpc, scope: JarvisObjectS
   const { data } = result;
   if (data.ok !== true || data.obyekt_id !== id || !data.tayyorlik || typeof data.tayyorlik !== 'object') return unavailable;
   const readiness = data.tayyorlik as Record<string, unknown>;
-  const values = fields.map(([field, label]) => [label, count(field === 'yetishmaydi_jami' ? data[field] : readiness[field])] as const);
-  const lines = values.map(([label, value]) => '- ' + label + ': ' + (value === null ? 'noma’lum' : String(value)));
+  const values = fields.map(([field, uz, ru]) => [text(uz, ru), count(field === 'yetishmaydi_jami' ? data[field] : readiness[field])] as const);
+  const lines = values.map(([label, value]) => '- ' + label + ': ' + (value === null ? text('noma’lum', 'неизвестно') : String(value)));
   const yol = '/admin/fakt?obyekt=' + id;
   return {
-    javob: '**' + plain(nom) + '** · smeta va fakt hajmi solishtiruvi\n\n' + lines.join('\n') + '\n\n[Manbani ochish](' + yol + ')',
+    javob: text('**{name}** · smeta va fakt hajmi solishtiruvi', '**{name}** · сверка сметных и фактических объёмов', { name: plain(nom) }) +
+      '\n\n' + lines.join('\n') + '\n\n' + text('[Manbani ochish]({url})', '[Открыть источник]({url})', { url: yol }),
     dalil: { tur: 'smeta-fakt-solishtiruv', id, rpc: source, yol },
   };
 }

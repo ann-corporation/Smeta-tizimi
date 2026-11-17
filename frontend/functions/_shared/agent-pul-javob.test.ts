@@ -34,7 +34,7 @@ describe('pulJavobMatni', () => {
     expect(t.indexOf('QQS bilan')).toBeLessThan(t.indexOf('Ustamali')); expect(t.indexOf('Ustamali')).toBeLessThan(t.indexOf('Ustamasiz'));
     expect(t).not.toMatch(/Diqqat/);
   });
-  it('podval yo‘q — aniq aytiladi', () => expect(pulJavobMatni('X', { ...NK, nk_manba: 'sukut' })).toMatch(/smeta podvali .* topilmadi/));
+  it('podval yo‘q — aniq aytiladi', () => expect(pulJavobMatni('X', { ...NK, nk_manba: 'sukut' })).toContain('smeta podvali topilmadi'));
   it('smeta podvali yo‘q bo‘lsa standart ustama va QQS summasi chiqmaydi', () => {
     const text = pulJavobMatni('X', { ...NK, nk_manba: 'sukut' });
     expect(text).toContain('Ma’lumot yo‘q');

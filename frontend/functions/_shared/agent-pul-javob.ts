@@ -4,6 +4,7 @@
  * Tartib: QQS bilan (asosiy) → ustamali QQS siz → ustamasiz (прямые). Podval yo'q bo'lsa nima yetishmayotgani aytiladi.
  */
 import { jarvisMoney } from '../../src/lib/jarvis/answers';
+import { jarvisText, type JarvisText } from './jarvis/reply-language';
 
 export type PulObyekt = { id: number; nom: string };
 export type PulTarix = Array<{ rol?: unknown; matn?: unknown }>;
@@ -68,7 +69,7 @@ type Kaskad = { pryamye?: unknown; itogo4?: unknown; nds?: unknown; vsego?: unkn
 const son = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v)) ? Number(v) : null);
 
 /** t2_obyekt_nakrutka_v1 natijasidan javob matni. Raqam yo'q bo'lsa — nima yetishmayotgani aytiladi, taxmin qilinmaydi. */
-export function pulJavobMatni(nom: string, r: Record<string, unknown>): string {
+export function pulJavobMatni(nom: string, r: Record<string, unknown>, text: JarvisText = jarvisText()): string {
   const k = (r.nakrutka ?? null) as Kaskad | null;
   const cats = (r.cats ?? {}) as Record<string, unknown>;
   const categoryEvidence = ['chel', 'mash', 'mat', 'ob'].some((x) => {
@@ -77,21 +78,25 @@ export function pulJavobMatni(nom: string, r: Record<string, unknown>): string {
   });
   const vsego = k ? son(k.vsego) : null; const itogo4 = k ? son(k.itogo4) : null; const pryamye = k ? son(k.pryamye) : null;
   if (r.ok !== true || !k) {
-    return `**${nom}**: smeta qiymatini ustama va QQS bilan hisoblab bo‘lmadi — ${r.ok !== true ? 'obyektning nakrutka hisobi javob bermadi' : 'nakrutka natijasi bo‘sh'}. Obyekt «Smeta» sahifasidan nakrutka (podval) qismini tekshiring.`;
+    const reason = r.ok !== true ? text('obyektning nakrutka hisobi javob bermadi', 'расчёт по объекту недоступен') : text('nakrutka natijasi bo‘sh', 'результат расчёта пуст');
+    return text('**{name}**: smeta qiymatini ustama va QQS bilan hisoblab bo‘lmadi — {reason}. Obyekt smetasidagi yakuniy hisobni tekshiring.',
+      '**{name}**: не удалось получить стоимость с накладными расходами и НДС — {reason}. Проверьте итоговый расчёт сметы объекта.', { name: nom, reason });
   }
   if (!categoryEvidence && (pryamye === null || pryamye === 0)) {
-    return `**${nom}**: smeta qiymatini tasdiqlash uchun dalil yetarli emas. Smeta yuklanganini va narxsiz qatorlarni tekshiring.`;
+    return text('**{name}**: smeta qiymatini tasdiqlash uchun dalil yetarli emas. Smeta yuklanganini va narxsiz qatorlarni tekshiring.',
+      '**{name}**: недостаточно данных для подтверждения стоимости. Проверьте, загружена ли смета и есть ли строки без цен.', { name: nom });
   }
   const podval = r.nk_manba === 'smeta_podvali';
-  const pul = (value: number | null) => value === null ? 'Ma’lumot yo‘q' : jarvisMoney(value);
+  const pul = (value: number | null) => value === null ? text('Ma’lumot yo‘q', 'Нет данных') : jarvisMoney(value, text('so‘m', 'сум'));
   const qatorlar = [
-    `**${nom}** — smeta qiymati:`,
-    `- **QQS bilan** (nakrutka/ustama bilan): **${pul(podval ? vsego : null)}**`,
-    `- Ustamali, QQS siz: ${pul(podval ? itogo4 : null)}`,
-    `- Ustamasiz (прямые), QQS siz: ${pul(pryamye)}`,
+    text('**{name}** — smeta qiymati:', '**{name}** — сметная стоимость:', { name: nom }),
+    text('- **QQS bilan** (ustama bilan): **{sum}**', '- **С НДС** (с накладными расходами): **{sum}**', { sum: pul(podval ? vsego : null) }),
+    text('- Ustamali, QQS siz: {sum}', '- С накладными расходами, без НДС: {sum}', { sum: pul(podval ? itogo4 : null) }),
+    text('- Ustamasiz (прямые), QQS siz: {sum}', '- Прямые затраты, без НДС: {sum}', { sum: pul(pryamye) }),
   ];
   if (!podval) {
-    qatorlar.push('\nObyektning smeta podvali (nakrutka foizlari) topilmadi. Ustama va QQS bilan qiymat uchun smeta podvalini yuklang.');
+    qatorlar.push(text('\nObyektning smeta podvali topilmadi. Ustama va QQS bilan qiymat uchun yakuniy hisobni yuklang.',
+      '\nИтоговый расчёт сметы объекта отсутствует. Загрузите его, чтобы получить стоимость с накладными расходами и НДС.'));
   }
   return qatorlar.join('\n');
 }
@@ -104,19 +109,20 @@ type PulJavob = {
 };
 
 /** To'liq oqim. null — bu savol emas (model davom etadi). Ruxsat: smeta_pul toifasi shu foydalanuvchiga ochiq bo'lishi shart. */
-export async function pulJavobi(rpc: Rpc, o: { actor: number; kid: number; savol: string; tarix: unknown; obyektId: number | null; ruxsat: readonly string[] }): Promise<PulJavob | null> {
+export async function pulJavobi(rpc: Rpc, o: { actor: number; kid: number; savol: string; tarix: unknown; obyektId: number | null; ruxsat: readonly string[]; text?: JarvisText }): Promise<PulJavob | null> {
   if (!pulSorovi(o.savol) || !o.ruxsat.includes('smeta_pul')) return null;
+  const text = o.text ?? jarvisText();
   const f = await rpc('t2_agent_fakt_v1', { p_actor_id: o.actor, p_kompaniya_id: o.kid, p_kategoriyalar: ['obyektlar'], p_obyekt_id: null });
-  if (!f.ok) return { javob: 'Obyektlar ro‘yxatini tekshirib bo‘lmadi. Ruxsat va tizimga ulanishni tekshiring.' };
+  if (!f.ok) return { javob: text('Obyektlar ro‘yxatini tekshirib bo‘lmadi. Ruxsat va tizimga ulanishni tekshiring.', 'Не удалось проверить список объектов. Проверьте доступ и подключение.') };
   const lst = f.ok && Array.isArray(f.data.fakt ? (f.data.fakt as Record<string, unknown>).obyektlar : f.data.obyektlar)
     ? ((f.data.fakt ? (f.data.fakt as Record<string, unknown>).obyektlar : f.data.obyektlar) as Array<Record<string, unknown>>) : [];
   const obyektlar: PulObyekt[] = lst.flatMap((x) => (x && typeof x.id === 'number' && Number.isSafeInteger(x.id) && x.id > 0 && typeof x.nom === 'string' ? [{ id: x.id, nom: x.nom }] : []));
-  if (!obyektlar.length) return { javob: 'Kompaniyada faol obyekt topilmadi — ustama va QQS bilan smeta qiymatini hisoblash uchun avval obyekt kerak.' };
+  if (!obyektlar.length) return { javob: text('Kompaniyada faol obyekt topilmadi.', 'В компании не найдено активных объектов.') };
   const t = obyektTanla(o.savol, o.tarix, obyektlar, o.obyektId);
-  if (t.tur === 'noaniq') return { javob: 'Bir nechta obyekt mos keldi: ' + t.variantlar.map((v) => `«${v.nom}»`).join(', ') + '. Qaysi biri?' };
-  if (t.tur === 'yoq') return { javob: 'Qaysi obyekt uchun? Nomini ayting (masalan: ' + obyektlar.slice(0, 3).map((v) => `«${v.nom}»`).join(', ') + ').' };
+  if (t.tur === 'noaniq') return { javob: text('Bir nechta obyekt mos keldi: {names}. Qaysi biri?', 'Найдено несколько объектов: {names}. Какой нужен?', { names: t.variantlar.map(v => `«${v.nom}»`).join(', ') }) };
+  if (t.tur === 'yoq') return { javob: text('Qaysi obyekt uchun? Nomini ayting. Masalan: {names}.', 'Для какого объекта? Укажите название. Например: {names}.', { names: obyektlar.slice(0, 3).map(v => `«${v.nom}»`).join(', ') }) };
   const r = await rpc('t2_obyekt_nakrutka_v1', { p_obyekt_id: t.obyekt.id, p_actor_id: o.actor });
-  const javob = pulJavobMatni(t.obyekt.nom, r.ok ? r.data : { ok: false });
+  const javob = pulJavobMatni(t.obyekt.nom, r.ok ? r.data : { ok: false }, text);
   if (!r.ok || r.data.ok !== true || !r.data.nakrutka) return { javob };
   const yol = '/admin/holat/' + t.obyekt.id;
   return { javob, dalil: { tur: 'smeta-qiymat', id: t.obyekt.id, rpc: 't2_obyekt_nakrutka_v1', yol }, sahifalar: [{ yol, nom: t.obyekt.nom }] };

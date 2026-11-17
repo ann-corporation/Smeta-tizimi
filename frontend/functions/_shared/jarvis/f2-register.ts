@@ -1,10 +1,11 @@
 import { resolveJarvisObject, type JarvisObjectScope, type JarvisReadRpc } from './object-scope';
+import { jarvisText, type JarvisText } from './reply-language';
 
 const rpcName = 't2_akt_reestr_obyekt_v1';
 const displayLimit = 5;
-const statusNames: Readonly<Record<string, string>> = {
-  draft: 'Qoralama', submitted: 'Yuborilgan', checked: 'Tekshirilgan', approved: 'Tasdiqlangan',
-  rejected: 'Rad etilgan', cancelled: 'Bekor qilingan', superseded: 'Yangi versiya bilan almashtirilgan',
+const statusNames: Readonly<Record<string, readonly [string, string]>> = {
+  draft: ['Qoralama', 'Черновик'], submitted: ['Yuborilgan', 'Отправлен'], checked: ['Tekshirilgan', 'Проверен'], approved: ['Tasdiqlangan', 'Утверждён'],
+  rejected: ['Rad etilgan', 'Отклонён'], cancelled: ['Bekor qilingan', 'Отменён'], superseded: ['Yangi versiya bilan almashtirilgan', 'Заменён новой версией'],
 };
 type Filter = { number: string | null; month: string | null; needsMonth: boolean; status: 'approved' | 'draft' | null };
 
@@ -35,26 +36,28 @@ function scopedAct(row: unknown, object: number, company: number): row is Act {
     typeof a.holat === 'string' && (a.lifecycle_status == null || typeof a.lifecycle_status === 'string');
 }
 
-const unavailable = { javob: 'F2 reestrini hozir tekshirib bo‘lmadi. Keyinroq qayta urinib ko‘ring.' };
-const denied = { rad: true, javob: 'F2 reestrini ko‘rish uchun ruxsat kerak.' } as const;
 const safeNumber = (number: string | null) => number?.replace(/[^\p{L}\p{N}\s./-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 60) || null;
 const legacyStatus = new Map([['qoralama', 'draft'], ['tasdiqlangan', 'approved'], ['bekor', 'cancelled']]);
 const actStatus = (row: Act) => row.lifecycle_status || legacyStatus.get(row.holat) || '';
-function actLine(row: Act) {
+function actLine(row: Act, text: JarvisText) {
   const number = safeNumber(row.raqam);
   const month = row.oy?.match(/^\d{4}-(?:0[1-9]|1[0-2])(?=-|$)/)?.[0];
   const lifecycle = actStatus(row);
-  const status = Object.hasOwn(statusNames, lifecycle) ? statusNames[lifecycle] : 'Holati nomaʼlum';
-  return '- F2 ' + (number ? '№ ' + number : '#' + row.id) + (month ? ' · ' + month : '') + ' · ' + status;
+  const labels = Object.hasOwn(statusNames, lifecycle) ? statusNames[lifecycle] : undefined;
+  const status = labels ? text(...labels) : text('Holati nomaʼlum', 'Статус неизвестен');
+  return text('- F2', '- КС-2') + ' ' + (number ? '№ ' + number : '#' + row.id) + (month ? ' · ' + month : '') + ' · ' + status;
 }
 
 export async function f2RegisterAnswer(rpc: JarvisReadRpc, scope: JarvisObjectScope, filter: Filter) {
-  if (filter.needsMonth) return { javob: 'Qaysi oy kerak? Oyni YYYY-MM shaklida yozing.' };
+  const text = scope.text ?? jarvisText();
+  const unavailable = { javob: text('F2 reestrini hozir tekshirib bo‘lmadi. Keyinroq qayta urinib ko‘ring.', 'Не удалось проверить реестр КС-2. Повторите запрос позже.') };
+  const denied = { rad: true, javob: text('F2 reestrini ko‘rish uchun ruxsat kerak.', 'Для просмотра реестра КС-2 нужен доступ.') } as const;
+  if (filter.needsMonth) return { javob: text('Qaysi oy kerak? Oyni YYYY-MM shaklida yozing.', 'За какой месяц показать реестр? Укажите месяц в формате YYYY-MM.') };
   const selected = await resolveJarvisObject(rpc, scope).catch(() => ({ tur: 'unavailable' as const }));
   if (selected.tur === 'denied') return denied;
   if (selected.tur === 'unavailable') return unavailable;
-  if (selected.tur === 'noaniq') return { javob: 'Qaysi obyekt? ' + selected.variantlar.map(row => row.nom).join(' · ') };
-  if (selected.tur === 'yoq') return { javob: 'Qaysi obyektning F2 reestri kerak? Obyekt nomini yozing.' };
+  if (selected.tur === 'noaniq') return { javob: text('Qaysi obyekt?', 'Какой объект?') + ' ' + selected.variantlar.map(row => row.nom).join(' · ') };
+  if (selected.tur === 'yoq') return { javob: text('Qaysi obyektning F2 reestri kerak? Obyekt nomini yozing.', 'Для какого объекта нужен реестр КС-2? Укажите название.') };
   const { id, nom } = selected.obyekt;
   const result = await rpc(rpcName, { p_actor_id: scope.actor, p_obyekt_id: id, p_tur: 'f2' }).catch(() => null);
   if (!result?.ok) return result?.status === 403 ? denied : unavailable;
@@ -67,10 +70,11 @@ export async function f2RegisterAnswer(rpc: JarvisReadRpc, scope: JarvisObjectSc
     (!filter.month || row.oy === filter.month || row.oy?.startsWith(filter.month + '-')));
   const yol = '/admin/f2-tarix?obyekt=' + id;
   const shown = filtered.slice(0, displayLimit);
-  const lines = shown.length ? shown.map(actLine).join('\n') : 'Mos F2 hujjati topilmadi.';
-  const note = filtered.length > shown.length ? '\n\nOxirgi ' + shown.length + ' tasi ko‘rsatildi. To‘liq ro‘yxat havolada.' : '';
+  const lines = shown.length ? shown.map(row => actLine(row, text)).join('\n') : text('Mos F2 hujjati topilmadi.', 'Подходящие акты КС-2 не найдены.');
+  const note = filtered.length > shown.length ? text('\n\nOxirgi {count} tasi ko‘rsatildi. To‘liq ro‘yxat havolada.', '\n\nПоказаны последние акты ({count}). Полный список по ссылке.', { count: shown.length }) : '';
   return {
-    javob: '**' + nom + '** · F2 reestri\n\n' + lines + note + '\n\n[Manbani ochish](' + yol + ')',
+    javob: text('**{name}** · F2 reestri', '**{name}** · реестр КС-2', { name: nom }) + '\n\n' + lines + note + '\n\n' +
+      text('[Manbani ochish]({url})', '[Открыть источник]({url})', { url: yol }),
     dalil: { tur: 'f2-reestr', id, rpc: rpcName, yol, akt_ids: shown.map(row => row.id) },
   };
 }

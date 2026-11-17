@@ -9,8 +9,8 @@ export function jarvisHelp(text: string): string | null {
   return 'Hozir tanlangan kompaniyadagi obyektlarning smeta, fakt va F2 jamlarini ko‘rsataman, narxi yetishmayotgan qatorlar haqida ogohlantiraman.\n\nMasalan: «Amfiteatrda holat qanday?» yoki «Fast Food 1-etaj F2 jami qancha?»\n\nHozirgi Jarvis faqat o‘qiydi: smeta tuzmaydi, narx almashtirmaydi, hujjatni tasdiqlamaydi. Davrlar va alohida qatorlar tafsiloti bu umumiy ma’lumotda bo‘lmasa, uni taxmin qilmayman.';
 }
 
-export function jarvisMoney(n: number | null): string {
-  return n == null || !Number.isFinite(n) ? 'noma’lum' : n.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' so‘m';
+export function jarvisMoney(n: number | null, currency = 'so‘m'): string {
+  return n == null || !Number.isFinite(n) ? 'noma’lum' : n.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + currency;
 }
 
 /**

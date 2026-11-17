@@ -6,11 +6,12 @@ import { kontekstOl } from '../agent-kontekst-kesh';
 import { xotiraBloklari } from '../../../src/lib/smeta-ai/tajriba';
 import { kimMendan, kimPromptBloki } from '../../../src/lib/yordamchi/kim';
 import { pulJavobi, pulSorovi } from '../agent-pul-javob';
-import { objectTotalAnswer, objectTotalIntent } from './object-finance';
+import { objectTotalAnswer, objectTotalDenied, objectTotalIntent, objectTotalUnavailable } from './object-finance';
 import { f2RegisterAnswer, f2RegisterIntent } from './f2-register';
 import { warehouseAnswer, warehouseIntent } from './warehouse';
 import { discrepancyAnswer, discrepancyIntent } from './discrepancies';
 import { normAnswer, normReference } from './normative';
+import { jarvisLanguage, jarvisText } from './reply-language';
 import type { NormativEnv } from '../normativ-read';
 import { suhbatTarixi, faktMatni, kasbPrompti, mavzuTaqiqi, radMatni, toifalarniTanla, harakatMatni, javobniAjrat, MAVZU_NOMI, type KasbMalumoti, type Toifa } from '../agent-kasb';
 import { bilimBolimi, dbBilimYozuvlari, navigatsiyaSorovi, sahifaQidirish, yolTekshir } from '../agent-bilim';
@@ -58,6 +59,10 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
   /* Texnik qadam: jurnalga yoziladi, klientda (AiQadamlar) faqat yig'ilgan tafsilot ichida — jonli qatorda ko'rinmaydi. */
   log('👤', `Lavozim: ${kasb.rol} → «${kasb.nom}» ishchisi ulandi`);
   const til = String(sh.data.til ?? 'auto'); const uslub = String(sh.data.uslub ?? 'qisqa');
+  const language = jarvisLanguage(savol, til);
+  const text = jarvisText(language);
+  const objectId = sonmi(so.obyekt_id) ? Number(so.obyekt_id) : null;
+  const objectScope = { actor, company: kid, question: savol, history: so.tarix, objectId, text };
   const uslubOchiq = !!us?.ok && us.data.yoqilgan !== false;
   const uslubXus = us?.ok ? (us.data.xususiyat as Partial<UslubXususiyat> | undefined) : undefined;
   const uslubKorsatma = us?.ok && typeof us.data.korsatma === 'string' ? us.data.korsatma : null;
@@ -77,21 +82,23 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
   }
   const register = so.studio == null ? f2RegisterIntent(savol) : null;
   if (register) {
-    const answer = await f2RegisterAnswer((name, body) => rpcData(env, name, body), {
-      actor, company: kid, question: savol, history: so.tarix, objectId: sonmi(so.obyekt_id) ? Number(so.obyekt_id) : null,
-    }, register);
+    const answer = await f2RegisterAnswer((name, body) => rpcData(env, name, body), objectScope, register);
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
   }
   const stock = so.studio == null ? warehouseIntent(savol) : null;
   if (stock) {
-    const answer = await warehouseAnswer((name, body) => rpcData(env, name, body), actor, kid, stock, men ?? null);
+    const answer = await warehouseAnswer((name, body) => rpcData(env, name, body), actor, kid, stock, men ?? null, text);
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
   }
   if (so.studio == null && discrepancyIntent(savol)) {
-    const answer = await discrepancyAnswer((name, body) => rpcData(env, name, body), {
-      actor, company: kid, question: savol, history: so.tarix, objectId: sonmi(so.obyekt_id) ? Number(so.obyekt_id) : null,
-    }, men ?? null);
+    const answer = await discrepancyAnswer((name, body) => rpcData(env, name, body), objectScope, men ?? null);
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
+  }
+  const isMoneyQuestion = pulSorovi(savol);
+  if (isMoneyQuestion && !kasb.kategoriyalar.includes('smeta_pul')) {
+    const javob = text('Smeta qiymatini ko‘rish uchun lavozimingizga ruxsat kerak.', 'Для просмотра сметной стоимости нужен доступ.');
+    await yozJurnal('rad', javob, qadamlar, { rad: true });
+    return { status: 200, body: { ok: true, kasb: ish, rad: true, provider: 'local', model: 'local', javob } };
   }
   const taqiq = mavzuTaqiqi(savol, kasb.kategoriyalar);
   if (taqiq) {
@@ -101,13 +108,9 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
     return { status: 200, body: { ok: true, kasb: ish, rad: true, model: 'local', javob } };
   }
   /* Ustama (nakrutka) va QQS bilan smeta qiymati: tizim ma'lumotidan ANIQ hisob, model chaqirilmaydi. */
-  const isMoneyQuestion = pulSorovi(savol);
-  if (isMoneyQuestion && !kasb.kategoriyalar.includes('smeta_pul')) {
-    return { status: 200, body: { ok: true, kasb: ish, rad: true, provider: 'local', model: 'local', javob: 'Smeta qiymatini ko‘rish uchun lavozimingizga ruxsat kerak.' } };
-  }
   const pulMatni = isMoneyQuestion
-    ? await pulJavobi((nom, yuk) => rpcData(env, nom, yuk), { actor, kid, savol, tarix: so.tarix, obyektId: sonmi(so.obyekt_id) ? Number(so.obyekt_id) : null, ruxsat: kasb.kategoriyalar })
-      .catch(() => ({ javob: 'Smeta qiymatini tizimdan olib bo‘lmadi. Keyinroq qayta urinib ko‘ring.' }))
+    ? await pulJavobi((nom, yuk) => rpcData(env, nom, yuk), { actor, kid, savol, tarix: so.tarix, obyektId: objectId, ruxsat: kasb.kategoriyalar, text })
+      .catch(() => ({ javob: text('Smeta qiymatini tizimdan olib bo‘lmadi. Keyinroq qayta urinib ko‘ring.', 'Не удалось получить сметную стоимость. Повторите запрос позже.') }))
     : null;
   if (pulMatni) {
     qd('💰', 'Smeta qiymati tizim hisobidan (nakrutka/QQS) — model chaqirilmadi, token sarflanmadi');
@@ -117,16 +120,13 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
   const total = objectTotalIntent(savol);
   if (total && so.studio == null) {
     const answer = kasb.kategoriyalar.includes('f2_fakt_pul')
-      ? await objectTotalAnswer((name, body) => rpcData(env, name, body), {
-        actor, company: kid, question: savol, history: so.tarix, objectId: sonmi(so.obyekt_id) ? Number(so.obyekt_id) : null,
-      }, total).catch(() => ({ javob: 'Jami summani tizimdan olib bo‘lmadi. Keyinroq qayta urinib ko‘ring.' }))
-      : { javob: 'Bu obyekt summasini ko‘rish uchun ruxsat kerak.', rad: true as const };
+      ? await objectTotalAnswer((name, body) => rpcData(env, name, body), objectScope, total).catch(() => objectTotalUnavailable(text))
+      : objectTotalDenied(text);
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
   }
   const norm = so.studio == null ? normReference(savol) : null;
   if (norm) {
-    const answer = await normAnswer(env, actor, kid, norm, men ?? null)
-      .catch(() => ({ javob: 'Normativ manbasini hozir tekshirib bo‘lmadi. Keyinroq qayta urinib ko‘ring.' }));
+    const answer = await normAnswer(env, actor, kid, norm, men ?? null, text);
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
   }
   const toifalar = toifalarniTanla(savol, kasb.kategoriyalar, matn(so.sahifa, 160));
@@ -175,7 +175,9 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
   qd('📜', `Qoidalar yuklandi: ${qoidalar.length} ta (${qoidalar.filter((x) => x.doira === 'yadro').length} ta o‘zgarmas yadro qoida)`);
   const model = modelOf(m);
   qd('🤖', `Model: ${model ?? 'server standarti'} — limit va hamyon tekshirilmoqda…`);
-  const tilIshora = til === 'uz' ? 'Javobni DOIM o‘zbek (lotin) tilida yoz.' : til === 'ru' ? 'Javobni DOIM rus tilida yoz.' : '';
+  const tilIshora = {
+    uz: 'Javobni o‘zbek tilida lotin yozuvida yoz.', 'uz-Cyrl': 'Javobni o‘zbek tilida kirill yozuvida yoz.', ru: 'Javobni rus tilida yoz.',
+  }[language];
   const uslubIshora = uslub === 'batafsil' ? 'Javobni batafsil yoz: sabablari va hisob-kitobini ham ko‘rsat.' : 'Javobni juda qisqa yoz (6 gapdan oshmasin).';
   const sahifaYoli = matn(so.sahifa, 160);
   const dbBilim = dbBilimYozuvlari(blr?.ok ? blr.data.natija : []);
