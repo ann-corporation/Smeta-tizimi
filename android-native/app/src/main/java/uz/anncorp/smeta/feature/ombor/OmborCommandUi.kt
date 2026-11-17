@@ -30,6 +30,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -95,24 +96,35 @@ private fun messageRes(m: CmdMessage): Int = when (m) {
     CmdMessage.NOT_UNDERSTOOD -> R.string.ombor_cmd_m_unclear
     CmdMessage.UNAVAILABLE -> R.string.ombor_cmd_m_unavailable
     CmdMessage.FAILED -> R.string.ombor_cmd_m_failed
+    CmdMessage.LOW_STOCK -> R.string.ombor_cmd_m_stock
+    CmdMessage.NO_WAREHOUSE -> R.string.ombor_cmd_m_nowarehouse
 }
 
 /**
- * Preview card of what the server understood. The user can correct every field; Save queues the normal receive / issue (works offline, outbox),
+ * Preview card of what the server understood. The user can correct every field (names this warehouse entered before are suggested as they type;
+ * a new name is simply accepted). Save: the server writes it (unchanged card = its token; edited card = the server re-validates, then writes).
  * Edit opens the full entry form with these values. A balance question shows the server's answer, or the cached balance when offline.
  */
 @Composable
 internal fun CommandPreviewDialog(p: CommandPreview, ui: OmborUi, vm: OmborViewModel, onEdit: (OmborOp, StockRow) -> Unit) {
     var name by remember(p) { mutableStateOf(p.name) }
     var unit by remember(p) { mutableStateOf(p.unit) }
-    var qty by remember(p) { mutableStateOf(p.qty?.let { formatQty(it).replace(" ", "").replace(" ", "") } ?: "") }
+    var qty by remember(p) { mutableStateOf(p.qty?.let { formatQty(it).replace(" ", "").replace("\u00A0", "") } ?: "") }
     var objectId by remember(p) { mutableStateOf(p.objectId ?: (ui.scope as? OmborScope.Obyekt)?.id) }
-    val opId = remember(p) { vm.newOperationId() }
     val isMove = p.kind == CommandKind.RECEIVE || p.kind == CommandKind.ISSUE
+    val isEdit = p.kind == CommandKind.EDIT
     val op = if (p.kind == CommandKind.ISSUE) OmborOp.ISSUE else OmborOp.RECEIVE
     val obj = ui.objects.firstOrNull { it.id == objectId }
-    val qtyOk = parseQuantity(qty) != null
-    val canSave = isMove && name.isNotBlank() && qtyOk && obj != null && ui.access.write
+    val qtyValue = parseQuantity(qty)
+    val busy = ui.cmd.working
+    val canSave = ui.access.write && !busy && when {
+        isMove -> name.isNotBlank() && qtyValue != null
+        isEdit -> p.token != null
+        else -> false
+    }
+    // Autocomplete: typing a different name asks the server for the names this warehouse entered before.
+    LaunchedEffect(name) { if (isMove && name != p.name) vm.suggest(name) }
+    val shown = (if (name != p.name) ui.cmd.suggestions else p.alternatives).filter { it.name != name }.take(5)
     AlertDialog(
         onDismissRequest = vm::dismissCommand,
         title = {
@@ -124,28 +136,40 @@ internal fun CommandPreviewDialog(p: CommandPreview, ui: OmborUi, vm: OmborViewM
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 p.heard?.let { Text(stringResource(R.string.ombor_cmd_heard, it), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.ombor_cmd_name)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.ombor_cmd_name)) }, modifier = Modifier.fillMaxWidth(), enabled = !isEdit)
+                if (shown.isNotEmpty()) {
+                    Text(stringResource(R.string.ombor_cmd_suggest), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    shown.forEach { s ->
+                        TextButton(onClick = { name = s.name; if (s.unit.isNotBlank()) unit = s.unit }, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) {
+                            Text(s.name + (s.unit.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""), maxLines = 2, modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                }
                 if (p.kind == CommandKind.BALANCE) {
                     val hit = ui.scopeRows.filter { matchesQuery(it.nomi, name) }.take(3)
                     Text(
                         p.answer ?: if (hit.isEmpty()) stringResource(R.string.ombor_cmd_balance_none) else hit.joinToString("\n") { it.nomi + ": " + formatQty(it.qoldiq) + " " + it.birligi },
                         style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface,
                     )
+                } else if (isEdit) {
+                    p.qty?.let { Text(stringResource(R.string.ombor_cmd_qty) + ": " + formatQty(it), style = MaterialTheme.typography.bodyMedium) }
+                    if (p.note.isNotBlank()) Text(p.note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(qty, { qty = it }, label = { Text(stringResource(R.string.ombor_cmd_qty)) }, singleLine = true, isError = qty.isNotEmpty() && !qtyOk, modifier = Modifier.weight(1f))
+                        OutlinedTextField(qty, { qty = it }, label = { Text(stringResource(R.string.ombor_cmd_qty)) }, singleLine = true, isError = qty.isNotEmpty() && qtyValue == null, modifier = Modifier.weight(1f))
                         OutlinedTextField(unit, { unit = it }, label = { Text(stringResource(R.string.ombor_cmd_unit)) }, singleLine = true, modifier = Modifier.weight(1f))
                     }
                     ObjectDropdown(ui.objects, objectId, stringResource(R.string.ombor_cmd_object), { objectId = it })
                     if (p.party.isNotBlank()) Text(stringResource(R.string.ombor_cmd_party, p.party), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                p.warnings.forEach { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary) }
+                if (busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
             }
         },
         confirmButton = {
             if (p.kind == CommandKind.BALANCE) TextButton(onClick = vm::dismissCommand) { Text(stringResource(R.string.p8_cancel)) }
             else TextButton(enabled = canSave, onClick = {
-                val source: OmborScope? = if (op == OmborOp.ISSUE) obj?.let { OmborScope.Obyekt(it.id, it.nom) } else null
-                vm.submit(op, name.trim(), unit.trim(), qty, java.time.LocalDate.now().toString(), source, if (op == OmborOp.RECEIVE) obj else null, p.party, null, p.note, opId) { vm.dismissCommand() }
+                vm.saveCommand(p, name, unit, if (isEdit) p.qty else qtyValue?.toDouble(), p.party, p.note, obj?.nom)
             }) { Text(stringResource(R.string.ombor_cmd_save)) }
         },
         dismissButton = {

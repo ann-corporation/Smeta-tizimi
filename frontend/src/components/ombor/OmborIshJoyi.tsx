@@ -4,9 +4,10 @@ import { t, raqamFormatla } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
 import { yangiOperationId } from '../../api/supabase';
 import {
-  omborEksport, omborQoldiq, omborRoyxat, omborTahlilMatn, omborTahlilOvoz, omborTarix, omborTasdiq, omborTuzat, omborYoz,
-  type OmborBuyruqNatija, type OmborFiltr, type OmborGuruh, type OmborHarakat, type OmborNomzod, type OmborQoldiq, type OmborRoyxat, type OmborTarix,
+  omborEksport, omborEslatma, omborQoldiq, omborRoyxat, omborTahlilMatn, omborTahlilOvoz, omborTarix, omborTasdiq, omborTuzat, omborYoz,
+  type OmborBuyruqNatija, type OmborEslatma, type OmborFiltr, type OmborGuruh, type OmborHarakat, type OmborNomzod, type OmborQoldiq, type OmborRoyxat, type OmborTarix,
 } from '../../api/t2-ombor';
+import { eslatmaQatorga } from '../../lib/ombor-moslash/eslatma';
 import { OpsOyna } from '../kompaniya-ops/OpsUi';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 
@@ -47,26 +48,30 @@ function TezKiritish({ kompaniyaId, skladId, onYozildi }: { kompaniyaId: number;
   const [tur, setTur] = useState<'prixod' | 'chiqim'>('prixod');
   const [nom, setNom] = useState(''); const [birlik, setBirlik] = useState(''); const [miqdor, setMiqdor] = useState('');
   const [kontragent, setKontragent] = useState(''); const [sana, setSana] = useState(bugun());
-  const [tanlangan, setTanlangan] = useState<OmborGuruh | null>(null);
-  const [takliflar, setTakliflar] = useState<OmborGuruh[]>([]);
+  const [takliflar, setTakliflar] = useState<OmborEslatma[]>([]);
+  const [ochiq, setOchiq] = useState(false);
   const [band, setBand] = useState(false); const [xato, setXato] = useState<string | null>(null);
-  const op = useRef(yangilangan()); const miqdorRef = useRef<HTMLInputElement>(null); const avlod = useRef(0);
+  const op = useRef(yangilangan()); const miqdorRef = useRef<HTMLInputElement>(null); const avlod = useRef(0); const tanlanganNom = useRef('');
   function yangilangan() { return yangiOperationId(); }
 
+  // Eslatma: shu omborning oldingi yozuvlaridan (eng yaqin va eng ko'p ishlatilgani birinchi). Maydonga fokusda ham (bo'sh bo'lsa — oxirgilar).
   useEffect(() => {
-    if (tanlangan || nom.trim().length < 2) { setTakliflar([]); return; }
+    if (!ochiq || nom === tanlanganNom.current) { setTakliflar([]); return; }
     const g = ++avlod.current;
-    const id = setTimeout(() => { void omborQoldiq(kompaniyaId, skladId, { qidir: nom, musbat: '0' }, 6).then((r) => { if (g === avlod.current && r.ok) setTakliflar(r.qatorlar); }); }, 220);
+    const id = setTimeout(() => { void omborEslatma(kompaniyaId, skladId, nom.trim(), 8).then((r) => { if (g === avlod.current && r.ok) setTakliflar(r.takliflar); }); }, nom.trim() ? 200 : 0);
     return () => clearTimeout(id);
-  }, [nom, tanlangan, kompaniyaId, skladId]);
+  }, [nom, ochiq, kompaniyaId, skladId]);
 
-  const tanla = (g: OmborGuruh) => { setTanlangan(g); setNom(g.nomi); setBirlik(g.birligi); setTakliflar([]); setTimeout(() => miqdorRef.current?.focus(), 0); };
-  const tozala = () => { setNom(''); setBirlik(''); setMiqdor(''); setKontragent(''); setTanlangan(null); setTakliflar([]); op.current = yangilangan(); };
+  const tanla = (e: OmborEslatma) => {
+    const q = eslatmaQatorga(e, tur, kontragent);
+    tanlanganNom.current = q.nomi; setNom(q.nomi); setBirlik(q.birligi); setKontragent(q.kontragent); setTakliflar([]); setOchiq(false);
+    setTimeout(() => miqdorRef.current?.focus(), 0);
+  };
+  const tozala = () => { setNom(''); setBirlik(''); setMiqdor(''); setKontragent(''); tanlanganNom.current = ''; setTakliflar([]); op.current = yangilangan(); };
   const saqla = async () => {
     setXato(null);
     const m = miqdor.replace(',', '.').trim();
     if (!nom.trim() || !birlik.trim() || !(Number(m) > 0)) { setXato(t('Material, birlik va miqdorni kiriting.')); return; }
-    if (tur === 'chiqim' && !tanlangan) { setXato(t('Chiqim uchun ro‘yxatdan materialni tanlang.')); return; }
     setBand(true);
     const r = await omborYoz(kompaniyaId, skladId, { operatsiya: tur, nomi: nom.trim(), birligi: birlik.trim(), miqdor: m, sana, kontragent: kontragent.trim() || undefined, operation_id: op.current });
     setBand(false);
@@ -82,12 +87,13 @@ function TezKiritish({ kompaniyaId, skladId, onYozildi }: { kompaniyaId: number;
     </div>
     <div className="relative">
       <input aria-label={t('Material')} placeholder={t('Material: bir necha harf yozing (lotin/kirill)')} value={nom} autoComplete="off" inputMode="search"
-        onChange={(e) => { setNom(e.target.value); setTanlangan(null); }} className={inp} />
+        onFocus={() => setOchiq(true)} onBlur={() => setTimeout(() => setOchiq(false), 150)}
+        onChange={(e) => { setNom(e.target.value); setOchiq(true); }} className={inp} />
       {takliflar.length > 0 && <ul className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-md border border-[var(--border-strong)] bg-bg shadow-lg" role="listbox" aria-label={t('Takliflar')}>
-        {takliflar.map((g) => <li key={g.kalit + g.birligi} role="option" aria-selected={false}>
-          <button type="button" onClick={() => tanla(g)} className="flex min-h-[48px] w-full items-center justify-between gap-3 px-3 py-2 text-left text-[14px] hover:bg-bg-alt">
-            <span className="min-w-0 flex-1 break-words">{g.nomi}{g.variantlar_soni > 1 && <span className="ml-1 text-[11px] text-text-mute">({g.variantlar_soni} {t('yozuv')})</span>}</span>
-            <span className="shrink-0 text-[12px] text-text-dim">{n(g.qoldiq)} {g.birligi}</span></button></li>)}
+        {takliflar.map((e) => <li key={e.nomi + '|' + e.birligi} role="option" aria-selected={false}>
+          <button type="button" onMouseDown={(ev) => ev.preventDefault()} onClick={() => tanla(e)} className="flex min-h-[48px] w-full items-center justify-between gap-3 px-3 py-2 text-left text-[14px] hover:bg-bg-alt">
+            <span className="min-w-0 flex-1 break-words">{e.nomi}{(tur === 'prixod' ? e.postavshik : e.qabul_qiluvchi) && <span className="ml-1 text-[11px] text-text-mute">· {tur === 'prixod' ? e.postavshik : e.qabul_qiluvchi}</span>}</span>
+            <span className="shrink-0 text-[12px] text-text-dim">{e.birligi}{e.narx != null ? ` · ${n(e.narx)}` : ''}</span></button></li>)}
       </ul>}
     </div>
     <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -96,7 +102,6 @@ function TezKiritish({ kompaniyaId, skladId, onYozildi }: { kompaniyaId: number;
       <input aria-label={tur === 'prixod' ? t('Yetkazuvchi') : t('Kimga (prorab / brigada)')} placeholder={tur === 'prixod' ? t('Yetkazuvchi') : t('Kimga (prorab / brigada)')} value={kontragent} onChange={(e) => setKontragent(e.target.value)} className={`${inp} col-span-2 sm:col-span-1`} />
       <input type="date" aria-label={t('Sana')} value={sana} max={bugun()} onChange={(e) => setSana(e.target.value)} className={`${inp} col-span-2 sm:col-span-1`} />
     </div>
-    {tanlangan && <p className="m-0 mt-2 text-[12px] text-text-dim">{t('Ombordagi ostatka')}: <b>{n(tanlangan.qoldiq)} {tanlangan.birligi}</b></p>}
     {xato && <p role="alert" className="m-0 mt-2 text-[13px] text-danger">{xato}</p>}
     <button type="submit" disabled={band} className="fz-btn fz-btn--primary mt-3 min-h-[52px] w-full justify-center text-[15px] font-semibold">
       {band && <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />}{t('Saqlash')}</button>
@@ -159,11 +164,12 @@ function BuyruqQutisi({ kompaniyaId, skladId, onYozildi }: { kompaniyaId: number
       {p.qoldiq_hozir != null && <p className="m-0 text-[13px] text-text-dim">{t('Ostatka')}: {n(Number(p.qoldiq_hozir))} → <b>{n(Number(p.qoldiq_keyin))}</b></p>}
       {p.yangi != null && <p className="m-0 text-[13px] text-text-dim">{t('Yangi qiymat')}: {JSON.stringify(p.yangi)}</p>}
       {((p.ogohlantirish as string[] | undefined) ?? []).map((o) => <p key={o} className="m-0 text-[12px] text-warn">⚠ {o}</p>)}
+      {(natija.nomzodlar ?? []).filter((g) => g.nomi !== p.nomi).length > 0 && <NomzodRoyxati nomzodlar={(natija.nomzodlar ?? []).filter((g) => g.nomi !== p.nomi).slice(0, 4)} sarlavha={t('Boshqa nom kerakmi? Eslatmadan tanlang')} onTanla={(g) => void yubor({ nomi: g.nomi, birligi: g.birligi })} />}
       <div className="mt-3 grid grid-cols-2 gap-2">
         <button type="button" className="fz-btn fz-btn--primary min-h-[48px] justify-center" disabled={band} onClick={() => void tasdiqla()}>{t('Tasdiqlash')}</button>
         <button type="button" className="fz-btn min-h-[48px] justify-center" onClick={() => setNatija(null)}>{t('Bekor')}</button>
       </div></div>}
-    {natija && (natija.holat === 'material_tanlang' || natija.holat === 'material_topilmadi') && <NomzodRoyxati nomzodlar={natija.nomzodlar ?? []} sarlavha={t('Qaysi material?')} onTanla={(g) => void yubor({ nomi: g.nomi, birligi: g.birligi })} />}
+    {natija && natija.holat === 'material_topilmadi' && <NomzodRoyxati nomzodlar={natija.nomzodlar ?? []} sarlavha={t('Qaysi material?')} onTanla={(g) => void yubor({ nomi: g.nomi, birligi: g.birligi })} />}
     {natija?.holat === 'javob' && <div className="mt-3 text-[13px]">
       {natija.nomzodlar?.slice(0, 5).map((g) => <p key={g.kalit + g.birligi} className="m-0 flex justify-between gap-3 border-b border-border py-1"><span>{g.nomi}</span><b>{n(g.qoldiq)} {g.birligi}</b></p>)}
       {natija.tarix?.qatorlar?.slice(0, 8).map((x) => <p key={x.id} className="m-0 py-0.5">{x.sana} {x.operatsiya === 'prixod' ? '+' : '−'}{n(x.obyomi)} {x.birligi} #{x.id}</p>)}</div>}

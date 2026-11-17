@@ -117,13 +117,22 @@ private class DemoBff(private val context: Context, private val json: Json, priv
             // files/stepup.flag: the approval decision (signature action) needs a fresh PIN / biometric confirmation, like the real server (403 STEP_UP_KERAK).
             path.startsWith("/api/hujjat-aylanish") && method == "POST" && File(context.filesDir, "stepup.flag").exists() && tasdiq?.current() == null ->
                 ApiResult(403, buildJsonObject { put("ok", false); put("code", STEP_UP_CODE); put("usullar", kotlinx.serialization.json.buildJsonArray { add(JsonPrimitive("pin")); if (qKeys.isNotEmpty()) add(JsonPrimitive("qurilma")) }) }, STEP_UP_CODE)
-            // Debug-only stand-in for the server command parser (POST /api/ombor-buyruq): canned previews, nothing is parsed on the device in release.
+            // Debug-only stand-in for the server command endpoint (POST /api/ombor-buyruq; same wire as the real one): canned answers, nothing is parsed on the device in release.
             path.startsWith("/api/ombor-buyruq") -> {
                 val o = body as? JsonObject
-                val said = (o?.get("matn") as? JsonPrimitive)?.content ?: "sement qirq qop kirim"
-                val low = said.lowercase()
-                val tur = when { Regex("chiqim|rasxod|расход|berdim").containsMatchIn(low) -> "rasxod"; Regex("qoldiq|ostatok|остаток|qancha").containsMatchIn(low) -> "qoldiq"; else -> "prixod" }
-                ok("""{"ok":true,"buyruq":{"tur":"$tur","nomi":"Sement M400 (qop 50 kg)","birligi":"qop","miqdor":40,"obyekt_id":101,"kimga":"","izoh":"","eshitildi":"${said.replace("\"", "")}"}}""")
+                when ((o?.get("amal") as? JsonPrimitive)?.content) {
+                    "eslatma" -> ok("""{"ok":true,"takliflar":[{"nomi":"Sement M400 (qop 50 kg)","birligi":"qop","soni":4,"oxirgi_sana":"2026-11-10","postavshik":"Demo MChJ","qabul_qiluvchi":null,"narx":null}]}""")
+                    "tasdiq" -> ok("""{"ok":true,"takror":false,"harakat_id":1}""")
+                    else -> {
+                        val said = (o?.get("matn") as? JsonPrimitive)?.content ?: "sement qirq qop kirim"
+                        val low = said.lowercase()
+                        if (Regex("qoldiq|ostatok|остаток|qancha").containsMatchIn(low)) ok("""{"ok":true,"holat":"javob","matn":"${said.replace("\"", "")}","nomzodlar":[{"nomi":"Sement M400 (qop 50 kg)","birligi":"qop","qoldiq":120}]}""")
+                        else {
+                            val tur = if (Regex("chiqim|rasxod|расход|berdim").containsMatchIn(low)) "chiqim" else "prixod"
+                            ok("""{"ok":true,"holat":"tasdiq_kerak","matn":"${said.replace("\"", "")}","token":"demo-token","preview":{"tur":"$tur","nomi":"Sement M400 (qop 50 kg)","birligi":"qop","miqdor":40,"kontragent":null,"obyekt_id":null,"ogohlantirish":[]},"nomzodlar":[{"nomi":"Sement M500","birligi":"qop","qoldiq":10}]}""")
+                        }
+                    }
+                }
             }
             path.startsWith("/api/sb-yoz") -> ok(asset("fakt_ok.json"))
             path.startsWith("/api/qulf") -> qulf(path, method, body as? JsonObject)

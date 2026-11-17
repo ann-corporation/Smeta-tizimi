@@ -22,8 +22,8 @@ import java.math.BigDecimal
 import javax.inject.Inject
 
 /** Voice / typed command state: recording, waiting for the server, the preview card to confirm, or a short message. */
-data class CmdUi(val recording: Boolean = false, val working: Boolean = false, val preview: CommandPreview? = null, val message: CmdMessage? = null)
-enum class CmdMessage { NO_MIC, TOO_SHORT, OFFLINE, FORBIDDEN, NOT_UNDERSTOOD, UNAVAILABLE, FAILED }
+data class CmdUi(val recording: Boolean = false, val working: Boolean = false, val preview: CommandPreview? = null, val message: CmdMessage? = null, val suggestions: List<NameSuggestion> = emptyList())
+enum class CmdMessage { NO_MIC, TOO_SHORT, OFFLINE, FORBIDDEN, NOT_UNDERSTOOD, UNAVAILABLE, FAILED, LOW_STOCK, NO_WAREHOUSE }
 
 data class OmborUi(
     val cmd: CmdUi = CmdUi(),
@@ -102,12 +102,16 @@ class OmborViewModel @Inject constructor(
         return ok
     }
 
+    /** The central warehouse the command acts on: the one being viewed, else the company's first. Null = none to act on (the server needs a warehouse). */
+    private fun commandWarehouse(): Long? = (scope.value as? OmborScope.Central)?.id ?: state.value.warehouses.firstOrNull()?.id
+
     /** Release: stop and send the recording; the server understands it and answers with a preview. */
     fun stopRecording() {
         val audio = recorder.stop()
         val w = ctx.current.value
         if (audio == null || w == null) { cmd.value = CmdUi(message = CmdMessage.TOO_SHORT); return }
-        run(w.companyId) { commands.audio(it, audio, lang()) }
+        val sklad = commandWarehouse() ?: run { cmd.value = CmdUi(message = CmdMessage.NO_WAREHOUSE); return }
+        launchCommand { commands.audio(w.companyId, sklad, audio, lang()) }
     }
 
     fun cancelRecording() { recorder.cancel(); cmd.value = CmdUi() }
@@ -115,23 +119,66 @@ class OmborViewModel @Inject constructor(
     fun sendCommand(text: String) {
         val w = ctx.current.value ?: return
         if (text.isBlank()) return
-        run(w.companyId) { commands.text(it, text, lang()) }
+        val sklad = commandWarehouse() ?: run { cmd.value = CmdUi(message = CmdMessage.NO_WAREHOUSE); return }
+        launchCommand { commands.text(w.companyId, sklad, text, lang()) }
     }
 
-    private fun run(companyId: Long, call: suspend (Long) -> CommandOutcome) {
+    private fun failMessage(o: CommandOutcome): CmdUi = when (o) {
+        is CommandOutcome.Preview -> CmdUi(preview = o.preview)
+        CommandOutcome.Offline -> CmdUi(message = CmdMessage.OFFLINE)
+        CommandOutcome.Forbidden -> CmdUi(message = CmdMessage.FORBIDDEN)
+        CommandOutcome.NotUnderstood -> CmdUi(message = CmdMessage.NOT_UNDERSTOOD)
+        CommandOutcome.LowStock -> CmdUi(message = CmdMessage.LOW_STOCK)
+        CommandOutcome.Unavailable -> CmdUi(message = CmdMessage.UNAVAILABLE)
+        is CommandOutcome.Failed -> CmdUi(message = CmdMessage.FAILED)
+    }
+
+    private fun launchCommand(call: suspend () -> CommandOutcome) {
         cmd.value = CmdUi(working = true)
-        viewModelScope.launch {
-            cmd.value = when (val o = call(companyId)) {
-                is CommandOutcome.Preview -> CmdUi(preview = o.preview)
-                CommandOutcome.Offline -> CmdUi(message = CmdMessage.OFFLINE)
-                CommandOutcome.Forbidden -> CmdUi(message = CmdMessage.FORBIDDEN)
-                CommandOutcome.NotUnderstood -> CmdUi(message = CmdMessage.NOT_UNDERSTOOD)
-                CommandOutcome.Unavailable -> CmdUi(message = CmdMessage.UNAVAILABLE)
-                is CommandOutcome.Failed -> CmdUi(message = CmdMessage.FAILED)
-            }
+        viewModelScope.launch { cmd.value = failMessage(call()) }
+    }
+
+    private var suggestJob: kotlinx.coroutines.Job? = null
+
+    /**
+     * Autocomplete for the name field: names this warehouse entered before (the server remembers them; most recent / most frequent first).
+     * Debounced; an empty list when nothing matches or the network is down. A new name is simply accepted and suggested next time.
+     */
+    fun suggest(query: String) {
+        suggestJob?.cancel()
+        val w = ctx.current.value ?: return
+        val sklad = commandWarehouse() ?: return
+        suggestJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(200)
+            val list = commands.suggest(w.companyId, sklad, query).orEmpty()
+            cmd.update { it.copy(suggestions = list) }
         }
     }
 
+    /**
+     * Save the card: unchanged -> confirm the server's token as is; edited -> the server re-validates the edited values (fresh token), then confirm.
+     * The server writes (permission, stock check, idempotent operation id); a stock shortfall or a refusal is shown as a message.
+     */
+    fun saveCommand(p: CommandPreview, name: String, unit: String, qty: Double?, party: String, note: String, objectName: String?) {
+        val w = ctx.current.value ?: return
+        val sklad = commandWarehouse() ?: run { cmd.value = CmdUi(message = CmdMessage.NO_WAREHOUSE); return }
+        val unchanged = p.token != null && name.trim() == p.name && unit.trim() == p.unit && qty == p.qty && party.trim() == p.party && note.trim() == p.note
+        cmd.value = CmdUi(working = true, preview = p)
+        viewModelScope.launch {
+            val token = if (unchanged) p.token else if (qty == null) null else when (val o = commands.edited(w.companyId, sklad, p.kind, name, unit, qty, party, note, objectName)) {
+                is CommandOutcome.Preview -> o.preview.token
+                else -> { cmd.value = failMessage(o); return@launch }
+            }
+            if (token == null) { cmd.value = CmdUi(message = CmdMessage.NOT_UNDERSTOOD); return@launch }
+            cmd.value = when (commands.confirm(w.companyId, sklad, token)) {
+                ConfirmOutcome.Saved -> { refresh(); CmdUi() }
+                ConfirmOutcome.Offline -> CmdUi(message = CmdMessage.OFFLINE)
+                ConfirmOutcome.Forbidden -> CmdUi(message = CmdMessage.FORBIDDEN)
+                ConfirmOutcome.LowStock -> CmdUi(message = CmdMessage.LOW_STOCK)
+                is ConfirmOutcome.Failed -> CmdUi(message = CmdMessage.FAILED)
+            }
+        }
+    }
     fun dismissCommand() { cmd.value = CmdUi() }
 
     fun setScope(s: OmborScope) { scope.value = s; if (s is OmborScope.Central) refresh() }

@@ -79,6 +79,11 @@ export function nomTokenlari(matn: string): string[] {
   return t.filter((x, i) => i === 0 || x !== t[i - 1]);
 }
 
+/** Sinonimsiz (xom, fonetik) tokenlar: yozib turilgan qisman so'z («sem») to'liq so'zning («sement») boshiga mos kelishi uchun. */
+export function nomTokenlariXom(matn: string): string[] {
+  return tozala(matn);
+}
+
 /** Qidiruv/guruhlash kaliti (server `t2_ombor_kalit_v1` bilan bir xil). */
 export function nomKaliti(matn: string): string {
   return nomTokenlari(matn).join(' ');

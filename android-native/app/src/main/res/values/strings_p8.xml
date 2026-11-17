@@ -141,5 +141,8 @@
     <string name="ombor_cmd_m_forbidden">Bu amal uchun ruxsatingiz yo\'q.</string>
     <string name="ombor_cmd_m_unclear">Tushunmadim. Qayta ayting yoki yozing.</string>
     <string name="ombor_cmd_m_unavailable">Ovozli buyruq serverda hali yoqilmagan.</string>
+    <string name="ombor_cmd_m_stock">Omborda yetarli qoldiq yo\'q.</string>
+    <string name="ombor_cmd_m_nowarehouse">Markaziy ombor topilmadi. Avval omborni tanlang.</string>
+    <string name="ombor_cmd_suggest">Oldin kiritilgan nomlar</string>
     <string name="ombor_cmd_m_failed">Buyruq bajarilmadi. Keyinroq urinib ko\'ring.</string>
     <string name="ombor_computed_note">Qoldiq kirim va chiqim harakatlaridan hisoblangan.</string></resources>

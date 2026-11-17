@@ -24,7 +24,8 @@ import { AiByudjetXatosi, aiHisobli, type HisobEnv } from '../_shared/ai-hisobli
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { LLM_TIZIM_MATNI, buyruqTekshir, llmJsonOl, oddiyTahlil, tokenTekshir, tokenYarat, type Buyruq } from '../_shared/ombor-buyruq-yadro';
 import { onRequestPost as ovozPost } from './ombor-ovoz';
-import { birlikKaliti } from '../../src/lib/ombor-moslash/moslash';
+import { birlikKaliti, nomKaliti } from '../../src/lib/ombor-moslash/moslash';
+import { ESLATMA_MANBALARI, eslatmaYigish, type EslatmaYozuv } from '../../src/lib/ombor-moslash/eslatma';
 import { serverQaytar, serverSarfla, sarfRad } from '../_shared/hujjat-sarf';
 import { RasmiyVaraq, rasmiyKitob } from '../../src/lib/hujjat-yozuvchi/rasmiy';
 
@@ -95,8 +96,30 @@ async function tanaOl(req: Request): Promise<{ b: Record<string, unknown>; audio
     if (a instanceof Blob && a.size > MAX_BODY) return fail('AUDIO_TOO_LARGE', 413);
     return { b, audio: a instanceof Blob && a.size > 0 ? a : null };
   }
-  try { const b = await req.json(); return b && typeof b === 'object' && !Array.isArray(b) ? { b: b as Record<string, unknown>, audio: null } : fail('BODY_INVALID', 400); }
-  catch { return fail('BODY_INVALID', 400); }
+  try {
+    const b = await req.json();
+    if (!b || typeof b !== 'object' || Array.isArray(b)) return fail('BODY_INVALID', 400);
+    const o = b as Record<string, unknown>;
+    // Android (mobil BFF faqat JSON o'tkazadi): ovoz base64 matni sifatida keladi — multipart bilan bir xil yo'lga tushadi.
+    if (typeof o.audio_b64 === 'string' && o.audio_b64) {
+      const a = audioBase64(o.audio_b64, typeof o.mime === 'string' ? o.mime : '');
+      if (a === 'katta') return fail('AUDIO_TOO_LARGE', 413);
+      if (!a) return fail('AUDIO_INVALID', 400);
+      return { b: o, audio: a };
+    }
+    return { b: o, audio: null };
+  } catch { return fail('BODY_INVALID', 400); }
+}
+const AUDIO_MIME = /^audio\/(?:webm|ogg|mp4|mpeg|wav|x-wav|aac|flac)$/i;
+function audioBase64(s: string, mime: string): Blob | 'katta' | null {
+  if (s.length > Math.ceil(MAX_BODY * 4 / 3) + 8) return 'katta';
+  const tur = mime.split(';')[0].trim().toLowerCase();
+  if (!AUDIO_MIME.test(tur)) return null;
+  try {
+    const bin = atob(s.replace(/\s+/g, ''));
+    if (!bin.length) return null;
+    return new Blob([Uint8Array.from(bin, (c) => c.charCodeAt(0))], { type: tur });
+  } catch { return null; }
 }
 
 type Guruh = { kalit: string; nomi: string; birligi: string; tur: string | null; qoldiq: number; kirim: number; chiqim: number; variantlar_soni: number; ball: number; oxirgi_sana: string | null };
@@ -160,7 +183,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const kid = butun(b.kompaniya_id), sid = butun(b.sklad_id);
   if (!kid || !sid) return fail('COMPANY_REQUIRED', 400);
   const yozish = ['yoz', 'tuzat', 'alias', 'tahlil', 'tasdiq'].includes(amal);
-  if (!['qoldiq', 'royxat', 'tarix', 'eksport', 'yoz', 'tuzat', 'alias', 'tahlil', 'tasdiq'].includes(amal)) return fail('AMAL_NOMALUM', 400);
+  if (!['qoldiq', 'royxat', 'tarix', 'eslatma', 'eksport', 'yoz', 'tuzat', 'alias', 'tahlil', 'tasdiq'].includes(amal)) return fail('AMAL_NOMALUM', 400);
   const rad = ruxsat(s, kid, false) ?? (yozish && amal !== 'tahlil' ? ruxsat(s, kid, true) : null);
   if (rad) return rad;
   const baza = { p_actor_id: aid, p_kompaniya_id: kid, p_sklad_id: sid };
@@ -172,6 +195,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     case 'qoldiq': return rpcNatija(await rpc(ctx.env, 't2_ombor_qoldiq_v2', { ...baza, p_filtr: filtr(b.filtr), p_limit: lim, p_offset: off }));
     case 'royxat': return rpcNatija(await rpc(ctx.env, 't2_ombor_harakat_royxat_v1', { ...baza, p_filtr: filtr(b.filtr), p_limit: lim, p_offset: off }));
     case 'tarix': return rpcNatija(await rpc(ctx.env, 't2_ombor_tarix_v1', { ...baza, p_kalit: String(b.kalit ?? '').slice(0, 500), p_birlik: String(b.birlik ?? '').slice(0, 100), p_limit: lim, p_offset: off }));
+    case 'eslatma': return eslatma(ctx, aid, kid, sid, b);
     case 'alias': {
       if (!UUID.test(String(b.operation_id ?? '')) || !Array.isArray(b.variantlar)) return fail('REQUIRED_FIELD', 400);
       return rpcNatija(await rpc(ctx.env, 't2_ombor_alias_tasdiq_v1', { ...baza, p_kanonik_nom: String(b.kanonik ?? '').slice(0, 500), p_variantlar: (b.variantlar as unknown[]).slice(0, 200).map((x) => String(x).slice(0, 500)), p_operation_id: b.operation_id }));
@@ -187,6 +211,33 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     default: return fail('AMAL_NOMALUM', 400);
   }
 };
+
+/**
+ * Eslatma (autocomplete): shu omborning O'Z oldingi kirim/chiqim yozuvlaridan material nomi, birlik, oxirgi yetkazuvchi/qabul qiluvchi, narx.
+ * Variant guruhi tasdig'i yo'q: omborchi bir marta kiritgan nom keyingi safar taklif bo'ladi, yangi nom o'zi qabul qilinadi.
+ * Ruxsat: umumiy o'qish ruxsati (yuqorida); kompaniya+ombor serverda majburiy filtr (mijoz id yubormaydi — faqat sessiya).
+ */
+async function eslatma(ctx: Context, aid: number, kid: number, sid: number, b: Record<string, unknown>): Promise<Response> {
+  const q = typeof b.q === 'string' ? b.q.slice(0, 120) : '';
+  const lim = Math.min(20, Math.max(1, Number(b.limit ?? 8) || 8));
+  const manba = ESLATMA_MANBALARI.join(',');
+  const qator = await rest<EslatmaYozuv>(ctx.env, `t2_sklad_harakat?kompaniya_id=eq.${kid}&c11_sklad_id=eq.${sid}&holat=eq.faol&manba=in.(${manba})&nomi=not.is.null&select=id,nomi,birligi,sana,operatsiya,postavshik,qabul_qiluvchi,narx&order=id.desc&limit=1000`);
+  if (!qator) return fail('SERVER_XATO', 502);
+  const takliflar = eslatmaYigish(qator, q, lim);
+  // Oxirgi 1000 yozuvdan tashqaridagi eski materiallar: o'sha ombor tarixidan (guruhlanmagan nom bilan) to'ldiriladi.
+  if (q.trim().length >= 2 && takliflar.length < lim) {
+    const r = await rpc<{ ok?: boolean; qatorlar?: { nomi: string; birligi: string; harakatlar?: number; oxirgi_sana?: string | null }[] }>(ctx.env, 't2_ombor_qoldiq_v2',
+      { p_actor_id: aid, p_kompaniya_id: kid, p_sklad_id: sid, p_filtr: { qidir: q, musbat: '0' }, p_limit: 6, p_offset: 0 });
+    const bor = new Set(takliflar.map((t) => nomKaliti(t.nomi) + '|' + birlikKaliti(t.birligi)));
+    for (const g of r.data?.ok ? (r.data.qatorlar ?? []) : []) {
+      const k = nomKaliti(g.nomi) + '|' + birlikKaliti(g.birligi);
+      if (bor.has(k) || takliflar.length >= lim) continue;
+      bor.add(k);
+      takliflar.push({ nomi: g.nomi, birligi: g.birligi, soni: Number(g.harakatlar ?? 1) || 1, oxirgi_sana: g.oxirgi_sana ?? null, postavshik: null, qabul_qiluvchi: null, narx: null });
+    }
+  }
+  return json({ ok: true, takliflar });
+}
 
 async function yozish_(env: Env, baza: Record<string, unknown>, b: Record<string, unknown>) {
   const op = String(b.operation_id ?? '');
@@ -256,20 +307,23 @@ async function tahlil(ctx: Context, s: Sess, kid: number, sid: number, b: Record
     : await moslash(env, aid, kid, sid, buyruq.nomi, buyruq.birlik);
   if (m.xato) return fail('SERVER_XATO', 502);
   const ogohlantirish: string[] = [];
+  // Variant tanlash bosqichi YO'Q (egasi qarori). Aniq moslik — ombordagi yozilishi olinadi. Bir nechta o'xshash bo'lsa: chiqimda eng yaqini
+  // (chiqim faqat mavjud materialdan), kirimda yozilgan nom O'ZI qabul qilinadi (yangi nom keyingi safar eslatma bo'ladi). Qolganlari `nomzodlar` da.
+  const tl: Nomzod | null = m.tanlangan ?? (m.holat === 'tanlash' && buyruq.amal === 'chiqim' ? m.nomzodlar[0] ?? null : null);
+  if (!m.tanlangan && tl) ogohlantirish.push(`O'xshash materiallar bor: «${tl.nomi}» olindi. Boshqa bo'lsa, nomni o'zgartiring.`);
   let yangiMaterial = false;
-  let nom = m.tanlangan?.nomi ?? null; let birl = buyruq.birlik ?? m.tanlangan?.birligi ?? null;
-  if (!m.tanlangan) {
-    if (m.holat === 'tanlash') return json({ ...javob, holat: 'material_tanlang', nomzodlar: m.nomzodlar });
+  let nom = tl?.nomi ?? null; let birl = buyruq.birlik ?? tl?.birligi ?? null;
+  if (!tl) {
     if (buyruq.amal === 'chiqim') return json({ ...javob, holat: 'material_topilmadi', nomzodlar: m.nomzodlar });
-    yangiMaterial = true; nom = buyruq.nomi; ogohlantirish.push('Ombor tarixida bunday material topilmadi — yangi material sifatida yoziladi.');
-  } else if (m.tanlangan.birligi && buyruq.birlik && birlikKaliti(buyruq.birlik) !== birlikKaliti(m.tanlangan.birligi)) {
-    ogohlantirish.push(`Birlik farq qiladi: aytildi «${buyruq.birlik}», ombordagi material «${m.tanlangan.birligi}». Ombordagi birlik ishlatiladi.`);
-    birl = m.tanlangan.birligi;
+    yangiMaterial = true; nom = buyruq.nomi; if (m.holat === 'tanlash') ogohlantirish.push('Yozilgan nom o\'zi qabul qilindi (o\'xshash materiallar bor, pastda taklif qilinadi).'); else ogohlantirish.push('Ombor tarixida bunday material topilmadi — yangi material sifatida yoziladi.');
+  } else if (tl.birligi && buyruq.birlik && birlikKaliti(buyruq.birlik) !== birlikKaliti(tl.birligi)) {
+    ogohlantirish.push(`Birlik farq qiladi: aytildi «${buyruq.birlik}», ombordagi material «${tl.birligi}». Ombordagi birlik ishlatiladi.`);
+    birl = tl.birligi;
   }
   if (!birl) return json({ ...javob, holat: 'toldirish_kerak', yetishmaydi: ['birlik'] });
-  const hozirgi = m.tanlangan && Number.isFinite(m.tanlangan.qoldiq) ? m.tanlangan.qoldiq : null;
+  const hozirgi = tl && Number.isFinite(tl.qoldiq) ? tl.qoldiq : null;
   const keyin = hozirgi == null ? null : buyruq.amal === 'prixod' ? hozirgi + buyruq.miqdor : hozirgi - buyruq.miqdor;
-  if (buyruq.amal === 'chiqim' && keyin != null && keyin < 0) return json({ ...javob, holat: 'qoldiq_yetmaydi', material: m.tanlangan, hozirgi_qoldiq: hozirgi, sorlagan: buyruq.miqdor });
+  if (buyruq.amal === 'chiqim' && keyin != null && keyin < 0) return json({ ...javob, holat: 'qoldiq_yetmaydi', material: tl, hozirgi_qoldiq: hozirgi, sorlagan: buyruq.miqdor });
   let obyektId: number | null = null;
   if (buyruq.obyekt) {
     const ob = await obyektTop(env, kid, buyruq.obyekt);
@@ -279,7 +333,7 @@ async function tahlil(ctx: Context, s: Sess, kid: number, sid: number, b: Record
   if (buyruq.sana && buyruq.sana > bugun) return json({ ...javob, holat: 'sana_kelajakda' });
   const op = crypto.randomUUID();
   const preview = { tur: buyruq.amal, nomi: nom, birligi: birl, miqdor: buyruq.miqdor, sana: buyruq.sana ?? bugun, kontragent: buyruq.kontragent, obyekt_id: obyektId, obyekt: buyruq.obyekt, izoh: buyruq.izoh, yangi_material: yangiMaterial, qoldiq_hozir: hozirgi, qoldiq_keyin: keyin, ogohlantirish };
-  return json({ ...javob, holat: 'tasdiq_kerak', preview, token: await tokenYarat(env.SESSIYA_KALIT, { a: aid, k: kid, s: sid, op, p: preview }) });
+  return json({ ...javob, holat: 'tasdiq_kerak', preview, nomzodlar: m.nomzodlar, token: await tokenYarat(env.SESSIYA_KALIT, { a: aid, k: kid, s: sid, op, p: preview }) });
 }
 
 async function tasdiq(ctx: Context, s: Sess, kid: number, sid: number, b: Record<string, unknown>): Promise<Response> {

@@ -24,9 +24,9 @@ const post = (body: unknown, sess: Sess | null = OMBORCHI) => onRequestPost({
 
 const guruh = (nomi: string, birligi: string, qoldiq: number, ball: number) => ({ kalit: 'k:' + nomi, nomi, birligi, tur: null, qoldiq, kirim: qoldiq, chiqim: 0, variantlar_soni: 1, ball, oxirgi_sana: '2026-11-01' });
 type Chaqiruv = { nom: string; body: Record<string, unknown> };
-let chaqiruvlar: Chaqiruv[]; let qoldiqJavob: unknown[]; let yozishJavob: Record<string, unknown>;
+let chaqiruvlar: Chaqiruv[]; let qoldiqJavob: unknown[]; let yozishJavob: Record<string, unknown>; let harakatQator: unknown[]; let restChaqiruvlar: string[];
 beforeEach(() => {
-  chaqiruvlar = []; qoldiqJavob = []; yozishJavob = { ok: true, takror: false, harakat_id: 55 };
+  chaqiruvlar = []; harakatQator = []; restChaqiruvlar = []; qoldiqJavob = []; yozishJavob = { ok: true, takror: false, harakat_id: 55 };
   ai.aiHisobli.mockReset();
   vi.stubGlobal('fetch', vi.fn(async (url: unknown, init?: RequestInit) => {
     const u = String(url); const nom = /\/rpc\/([a-z0-9_]+)/.exec(u)?.[1];
@@ -37,7 +37,8 @@ beforeEach(() => {
       if (nom === 't2_ombor_harakat_royxat_v1') return Response.json({ ok: true, qatorlar: [{ id: 5, nomi: 'Тест', obyomi: 3 }] });
       return Response.json(yozishJavob);
     }
-    return Response.json([]);
+    restChaqiruvlar.push(u);
+    return Response.json(u.includes('/rest/v1/t2_sklad_harakat') ? harakatQator : []);
   }));
 });
 afterEach(() => { vi.unstubAllGlobals(); vakolatKeshTozala(); });
@@ -91,12 +92,43 @@ it('chiqim: qoldiq yetmasa token berilmaydi', async () => {
   const j = await (await post({ amal: 'tahlil', kompaniya_id: 1, sklad_id: 9, matn: 'песок 9 м3 выдал' })).json() as { holat: string; token?: string };
   expect(j.holat).toBe('qoldiq_yetmaydi'); expect(j.token).toBeUndefined();
 });
-it('noaniq material: nomzodlar so\'raladi, taxmin bilan yozilmaydi', async () => {
-  qoldiqJavob = [guruh('Тест труба ф25', 'м', 10, 0.7), guruh('Тест труба ф32', 'м', 10, 0.68)];
-  const j = await (await post({ amal: 'tahlil', kompaniya_id: 1, sklad_id: 9, matn: 'труба 20 м приход' })).json() as { holat: string; nomzodlar: unknown[] };
-  expect(j.holat).toBe('material_tanlang'); expect(j.nomzodlar.length).toBe(2);
+it('noaniq material: variant tanlash bosqichi YO\'Q — chiqimda eng yaqini olinadi, kirimda yozilgan nom o\'zi qabul qilinadi; nomzodlar taklif sifatida', async () => {
+  qoldiqJavob = [guruh('Test truba f25', 'm', 10, 0.7), guruh('Test truba f32', 'm', 10, 0.68)];
+  const kirim = await (await post({ amal: 'tahlil', kompaniya_id: 1, sklad_id: 9, matn: 'truba 20 m prixod' })).json() as { holat: string; preview: Record<string, unknown>; nomzodlar: unknown[]; token: string };
+  expect(kirim.holat).toBe('tasdiq_kerak'); expect(kirim.token).toBeTruthy();
+  expect(kirim.preview).toMatchObject({ nomi: 'truba', yangi_material: true }); expect(kirim.nomzodlar.length).toBe(2);
+  const chiqim = await (await post({ amal: 'tahlil', kompaniya_id: 1, sklad_id: 9, matn: 'truba 5 m berdim' })).json() as { holat: string; preview: Record<string, unknown> };
+  expect(chiqim.holat).toBe('tasdiq_kerak'); expect(chiqim.preview).toMatchObject({ nomi: 'Test truba f25', yangi_material: false });
+  expect(yozuvlar().length).toBe(0);
 });
-it('tuzatish aniq yozuvsiz taklif qilmaydi — yozuv tanlanadi', async () => {
+it('eslatma: shu omborning oldingi yozuvlaridan, lotin/kirill va qisman yozuv, eng yaqin/ko\'p birinchi; faqat o\'z kompaniyasi/ombori filtri', async () => {
+  harakatQator = [
+    { id: 9, nomi: 'Цемент ПЦ-450', birligi: 'кг', sana: '2026-11-10', operatsiya: 'prixod', postavshik: 'Sintetik A', qabul_qiluvchi: null, narx: 1200 },
+    { id: 8, nomi: 'Цемент ПЦ-450', birligi: 'кг', sana: '2026-11-01', operatsiya: 'prixod', postavshik: 'Sintetik B', qabul_qiluvchi: null, narx: null },
+    { id: 7, nomi: 'Труба ПЭ 25', birligi: 'м', sana: '2026-11-05', operatsiya: 'rasxod', postavshik: null, qabul_qiluvchi: 'Sintetik brigada', narx: null },
+  ];
+  const r = await post({ amal: 'eslatma', kompaniya_id: 1, sklad_id: 9, q: 'sem' }, OQUVCHI); // faqat o'qish ruxsati yetarli
+  expect(r.status).toBe(200);
+  const j = await r.json() as { ok: boolean; takliflar: { nomi: string; birligi: string; soni: number; postavshik: string | null; narx: number | null }[] };
+  expect(j.takliflar.map((x) => x.nomi)).toEqual(['Цемент ПЦ-450']);
+  expect(j.takliflar[0]).toMatchObject({ birligi: 'кг', soni: 2, postavshik: 'Sintetik A', narx: 1200 });
+  const bosh = await (await post({ amal: 'eslatma', kompaniya_id: 1, sklad_id: 9, q: '' })).json() as { takliflar: { nomi: string }[] };
+  expect(bosh.takliflar.map((x) => x.nomi)).toEqual(['Цемент ПЦ-450', 'Труба ПЭ 25']);
+  const rest = restChaqiruvlar.find((u) => u.includes('t2_sklad_harakat'))!;
+  expect(rest).toContain('kompaniya_id=eq.1'); expect(rest).toContain('c11_sklad_id=eq.9'); expect(rest).toContain('holat=eq.faol');
+  expect(rest).not.toContain('storno');
+  expect(yozuvlar().length).toBe(0);
+  expect((await post({ amal: 'eslatma', kompaniya_id: 2, sklad_id: 9, q: 'x' })).status).toBe(403);
+});
+it('ovoz JSON (audio_b64, Android BFF) — multipart bilan bir xil STT yo\'liga tushadi; noto\'g\'ri mime/base64 rad', async () => {
+  const yaroq = await post({ amal: 'tahlil', kompaniya_id: 1, sklad_id: 9, til: 'uz', mime: 'audio/mp4', audio_b64: btoa('synthetic-audio') });
+  // STT provayderi sozlanmagan (sintetik env) — lekin so'rov base64 dan Blob yasab /api/ombor-ovoz gacha yetib boradi, BODY_INVALID/AUDIO_INVALID emas
+  const kod = ((await yaroq.json()) as { code?: string }).code;
+  expect(kod).not.toBe('AUDIO_INVALID'); expect(kod).not.toBe('BODY_INVALID'); expect(kod).not.toBe('MATN_YOQ');
+  expect((await post({ amal: 'tahlil', kompaniya_id: 1, sklad_id: 9, mime: 'application/zip', audio_b64: btoa('x') })).status).toBe(400);
+  expect((await post({ amal: 'tahlil', kompaniya_id: 1, sklad_id: 9, mime: 'audio/mp4', audio_b64: '***' })).status).toBe(400);
+  expect(yozuvlar().length).toBe(0);
+});it('tuzatish aniq yozuvsiz taklif qilmaydi — yozuv tanlanadi', async () => {
   const j = await (await post({ amal: 'tahlil', kompaniya_id: 1, sklad_id: 9, buyruq: { amal: 'tuzat', nomi: 'Тест', miqdor: 5 } })).json() as { holat: string; nomzodlar_yozuv: unknown[] };
   expect(j.holat).toBe('yozuv_tanlang'); expect(j.nomzodlar_yozuv.length).toBe(1);
   expect(yozuvlar().length).toBe(0);
@@ -108,7 +140,14 @@ it('past ishonchli matn LLM ga (aiHisobli) o\'tadi; byudjet tugasa 402', async (
   expect(ai.aiHisobli).toHaveBeenCalledTimes(1); expect(ai.aiHisobli.mock.calls[0][1]).toBe(7);
   expect(j.llm).toBe(true); expect(j.holat).toBe('tasdiq_kerak');
   ai.aiHisobli.mockRejectedValueOnce(new AiByudjetXatosi('BYUDJET_TUGADI', 'limit tugadi'));
-  // byudjet tugasa: bepul tahlil natijasi saqlanadi, sabab ai_xabar da; hech narsa yozilmaydi\n  const r = await post({ amal: 'tahlil', kompaniya_id: 1, sklad_id: 9, matn: 'o\'n besh tonna sement keldi' });\n  expect(await r.json()).toMatchObject({ holat: 'toldirish_kerak', ai_xabar: 'limit tugadi' });\n  expect(yozuvlar().length).toBe(0);\n  // hech narsa tushunilmasa — 402\n  ai.aiHisobli.mockRejectedValueOnce(new AiByudjetXatosi('BYUDJET_TUGADI', 'limit tugadi'));\n  const r2 = await post({ amal: 'tahlil', kompaniya_id: 1, sklad_id: 9, matn: 'salom qalaysan' });\n  expect(r2.status).toBe(402); expect(await r2.json()).toMatchObject({ code: 'BYUDJET_TUGADI' });
+  // byudjet tugasa: bepul tahlil natijasi saqlanadi, sabab ai_xabar da; hech narsa yozilmaydi
+  const r = await post({ amal: 'tahlil', kompaniya_id: 1, sklad_id: 9, matn: 'o\'n besh tonna sement keldi' });
+  expect(await r.json()).toMatchObject({ holat: 'toldirish_kerak', ai_xabar: 'limit tugadi' });
+  expect(yozuvlar().length).toBe(0);
+  // hech narsa tushunilmasa — 402
+  ai.aiHisobli.mockRejectedValueOnce(new AiByudjetXatosi('BYUDJET_TUGADI', 'limit tugadi'));
+  const r2 = await post({ amal: 'tahlil', kompaniya_id: 1, sklad_id: 9, matn: 'salom qalaysan' });
+  expect(r2.status).toBe(402); expect(await r2.json()).toMatchObject({ code: 'BYUDJET_TUGADI' });
 });
 it('eksport: .xlsx fayl, token serverSarfla orqali, faqat o\'qish ruxsati yetarli', async () => {
   qoldiqJavob = [guruh('Тест A', 'шт', 4, 1), guruh('Тест B', 'кг', 2, 1)];

@@ -140,5 +140,8 @@
     <string name="ombor_cmd_m_forbidden">You do not have permission for this action.</string>
     <string name="ombor_cmd_m_unclear">Did not understand. Say it again or type it.</string>
     <string name="ombor_cmd_m_unavailable">Voice commands are not enabled on the server yet.</string>
+    <string name="ombor_cmd_m_stock">Not enough stock in the warehouse.</string>
+    <string name="ombor_cmd_m_nowarehouse">No central warehouse found. Pick a warehouse first.</string>
+    <string name="ombor_cmd_suggest">Names entered before</string>
     <string name="ombor_cmd_m_failed">The command failed. Try again later.</string>
     <string name="ombor_computed_note">Balance is computed from receipt and issue movements.</string></resources>
