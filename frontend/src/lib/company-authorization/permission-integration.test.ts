@@ -31,6 +31,9 @@ describe('role integration architecture',()=>{
          warehouse.read|write|document.read (o'qish) + modul holati + aniq rad; aktor FAQAT sessiyadan; RPC lar a'zolik/ruxsatni takror tekshiradi;
          yozish faqat HMAC tasdiq tokeni yoki aniq operation_id bilan. ombor-buyruq.test.ts: anonim/begona/o'qish-faqat/soxta token — hech narsa yozilmaydi. */
       'ombor-buyruq',
+/* F2-BUYRUQ (Jarvis → smeta MCP vositalari): aktor faqat sessiyadan, a'zolik + write-command-policy capability (fail-closed);
+yozish faqat dry_run preview → HMAC tasdiq tokeni (aktor/kompaniya/obyekt, 15 daqiqa, reja xeshi) bilan. f2-buyruq.test.ts. */
+'f2-buyruq',
       /* «Telegram modeli» (2026-10-22): havola orqali qo'shilayotgan odam hali a'zo emas — middleware ruxsat ro'yxati qo'llanmaydi.
          Actor sessiyadan; a'zolik, company.member.manage, muddat, soni va cheklov — har RPC ichida bazada (ish-joyi.test.ts). */
       'ish-joyi',
