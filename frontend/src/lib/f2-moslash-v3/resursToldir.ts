@@ -13,6 +13,7 @@
  *  3. boshqa (asl smeta) BL lar uchun faqat ogohlantirish (operator qarori - bolani ongli qoldirgan bo'lishi mumkin).
  */
 import type { F2ExactPayloadQatori } from '../../test02/f2-exact-payload';
+import { yaxlit2 } from '../hisob-yadro/yaxlit';
 
 /** Smeta qatorining kerakli maydonlari (T2Qator ning qismi). */
 export interface ToldirSmetaQator {
@@ -35,7 +36,6 @@ export interface ResursToldirNatija {
   ogohlantirish: string[];
 }
 
-const yaxlit2 = (x: number) => Math.round((x + Number.EPSILON) * 100) / 100;
 const qisqa = (q: ToldirSmetaQator) => `«${`${q.kod ? q.kod + ' ' : ''}${q.nom ?? ''}`.trim().slice(0, 60)}» (#${q.id})`;
 
 /** Ish yangi (F2 importda qo'shimcha/zamena sifatida yaratilgan) mi - bolalari avtomatik to'ldiriladi. */

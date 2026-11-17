@@ -244,7 +244,7 @@ export async function tokenTekshir(sir: string, token: string, hozir = Date.now(
   if (typeof token !== 'string' || token.length > 4000 || !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(token)) return null;
   const [tana, imzo] = token.split('.');
   try {
-    const ok = await crypto.subtle.verify('HMAC', await hmacKalit(sir), b64uDan(imzo), enc.encode(tana));
+    const ok = await crypto.subtle.verify('HMAC', await hmacKalit(sir), b64uDan(imzo) as BufferSource, enc.encode(tana));
     if (!ok) return null;
     const yuk = JSON.parse(new TextDecoder().decode(b64uDan(tana))) as TokenYuk;
     if (!yuk || !Number.isSafeInteger(yuk.a) || !Number.isSafeInteger(yuk.k) || !Number.isSafeInteger(yuk.s) || typeof yuk.op !== 'string') return null;
