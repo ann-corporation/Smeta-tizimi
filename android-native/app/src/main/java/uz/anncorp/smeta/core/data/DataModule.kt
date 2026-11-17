@@ -155,6 +155,9 @@ object DataModule {
     fun companyRepository(api: BffApi) = CompanyRepository(api)
 
     @Provides @Singleton
+    fun sinovRepository(api: BffApi) = SinovRepository(api)
+
+    @Provides @Singleton
     fun peopleRepository(api: BffApi) = PeopleRepository(api)
 
     @Provides @Singleton

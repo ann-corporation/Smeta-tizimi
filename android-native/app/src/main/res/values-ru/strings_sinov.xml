@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 0.1.12: старт с пробы (1000 токенов) и «Первые шаги» -->
+    <string name="sn_title">Попробуйте систему бесплатно</string>
+    <string name="sn_hint">Одним нажатием откроется ваше личное пробное место, на счёт поступит %1$d токенов. Название компании и ИНН не нужны.</string>
+    <string name="sn_start">Начать пробу — %1$d токенов</string>
+    <string name="sn_once">Токены выдаются один раз. Затем вы откроете настоящую компанию на этом же месте — токены сохранятся.</string>
+    <string name="sn_err_limit">Пробные места на сегодня закончились. Попробуйте завтра или продолжите, открыв компанию.</string>
+    <string name="sn_err_already">У вас уже есть рабочее место.</string>
+    <string name="sn_err_no_demo">Образца объекта пока нет.</string>
+    <string name="sn_err_auth">Сначала войдите в систему.</string>
+    <string name="fs_title">Первые шаги</string>
+    <string name="fs_balance">Пробный баланс: %1$d токенов</string>
+    <string name="fs_demo">Откройте образец объекта — готовая небольшая смета</string>
+    <string name="fs_upload">Загрузите свою смету (Excel)</string>
+    <string name="fs_f2">Подготовьте Ф-2</string>
+    <string name="fs_ai">Задайте вопрос ИИ-помощнику</string>
+    <string name="fs_real">Откройте рабочее место настоящей компании (токены сохранятся)</string>
+    <string name="fs_open_demo">Открыть</string>
+    <string name="fs_open">Открыть</string>
+    <string name="fs_go">Начать</string>
+    <string name="fs_soon">скоро</string>
+    <string name="fs_note">Просмотр и редактирование бесплатны. Подготовка документов, экспорт и результаты ИИ списывают токены.</string>
+    <string name="fs_upload_title">Загрузка сметы</string>
+</resources>

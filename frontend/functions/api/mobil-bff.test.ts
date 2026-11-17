@@ -318,3 +318,40 @@ describe('MOBIL_PATH allow-list: per-node sums', () => {
     expect(MOBIL_PATH.test('/api/obyekt-tugun')).toBe(false);
   });
 });
+
+describe('mobil BFF: sinov (bepul sinov, 1000 token) /api/company', () => {
+  let rpcs: { nom: string; body: Record<string, unknown> }[];
+  beforeEach(() => {
+    rpcs = [];
+    const base = globalThis.fetch as typeof fetch;
+    vi.stubGlobal('fetch', vi.fn(async (raw: string, init?: RequestInit) => {
+      const u = new URL(String(raw));
+      const nom = /\/rpc\/([a-z0-9_]+)/.exec(u.pathname)?.[1];
+      if (nom && nom.startsWith('t2_sinov_')) {
+        rpcs.push({ nom, body: JSON.parse(String(init?.body ?? '{}')) });
+        if (nom === 't2_sinov_holat_v1') return Response.json({ ok: true, boshlangan: false, kompaniya_id: null, haqiqiy: false, boshlash_mumkin: true, demo_obyekt_id: null, demo_mavjud: false, balans: null });
+        if (nom === 't2_sinov_boshlash_v1') return Response.json({ ok: true, kompaniya_id: 31, bonus_token: 1000, balans: 1000 });
+        return Response.json({ ok: true, kompaniya_id: 31, demo_obyekt_id: 77 });
+      }
+      if (nom === 't2_audit_yoz') return Response.json(null);
+      return base(raw, init);
+    }));
+  });
+  it('MOBIL_PATH keeps the ?sinov=1 query on /api/company', () => {
+    expect(MOBIL_PATH.test('/api/company?sinov=1')).toBe(true);
+    expect(MOBIL_PATH.test('/api/company-x?sinov=1')).toBe(false);
+  });
+  it('GET ?sinov=1 reads the trial state as the device actor', async () => {
+    const r = await bff('/api/company?sinov=1');
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ ok: true, boshlash_mumkin: true });
+    expect(rpcs.map(x => x.nom)).toEqual(['t2_sinov_holat_v1']);
+    expect(rpcs[0].body).toMatchObject({ p_actor_id: 7 });
+  });
+  it.each([['sinov_boshlash', 't2_sinov_boshlash_v1'], ['sinov_demo', 't2_sinov_demo_v1']])('POST %s reaches %s with the device actor', async (action, rpc) => {
+    const r = await bff('/api/company', 'POST', { action, operation_id: '11111111-1111-4111-8111-111111111111' });
+    expect(r.status).toBe(200);
+    expect(rpcs.map(x => x.nom)).toContain(rpc);
+    expect(rpcs.find(x => x.nom === rpc)?.body).toMatchObject({ p_actor_id: 7 });
+  });
+});

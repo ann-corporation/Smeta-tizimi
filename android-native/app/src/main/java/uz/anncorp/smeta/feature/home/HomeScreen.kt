@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -96,10 +98,12 @@ fun HomeScreen(
     val openObject: (Long) -> Unit = { vm.opened(it); onOpenObject(it) }
 
     // A fresh account (Google / Telegram / e-mail sign-up) has no workplace: create one, join with a code, or carry on without.
-    if (!state.loading && !state.failed && state.selected == null && !state.skipped) {
+    if (!state.loading && !state.failed && ((state.selected == null && !state.skipped) || state.forceOnboard)) {
         OnboardingScreen(
             busy = state.onboardBusy, error = state.onboardError, onCreate = vm::createCompany, onJoin = vm::joinCompany,
             onSkip = vm::skipOnboarding, onClearError = vm::clearOnboardError, onInvites = onInvites,
+            trial = state.sinov?.takeIf { it.canStart && state.selected == null }, trialBusy = state.sinovBusy, trialError = state.sinovError, onTrial = vm::startTrial,
+            forced = state.selected != null,
         )
         return
     }
@@ -107,8 +111,9 @@ fun HomeScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = { Column { WorkplaceBar(state.selected, state.workplaces.size > 1, workspace, onCabinets = { cabinetSheet = true }) { sheet = true }; UpdateBanner() } },
+        // With the keyboard open the bar would sit under it and push the content below the keyboard (Ombor command field was hidden): drop it, the Scaffold then pads for the IME.
         bottomBar = {
-            NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
+            if (androidx.compose.foundation.layout.WindowInsets.Companion.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current) == 0) NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
                 Tabs.forEachIndexed { i, t ->
                     NavigationBarItem(
                         selected = tab == i || (i == 0 && tab == OMBOR_TAB), onClick = { tab = i },
@@ -119,7 +124,7 @@ fun HomeScreen(
             }
         },
     ) { padding ->
-        Box(Modifier.padding(padding).fillMaxSize()) {
+        Box(Modifier.padding(padding).imePadding().fillMaxSize()) {
             when {
                 state.loading && state.workplaces.isEmpty() -> Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                     CircularProgressIndicator()

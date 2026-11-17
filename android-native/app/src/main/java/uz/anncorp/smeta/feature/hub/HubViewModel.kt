@@ -48,6 +48,10 @@ data class HubUi(
     val workspace: uz.anncorp.smeta.core.data.Workspace? = null,
     /** Boss-panel numbers for the hub preview card (cached copy first; null = not a boss cabinet / nothing known yet). */
     val kpi: uz.anncorp.smeta.core.data.RahbarKpi? = null,
+    /** Trial state for the first-steps checklist (null = unknown / not a trial workplace). */
+    val sinov: uz.anncorp.smeta.core.data.SinovState? = null,
+    val sinovBusy: Boolean = false,
+    val sinovError: uz.anncorp.smeta.core.data.SinovError? = null,
 )
 
 /** Pure: objects whose name contains the query (case-insensitive), at most [limit]. */
@@ -73,6 +77,7 @@ class HubViewModel @Inject constructor(
     private val today: uz.anncorp.smeta.core.data.TodayRepository,
     private val workspaces: uz.anncorp.smeta.core.data.WorkspaceRepository,
     private val rahbar: uz.anncorp.smeta.core.data.RahbarRepository,
+    private val sinovRepo: uz.anncorp.smeta.core.data.SinovRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(HubUi())
     val state: StateFlow<HubUi> = _state.asStateFlow()
@@ -120,8 +125,32 @@ class HubViewModel @Inject constructor(
         }
     }
 
-    /** Re-reads the unread counter (called each time the hub is shown). */
-    fun refreshUnread() { if (work.current.value == null) return; viewModelScope.launch { _state.update { it.copy(unread = today.unread() ?: it.unread) } } }
+    /** Re-reads the unread counter and the trial state (called each time the hub is shown). */
+    fun refreshUnread() {
+        if (work.current.value == null) return
+        viewModelScope.launch {
+            _state.update { it.copy(unread = today.unread() ?: it.unread) }
+            sinovRepo.state()?.let { s -> _state.update { it.copy(sinov = s) } }
+        }
+    }
+
+    /** Creates the sample object on first use (server makes the copy once), refreshes the cached objects, then [onReady]. */
+    fun openDemo(onReady: () -> Unit) {
+        val s = _state.value.sinov ?: return
+        if (_state.value.sinovBusy) return
+        if (s.demoOpened) { onReady(); return }
+        _state.update { it.copy(sinovBusy = true, sinovError = null) }
+        viewModelScope.launch {
+            when (val r = sinovRepo.demo()) {
+                is uz.anncorp.smeta.core.data.SinovResult.Done -> {
+                    work.current.value?.companyId?.let { id -> runCatching { objects.refresh(id) } }
+                    _state.update { it.copy(sinovBusy = false, sinov = it.sinov?.copy(demoObjectId = r.demoObjectId ?: it.sinov.demoObjectId)) }
+                    onReady()
+                }
+                is uz.anncorp.smeta.core.data.SinovResult.Failed -> _state.update { it.copy(sinovBusy = false, sinovError = r.error) }
+            }
+        }
+    }
 
     fun setQuery(v: String) { query.value = v; _state.update { it.copy(query = v) } }
     fun toggleEdit() = _state.update { it.copy(edit = !it.edit) }

@@ -101,7 +101,23 @@ private class DemoBff(private val context: Context, private val json: Json, priv
                 // A value containing "yoq" or any phone without an account simulates TOPILMADI; the rest simulates a sent invitation.
                 if (v.contains("yoq") || v.startsWith("+")) ApiResult(404, buildJsonObject { put("ok", false); put("code", "TOPILMADI"); put("tur", "telefon"); put("telefon_taklif", true); put("telefon", "+998901234567") }, "TOPILMADI")
                 else ok("""{"ok":true,"taklif_id":55,"holat":"kutmoqda","profil":{"id":31,"ism":"Sardor Karimov","username":"sardor_k","avatar_rang":"#3b82f6"}}""")
-            }            path.startsWith("/api/company") && method == "POST" -> ok("""{"ok":true,"kompaniya_id":1}""")
+            }
+            // Trial start (sinov): files/nowork.flag = account without a workplace; sinov_boshlash swaps it for sinov.flag (trial workplace + 1000 tokens), sinov_demo adds sinov_demo.flag.
+            path.startsWith("/api/company") && path.contains("sinov=1") -> {
+                val noWork = File(context.filesDir, "nowork.flag").exists()
+                val trial = File(context.filesDir, "sinov.flag").exists()
+                val demo = File(context.filesDir, "sinov_demo.flag").exists()
+                ok("""{"ok":true,"boshlangan":$trial,"kompaniya_id":${if (trial) "1" else "null"},"haqiqiy":false,"boshlash_mumkin":$noWork,"demo_obyekt_id":${if (demo) "101" else "null"},"demo_mavjud":$trial,"balans":${if (trial) "1000" else "null"}}""")
+            }
+            path.startsWith("/api/company") && method == "POST" && (body as? JsonObject)?.get("action")?.let { (it as? JsonPrimitive)?.content } == "sinov_boshlash" -> {
+                File(context.filesDir, "nowork.flag").delete(); File(context.filesDir, "sinov.flag").writeText("1")
+                ok("""{"ok":true,"kompaniya_id":1,"bonus_token":1000,"balans":1000}""")
+            }
+            path.startsWith("/api/company") && method == "POST" && (body as? JsonObject)?.get("action")?.let { (it as? JsonPrimitive)?.content } == "sinov_demo" -> {
+                File(context.filesDir, "sinov_demo.flag").writeText("1")
+                ok("""{"ok":true,"kompaniya_id":1,"demo_obyekt_id":101}""")
+            }
+            path.startsWith("/api/company") && method == "POST" -> ok("""{"ok":true,"kompaniya_id":1}""")
             path.startsWith("/api/company") -> ok("""{"ok":true,"context_kompaniyalar":[{"kompaniya_id":1,"effective_role":"pto","permissions":[${if (File(context.filesDir, "boss.flag").exists()) "\"control.company.read\",\"financial.write\"," else ""}"company.read","smeta.read","fakt.read","fakt.write","f2.read","f2.prepare","narx.read","document.write","warehouse.read"]}]}""")
             path.startsWith("/api/modullarim") -> if (method == "POST") ok("""{"ok":true,"versiya":1}""") else ok("""{"ok":true,"tanlangan":["fakt","foto","f2"],"tartib":["fakt","foto","f2"],"versiya":1}""")
             path.startsWith("/api/obyekt-tugun-summa") -> tugunSumma(path)
