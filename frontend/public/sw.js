@@ -21,6 +21,7 @@ self.addEventListener('fetch', (e) => {
   const u = new URL(r.url);
   if (u.origin !== self.location.origin) return; // supabase va boshqa tashqi manzillar — kesh YO'Q
   if (u.pathname.startsWith('/api/') || u.pathname.startsWith('/functions/') || /supabase/i.test(u.hostname)) return; // pul/tenant ma'lumoti — kesh YO'Q
+  if (/^\/(ru\/)?(smeta|f2|ombor|ilova|haqida)\/?$/.test(u.pathname)) return; // statik SEO sahifalar (ilova qobig'i emas) - '/' keshini buzmaydi
   if (r.mode === 'navigate') {
     e.respondWith(fetch(r).then((res) => { if (res.ok) { const k = res.clone(); caches.open(VERSIYA).then((c) => c.put(QOBIQ, k)); } return res; })
       .catch(async () => (await caches.match(QOBIQ)) || Response.error()));

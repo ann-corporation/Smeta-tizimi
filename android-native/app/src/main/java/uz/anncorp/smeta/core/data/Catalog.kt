@@ -72,7 +72,7 @@ fun parseCatalog(e: JsonElement?): Catalog? {
 
 /** Native module code (server `native`) -> screen. Hub modules come from [ModuleCatalog]; Material so'rovi (zayavka) is a native screen without a hub card. */
 internal fun nativeTargetFor(code: String): NativeTarget? =
-    if (code == "zayavka") NativeTarget.ZAYAVKA else ModuleCatalog.all.firstOrNull { it.code == code && it.kind == ModuleKind.NATIVE && it.enabled }?.target
+    if (code == "zayavka") NativeTarget.ZAYAVKA else if (code == "nazorat") NativeTarget.NAZORAT else ModuleCatalog.all.firstOrNull { it.code == code && it.kind == ModuleKind.NATIVE && it.enabled }?.target
 
 /** Native screen for [CatalogItem.native], only when the app really has it and it is switched on; otherwise the web container. */
 fun CatalogItem.open(): CatalogOpen {
@@ -86,19 +86,36 @@ internal fun normalizeSearch(s: String): String = s.lowercase().filter { it != '
 /** Every query word must appear in the item's titles (all languages), band or group name. Empty query = everything. */
 fun Catalog.search(query: String): List<CatalogItem> {
     val words = normalizeSearch(query).split(' ', '\t').filter { it.isNotBlank() }
-    if (words.isEmpty()) return items
+    if (words.isEmpty()) return items.dedupeNative()
     val groupTitle = groups.associate { it.id to it.title.haystack() }
-    return items.filter { item ->
+    return items.dedupeNative().filter { item ->
         val hay = normalizeSearch("${item.title.haystack()} ${item.band.haystack()} ${groupTitle[item.group].orEmpty()}")
         words.all { w -> hay.contains(w) }
     }
+}
+
+/**
+ * Several website pages can open the SAME native screen (the director console and the executive dashboard both open the boss panel). The
+ * launcher shows that screen once: the page whose path is the module's own web path (`ModuleDef.webPath`) wins, otherwise the first one in
+ * the server's order. Pages that open in the web container are never merged.
+ */
+fun List<CatalogItem>.dedupeNative(): List<CatalogItem> {
+    fun target(i: CatalogItem) = i.native?.let(::nativeTargetFor)
+    fun canonical(i: CatalogItem) = ModuleCatalog.all.firstOrNull { it.code == i.native }?.webPath == i.path
+    val keep = HashMap<NativeTarget, CatalogItem>()
+    for (i in this) {
+        val t = target(i) ?: continue
+        val cur = keep[t]
+        if (cur == null || (canonical(i) && !canonical(cur))) keep[t] = i
+    }
+    return filter { i -> target(i).let { t -> t == null || keep[t] === i } }
 }
 
 data class CatalogSection(val group: CatalogGroup, val items: List<CatalogItem>)
 
 /** Groups [items] by server group in the server's group order; empty groups drop out. */
 fun Catalog.sections(items: List<CatalogItem> = this.items): List<CatalogSection> {
-    val by = items.groupBy { it.group }
+    val by = items.dedupeNative().groupBy { it.group }
     return groups.mapNotNull { g -> by[g.id]?.takeIf { it.isNotEmpty() }?.let { CatalogSection(g, it) } }
 }
 

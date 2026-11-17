@@ -29,8 +29,10 @@ import uz.anncorp.smeta.feature.home.HomeState
 import uz.anncorp.smeta.feature.home.RoleChip
 
 @Composable
-fun ProfileScreen(state: HomeState, onTheme: (ThemeMode) -> Unit, onSwitch: () -> Unit, onSignOut: () -> Unit, onInvite: () -> Unit = {}, onInvites: () -> Unit = {}) {
+fun ProfileScreen(state: HomeState, onTheme: (ThemeMode) -> Unit, onSwitch: () -> Unit, onSignOut: () -> Unit, onInvite: () -> Unit = {}, onInvites: () -> Unit = {}, onSettings: () -> Unit = {}) {
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp)) {
+        uz.anncorp.smeta.feature.settings.ProfileHeader(fallbackName = state.session?.email.orEmpty(), onOpen = onSettings)
+        Spacer(Modifier.height(16.dp))
         Section(stringResource(R.string.profile_account)) {
             val email = state.session?.email.orEmpty()
             if (email.isNotBlank()) Text(email, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)

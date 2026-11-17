@@ -85,6 +85,9 @@ private class DemoBff(private val context: Context, private val json: Json, priv
             // The file nowork.flag simulates a fresh company-less account (onboarding screen).
             path.startsWith("/api/ish-joyi") -> if (File(context.filesDir, "nowork.flag").exists()) ok("""{"ok":true,"ish_joylari":[]}""") else if (File(context.filesDir, "boss.flag").exists()) ok(session["ish_joyi"].toString().replace("\"prorab\"", "\"direktor\"")) else ApiResult(200, session["ish_joyi"])
             path.startsWith("/api/profil") && method == "POST" -> profil(body as? JsonObject)
+            path.startsWith("/api/profil") -> ok(profilJson())
+            path.startsWith("/api/telegram") -> telegram(method, body as? JsonObject)
+            path.startsWith("/api/tomon") -> tomon(path, method, body as? JsonObject)
             path.startsWith("/api/kirish-taklif") && method == "POST" -> ok("""{"ok":true,"kod":"48213907","havola":"https://qurai.uz/taklif/DEMOTOKEN"}""")
             path.startsWith("/api/agent-ish") && method == "POST" -> agentIsh(body as? JsonObject)
             path.startsWith("/api/ai-savol") && method == "POST" -> {
@@ -114,6 +117,23 @@ private class DemoBff(private val context: Context, private val json: Json, priv
             // files/stepup.flag: the approval decision (signature action) needs a fresh PIN / biometric confirmation, like the real server (403 STEP_UP_KERAK).
             path.startsWith("/api/hujjat-aylanish") && method == "POST" && File(context.filesDir, "stepup.flag").exists() && tasdiq?.current() == null ->
                 ApiResult(403, buildJsonObject { put("ok", false); put("code", STEP_UP_CODE); put("usullar", kotlinx.serialization.json.buildJsonArray { add(JsonPrimitive("pin")); if (qKeys.isNotEmpty()) add(JsonPrimitive("qurilma")) }) }, STEP_UP_CODE)
+            // Debug-only stand-in for the server command endpoint (POST /api/ombor-buyruq; same wire as the real one): canned answers, nothing is parsed on the device in release.
+            path.startsWith("/api/ombor-buyruq") -> {
+                val o = body as? JsonObject
+                when ((o?.get("amal") as? JsonPrimitive)?.content) {
+                    "eslatma" -> ok("""{"ok":true,"takliflar":[{"nomi":"Sement M400 (qop 50 kg)","birligi":"qop","soni":4,"oxirgi_sana":"2026-11-10","postavshik":"Demo MChJ","qabul_qiluvchi":null,"narx":null}]}""")
+                    "tasdiq" -> ok("""{"ok":true,"takror":false,"harakat_id":1}""")
+                    else -> {
+                        val said = (o?.get("matn") as? JsonPrimitive)?.content ?: "sement qirq qop kirim"
+                        val low = said.lowercase()
+                        if (Regex("qoldiq|ostatok|остаток|qancha").containsMatchIn(low)) ok("""{"ok":true,"holat":"javob","matn":"${said.replace("\"", "")}","nomzodlar":[{"nomi":"Sement M400 (qop 50 kg)","birligi":"qop","qoldiq":120}]}""")
+                        else {
+                            val tur = if (Regex("chiqim|rasxod|расход|berdim").containsMatchIn(low)) "chiqim" else "prixod"
+                            ok("""{"ok":true,"holat":"tasdiq_kerak","matn":"${said.replace("\"", "")}","token":"demo-token","preview":{"tur":"$tur","nomi":"Sement M400 (qop 50 kg)","birligi":"qop","miqdor":40,"kontragent":null,"obyekt_id":null,"ogohlantirish":[]},"nomzodlar":[{"nomi":"Sement M500","birligi":"qop","qoldiq":10}]}""")
+                        }
+                    }
+                }
+            }
             path.startsWith("/api/sb-yoz") -> ok(asset("fakt_ok.json"))
             path.startsWith("/api/qulf") -> qulf(path, method, body as? JsonObject)
             path.startsWith("/api/sb") -> {
@@ -123,6 +143,12 @@ private class DemoBff(private val context: Context, private val json: Json, priv
                 when {
                     s("soro") == "rahbar_panel_v1" -> ok(asset("panel.json"))
                     s("soro") == "akt_reestr_obyekt_v1" -> ok(asset("f2list.json"))
+                    s("soro") == "akt_reestr_kompaniya_v1" -> ok(asset("f2reestr.json"))
+                    s("soro") == "qarz_svod_v1" -> ok(asset("qarz_svod.json"))
+                    jadval == "t2_usta_fakt_qoralama" -> ok(asset("usta_pending.json"))
+                    jadval == "t2_sklad_harakat" -> ok(asset("ombor_moves.json"))
+                    jadval == "t2_qator_holat" && filtr.contains("tur=eq.mat") -> ok(asset("resurs_rows.json"))
+                    jadval == "t2_qator_holat" && (filtr.contains("tur=eq.rs") || filtr.contains("tur=eq.ob")) -> ok("""{"ok":true,"soni":0,"jamiServerda":0,"toliq":true,"qatorlar":[]}""")
                     s("soro") == "modul_holat_v1" -> ok("""{"ok":true,"natija":{"ok":true,"modullar":[{"kod":"module.hr","holat":"off"},{"kod":"module.moliya","holat":"on"}]}}""")
                     jadval == "t2_obyekt_jami" -> ok(asset("objects.json"))
                     jadval == "t2_zayavka_royxat" -> ok("""{"ok":true,"soni":3,"jamiServerda":3,"toliq":true,"qatorlar":[
@@ -297,6 +323,52 @@ private class DemoBff(private val context: Context, private val json: Json, priv
             put("lugat", lugat); put("q", q); put("h", h); put("f2", kotlinx.serialization.json.JsonArray(emptyList())); put("meta", JsonObject(emptyMap()))
         }
     }
+    // ---- P10 fixtures: own profile, avatar, sessions, Telegram prefs, texnadzor acceptance (in memory) ----
+    private var demoName = "Ali Valiyev"
+    private var demoPhone: String? = "+998901234567"
+    private var demoLang = "uz"
+    private var demoAvatar: ByteArray? = null
+    private val demoTg = mutableMapOf("topshiriq" to true, "f2" to false, "signal" to true)
+    private val demoDecided = mutableMapOf<Long, Pair<String, String?>>()
+
+    private fun profilJson(): String {
+        val now = System.currentTimeMillis()
+        fun iso(ms: Long) = java.time.Instant.ofEpochMilli(ms).toString()
+        return """{"ok":true,"profil":{"id":183,"login":"ali@demo.uz","email":"ali@demo.uz","ism":"$demoName","telefon":${demoPhone?.let { "\"$it\"" } ?: "null"},"telefon_tasdiqlangan":false,"til":"$demoLang","avatar_rang":"#3563E9","google_ulangan":false,"parol_bor":true},"sessiya":{"boshlangan":"${iso(now - 3 * 86_400_000L)}","tugaydi":"${iso(now + 87 * 86_400_000L)}"}}"""
+    }
+
+    private fun telegram(method: String, o: JsonObject?): ApiResult {
+        if (method == "POST") {
+            (o?.get("bildirishnoma") as? JsonObject)?.forEach { (k, v) -> (v as? JsonPrimitive)?.content?.toBooleanStrictOrNull()?.let { demoTg[k] = it } }
+        }
+        return ok("""{"ok":true,"sozlangan":true,"bot":"qurai_demo_bot","ulangan":true,"bildirishnoma":{"topshiriq":${demoTg["topshiriq"]},"f2":${demoTg["f2"]},"signal":${demoTg["signal"]}}}""")
+    }
+
+    private fun tomon(path: String, method: String, o: JsonObject?): ApiResult {
+        fun item(id: Long, nom: String, obyekt: String, summa: Long): String {
+            val d = demoDecided[id]
+            val holat = d?.first ?: "yuborilgan"
+            return """{"id":$id,"aloqa_id":5,"resurs":"f2","nom":"$nom","oy":"2026-10-01","summa":$summa,"holat":"$holat","kelgan":true,"qarshi_nom":"Demo Qurilish MChJ","obyekt_id":101,"obyekt_nom":"$obyekt","taqdim_vaqti":"2026-11-14T09:30:00Z","qaror_izoh":${d?.second?.let { "\"$it\"" } ?: "null"}}"""
+        }
+        if (method == "POST") {
+            val id = (o?.get("taqdim_id") as? JsonPrimitive)?.content?.toLongOrNull() ?: return ApiResult(400, buildJsonObject { put("ok", false) })
+            val qaror = (o?.get("qaror") as? JsonPrimitive)?.content.orEmpty()
+            val izoh = (o?.get("izoh") as? JsonPrimitive)?.content
+            if (qaror != "qabul" && (izoh?.trim()?.length ?: 0) < 3) return ApiResult(200, buildJsonObject { put("ok", false); put("code", "IZOH_KERAK") }, "IZOH_KERAK")
+            demoDecided[id] = qaror to izoh
+            return ok("""{"ok":true,"id":${id + 1000},"nazorat_turi":"buyurtmachi_xodimi"}""")
+        }
+        return when {
+            path.contains("bolim=taqdimlar") -> ok("""{"ok":true,"natija":[${item(31, "Ф-2 № 4 · 2026-10", "Demo korpus A", 1_284_000_000)},${item(30, "Ф-2 № 3 · 2026-09", "Demo korpus A", 936_500_000)},${item(29, "Ф-2 № 2 · 2026-08", "Demo korpus B", 412_300_000)}]}""")
+            path.contains("bolim=f2_tekshiruv") -> ok("""{"ok":true,"akt_id":88,"xulosa":{"jami_qator":42,"yashirin_qator":6,"akt_tasdiqlangan":4,"akt_kutmoqda":1,"akt_yoq":1,"fakt_korinadi":true,"hajm_oshgan":2,"fakt_yoq":0},"muammolar":[{"qator_id":2001,"kod":"ЕНиР 4-1","nom":"Армирование фундаментной плиты","birlik":"т","f2_hajm":36.1,"fakt_hajm":35.8,"yashirin":true,"akt_holat":null,"muammo":"akt_yoq"},{"qator_id":2002,"kod":"ЕНиР 6-3","nom":"Гидроизоляция обмазочная","birlik":"м2","f2_hajm":410,"fakt_hajm":410,"yashirin":true,"akt_holat":"yangi","muammo":"akt_kutmoqda"},{"qator_id":2003,"kod":"ЕНиР 3-9","nom":"Кладка стен из блоков","birlik":"м3","f2_hajm":120.5,"fakt_hajm":118,"yashirin":false,"akt_holat":null,"muammo":"hajm_oshgan"}]}""")
+            else -> ok("""{"ok":true,"natija":[]}""")
+        }
+    }
+
+    override suspend fun avatarGet(): uz.anncorp.smeta.core.data.BytesResult = demoAvatar?.let { uz.anncorp.smeta.core.data.BytesResult(200, it, "image/jpeg") } ?: uz.anncorp.smeta.core.data.BytesResult(404, null, code = "AVATAR_YOQ")
+    override suspend fun avatarPut(bytes: ByteArray, mime: String): ApiResult { demoAvatar = bytes; return ok("""{"ok":true}""") }
+    override suspend fun avatarDelete(): ApiResult { demoAvatar = null; return ok("""{"ok":true}""") }
+
     private var demoUsername: String? = "ali_valiyev"
     private var demoPhoneSearch = "hammasi"
     private val demoInvites = mutableListOf(
@@ -309,7 +381,13 @@ private class DemoBff(private val context: Context, private val json: Json, priv
         fun s(k: String) = (o?.get(k) as? JsonPrimitive)?.takeIf { it.isString }?.content
         val taken = setOf("admin_demo", "qurai_user", "ali_valiyev2", "sardor_k")
         return when (s("amal")) {
-            "username_ol" -> ok("""{"ok":true,"username":${demoUsername?.let { "\"$it\"" } ?: "null"},"ism":"Ali Valiyev","telefon_qidiruv":"$demoPhoneSearch","bugun_qoldi":4}""")
+            "yangila" -> {
+                s("ism")?.let { demoName = it }; (o?.get("telefon") as? JsonPrimitive)?.takeIf { it.isString }?.content?.let { demoPhone = it.ifBlank { null } }; s("til")?.let { demoLang = it }
+                ok(profilJson())
+            }
+            // Like the real BFF: the other sessions end and this device is re-enrolled with a fresh credential (synthetic placeholder token).
+            "boshqa_sessiyalar_chiqish" -> ok("""{"ok":true,"qurilma":{"device_id":"00000000-0000-4000-8000-0000000000aa","token":"${"D".repeat(43)}","tugaydi":${System.currentTimeMillis() + 90 * 86_400_000L}}}""")
+            "username_ol" -> ok("""{"ok":true,"username":${demoUsername?.let { "\"$it\"" } ?: "null"},"ism":"$demoName","telefon_qidiruv":"$demoPhoneSearch","bugun_qoldi":4}""")
             "username_tekshir" -> {
                 val u = s("username").orEmpty()
                 val free = (o?.get("variantlar") as? kotlinx.serialization.json.JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.content }.filter { it !in taken }.take(5)
