@@ -23,3 +23,4 @@ dependencyResolutionManagement {
 rootProject.name = "qurai-android"
 include(":app")
 include(":shared")
+include(":desktop")
