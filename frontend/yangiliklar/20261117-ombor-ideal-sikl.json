@@ -1,0 +1,10 @@
+{
+  "sana": "2026-11-17",
+  "sarlavha": "Omborchi: aqlli kirim, hisobot va istalgan sanadagi ostatka",
+  "bandlar": [
+    "Kirim: «Kirim» ni bosing, bir necha harf yozing yoki ayting — tizim material, birlik, odatiy miqdor, oxirgi narx va yetkazuvchini o‘zi taklif qiladi. Tanlang, «Saqlash» — tayyor. Yetkazuvchini tanlasangiz, uning odatiy materiallari chiqadi.",
+    "Narx ixtiyoriy: QQS bilan yoki QQS siz kiriting (tanlovingiz eslab qolinadi), tizim ikkalasini ham ko‘rsatadi. Narxsiz kirimga keyin narx qo‘yish mumkin.",
+    "Hisobot: bugun, hafta, oy, o‘tgan oy yoki ixtiyoriy davr uchun kirim-chiqim jadvali, summalar QQS siz va QQS bilan, Excelga chiqarish. Ostatka — istalgan sanaga.",
+    "Gap bilan so‘rang (web, Android, Telegram): «o‘tgan oy sement qancha keldi», «bugungi qoldiq», «Alfa-snabdan nima olganmiz». Telegramda /hisobot va /qoldiq buyruqlari."
+  ]
+}

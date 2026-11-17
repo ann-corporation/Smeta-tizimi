@@ -111,6 +111,10 @@ internal fun CommandPreviewDialog(p: CommandPreview, ui: OmborUi, vm: OmborViewM
     var unit by remember(p) { mutableStateOf(p.unit) }
     var qty by remember(p) { mutableStateOf(p.qty?.let { formatQty(it).replace(" ", "").replace("\u00A0", "") } ?: "") }
     var objectId by remember(p) { mutableStateOf(p.objectId ?: (ui.scope as? OmborScope.Obyekt)?.id) }
+    var mode by remember(p, ui.priceMode) { mutableStateOf(ui.priceMode) }
+    val priceStart = remember(p, mode) { (if (mode == "siz") p.price else (p.priceGross ?: p.price))?.let { formatQty(it).replace(" ", "").replace("\u00A0", "") } ?: "" }
+    var price by remember(p, mode) { mutableStateOf(priceStart) }
+    var askDismissed by remember(p) { mutableStateOf(false) }
     val isMove = p.kind == CommandKind.RECEIVE || p.kind == CommandKind.ISSUE
     val isEdit = p.kind == CommandKind.EDIT
     val op = if (p.kind == CommandKind.ISSUE) OmborOp.ISSUE else OmborOp.RECEIVE
@@ -161,6 +165,24 @@ internal fun CommandPreviewDialog(p: CommandPreview, ui: OmborUi, vm: OmborViewM
                     }
                     ObjectDropdown(ui.objects, objectId, stringResource(R.string.ombor_cmd_object), { objectId = it })
                     if (p.party.isNotBlank()) Text(stringResource(R.string.ombor_cmd_party, p.party), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (p.kind == CommandKind.RECEIVE) {
+                        // Optional price (QQS bilan by default, the last choice per warehouse is remembered). Never blocks saving.
+                        if (p.priceAsk && price.isBlank() && !askDismissed) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(stringResource(R.string.ombor_cmd_price_ask), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.weight(1f))
+                                TextButton(onClick = { askDismissed = true }) { Text(stringResource(R.string.ombor_cmd_price_skip)) }
+                            }
+                        }
+                        if (p.modeAsk && price == priceStart) Text(stringResource(R.string.ombor_cmd_price_mode_ask), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
+                        OutlinedTextField(price, { price = it }, label = { Text(stringResource(R.string.ombor_cmd_price)) }, singleLine = true, isError = price.isNotBlank() && parseQuantity(price) == null, modifier = Modifier.fillMaxWidth())
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            TextButton(onClick = { mode = "bilan" }, modifier = Modifier.heightIn(min = TouchTarget)) { Text(stringResource(R.string.ombor_cmd_qqs_in), color = if (mode == "bilan") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant) }
+                            TextButton(onClick = { mode = "siz" }, modifier = Modifier.heightIn(min = TouchTarget)) { Text(stringResource(R.string.ombor_cmd_qqs_ex), color = if (mode == "siz") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant) }
+                        }
+                        if (p.price != null && p.priceGross != null && price == priceStart) {
+                            Text(stringResource(R.string.ombor_cmd_price_both, formatQty(p.price), formatQty(p.priceGross)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
                 }
                 p.warnings.forEach { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary) }
                 if (busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
@@ -169,7 +191,7 @@ internal fun CommandPreviewDialog(p: CommandPreview, ui: OmborUi, vm: OmborViewM
         confirmButton = {
             if (p.kind == CommandKind.BALANCE) TextButton(onClick = vm::dismissCommand) { Text(stringResource(R.string.p8_cancel)) }
             else TextButton(enabled = canSave, onClick = {
-                vm.saveCommand(p, name, unit, if (isEdit) p.qty else qtyValue?.toDouble(), p.party, p.note, obj?.nom)
+                vm.saveCommand(p, name, unit, if (isEdit) p.qty else qtyValue?.toDouble(), p.party, p.note, obj?.nom, parseQuantity(price)?.toDouble(), mode, price != priceStart || mode != ui.priceMode)
             }) { Text(stringResource(R.string.ombor_cmd_save)) }
         },
         dismissButton = {

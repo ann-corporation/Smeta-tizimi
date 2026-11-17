@@ -44,6 +44,8 @@ data class OmborUi(
     val noCompany: Boolean = false,
     /** Every cached movement (kirim + chiqim) of the company; the screen filters it per tab / material. */
     val moves: List<OmborMove> = emptyList(),
+    /** Remembered QQS choice ("bilan" / "siz") for a receipt price in the warehouse being commanded. */
+    val priceMode: String = "bilan",
 ) {
     val objectNames: Map<Long, String> get() = objects.associate { it.id to it.nom }
     val scopes: List<OmborScope>
@@ -57,6 +59,7 @@ class OmborViewModel @Inject constructor(
     private val commands: OmborCommandApi, private val recorder: AudioRecorder,
 ) : ViewModel() {
     private val cmd = MutableStateFlow(CmdUi())
+    private val priceMode = MutableStateFlow("bilan")
     private val query = MutableStateFlow("")
     private val scope = MutableStateFlow<OmborScope>(OmborScope.AllObjects)
     private data class Sync(val syncing: Boolean = true, val result: SyncResult? = null)
@@ -85,7 +88,7 @@ class OmborViewModel @Inject constructor(
             rows = filterStock(base, s, q), scopeRows = filterStock(base, s, ""), allObjectRows = d.rows,
             objects = d.objs, warehouses = d.wh, syncing = sy.syncing, result = sy.result, updatedAt = d.ts, noCompany = w == null, moves = d.moves, computedBalance = computed,
         )
-    }.combine(cmd) { s, c -> s.copy(cmd = c) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), OmborUi())
+    }.combine(cmd) { s, c -> s.copy(cmd = c) }.combine(priceMode) { s, m -> s.copy(priceMode = m) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), OmborUi())
 
     init {
         viewModelScope.launch { company.collect { if (it != null) refresh() } }
@@ -111,7 +114,7 @@ class OmborViewModel @Inject constructor(
         val w = ctx.current.value
         if (audio == null || w == null) { cmd.value = CmdUi(message = CmdMessage.TOO_SHORT); return }
         val sklad = commandWarehouse() ?: run { cmd.value = CmdUi(message = CmdMessage.NO_WAREHOUSE); return }
-        launchCommand { commands.audio(w.companyId, sklad, audio, lang()) }
+        launchCommand { priceMode.value = repo.priceMode(w.companyId, sklad); commands.audio(w.companyId, sklad, audio, lang()) }
     }
 
     fun cancelRecording() { recorder.cancel(); cmd.value = CmdUi() }
@@ -120,7 +123,7 @@ class OmborViewModel @Inject constructor(
         val w = ctx.current.value ?: return
         if (text.isBlank()) return
         val sklad = commandWarehouse() ?: run { cmd.value = CmdUi(message = CmdMessage.NO_WAREHOUSE); return }
-        launchCommand { commands.text(w.companyId, sklad, text, lang()) }
+        launchCommand { val m = repo.priceMode(w.companyId, sklad); priceMode.value = m; commands.text(w.companyId, sklad, text, lang(), m) }
     }
 
     private fun failMessage(o: CommandOutcome): CmdUi = when (o) {
@@ -159,13 +162,14 @@ class OmborViewModel @Inject constructor(
      * Save the card: unchanged -> confirm the server's token as is; edited -> the server re-validates the edited values (fresh token), then confirm.
      * The server writes (permission, stock check, idempotent operation id); a stock shortfall or a refusal is shown as a message.
      */
-    fun saveCommand(p: CommandPreview, name: String, unit: String, qty: Double?, party: String, note: String, objectName: String?) {
+    fun saveCommand(p: CommandPreview, name: String, unit: String, qty: Double?, party: String, note: String, objectName: String?, price: Double? = null, mode: String? = null, priceChanged: Boolean = false) {
         val w = ctx.current.value ?: return
         val sklad = commandWarehouse() ?: run { cmd.value = CmdUi(message = CmdMessage.NO_WAREHOUSE); return }
-        val unchanged = p.token != null && name.trim() == p.name && unit.trim() == p.unit && qty == p.qty && party.trim() == p.party && note.trim() == p.note
+        val unchanged = p.token != null && name.trim() == p.name && unit.trim() == p.unit && qty == p.qty && party.trim() == p.party && note.trim() == p.note && !priceChanged
         cmd.value = CmdUi(working = true, preview = p)
         viewModelScope.launch {
-            val token = if (unchanged) p.token else if (qty == null) null else when (val o = commands.edited(w.companyId, sklad, p.kind, name, unit, qty, party, note, objectName)) {
+            if (mode != null) { repo.setPriceMode(w.companyId, sklad, mode); priceMode.value = mode }
+            val token = if (unchanged) p.token else if (qty == null) null else when (val o = commands.edited(w.companyId, sklad, p.kind, name, unit, qty, party, note, objectName, price, mode)) {
                 is CommandOutcome.Preview -> o.preview.token
                 else -> { cmd.value = failMessage(o); return@launch }
             }

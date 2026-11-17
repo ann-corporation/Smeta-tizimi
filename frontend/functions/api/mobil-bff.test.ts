@@ -228,13 +228,23 @@ describe('mobil BFF: ombor-buyruq (omborchi matn/ovoz buyrug\'i)', () => {
     expect(q.status).toBe(200);
     expect(rpcs.find(r => r.nom === 't2_ombor_qoldiq_v2')!.body.p_actor_id).toBe(7);
   });
+  it('ideal sikl: taklif, hisobot va Jarvis vositasi (vosita) BFF dan o\'tadi (TARGET_INVALID emas); ombor_tasdiq tasdiqlayman siz yozmaydi', async () => {
+    for (const body of [{ amal: 'taklif', q: 'sem' }, { amal: 'hisobot', filtr: { davr: 'oy' } }, { amal: 'qoldiq', sana: '2026-11-01' }, { amal: 'vosita', nom: 'ombor_qoldiq', args: {} }]) {
+      const r = await bff('/api/ombor-buyruq', 'POST', { kompaniya_id: 8, sklad_id: 3, ...body });
+      expect(((await r.json().catch(() => ({}))) as { code?: string }).code).not.toBe('TARGET_INVALID');
+    }
+    const yozishdan = rpcs.length;
+    const t = await bff('/api/ombor-buyruq', 'POST', { amal: 'vosita', nom: 'ombor_tasdiq', kompaniya_id: 8, sklad_id: 3, args: { token: 'a.b' } });
+    expect(t.status).toBe(400);
+    expect(rpcs.slice(yozishdan).some(r => /^t2_ombor_(prixod|chiqim)/.test(r.nom))).toBe(false);
+  });
   it('ovoz: JSON audio_b64 BFF dan o\'tadi va STT bosqichigacha yetadi (multipart kerak emas)', async () => {
     const r = await bff('/api/ombor-buyruq', 'POST', { amal: 'tahlil', kompaniya_id: 8, sklad_id: 3, til: 'uz', mime: 'audio/mp4', audio_b64: btoa('synthetic-audio') });
     const code = ((await r.json()) as { code?: string }).code;
     expect(code).toBe('VOICE_NOT_CONFIGURED'); // sintetik env da STT kaliti yo'q; TARGET_INVALID / BODY_INVALID / AUDIO_INVALID emas
   });
   it('eksport va alias qurilmaga ochilmaydi; GET rad', async () => {
-    for (const amal of ['eksport', 'alias', '']) expect((await bff('/api/ombor-buyruq', 'POST', { amal, kompaniya_id: 8, sklad_id: 3 })).status).toBe(400);
+    for (const amal of ['eksport', 'eksport_reja', 'alias', '']) expect((await bff('/api/ombor-buyruq', 'POST', { amal, kompaniya_id: 8, sklad_id: 3 })).status).toBe(400);
     expect((await bff('/api/ombor-buyruq')).status).toBe(400);
   });
 });
