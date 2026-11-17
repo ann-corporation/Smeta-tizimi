@@ -27,6 +27,8 @@ import java.util.UUID
 const val ANDROID_ORIGIN = "app://qurai-android"
 const val VERSION_HEADER = "X-Smeta-Desktop-Version"
 const val STEP_UP_CODE = "STEP_UP_KERAK"
+private const val AVATAR_PATH = "/api/mobil/avatar"
+private const val AVATAR_READ_MAX = 3L * 1024 * 1024
 
 /** Emits when the server rejects the device credential or the user signs out; the UI returns to Login. */
 class AuthEvents {
@@ -83,6 +85,14 @@ interface BffApi {
 
     /** One-time (30 s) link that signs the in-app WebView into the website page [path] (POST /api/mobil/web-bilet; body "url"). */
     suspend fun webTicket(path: String): ApiResult = ApiResult(404, null)
+
+    /** The user's own profile photo (GET /api/mobil/avatar): bytes, or status 404 when none. */
+    suspend fun avatarGet(): BytesResult = BytesResult(404, null)
+
+    /** Replaces the photo with already cropped/downsized image bytes ([mime] image/jpeg | png | webp; server cap 2 MiB, magic bytes verified). */
+    suspend fun avatarPut(bytes: ByteArray, mime: String): ApiResult = ApiResult(404, null)
+
+    suspend fun avatarDelete(): ApiResult = ApiResult(404, null)
 }
 
 class ApiClient(
@@ -179,6 +189,25 @@ class ApiClient(
     }
 
     override suspend fun webTicket(path: String): ApiResult = post("/api/mobil/web-bilet", buildJsonObject { put("yol", path) })
+
+    override suspend fun avatarGet(): BytesResult = withContext(Dispatchers.IO) {
+        try {
+            http.newCall(Request.Builder().url(baseUrl.resolve(AVATAR_PATH)!!).get().build()).execute().use { r ->
+                val type = r.header("Content-Type").orEmpty()
+                if (!r.isSuccessful || !type.startsWith("image/")) BytesResult(if (r.isSuccessful) 502 else r.code, null)
+                else {
+                    val src = r.body?.source()
+                    val bytes = src?.let { s -> s.request(AVATAR_READ_MAX + 1); if (s.buffer.size > AVATAR_READ_MAX) null else s.buffer.readByteArray() }
+                    if (bytes == null) BytesResult(413, null) else BytesResult(r.code, bytes, type.substringBefore(';').trim())
+                }
+            }
+        } catch (e: IOException) { BytesResult(0, null) }
+    }
+
+    override suspend fun avatarPut(bytes: ByteArray, mime: String): ApiResult =
+        send(Request.Builder().url(baseUrl.resolve(AVATAR_PATH)!!).post(bytes.toRequestBody(mime.toMediaType())).build())
+
+    override suspend fun avatarDelete(): ApiResult = send(Request.Builder().url(baseUrl.resolve(AVATAR_PATH)!!).delete().build())
 
     /** Revokes this device on the server (best effort) and forgets the credential locally. */
     suspend fun signOut() {

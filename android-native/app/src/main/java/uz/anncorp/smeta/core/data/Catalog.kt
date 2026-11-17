@@ -72,7 +72,7 @@ fun parseCatalog(e: JsonElement?): Catalog? {
 
 /** Native module code (server `native`) -> screen. Hub modules come from [ModuleCatalog]; Material so'rovi (zayavka) is a native screen without a hub card. */
 internal fun nativeTargetFor(code: String): NativeTarget? =
-    if (code == "zayavka") NativeTarget.ZAYAVKA else ModuleCatalog.all.firstOrNull { it.code == code && it.kind == ModuleKind.NATIVE && it.enabled }?.target
+    if (code == "zayavka") NativeTarget.ZAYAVKA else if (code == "nazorat") NativeTarget.NAZORAT else ModuleCatalog.all.firstOrNull { it.code == code && it.kind == ModuleKind.NATIVE && it.enabled }?.target
 
 /** Native screen for [CatalogItem.native], only when the app really has it and it is switched on; otherwise the web container. */
 fun CatalogItem.open(): CatalogOpen {

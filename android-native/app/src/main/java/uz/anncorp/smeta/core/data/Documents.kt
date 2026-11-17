@@ -118,6 +118,9 @@ class DocCache(private val dir: File, private val cipher: SecretCipher, private 
     /** Sign-out / device change: nothing of a previous user may stay on the device. */
     @Synchronized
     fun clear() { dir.listFiles()?.forEach { it.delete() } }
+
+    /** Bytes currently cached (shown in Settings > Storage). */
+    fun sizeBytes(): Long = dir.listFiles()?.sumOf { it.length() } ?: 0L
 }
 
 // ---------- repository ----------

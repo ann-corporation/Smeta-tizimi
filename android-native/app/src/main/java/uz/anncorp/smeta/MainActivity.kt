@@ -146,6 +146,8 @@ private const val PICK_NAKOP = "pick/nakop"
 private const val PICK_RESURS = "pick/resurs"
 private const val PEOPLE_INVITE = "people/invite"
 private const val PEOPLE_INVITES = "people/invites"
+private const val SETTINGS = "settings"
+private const val NAZORAT = "nazorat"
 
 @Composable
 private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
@@ -189,12 +191,15 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
                         uz.anncorp.smeta.core.data.NativeTarget.QARZDOR -> nav.navigate(QARZDOR)
                         uz.anncorp.smeta.core.data.NativeTarget.QABUL -> nav.navigate(QABUL)
                         uz.anncorp.smeta.core.data.NativeTarget.RESURS -> nav.navigate(PICK_RESURS)
+                        uz.anncorp.smeta.core.data.NativeTarget.NAZORAT -> nav.navigate(NAZORAT)
                         else -> nav.navigate("hujjat")
                     }
                 }, onInvite = { nav.navigate(PEOPLE_INVITE) }, onInvites = { nav.navigate(PEOPLE_INVITES) },
-                onNotifications = { nav.navigate(NOTIFICATIONS) },
+                onNotifications = { nav.navigate(NOTIFICATIONS) }, onSettings = { nav.navigate(SETTINGS) },
             )
         }
+        composable(SETTINGS) { uz.anncorp.smeta.feature.settings.SettingsScreen(onBack = { nav.popBackStack() }) }
+        composable(NAZORAT) { uz.anncorp.smeta.feature.nazorat.NazoratScreen(onBack = { nav.popBackStack() }) }
         val idArg = listOf(navArgument("id") { type = NavType.LongType })
         composable(OBJECT, idArg) { CardRoute(nav) }
         composable(FAKT, idArg) {
