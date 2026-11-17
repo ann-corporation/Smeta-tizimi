@@ -197,7 +197,21 @@ export const kompaniyaYarat = (i: KompaniyaYaratInput) => post('create', i);
 export const kompaniyaRoyxatSoraw = (i: RoyxatSorawInput) => post('royxat_soraw', i);
 /** L0 2026-11-13: oddiy foydalanuvchi o'z birinchi kompaniyasini darhol ochadi (boss); STIR ixtiyoriy. */
 export const kompaniyaOziOch = (i: KompaniyaYaratInput) => post('ozi_och', i);
-export const kompaniyaRoyxatTasdiqla = (i: RoyxatTasdiqlaInput) => post('royxat_tasdiqla', i);
+
+/** 2026-11-17: sinov ish joyi (1000 token, bir marta) va demo namuna; holat — balans/demo/boshlash mumkinmi. */
+export type SinovHolat = { ok: true; boshlangan: boolean; kompaniya_id: number | null; haqiqiy: boolean; boshlash_mumkin: boolean; demo_obyekt_id: number | null; demo_mavjud: boolean; balans: number | null };
+export const sinovBoshlash = (operation_id: string) => post('sinov_boshlash', { operation_id }) as Promise<{ kompaniya_id: number; bonus_token: number; balans: number }>;
+export const sinovDemo = (operation_id: string) => post('sinov_demo', { operation_id }) as Promise<{ kompaniya_id: number; demo_obyekt_id: number }>;
+export async function sinovHolatOl(): Promise<SinovHolat> {
+  const r = await fetch('/api/company?sinov=1');
+  const j = await r.json().catch(() => null);
+  if (!r.ok || !j || j.ok !== true) throw toErr(j, r.status);
+  return j as SinovHolat;
+}
+export function useSinovHolat(yoqilgan = true) {
+  return useQuery({ queryKey: ['sinovHolat'], queryFn: sinovHolatOl, enabled: yoqilgan, staleTime: 15_000 });
+}
+export const kompaniyaRoyxatTasdiqla =(i: RoyxatTasdiqlaInput) => post('royxat_tasdiqla', i);
 export const kompaniyaRoyxatRadEt = (i: RoyxatRadEtInput) => post('royxat_rad_et', i);
 export const azoQosh = (i: MemberAddInput) => post('member_add', i);
 export const azoRol = (i: MemberRoleInput) => post('member_role', i);

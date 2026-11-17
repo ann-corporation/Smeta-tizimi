@@ -1,6 +1,7 @@
 import { supabaseBaseUrl } from '../_shared/supabase-url';
+import { turnstileTekshir, turnstileXabar } from '../_shared/turnstile';
 
-type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; RESEND_API_KEY: string; EMAIL_FROM: string };
+type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; RESEND_API_KEY: string; EMAIL_FROM: string; TURNSTILE_SECRET?: string };
 const EMAIL = /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i;
 const rpc = (env: Env, nom: string, body: unknown) => fetch(supabaseBaseUrl(env.SUPABASE_URL) + '/rest/v1/rpc/' + nom, { method: 'POST', headers: { apikey: env.SUPABASE_KEY, Authorization: 'Bearer ' + env.SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 function yangiKod(): string {
@@ -17,10 +18,12 @@ const xesh = async (s: string, kalit: string) => {
 };
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
-  let body: { email?: string } = {}; try { body = await ctx.request.json(); } catch { return Response.json({ ok: false, xabar: 'Noto‘g‘ri so‘rov formati' }, { status: 400 }); }
+  let body: { email?: string; turnstile_token?: string } = {}; try { body = await ctx.request.json(); } catch { return Response.json({ ok: false, xabar: 'Noto‘g‘ri so‘rov formati' }, { status: 400 }); }
   const email = String(body.email || '').trim().toLowerCase();
   if (!EMAIL.test(email)) return Response.json({ ok: false, xabar: 'Email manzilini to‘g‘ri kiriting.' }, { status: 400 });
   if (!ctx.env.SUPABASE_URL || !ctx.env.SUPABASE_KEY || !ctx.env.SESSIYA_KALIT || !ctx.env.RESEND_API_KEY || !ctx.env.EMAIL_FROM) return Response.json({ ok: false, code: 'EMAIL_XIZMATI_SOZLANMAGAN', xabar: 'Email tasdiqlash xizmati hali sozlanmagan.' }, { status: 503 });
+  const ts = await turnstileTekshir(ctx.env, body.turnstile_token, ctx.request.headers.get('CF-Connecting-IP'));
+  if (!ts.ok) return Response.json({ ok: false, code: ts.code, xabar: turnstileXabar(ts.code) }, { status: ts.code === 'TURNSTILE_XIZMAT' ? 503 : 403 });
   const kod = yangiKod();
   const ip = ctx.request.headers.get('CF-Connecting-IP') || '';
   const ipBelgi = ip ? (await xesh(ip + '|t2-email-ip', ctx.env.SESSIYA_KALIT)).slice(0, 16) : null;

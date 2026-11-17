@@ -147,16 +147,118 @@ describe('mobil BFF: warehouse (Ombor) paths reach the unchanged sb / sb-yoz han
 
 describe('mobil BFF: @username (profil) and Jarvis (ai-savol)', () => {
   const notTarget = async (r: Response) => expect(((await r.json().catch(() => ({}))) as { code?: string }).code).not.toBe('TARGET_INVALID');
-  it.each(['username_ol', 'username_tekshir', 'username_belgila', 'username_sozlama', 'qidir', 'kompaniyadosh_qidir', 'username_ommaviy', 'taklif_royxat', 'taklif_javob'])
+  it.each(['username_ol', 'username_tekshir', 'username_belgila', 'username_sozlama', 'qidir', 'kompaniyadosh_qidir', 'username_ommaviy', 'taklif_royxat', 'taklif_javob', 'yangila'])
     ('allows the profil action %s', async amal => { await notTarget(await bff('/api/profil', 'POST', { amal })); });
-  it.each(['parol', 'google_ulash', 'google_uzish', 'hisob_birlashtir', 'boshqa_sessiyalar_chiqish', 'usul_uz', 'birlashtir_email_kod', 'yangila', '', undefined])
+  it.each(['parol', 'google_ulash', 'google_uzish', 'hisob_birlashtir', 'usul_uz', 'birlashtir_email_kod', 'usullar', '', undefined])
     ('refuses the account-security / unknown profil action %s', async amal => {
       expect((await bff('/api/profil', 'POST', { amal })).status).toBe(400);
     });
-  it('refuses GET /api/profil and a profil POST without a body', async () => {
-    expect((await bff('/api/profil')).status).toBe(400);
+  it('allows the read-only GET /api/profil, refuses a profil POST without a body', async () => {
+    await notTarget(await bff('/api/profil'));
     expect((await bff('/api/profil', 'POST')).status).toBe(400);
   });
+});
+
+describe('mobil BFF: P10 profile, sessions, texnadzor, notification preferences', () => {
+  const notTarget = async (r: Response) => expect(((await r.json().catch(() => ({}))) as { code?: string }).code).not.toBe('TARGET_INVALID');
+  it('boshqa_sessiyalar_chiqish re-enrols THIS device and returns the new token (Set-Cookie never leaks)', async () => {
+    const base = globalThis.fetch as unknown as (raw: string, init?: RequestInit) => Promise<Response>;
+    const seen: { path: string; body: any }[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (raw: string, init?: RequestInit) => {
+      const u = new URL(String(raw)); const b = init?.body ? JSON.parse(String(init.body)) : {};
+      if (u.pathname.endsWith('/t2_sessiya_bekor_v1')) return Response.json({ ok: true, sessiya_bekor_dan: new Date().toISOString() });
+      if (u.pathname.endsWith('/t2_desktop_qurilma_yarat_v2')) { seen.push({ path: u.pathname, body: b }); return Response.json({ ok: true, device_id: b.p_device_id, tugaydi: b.p_sessiya_exp }); }
+      if (u.pathname.endsWith('/t2_desktop_qurilma_bekor_v1')) { seen.push({ path: u.pathname, body: b }); return Response.json({ ok: true }); }
+      return base(raw, init);
+    }));
+    const r = await bff('/api/profil', 'POST', { amal: 'boshqa_sessiyalar_chiqish', qurilma_nomi: 'Pixel', os: 'Android 14', ilova_versiya: '0.1.10' });
+    expect(r.status).toBe(200);
+    expect(r.headers.get('Set-Cookie')).toBeNull();
+    const j = await r.json() as { ok: boolean; qurilma: { device_id: string; token: string; tugaydi: number } | null };
+    expect(j.ok).toBe(true);
+    expect(j.qurilma?.token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(j.qurilma?.device_id).not.toBe(deviceId);
+    const created = seen.find(s => s.path.endsWith('/t2_desktop_qurilma_yarat_v2'))!.body;
+    expect(created).toMatchObject({ p_actor_id: 7, p_qurilma_nomi: 'Pixel', p_os: 'Android 14', p_ilova_versiya: '0.1.10' });
+    expect(created.p_token_hash).toBe(await deviceHash(j.qurilma!.token));
+    expect(seen.find(s => s.path.endsWith('/t2_desktop_qurilma_bekor_v1'))!.body).toMatchObject({ p_actor_id: 7, p_device_id: deviceId });
+  });
+  it('texnadzor reads: only the nazorat sections are reachable', async () => {
+    for (const bolim of ['nazorat_uy', 'taqdimlar', 'nazorat_holat', 'f2_tekshiruv']) await notTarget(await bff(`/api/tomon?bolim=${bolim}&kompaniya_id=8`));
+    for (const bolim of ['grant_saqla', 'qidir', 'tolovlar', 'sub_akt', '']) expect((await bff(`/api/tomon?bolim=${bolim}&kompaniya_id=8`)).status).toBe(400);
+    expect((await bff('/api/tomon?kompaniya_id=8')).status).toBe(400);
+  });
+  it('texnadzor decisions: nazorat_qaror (+ remark) allowed; grants, payments, invites refused', async () => {
+    await notTarget(await bff('/api/tomon', 'POST', { amal: 'nazorat_qaror', kompaniya_id: 8, taqdim_id: 3, qaror: 'rad', izoh: 'Armatura qadami noto\'g\'ri' }));
+    for (const amal of ['taklif', 'kod_qabul', 'grant_saqla', 'tolov_qaror', 'taqdim_yarat', 'vakolat_ber', 'qaror', 'ichki_qaror', '']) expect((await bff('/api/tomon', 'POST', { amal })).status).toBe(400);
+  });
+  it('notification preferences: telegram status read + sozlama only', async () => {
+    await notTarget(await bff('/api/telegram'));
+    await notTarget(await bff('/api/telegram', 'POST', { amal: 'sozlama', bildirishnoma: { topshiriq: true } }));
+    for (const amal of ['kod', 'uz', 'admin_holat', 'admin_ornat', '']) expect((await bff('/api/telegram', 'POST', { amal })).status).toBe(400);
+  });
+  it('MOBIL_PATH covers exactly the new paths', () => {
+    expect(MOBIL_PATH.test('/api/tomon?bolim=nazorat_uy&kompaniya_id=8')).toBe(true);
+    expect(MOBIL_PATH.test('/api/telegram')).toBe(true);
+    expect(MOBIL_PATH.test('/api/telegram/webhook')).toBe(false);
+    expect(MOBIL_PATH.test('/api/tomon-x')).toBe(false);
+  });
+});
+
+describe('mobil BFF: ombor-buyruq (omborchi matn/ovoz buyrug\'i)', () => {
+  // Regressiya: relizda /api/ombor-buyruq BFF ro'yxatida yo'q edi — Android'da matn ham, ovoz ham TARGET_INVALID bilan rad etilardi.
+  let rpcs: { nom: string; body: Record<string, unknown> }[];
+  beforeEach(() => {
+    rpcs = [];
+    const base = globalThis.fetch as typeof fetch;
+    vi.stubGlobal('fetch', vi.fn(async (raw: string, init?: RequestInit) => {
+      const u = new URL(String(raw));
+      if (u.pathname.endsWith('/t2_men_v1')) return Response.json({ ok: true, platform_role: 'none', foydalanuvchi: { holat: 'faol' },
+        context_kompaniyalar: [{ kompaniya_id: 8, effective_role: 'omborchi', permissions: ['warehouse.read', 'warehouse.write'] }] });
+      const nom = /\/rpc\/([a-z0-9_]+)/.exec(u.pathname)?.[1];
+      if (nom && nom.startsWith('t2_ombor_')) {
+        rpcs.push({ nom, body: JSON.parse(String(init?.body ?? '{}')) });
+        return Response.json(nom === 't2_ombor_qoldiq_v2' ? { ok: true, jami: 0, limit: 6, offset: 0, turlar: [], qatorlar: [] } : { ok: true, takror: false, harakat_id: 41 });
+      }
+      if (nom === 't2_audit_yoz') return Response.json(null);
+      return base(raw, init);
+    }));
+  });
+  it('MOBIL_PATH ombor-buyruq ni o\'tkazadi, qo\'shnilarini emas', () => {
+    expect(MOBIL_PATH.test('/api/ombor-buyruq')).toBe(true);
+    expect(MOBIL_PATH.test('/api/ombor-ovoz')).toBe(false);
+    expect(MOBIL_PATH.test('/api/ombor-buyruq-x')).toBe(false);
+  });
+  it('matn: tahlil → preview + token → tasdiq → RPC (aktor sessiyadan, qurilma tokenidan)', async () => {
+    const t1 = await bff('/api/ombor-buyruq', 'POST', { amal: 'tahlil', kompaniya_id: 8, sklad_id: 3, til: 'uz', matn: '50 kg mix keldi' });
+    expect(t1.status).toBe(200);
+    const j = await t1.json() as { ok: boolean; holat: string; token: string; preview: Record<string, unknown> };
+    expect(j).toMatchObject({ ok: true, holat: 'tasdiq_kerak' });
+    expect(j.preview).toMatchObject({ tur: 'prixod', miqdor: 50 });
+    expect(rpcs.some(r => r.nom === 't2_ombor_prixod_v1')).toBe(false); // preview hech narsa yozmaydi
+    const t2 = await bff('/api/ombor-buyruq', 'POST', { amal: 'tasdiq', kompaniya_id: 8, sklad_id: 3, token: j.token });
+    expect(t2.status).toBe(200);
+    const yoz = rpcs.find(r => r.nom === 't2_ombor_prixod_v1')!;
+    expect(yoz.body).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 8, p_sklad_id: 3, p_miqdor: '50' });
+  });
+  it('eslatma (autocomplete) va ostatka o\'qish BFF orqali ishlaydi', async () => {
+    expect((await bff('/api/ombor-buyruq', 'POST', { amal: 'eslatma', kompaniya_id: 8, sklad_id: 3, q: 'sem' })).status).not.toBe(400);
+    const q = await bff('/api/ombor-buyruq', 'POST', { amal: 'qoldiq', kompaniya_id: 8, sklad_id: 3 });
+    expect(q.status).toBe(200);
+    expect(rpcs.find(r => r.nom === 't2_ombor_qoldiq_v2')!.body.p_actor_id).toBe(7);
+  });
+  it('ovoz: JSON audio_b64 BFF dan o\'tadi va STT bosqichigacha yetadi (multipart kerak emas)', async () => {
+    const r = await bff('/api/ombor-buyruq', 'POST', { amal: 'tahlil', kompaniya_id: 8, sklad_id: 3, til: 'uz', mime: 'audio/mp4', audio_b64: btoa('synthetic-audio') });
+    const code = ((await r.json()) as { code?: string }).code;
+    expect(code).toBe('VOICE_NOT_CONFIGURED'); // sintetik env da STT kaliti yo'q; TARGET_INVALID / BODY_INVALID / AUDIO_INVALID emas
+  });
+  it('eksport va alias qurilmaga ochilmaydi; GET rad', async () => {
+    for (const amal of ['eksport', 'alias', '']) expect((await bff('/api/ombor-buyruq', 'POST', { amal, kompaniya_id: 8, sklad_id: 3 })).status).toBe(400);
+    expect((await bff('/api/ombor-buyruq')).status).toBe(400);
+  });
+});
+describe('mobil BFF: kirish-taklif / jarvis', () => {
+  const notTarget = async (r: Response) => expect(((await r.json().catch(() => ({}))) as { code?: string }).code).not.toBe('TARGET_INVALID');
   it('kirish-taklif: only the director-side yarat action is reachable (qabul/ulash/royxat/bekor are refused)', async () => {
     await notTarget(await bff('/api/kirish-taklif', 'POST', { amal: 'yarat', kompaniya_id: 8, ism: 'Test', telefon: '+998900000000', rol: 'pto' }));
     for (const amal of ['qabul', 'ulash', 'royxat', 'bekor']) expect((await bff('/api/kirish-taklif', 'POST', { amal })).status).toBe(400);

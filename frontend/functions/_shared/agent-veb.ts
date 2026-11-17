@@ -84,7 +84,7 @@ export async function vebOl(
     const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
     let res: Response;
     try {
-      res = await fetchImpl(joriy.url.toString(), { method: 'GET', redirect: 'manual', signal: ctrl.signal, headers: { Accept: 'text/html,text/plain,application/json;q=0.9', 'User-Agent': 'Smeta-tizimi-agent/1' } });
+      res = await fetchImpl(joriy.url.toString(), { method: 'GET', redirect: 'manual', signal: ctrl.signal, headers: { Accept: 'text/html,text/plain,application/json;q=0.9', 'User-Agent': 'QURAI-agent/1' } });
     } catch { return { ok: false, xato: 'Manbaga ulanib bo‘lmadi' }; } finally { clearTimeout(timer); }
     if (res.status >= 300 && res.status < 400) {
       const joy = res.headers.get('location');

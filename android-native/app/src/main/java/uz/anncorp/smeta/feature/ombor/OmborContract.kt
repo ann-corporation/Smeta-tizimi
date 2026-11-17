@@ -108,12 +108,7 @@ fun searchKey(s: String): String {
 }
 
 /** Every typed token must occur in the material name (AND), in either script. Blank query matches everything. */
-fun matchesQuery(name: String, query: String): Boolean {
-    val tokens = searchKey(query).split(' ').filter { it.isNotEmpty() }
-    if (tokens.isEmpty()) return true
-    val key = searchKey(name)
-    return tokens.all { key.contains(it) }
-}
+fun matchesQuery(name: String, query: String): Boolean = fuzzyScore(name, query) != null
 
 /** What a scanned barcode/QR becomes in the search field. There is no code column in the stock data, so it only fills the search. */
 fun scanToQuery(raw: String): String = raw.filterNot { it.isISOControl() }.trim().replace(Regex("\\s+"), " ").take(60)
@@ -142,8 +137,9 @@ sealed interface OmborScope {
 
 fun filterStock(rows: List<StockRow>, scope: OmborScope, query: String): List<StockRow> {
     val scoped = if (scope is OmborScope.Obyekt) rows.filter { it.obyektId == scope.id } else rows
-    return scoped.filter { matchesQuery(it.nomi, query) }
-        .sortedWith(compareBy({ searchKey(it.nomi) }, { it.birligi }, { it.obyektId ?: 0L }))
+    val scored = scoped.mapNotNull { r -> fuzzyScore(r.nomi, query)?.let { r to it } }
+    // Clean matches first, then the ones that needed typo tolerance; same alphabetical order inside a group.
+    return scored.sortedWith(compareBy({ it.second }, { searchKey(it.first.nomi) }, { it.first.birligi }, { it.first.obyektId ?: 0L })).map { it.first }
 }
 
 /** `31.12.2026` from a Postgres timestamptz («2026-12-31T09:30:00.123+00:00») or a plain date; null when unreadable. */

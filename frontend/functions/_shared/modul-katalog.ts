@@ -24,6 +24,11 @@ export const NATIVE_YOL: Readonly<Record<string, string>> = {
   '/admin/fakt': 'fakt',
   '/admin/foto': 'foto',
   '/admin/dashboard': 'rahbar',
+  // Direktor pulti va Rahbar paneli ilovada bitta native ekran (boss paneli); ro'yxatda bitta qator ko'rinadi.
+  '/admin/pult': 'rahbar',
+  '/admin/f2-reestr': 'f2reestr',
+  '/admin/nakopitelniy': 'nakop',
+  '/admin/qarzdorlik': 'qarzdor',
   '/admin/zayavka': 'zayavka',
   '/admin/m29': 'm29',
   '/admin/naryad': 'naryad',

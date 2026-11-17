@@ -1,4 +1,4 @@
-﻿# Android roadmap (after P5)
+# Android roadmap (after P5)
 
 Audit of web features that field and office users need most and that are still web-fallback (opened in the authenticated WebView), by impact / effort.
 
@@ -16,3 +16,15 @@ Audit of web features that field and office users need most and that are still w
 | 7 | Finance / payments entry, debtors drill-down | medium | L | Boss panel shows totals only |
 | 8 | AOSR / executive documents | medium | L | |
 | 9 | Delta sync for the packet (txid horizon) instead of full re-download | performance | M | ADR OBYEKT_PAKET_OFFLINE_DESKTOP_V1 section 1.5 |
+
+## Round P8 (0.1.9)
+
+Native now: warehouse (stock, receipts and issues lists, item card with history, fuzzy Latin/Cyrillic search, typed and voice commands with a server-parsed preview), company F-2 registry, cumulative statement per object (files from the server document engine), fact acceptance (usta drafts, PIN step-up through the API client), debtors drill-down with the per-object boss panel, resource statement. Hub duplicate (Director console / Boss panel) removed.
+
+Still open: texnadzor acceptance for the external party (needs /api/tomon + nazorat in the mobile BFF), row-level cumulative table (needs /api/hujjat-nazorat in the BFF), POST /api/ombor-buyruq server contract (the app codes against an assumed shape), profile photo / sessions / notification settings (need /api/profil actions in the BFF allow-list), voice command server endpoint in the BFF allow-list.
+
+## Round P10 (0.1.10)
+
+Native now: Settings (photo pick/crop/upload/remove via /api/mobil/avatar -> R2 r2Yoz, name/phone, language, theme, per-type notification switches + Telegram bot prefs, PIN/biometrics, active session + sign out other devices with device re-enrolment, cache, about/update check, log out) and texnadzor acceptance (/api/tomon taqdimlar + f2_tekshiruv + nazorat_qaror, server step-up PIN). BFF allow-list: profil GET/yangila/boshqa_sessiyalar_chiqish, tomon (nazorat sections/decisions), telegram (status + sozlama).
+
+Still open: a real list of other sessions/devices (needs a self-service device list RPC), avatar shown to other users (people lists), row-level cumulative table.

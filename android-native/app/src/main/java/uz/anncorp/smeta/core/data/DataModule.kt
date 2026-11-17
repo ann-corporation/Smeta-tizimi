@@ -158,6 +158,12 @@ object DataModule {
     fun peopleRepository(api: BffApi) = PeopleRepository(api)
 
     @Provides @Singleton
+    fun settingsRepository(api: BffApi) = SettingsRepository(api) { DeviceInfo(Build.MODEL ?: "Android", "Android ${Build.VERSION.RELEASE}", BuildConfig.VERSION_NAME) }
+
+    @Provides @Singleton
+    fun nazoratRepository(api: BffApi) = NazoratRepository(api)
+
+    @Provides @Singleton
     fun jarvisRepository(api: BffApi) = JarvisRepository(api)
 
     @Provides @Singleton

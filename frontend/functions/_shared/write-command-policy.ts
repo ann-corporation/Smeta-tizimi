@@ -284,6 +284,8 @@ const AKT_QAYTA_TASDIQ_EMAS = new Set(['draft', 'submitted', 'cancelled', 'super
 export const STEP_UP_API_AMALLAR: Readonly<Record<string, ReadonlySet<string>>> = {
   imzo: new Set(['yoz', 'kalit_yarat']),
   'hujjat-aylanish': new Set(['zanjir_qaror']),
+  /* Texnik nazorat qarori (qabul / tuzatish / rad): tasdiqlash buyrug'i (P10, mobil texnadzor qabuli). */
+  tomon: new Set(['nazorat_qaror']),
 };
 export function stepUpKerak(api: string, b: Record<string, unknown>): boolean {
   const amal = String(b.amal ?? '');

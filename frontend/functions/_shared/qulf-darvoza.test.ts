@@ -32,9 +32,11 @@ describe('stepUpKerak (policy)', () => {
     expect(stepUpKerak('imzo', { amal: 'kalit_yarat' })).toBe(true);
     expect(stepUpKerak('imzo', { amal: 'tayyorla' })).toBe(false);
     expect(stepUpKerak('hujjat-aylanish', { amal: 'zanjir_qaror' })).toBe(true);
+    expect(stepUpKerak('tomon', { amal: 'nazorat_qaror' })).toBe(true);
+    expect(stepUpKerak('tomon', { amal: 'izoh' })).toBe(false);
     expect(stepUpKerak('hujjat-aylanish', { amal: 'bildirishnoma_oqildi' })).toBe(false);
     expect(stepUpKerak('sb', { amal: 'bux_kassa_yoz_v1' })).toBe(false);
-    expect(Object.keys(STEP_UP_API_AMALLAR)).toEqual(['imzo', 'hujjat-aylanish']);
+    expect(Object.keys(STEP_UP_API_AMALLAR)).toEqual(['imzo', 'hujjat-aylanish', 'tomon']);
   });
 });
 

@@ -1,4 +1,5 @@
 {
+  "Avval bot tekshiruvidan (Turnstile) oting": { "ru": "Сначала пройдите проверку от ботов (Turnstile)", "en": "Please complete the bot check (Turnstile) first" },
   "Email kod bilan kirish": { "ru": "Вход по коду из письма", "en": "Sign in with an email code" },
   "Email manzilini to‘g‘ri kiriting.": { "ru": "Введите корректный адрес почты.", "en": "Enter a valid email address." },
   "Emailga kelgan 6 xonali kod": { "ru": "6-значный код из письма", "en": "6-digit code from the email" },

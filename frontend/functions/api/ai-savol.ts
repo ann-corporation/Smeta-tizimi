@@ -4,6 +4,7 @@ import { aiPublicError, type AiEnv } from '../_shared/ai';
 import { AI_KORSATMA, type AiUmumiy } from '../../src/api/t2-ai';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { AiByudjetXatosi, aiHisobli } from '../_shared/ai-hisobli';
+import { workersAiHisobli } from '../_shared/ai-bepul-hisob';
 import { jarvisKichikGap, jarvisRahmatJavobi, jarvisSalomJavobi } from '../../src/lib/jarvis/intent';
 import { jarvisHelp, jarvisMoney, jarvisEvidenceAnswer, jarvisGrafikJavobi } from '../../src/lib/jarvis/answers';
 
@@ -71,7 +72,7 @@ function umumiyMatn(k: AiUmumiy): string {
   return 'OBYEKTLAR HOLATI (tizimdan):\n' + satrlar.join('\n') + '\n\n' + k.izoh;
 }
 
-/** Pullik model chaqiruvlari HISOBLI (limit, hamyon, sarf jurnali, foydalanuvchi/kompaniya modeli). Faqat bepul Workers AI binding hisobsiz. */
+/** Pullik model chaqiruvlari HISOBLI (limit, hamyon, sarf jurnali, foydalanuvchi/kompaniya modeli). Workers AI binding ham workersAiHisobli orqali hisobli va kunlik chegarali. */
 async function jarvisJavobi(env: Env, system: string, text: string, actor: number, kompaniyaId: number) {
   if (env.OPENROUTER_API_KEY?.trim()) {
     // Egasi ulagan provider: Workers binding yoki boshqa eski kalit uni chetlab o'tmaydi.
@@ -82,14 +83,16 @@ async function jarvisJavobi(env: Env, system: string, text: string, actor: numbe
      bo'lsa, eski gateway orqali fallback bo'lib qoladi. */
   if (env.AI) {
     const model = String(env.AI_MODEL || '@cf/meta/llama-3.1-8b-instruct-fast').trim();
-    const raw = await env.AI.run(model, {
+    const ai = env.AI;
+    /* Bepul binding ham HISOBLI: a'zolik + byudjet + kunlik chegara (foydalanuvchi/kompaniya) + token sarfi yoziladi. */
+    const raw = await workersAiHisobli(env, actor, kompaniyaId, () => ai.run(model, {
       messages: [
         { role: 'system', content: system },
         { role: 'user', content: text },
       ],
       temperature: 0.1,
       max_tokens: 1000,
-    });
+    }));
     const javob = String(raw?.response || '').trim();
     if (!javob) throw new Error('Workers AI bo\'sh javob qaytardi');
     return {
