@@ -33,7 +33,7 @@ import { ozgarishlarOl } from '../../api/t2-ozgarish';
 import { f2ReestrOl, obyektF2Fayllari, type ReestrMalumot } from '../../api/t2-f2-reestr';
 import type { CenterDocument } from '../../api/t2-hujjat-canonical';
 import { aktsizFayllar, bosqich, filtrla, reestrQur, tartibla, type F2Bosqich, type Ogoh, type ReestrAkt, type ReestrFiltr, type ReestrJami, type ReestrQator, type Summa } from '../../lib/f2-reestr/reestr';
-import { bajarilishMaxraji, manbaTaqsimot, reestrUlush } from '../../lib/f2-reestr/reestr-korinish';
+import { bajarilishMaxraji, manbaTaqsimot, ozgarishlarPaketdan, reestrUlush } from '../../lib/f2-reestr/reestr-korinish';
 import type { Ustun } from '../../umumiy/jadval-filtr/ustunFiltr';
 import { useJadvalFiltr } from '../../umumiy/jadval-filtr/useJadvalFiltr';
 import { FiltrHolatQatori, UstunFiltrTugma } from '../../umumiy/jadval-filtr/UstunFiltrTugma';
@@ -231,17 +231,6 @@ export default function F2Reestr() {
   const reestr = useMemo(() => (malumot ? reestrQur(malumot) : null), [malumot]);
   /** Bajarilish maxraji = smeta + o'zgarishlar: tasdiqlangan F2 si bor obyektlar uchun server «O'zgarishlar» (yagona manba), o'qilmaguncha asl smeta. */
   const [ozgarishlar, setOzgarishlar] = useState<ReadonlyMap<number, number>>(new Map());
-  useEffect(() => {
-    setOzgarishlar(new Map());
-    if (!reestr) return;
-    const idlar = reestr.qatorlar.filter(q => q.boyicha.tasdiqlangan.malum > 0 && q.obyekt.jami != null).map(q => q.obyekt.id);
-    if (!idlar.length) return;
-    let tirik = true;
-    void ozgarishlarOl(idlar).then(m => { if (tirik) setOzgarishlar(m); }).catch(() => undefined);
-    return () => { tirik = false; };
-  }, [reestr]);
-  const reestrQatorlar = useMemo(() => (reestr ? reestr.qatorlar.map(q => (ozgarishlar.has(q.obyekt.id) ? { ...q, obyekt: { ...q.obyekt, ozgarish: ozgarishlar.get(q.obyekt.id) } } : q)) : []), [reestr, ozgarishlar]);
-  const qatorlar = useMemo(() => tartibla(filtrla(reestrQatorlar, filtr)), [reestrQatorlar, filtr]);
   /** Smeta ustuni (egasi 2026-10-27): sukut — obyekt qiymati QQS bilan; «Ustamali» (QQS siz) yoki «Ustamasiz» tanlash mumkin; jami qatorida har doim uchalasi. */
   const [summaTur, setSummaTur] = useState<'qqs' | 'ustamasiz' | 'ustamali'>('qqs');
   const portfelHammasi = useMemo(() => (reestr ? reestr.qatorlar.map(q => ({ obyektId: q.obyekt.id })) : []), [reestr]);
@@ -251,6 +240,22 @@ export default function F2Reestr() {
   const rp = useRahbarPanel(reestr ? kompaniyaId : null);
   const f2Paket = useMemo(() => new Map((rp.data?.obyektlar ?? []).map(o => [o.obyekt_id, o.f2] as const)), [rp.data]);
   const f2Jami = rp.data?.kartalar.bajarildi.jami ?? null;
+  /* Tezlik: «O'zgarishlar» (smeta + o'zgarishlar maxraji) rahbar paketidan olinadi (smeta_joriy - smeta, kesh) - avval har obyekt uchun
+     alohida og'ir /t2_smeta_ozgarish_qatlam_v1 so'rovi ketardi (38 obyekt = 38 so'rov). Faqat paketda joriy smeta yo'q obyektlar yoki
+     paket o'qilmasa - eski yo'l (obyekt bo'yicha). */
+  const panelOzgarish = useMemo(() => ozgarishlarPaketdan(rp.data?.obyektlar), [rp.data]);
+  useEffect(() => {
+    setOzgarishlar(new Map());
+    if (!reestr || rp.isPending) return;
+    const idlar = reestr.qatorlar.filter(q => q.boyicha.tasdiqlangan.malum > 0 && q.obyekt.jami != null && !panelOzgarish.has(q.obyekt.id)).map(q => q.obyekt.id);
+    if (!idlar.length) return;
+    let tirik = true;
+    void ozgarishlarOl(idlar).then(m => { if (tirik) setOzgarishlar(m); }).catch(() => undefined);
+    return () => { tirik = false; };
+  }, [reestr, rp.isPending, panelOzgarish]);
+  const ozgarishlarJami = useMemo(() => new Map([...ozgarishlar, ...panelOzgarish]), [ozgarishlar, panelOzgarish]);
+  const reestrQatorlar = useMemo(() => (reestr ? reestr.qatorlar.map(q => (ozgarishlarJami.has(q.obyekt.id) ? { ...q, obyekt: { ...q.obyekt, ozgarish: ozgarishlarJami.get(q.obyekt.id) } } : q)) : []), [reestr, ozgarishlarJami]);
+  const qatorlar = useMemo(() => tartibla(filtrla(reestrQatorlar, filtr)), [reestrQatorlar, filtr]);
   /* Excel uslubidagi ustun filtrlari (egasi 2026-10-27): yuqoridagi qidiruv/holat filtri bilan VA; tekis — saralash mumkin. */
   /* usePortfelUstamali har renderda yangi Map beradi — ustunlar faqat qiymatlar o'zgarganda qayta quriladi. */
   const ustamaliImzo = summaTur === 'ustamali' ? [...portfelUstamali.boYicha].map(([id, v]) => `${id}:${v ?? ''}`).join('|') : '';

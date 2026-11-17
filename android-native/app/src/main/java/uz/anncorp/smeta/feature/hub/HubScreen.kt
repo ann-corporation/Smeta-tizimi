@@ -84,6 +84,11 @@ import uz.anncorp.smeta.core.ui.TouchTarget
 
 internal fun iconFor(code: String): ImageVector = when (code) {
     "zayavka" -> Icons.Filled.ShoppingCart
+    "m29" -> Icons.Filled.Place
+    "qarzdor" -> Icons.Filled.Warning
+    "qabul" -> Icons.Filled.CheckCircle
+    "resurs" -> Icons.Filled.List
+    "naryad" -> Icons.Filled.Build
     "nazorat" -> Icons.Filled.Warning
     "obyektlar" -> Icons.Filled.Home
     "fakt" -> Icons.Filled.Create
@@ -104,7 +109,6 @@ internal fun iconFor(code: String): ImageVector = when (code) {
     "logistika" -> Icons.Filled.Place
     "hr" -> Icons.Filled.Person
     "sotuv" -> Icons.Filled.Home
-    "hisobot" -> Icons.Filled.KeyboardArrowUp
     "kompaniya" -> Icons.Filled.Settings
     else -> Icons.Filled.Build
 }

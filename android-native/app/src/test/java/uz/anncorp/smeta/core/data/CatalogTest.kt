@@ -95,4 +95,10 @@ class CatalogTest {
         // The result must satisfy the server ticket whitelist (functions/_shared/mobil-bilet.ts BILET_YOL).
         assertTrue(Regex("^/admin(?:/[A-Za-z0-9_.~-]+)*(?:\\?[A-Za-z0-9_=&.%-]*)?$").matches(embedPath("/admin/smeta-studio", 123, true)))
     }
-}
+
+    @Test fun twoPagesOpeningTheSameNativeScreenAreShownOnce() {
+        fun item(id: String, path: String, native: String?) = CatalogItem(id, L3(id, id, id), "g", L3(id, id, id), "", path, native, true, "tayyor", false)
+        val items = listOf(item("pult", "/admin/pult", "rahbar"), item("dashboard", "/admin/dashboard", "rahbar"), item("a", "/admin/a", null), item("b", "/admin/b", null))
+        val r = items.dedupeNative()
+        assertEquals(listOf("dashboard", "a", "b"), r.map { it.id })   // the page on the module's own path wins; web pages are never merged
+    }}

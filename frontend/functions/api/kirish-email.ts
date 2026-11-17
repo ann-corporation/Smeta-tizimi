@@ -9,10 +9,12 @@
  * Xavfsizlik: kodning o'zi bazaga yozilmaydi (HMAC xesh, SESSIYA_KALIT bilan); 10 daqiqa, 5 urinish, email/IP limitlari
  * bazada (t2_email_kod_yarat_v1). Hisob bor-yo'qligi kod bosqichida oshkor qilinmaydi. Origin tekshiruvi.
  */
-import { imzola, SESSIYA_MUDDAT_MS, type Rol } from '../_shared/auth';
+import { turnstileTekshir, turnstileXabar, turnstileYoqilgan } from '../_shared/turnstile';
+import { imzola, SESSIYA_MUDDAT_MS, tekshir, type Rol } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
+import { KANONIK_ORIGIN, publicOrigin } from '../../src/lib/sayt-manzil';
 
-type Env = { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; RESEND_API_KEY?: string; EMAIL_FROM?: string };
+type Env = { TURNSTILE_SECRET?: string; PUBLIC_ORIGIN?: string; SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; RESEND_API_KEY?: string; EMAIL_FROM?: string };
 /** EMAIL_FROM berilmasa — Resend sinov manzili (domen tasdiqlanmaguncha kod faqat Resend hisobi egasiga yetadi). */
 export const STANDART_FROM = 'QURAI <onboarding@resend.dev>';
 /** Email tasdiqlanmagan parolli hisobga email kod bilan kirish rad etilgan (hisobni oldindan egallab olish himoyasi). */
@@ -46,10 +48,10 @@ const originYaroqsiz = (req: Request) => {
   return req.headers.get('Sec-Fetch-Site') === 'cross-site' || (!!origin && origin !== new URL(req.url).origin);
 };
 
-export function xatTanasi(kod: string): { text: string; html: string } {
+export function xatTanasi(kod: string, sayt: string = KANONIK_ORIGIN): { text: string; html: string } {
   const text = `QURAI — kirish kodi: ${kod}\nKod 10 daqiqa amal qiladi. Uni hech kimga bermang.\nAgar siz so'ramagan bo'lsangiz, bu xatni e'tiborsiz qoldiring.`;
   const html = `<div style="font-family:Arial,sans-serif;max-width:420px;margin:0 auto;padding:24px;color:#0e1113">
-<p style="margin:0 0 16px"><img src="https://smeta-tizimi.pages.dev/brand/qur-icon-192.png" width="40" height="40" alt="QURAI" style="vertical-align:middle;border-radius:9px"> <b style="vertical-align:middle;font-size:16px;letter-spacing:1px">QURAI</b></p>
+<p style="margin:0 0 16px"><img src="${sayt}/brand/qur-icon-192.png" width="40" height="40" alt="QURAI" style="vertical-align:middle;border-radius:9px"> <b style="vertical-align:middle;font-size:16px;letter-spacing:1px">QURAI</b></p>
 <p style="font-size:15px;margin:0 0 12px">QURAI — kirish kodi</p>
 <p style="font-size:34px;letter-spacing:8px;font-weight:700;margin:0 0 12px;color:#0b7a72">${kod}</p>
 <p style="font-size:13px;color:#555;margin:0">Kod 10 daqiqa amal qiladi. Uni hech kimga bermang.<br>Agar siz so'ramagan bo'lsangiz, bu xatni e'tiborsiz qoldiring.</p>
@@ -66,7 +68,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const { SUPABASE_URL, SUPABASE_KEY, SESSIYA_KALIT, RESEND_API_KEY } = ctx.env;
   const EMAIL_FROM = ctx.env.EMAIL_FROM?.trim() || STANDART_FROM;
   if (originYaroqsiz(ctx.request)) return json({ ok: false, code: 'ORIGIN_INVALID' }, 403);
-  let b: { amal?: string; email?: string; tasdiqlash_id?: string; kod?: string; ism?: string; operation_id?: string } = {};
+  let b: { amal?: string; email?: string; tasdiqlash_id?: string; kod?: string; ism?: string; operation_id?: string; turnstile_token?: string } = {};
   try { b = await ctx.request.json(); } catch { return json({ ok: false, code: 'BODY_INVALID', xabar: 'Noto‘g‘ri so‘rov' }, 400); }
   const email = String(b.email || '').trim().toLowerCase().slice(0, 254);
   if (!EMAIL.test(email)) return json({ ok: false, code: 'EMAIL_NOTOGRI', xabar: 'Email manzilini to‘g‘ri kiriting.' }, 400);
@@ -76,6 +78,10 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   });
 
   if (b.amal === 'kod') {
+    /* Kirgan foydalanuvchi (hisob birlashtirish) bot emas — Turnstile faqat anonim so'rovga. */
+    const kirgan = turnstileYoqilgan(ctx.env) ? await tekshir(ctx.request.headers.get('Cookie'), SESSIYA_KALIT).catch(() => null) : null;
+    const ts = kirgan ? { ok: true as const } : await turnstileTekshir(ctx.env, b.turnstile_token, ctx.request.headers.get('CF-Connecting-IP'));
+    if (!ts.ok) return json({ ok: false, code: ts.code, xabar: turnstileXabar(ts.code) }, ts.code === 'TURNSTILE_XIZMAT' ? 503 : 403);
     if (!RESEND_API_KEY) return json({ ok: false, code: 'EMAIL_XIZMATI_SOZLANMAGAN', xabar: 'Email orqali kirish hali yoqilmagan. Google yoki login-parol bilan kiring.' }, 503);
     const kod = yangiKod();
     try {
@@ -84,7 +90,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const d = await r.json().catch(() => null) as { ok?: boolean; code?: string; xabar?: string; tasdiqlash_id?: string } | null;
       if (!r.ok || !d) return json({ ok: false, code: 'SERVER_XATO', xabar: 'Kod yuborib bo‘lmadi. Keyinroq urinib ko‘ring.' }, 502);
       if (!d.ok || !d.tasdiqlash_id) return json({ ok: false, code: d.code, xabar: d.xabar || 'Kod yuborib bo‘lmadi.' }, d.code === 'LIMIT' || d.code === 'KOD_KUTILMOQDA' ? 429 : 400);
-      const xat = xatTanasi(kod);
+      const xat = xatTanasi(kod, publicOrigin(ctx.env));
       const mail = await fetch('https://api.resend.com/emails', {
         method: 'POST', headers: { Authorization: 'Bearer ' + RESEND_API_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ from: EMAIL_FROM, to: [email], subject: `QURAI — kirish kodi: ${kod}`, text: xat.text, html: xat.html }),

@@ -16,6 +16,7 @@ import { AlertTriangle, Building2, CheckCircle2, FileEdit, Search, User } from '
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { IshJoyiAmallari } from '../../umumiy/kontekst/IshJoyiAmallari';
 import { KompaniyaOching } from '../components/KompaniyaOching';
+import { SinovBoshlash } from '../components/SinovBoshlash';
 import { BoshHolat, Sahifa, Skelet } from '../../umumiy/ui/Sahifa';
 import { ishJoylarim, type IshJoyiKarta, type MeningIshim } from '../../api/t2-ish-joyi';
 import { ROLE_LABELS } from '../../lib/company-authorization/permission-labels';
@@ -145,6 +146,7 @@ export default function IshJoylarim() {
     <Sahifa sarlavha={t('Ish joylarim')} tavsif={t('Barcha ish joylaringiz va ulardagi navbatingiz — bitta ekranda. Bosing — o‘sha joyga o‘tasiz.')}
       onYangila={() => void yukla()} yangilanmoqda={band} amallar={<IshJoyiAmallari />}>
       <div className="mx-auto flex max-w-6xl flex-col gap-4">
+        <SinovBoshlash />
         {xato && <div role="alert" className="fz-note fz-note--danger"><AlertTriangle aria-hidden="true" /><span>{xato}</span></div>}
 
         <div className="grid gap-4 lg:grid-cols-[minmax(280px,2fr)_3fr]">

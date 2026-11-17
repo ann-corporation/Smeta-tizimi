@@ -15,27 +15,31 @@ import matnlar from '../../src/i18n/lugat/qism/telegram-bot.json';
 import kirishMatnlar from '../../src/i18n/lugat/qism/telegram-kirish.json';
 import bot2Matnlar from '../../src/i18n/lugat/qism/telegram-bot-2.json';
 import usernameMatnlar from '../../src/i18n/lugat/qism/telegram-username.json';
+import kanalMatnlar from '../../src/i18n/lugat/qism/telegram-kanal.json';
+import { KANONIK_ORIGIN, publicOrigin } from '../../src/lib/sayt-manzil';
 
 export type TgEnv = {
   SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT?: string;
   TELEGRAM_BOT_TOKEN?: string; TELEGRAM_WEBHOOK_SECRET?: string; TELEGRAM_BOT_USERNAME?: string; TELEGRAM_SAYT_URL?: string;
+  /** Domen: saytning kanonik manzili (lib/sayt-manzil.ts). TELEGRAM_SAYT_URL (eski nom) ustun, bo'lmasa PUBLIC_ORIGIN, bo'lmasa qurai.uz. */
+  PUBLIC_ORIGIN?: string;
 };
 export type TgTil = 'uz' | 'ru' | 'en';
 
 export const STANDART_BOT = 'qur_uz_bot';
-export const STANDART_SAYT = 'https://smeta-tizimi.pages.dev';
+export const STANDART_SAYT = KANONIK_ORIGIN;
 /** Mini App initData yaroqlilik muddati (soniya). Mini App ochilgach bir soat ichida kirish kerak. */
 export const INIT_DATA_MAX_YOSH = 3600;
 /** Ulash kodi muddati (bazada ham 10 daqiqa). */
 export const ULASH_KOD_DAQIQA = 10;
 
 export const botNomi = (env: TgEnv) => (env.TELEGRAM_BOT_USERNAME || STANDART_BOT).replace(/^@/, '').trim();
-export const saytUrl = (env: TgEnv) => (env.TELEGRAM_SAYT_URL || STANDART_SAYT).replace(/\/+$/, '');
+export const saytUrl = (env: TgEnv) => (env.TELEGRAM_SAYT_URL || publicOrigin(env)).replace(/\/+$/, '');
 export const miniAppUrl = (env: TgEnv) => saytUrl(env) + '/tg';
 export const tokenBormi = (env: TgEnv) => /^\d+:[A-Za-z0-9_-]{20,}$/.test(String(env.TELEGRAM_BOT_TOKEN || '').trim());
 
 /* ───────── i18n (lugat/qism/telegram-bot.json; kalit = o'zbek lotin matn) ───────── */
-const LUG = { ...(matnlar as Record<string, { ru: string; en: string }>), ...(kirishMatnlar as Record<string, { ru: string; en: string }>), ...(bot2Matnlar as Record<string, { ru: string; en: string }>), ...(usernameMatnlar as Record<string, { ru: string; en: string }>) };
+const LUG = { ...(matnlar as Record<string, { ru: string; en: string }>), ...(kirishMatnlar as Record<string, { ru: string; en: string }>), ...(bot2Matnlar as Record<string, { ru: string; en: string }>), ...(usernameMatnlar as Record<string, { ru: string; en: string }>), ...(kanalMatnlar as Record<string, { ru: string; en: string }>) };
 export function tilAniqla(languageCode: unknown): TgTil {
   const s = String(languageCode || '').toLowerCase();
   return s.startsWith('ru') ? 'ru' : s.startsWith('en') ? 'en' : 'uz';

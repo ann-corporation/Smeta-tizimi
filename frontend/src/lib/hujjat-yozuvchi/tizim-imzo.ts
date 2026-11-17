@@ -7,7 +7,7 @@
  *
  * Imzo — FAQAT kolontitul va hujjat xususiyatlari: kataklar, maket, Print_Area, rasmiy shakl (F2, F3, LRV)
  * va undagi imzo bloklari (ЗАКАЗЧИК/ПОДРЯДЧИК) o'zgarmaydi. Kolontitul sahifa chetida (margin) bosiladi.
- *   • pastki kolontitul: chapda «QURAI · smeta-tizimi.pages.dev · <hujjat>», o'ngda
+ *   • pastki kolontitul: chapda «QURAI · qurai.uz · <hujjat>», o'ngda
  *     «<foydalanuvchi> · <sana vaqt> · Код <tekshirish kodi>»; markazdagi mavjud matn (Страница &P из &N) saqlanadi.
  *     Shablonning pastki chap/o'ng qismi band bo'lsa — yuqori kolontitulga, u ham band bo'lsa — o'ng qism oxiriga.
  *   • xususiyatlar: Creator / Company / Application «QURAI», LastModifiedBy — foydalanuvchi,

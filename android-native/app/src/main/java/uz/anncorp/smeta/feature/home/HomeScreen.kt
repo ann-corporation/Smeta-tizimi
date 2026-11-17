@@ -83,7 +83,8 @@ private val Tabs = listOf(
 fun HomeScreen(
     onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOpenApproval: (Long) -> Unit, onOutbox: () -> Unit,
     onOpenWeb: (path: String, title: String) -> Unit, onPickFakt: () -> Unit, onPickPhoto: () -> Unit,
-    onJarvis: () -> Unit = {}, onRahbar: () -> Unit = {}, onZayavka: () -> Unit = {}, onInvite: () -> Unit = {}, onInvites: () -> Unit = {}, onNotifications: () -> Unit = {},
+    onJarvis: () -> Unit = {}, onRahbar: () -> Unit = {}, onZayavka: () -> Unit = {}, onInvite: () -> Unit = {}, onInvites: () -> Unit = {}, onNotifications: () -> Unit = {}, onSettings: () -> Unit = {},
+    onModule: (NativeTarget) -> Unit = {},
     vm: HomeViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -126,8 +127,8 @@ fun HomeScreen(
                     Text(stringResource(R.string.home_loading), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 tab == OMBOR_TAB -> { BackHandler { tab = 0 }; OmborScreen(onOutbox) }
-                tab == 4 -> ProfileScreen(state, onTheme = vm::setTheme, onSwitch = { sheet = true }, onSignOut = vm::requestSignOut, onInvite = onInvite, onInvites = onInvites)
-                else -> TabBody(state, tab, vm::load, openObject, onOpenFakt, onOpenApproval, { tab = it }, onOutbox, onOpenWeb, onPickFakt, onPickPhoto, vm::resumeOnboarding, onJarvis, onRahbar, onNotifications, onZayavka)
+                tab == 4 -> ProfileScreen(state, onTheme = vm::setTheme, onSwitch = { sheet = true }, onSignOut = vm::requestSignOut, onInvite = onInvite, onInvites = onInvites, onSettings = onSettings)
+                else -> TabBody(state, tab, vm::load, openObject, onOpenFakt, onOpenApproval, { tab = it }, onOutbox, onOpenWeb, onPickFakt, onPickPhoto, vm::resumeOnboarding, onJarvis, onRahbar, onNotifications, onZayavka, onModule)
             }
         }
     }
@@ -215,7 +216,7 @@ fun RoleChip(role: String) {
 @Composable
 private fun TabBody(
     state: HomeState, tab: Int, onRetry: () -> Unit, onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOpenApproval: (Long) -> Unit,
-    onGoTab: (Int) -> Unit, onOutbox: () -> Unit, onOpenWeb: (String, String) -> Unit, onPickFakt: () -> Unit, onPickPhoto: () -> Unit, onOnboard: () -> Unit, onJarvis: () -> Unit, onRahbar: () -> Unit, onNotifications: () -> Unit, onZayavka: () -> Unit,
+    onGoTab: (Int) -> Unit, onOutbox: () -> Unit, onOpenWeb: (String, String) -> Unit, onPickFakt: () -> Unit, onPickPhoto: () -> Unit, onOnboard: () -> Unit, onJarvis: () -> Unit, onRahbar: () -> Unit, onNotifications: () -> Unit, onZayavka: () -> Unit, onModule: (NativeTarget) -> Unit,
     banner: BannerViewModel = hiltViewModel(),
 ) {
     val bannerState by banner.state.collectAsStateWithLifecycle()
@@ -244,7 +245,8 @@ private fun TabBody(
                         NativeTarget.WAREHOUSE -> onGoTab(OMBOR_TAB)
                         NativeTarget.JARVIS -> onJarvis()
                         NativeTarget.RAHBAR -> onRahbar()
-        NativeTarget.ZAYAVKA -> onZayavka()
+                        NativeTarget.ZAYAVKA -> onZayavka()
+                        NativeTarget.M29, NativeTarget.NARYAD, NativeTarget.HUJJAT, NativeTarget.F2REESTR, NativeTarget.NAKOP, NativeTarget.QARZDOR, NativeTarget.QABUL, NativeTarget.RESURS, NativeTarget.NAZORAT -> onModule(target)
                     }
                 },
                 onWeb = onOpenWeb, onObject = onOpenObject, onFakt = onOpenFakt, onOnboard = onOnboard, onNotifications = onNotifications,

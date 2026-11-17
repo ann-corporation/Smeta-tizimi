@@ -41,7 +41,7 @@ export const PREFIKS: Readonly<Record<Domen, readonly string[]>> = {
     't2_norm', 't2_lrv', 't2_svod', 't2_shaxsiy_smeta', 't2_xom', 't2_resurs', 't2_material_alias', 't2_zamena',
     't2_almashtirilgan', 't2_qoshimcha_ish', 't2_resource_observation', 't2_work', 't2_ish_turi', 't2_ish_abc',
     't2_ish_kartasi', 't2_ish_resurslar', 't2_ish_tajriba', 't2_catalog', 't2_katalog', 't2_bosqich_katalog', 't2_birlik',
-    't2_kat', 't2_nom', 't2_tasnif', 't2_markirovka', 't2_soxta_rz', 't2_versiya', 't2_summa', 't2_kesh', 't2_obyekt_kesh',
+    't2_kat', 't2_nom', 't2_tasnif', 't2_markirovka', 't2_soxta_rz', 't2_versiya', 't2_summa', 't2_kesh', 't2_obyekt_kesh', 't2_obyekt_natija_kesh',
     't2_obyekt_jami', 't2_obyekt_nakrutka', 't2_obyekt_nk', 't2_obyekt_paket', 't2_manba', 't2_hisob', 't2_ustamasiz',
     't2_rollup', 't2_kaskad', 't2_f2_ustamali', 't2_ilk_matn', 't2_qator_muhr', 't2_topilmaganlar',
   ],
@@ -52,7 +52,7 @@ export const PREFIKS: Readonly<Record<Domen, readonly string[]>> = {
     't2_qator_f2da', 't2_qoshilgan_tarixda', 't2_rs_hosila',
   ],
   resurs: [
-    't2_buyurtma', 't2_buyurtmalar', 't2_procurement', 't2_sklad', 't2_skladga', 't2_m29', 't2_texnika', 't2_zayavka', 't2_erp_taminot',
+    't2_buyurtma', 't2_buyurtmalar', 't2_procurement', 't2_ombor', 't2_sklad', 't2_skladga', 't2_m29', 't2_texnika', 't2_zayavka', 't2_erp_taminot',
     't2_erp_texnika', 't2_viborka', 't2_bez_sklad', 't2_qator_bez_sklad', 't2_usta_zayavka',
   ],
   moliya: [
@@ -130,6 +130,9 @@ export const ISTISNO: Readonly<Record<string, { domen: Domen; izoh: string; noan
   t2_baza_hajm_tarix: { domen: 'platforma', izoh: 'baza hajmi monitoringi (platforma kuzatuvi)' },
   t2_baza_hajm_yoz_v1: { domen: 'platforma', izoh: 'baza hajmi monitoringi (platforma kuzatuvi)' },
   t2_ish_joyi_yarat_v1: { domen: 'platforma', izoh: 'kompaniyani ozi ochish (kompaniya yaratish platforma egaligida)' },
+  t2_sinov_boshlash_v1: { domen: 'platforma', izoh: 'yangi foydalanuvchi sinov ish joyi + 1000 token (bir martalik, onboarding)' },
+  t2_sinov_demo_v1: { domen: 'platforma', izoh: 'sinov ish joyiga namuna obyekt nusxasi (onboarding)' },
+  t2_sinov_holat_v1: { domen: 'platforma', izoh: 'sinov holati: balans/demo (faqat oqish)' },
   t2_ish_joyi_qoshil_v1: { domen: 'tomonlar', izoh: 'ish joyiga qo\'shilish (taklif oqimi)' },
   t2_f2_reestr_yoz_v1: { domen: 'moliya', izoh: 'F2 reestr SUMMASI (qo\'lda, solishtirish signali) - moliya yozadi' },
   t2_f2_reestr_jami: { domen: 'moliya', izoh: 'F2 reestr summasi jadvali (solishtirish signali, manba EMAS)' },

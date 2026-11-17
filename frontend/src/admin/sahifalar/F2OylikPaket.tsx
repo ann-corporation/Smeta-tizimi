@@ -14,8 +14,7 @@ import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
 import type { ReestrMalumot } from '../../api/t2-f2-reestr';
 import { portfelObyektOl, f3SvodOl, type PortfelObyektMalumot } from '../../api/f2-oylik-paket';
-import { tokenBilan, mazmunXeshi } from '../../api/t2-token';
-import { f2HujjatKaliti } from '../../api/f2-hujjat-kontekst';
+import { hujjatYarat as hujjatYaratYuklab } from '../../api/hujjat-yarat';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { Forma3ShaklTanlagich } from '../../components/forma3/Forma3ShaklTanlagich';
@@ -38,7 +37,7 @@ import {
   NDS_FOIZ, mavjudOylar, oyAktlari, oyF3lar, oyJami, oyKaliti, paketFayllari, paketTekshiruvlari, sukutTanlov,
   type FaylMeta, type PaketAkt, type PaketFayl, type PaketFaylTuri, type Tekshiruv, type TekshiruvKodi,
 } from '../../lib/f2-oylik-paket/oylik';
-import { paketAktExcel, paketAktHisobi } from '../../lib/f2-oylik-paket/portfel';
+import { paketAktHisobi } from '../../lib/f2-oylik-paket/portfel';
 import { avtoForma3, f3F2Farq, minimalSvod, oyF3Holati, type OyF3Holati } from '../../lib/f2-oylik-paket/forma3-avto';
 import { F3_AVTO_BELGI } from '../../lib/forma3-export';
 import type { MundarijaQator } from '../../lib/f2-oylik-paket/eksport';
@@ -427,19 +426,15 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot, yangila }: { kompaniyaId: 
 
   function belgila(id: number, on: boolean) { setTanlov((s) => { const x = new Set(s); if (on) x.add(id); else x.delete(id); return x; }); }
 
-  /** Bitta F2 Excel i — F2 tarixi generatori; token F2 tarixidagi bilan bir xil kalit (bir F2 — bir marta to'lov, qayta chiqarish bepul). */
+  /** Bitta F2 Excel i — YAGONA hujjat dvigateli (`POST /api/hujjat-yarat`, F2 tarixi va mobil ilova bilan bir xil shablon va dizayn);
+   *  token ham serverda (obyekt + oy + raqam kaliti: bir F2 — bir marta to'lov, qayta chiqarish bepul). Mijozda Ф-2 quruvchisi chaqirilmaydi. */
   async function f2Fayl(r: PaketAkt): Promise<{ fayl: { nom: string; bytes: Uint8Array } } | { xato: string }> {
-    const m = await obyektYukla(r.akt.obyekt_id);
-    const h = paketAktExcel(m, r.akt, r.obyektNom, raqamlar);
-    if (!h) return { xato: t('chiqariladigan qator yo‘q') };
-    const xesh = f2HujjatKaliti(r.akt.obyekt_id, r.akt.oy || '', r.akt.raqam) ?? `akt:${r.akt.id}:${await mazmunXeshi(h.bytes)}`;
-    const q = await tokenBilan({ kompaniyaId, amal: 'f2_hujjat', birlikSoni: h.yacheykalar,
-      meta: { hujjat: 'F2', sabab: `F2 №${r.akt.raqam || '—'} · ${r.obyektNom} · ${(r.akt.oy || '').slice(0, 7)}`.slice(0, 200), obyekt: r.akt.obyekt_id, akt: r.akt.id, yacheyka: h.yacheykalar, xesh } }, async () => true);
+    const h = await hujjatYaratYuklab({ kompaniyaId, obyektId: r.akt.obyekt_id, tur: 'f2', parametrlar: { akt_id: r.akt.id } });
+    if (!h.ok) return { xato: h.code === 'QATOR_YOQ' ? t('chiqariladigan qator yo‘q') : h.xabar };
     const shRaqam = (malumot.shartnomalar.get(r.akt.obyekt_id) ?? []).find((s) => s.id === shartnomaId)?.raqam ?? (malumot.shartnomalar.get(r.akt.obyekt_id) ?? [])[0]?.raqam ?? null;
     const nom = paketF2FaylNomi({ oy: r.akt.oy, shartnoma: shRaqam, obyekt: r.obyektNom, raqam: r.akt.raqam, aktId: r.akt.id, qoralama: r.bosqich !== 'tasdiqlangan' });
-    return q.ok ? { fayl: { nom, bytes: h.bytes } } : { xato: q.xabar };
+    return { fayl: { nom, bytes: h.bytes } };
   }
-
   async function birExcel(r: PaketAkt) {
     if (band) return;
     setBand(`akt:${r.akt.id}`);

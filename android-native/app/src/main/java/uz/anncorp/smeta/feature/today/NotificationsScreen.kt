@@ -56,6 +56,7 @@ import uz.anncorp.smeta.core.data.NotificationItem
 import uz.anncorp.smeta.core.data.SyncResult
 import uz.anncorp.smeta.core.data.TodayRepository
 import uz.anncorp.smeta.core.data.WorkContext
+import uz.anncorp.smeta.core.data.group
 import uz.anncorp.smeta.core.data.notifKind
 import uz.anncorp.smeta.core.ui.CenterMessage
 import uz.anncorp.smeta.core.ui.SkeletonList
@@ -71,15 +72,22 @@ data class NotificationsUi(
     val items: List<NotificationItem> = emptyList(),
     val unread: Int = 0,
     val waiting: List<ApprovalItem> = emptyList(),
+    /** Groups switched off in Settings > Notifications (this device only). */
+    val muted: Set<uz.anncorp.smeta.core.data.NotifGroup> = emptySet(),
 ) {
-    val shown: List<NotificationItem> get() = if (unreadOnly) items.filter { !it.oqildi } else items
+    val visible: List<NotificationItem> get() = uz.anncorp.smeta.core.data.visibleNotifications(items, muted) { notifKind(it.mavzu).group() }
+    val shown: List<NotificationItem> get() = if (unreadOnly) visible.filter { !it.oqildi } else visible
 }
 
 /** Notifications centre: the full server list (read/unread filter, mark read) plus the approvals waiting in my queue. Same server reads as the Today tab. */
 @HiltViewModel
-class NotificationsViewModel @Inject constructor(private val today: TodayRepository, private val approvals: ApprovalsRepository, private val ctx: WorkContext) : ViewModel() {
-    private val _state = MutableStateFlow(NotificationsUi())
+class NotificationsViewModel @Inject constructor(
+    private val today: TodayRepository, private val approvals: ApprovalsRepository, private val ctx: WorkContext, private val prefs: uz.anncorp.smeta.core.data.Prefs,
+) : ViewModel() {
+    private val _state = MutableStateFlow(NotificationsUi(muted = prefs.mutedGroups.value))
     val state: StateFlow<NotificationsUi> = _state.asStateFlow()
+
+    init { viewModelScope.launch { prefs.mutedGroups.collect { m -> _state.update { it.copy(muted = m) } } } }
 
     fun refresh() {
         viewModelScope.launch {
@@ -106,7 +114,7 @@ class NotificationsViewModel @Inject constructor(private val today: TodayReposit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotificationsScreen(onBack: () -> Unit, onOpenApproval: (Long) -> Unit, vm: NotificationsViewModel = hiltViewModel()) {
+fun NotificationsScreen(onBack: () -> Unit, onOpenApproval: (Long) -> Unit, onOpenLetter: (Long) -> Unit = {}, vm: NotificationsViewModel = hiltViewModel()) {
     val ui by vm.state.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refresh() }
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
@@ -125,7 +133,7 @@ fun NotificationsScreen(onBack: () -> Unit, onOpenApproval: (Long) -> Unit, vm: 
                     }
                     if (ui.unread > 0) item { TextButton(onClick = { vm.markRead(ui.items.filter { !it.oqildi }.map { it.id }) }, modifier = Modifier.heightIn(min = TouchTarget)) { Text(stringResource(R.string.nt_mark_all)) } }
                     if (ui.shown.isEmpty()) item { CenterMessage(Icons.Filled.Notifications, stringResource(R.string.nt_empty), modifier = Modifier.padding(top = 24.dp)) }
-                    items(ui.shown, key = { it.id }) { n -> NotificationRow(n, onOpenApproval, vm::markRead) }
+                    items(ui.shown, key = { it.id }) { n -> NotificationRow(n, onOpenApproval, onOpenLetter, vm::markRead) }
                 }
             }
         }
@@ -152,10 +160,10 @@ private fun WaitingCard(waiting: List<ApprovalItem>, onOpen: (Long) -> Unit) {
 }
 
 @Composable
-private fun NotificationRow(n: NotificationItem, onOpenApproval: (Long) -> Unit, onMarkRead: (List<Long>) -> Unit) {
+private fun NotificationRow(n: NotificationItem, onOpenApproval: (Long) -> Unit, onOpenLetter: (Long) -> Unit, onMarkRead: (List<Long>) -> Unit) {
     WorkCard(modifier = Modifier.heightIn(min = TouchTarget), onClick = {
         onMarkRead(listOf(n.id).filter { !n.oqildi })
-        n.zanjirId?.let(onOpenApproval)
+        if (n.zanjirId != null) onOpenApproval(n.zanjirId) else n.xatId?.let(onOpenLetter)
     }) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(8.dp).clip(CircleShape).background(if (n.oqildi) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.primary))
@@ -166,7 +174,7 @@ private fun NotificationRow(n: NotificationItem, onOpenApproval: (Long) -> Unit,
                 )
                 n.yaratildi?.let { Text(uz.anncorp.smeta.core.data.formatIsoStamp(it), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
-            if (n.zanjirId != null) Icon(Icons.Filled.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (n.zanjirId != null || n.xatId != null) Icon(Icons.Filled.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

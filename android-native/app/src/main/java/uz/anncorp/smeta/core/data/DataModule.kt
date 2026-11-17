@@ -9,6 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import uz.anncorp.smeta.BuildConfig
 import uz.anncorp.smeta.core.db.AppDb
@@ -22,6 +23,10 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
+/** Canonical API host first, then the fallbacks from BuildConfig (see app/build.gradle.kts). */
+internal fun apiBases(): List<okhttp3.HttpUrl> =
+    (listOf(BuildConfig.API_BASE_URL) + BuildConfig.API_FALLBACK_URLS.split(",")).map { it.trim() }.filter { it.isNotEmpty() }.mapNotNull { it.toHttpUrlOrNull() }
+
 @Module
 @InstallIn(SingletonComponent::class)
 object DataModule {
@@ -30,6 +35,7 @@ object DataModule {
 
     @Provides @Singleton
     fun okHttp(): OkHttpClient = OkHttpClient.Builder()
+        .addInterceptor(HostFallbackInterceptor(apiBases()))
         .connectTimeout(15, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).callTimeout(45, TimeUnit.SECONDS).build()
 
     @Provides @Singleton
@@ -150,6 +156,12 @@ object DataModule {
 
     @Provides @Singleton
     fun peopleRepository(api: BffApi) = PeopleRepository(api)
+
+    @Provides @Singleton
+    fun settingsRepository(api: BffApi) = SettingsRepository(api) { DeviceInfo(Build.MODEL ?: "Android", "Android ${Build.VERSION.RELEASE}", BuildConfig.VERSION_NAME) }
+
+    @Provides @Singleton
+    fun nazoratRepository(api: BffApi) = NazoratRepository(api)
 
     @Provides @Singleton
     fun jarvisRepository(api: BffApi) = JarvisRepository(api)
