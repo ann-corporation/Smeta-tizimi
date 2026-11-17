@@ -1,0 +1,9 @@
+{
+  "sana": "2026-11-18",
+  "sarlavha": "QURAI Android 0.1.13 — Jarvis har ekranda, rasm yuklash tuzatildi",
+  "bandlar": [
+    "Jarvis (AI yordamchi) endi har ekranda: o'ng chetdagi suzuvchi tugmani bossangiz, suhbat pastdan ochiladi. Tugmani istalgan joyga surib qo'yish mumkin.",
+    "Saytga o'tadigan joylar endi ilova ichida ochiladi: tashqi havolalar ilova ichidagi brauzerda, yangilanish APK'si ilovadan yuklanadi.",
+    "Rasm yuklash tuzatildi: sayt bo'limlaridagi rasm tanlash tizim galereyasi (ruxsatsiz) va kamera orqali ishlaydi, sekin tarmoqda rasm va avatar yuklash uzilib qolmaydi."
+  ]
+}

@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.DownloadManager
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -31,6 +32,7 @@ import android.webkit.URLUtil
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.layout.Box
@@ -176,7 +178,7 @@ private class QuraiBridge(private val context: Context, private val ownPage: () 
 }
 
 /** Downloads: own-origin https goes through the system DownloadManager (notification, Downloads folder, the web cookie is passed on); blob: through the bridge to the share sheet. */
-private fun startDownload(context: Context, web: WebView, url: String, userAgent: String?, contentDisposition: String?, mime: String?) {
+private fun startDownload(context: Context, web: WebView, url: String, userAgent: String?, contentDisposition: String?, mime: String?, onForeign: (String) -> Unit) {
     when {
         url.startsWith("blob:") -> web.evaluateJavascript(blobScript(url), null)
         isOwnHost(url) -> runCatching {
@@ -189,7 +191,8 @@ private fun startDownload(context: Context, web: WebView, url: String, userAgent
             context.getSystemService(DownloadManager::class.java).enqueue(req)
             Toast.makeText(context, R.string.web_download_started, Toast.LENGTH_SHORT).show()
         }.onFailure { Toast.makeText(context, R.string.web_download_failed, Toast.LENGTH_SHORT).show() }
-        navAction(url) == NavAction.EXTERNAL -> runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        // Another website: opened inside the app (InAppBrowserDialog), never in the external browser.
+        navAction(url) == NavAction.EXTERNAL -> foreignWebUrl(url)?.let(onForeign)
     }
 }
 
@@ -233,6 +236,7 @@ fun WebModuleScreen(title: String, onBack: () -> Unit, vm: WebModuleViewModel = 
     var canGoBack by remember { mutableStateOf(false) }
     var pageError by remember { mutableStateOf(false) }
     var renewing by remember { mutableStateOf(false) }
+    var foreign by remember { mutableStateOf<String?>(null) }
     var lastRenew by remember { mutableLongStateOf(0L) }
     val ownPage = remember { java.util.concurrent.atomic.AtomicBoolean(false) }
     val chooser = remember { ChooserState() }
@@ -257,11 +261,19 @@ fun WebModuleScreen(title: String, onBack: () -> Unit, vm: WebModuleViewModel = 
             val f = File(File(context.cacheDir, "webup").apply { mkdirs() }, UUID.randomUUID().toString().take(8) + ".jpg")
             val uri = FileProvider.getUriForFile(context, context.packageName + ".files", f)
             chooser.cameraUri = uri; chooser.cameraFile = f
-            camera = Intent(MediaStore.ACTION_IMAGE_CAPTURE).putExtra(MediaStore.EXTRA_OUTPUT, uri)
+            // ClipData makes the write grant reach the camera app even when this intent is nested in the chooser (EXTRA_INITIAL_INTENTS drops plain flags).
+            camera = Intent(MediaStore.ACTION_IMAGE_CAPTURE).putExtra(MediaStore.EXTRA_OUTPUT, uri).apply { clipData = ClipData.newRawUri("", uri) }
                 .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
+        // Images only: the system Photo Picker (no storage permission on Android 13/14, falls back to the document picker on older devices).
+        val imagesOnly = params.acceptTypes.any { it.startsWith("image/") } && params.acceptTypes.all { it.isBlank() || it.startsWith("image/") }
+        val picker: Intent = if (imagesOnly) {
+            val req = PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            if (params.mode == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE) ActivityResultContracts.PickMultipleVisualMedia().createIntent(context, req)
+            else ActivityResultContracts.PickVisualMedia().createIntent(context, req)
+        } else params.createIntent()
         val intent = if (params.isCaptureEnabled && camera != null) camera
-        else Intent.createChooser(params.createIntent(), context.getString(R.string.web_upload_choose)).also { if (camera != null) it.putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf(camera)) }
+        else Intent.createChooser(picker, context.getString(R.string.web_upload_choose)).also { if (camera != null) it.putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf(camera)) }
         runCatching { chooserLauncher.launch(intent) }.onFailure { chooser.callback?.onReceiveValue(null); chooser.callback = null }
     }
     val cameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -303,8 +315,6 @@ fun WebModuleScreen(title: String, onBack: () -> Unit, vm: WebModuleViewModel = 
                     stringResource(if (s.offline) R.string.p1_objects_offline_empty else R.string.hub_web_soon),
                     stringResource(if (s.offline) R.string.err_network else R.string.hub_web_soon_hint),
                     stringResource(R.string.retry),
-                    secondaryLabel = if (s.offline) null else stringResource(R.string.hub_web_open_browser),
-                    onSecondary = { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.API_BASE_URL.trimEnd('/') + vm.path)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } },
                 ) { vm.load() }
                 is WebState.Ready -> PullToRefreshBox(isRefreshing = refreshing, onRefresh = { refreshing = true; web?.reload() }, modifier = Modifier.fillMaxSize()) {
                     AndroidView(
@@ -325,7 +335,7 @@ fun WebModuleScreen(title: String, onBack: () -> Unit, vm: WebModuleViewModel = 
                                     @Suppress("DEPRECATION") run { allowFileAccessFromFileURLs = false; allowUniversalAccessFromFileURLs = false }
                                 }
                                 w.addJavascriptInterface(QuraiBridge(ctx) { ownPage.get() }, "QuraiBridge")
-                                w.setDownloadListener { url, ua, cd, mime, _ -> startDownload(ctx, w, url, ua, cd, mime) }
+                                w.setDownloadListener { url, ua, cd, mime, _ -> startDownload(ctx, w, url, ua, cd, mime) { foreign = it } }
                                 w.webChromeClient = object : WebChromeClient() {
                                     override fun onProgressChanged(view: WebView, newProgress: Int) { progress = newProgress }
                                     override fun onShowFileChooser(view: WebView, cb: ValueCallback<Array<Uri>>, params: FileChooserParams): Boolean {
@@ -351,7 +361,12 @@ fun WebModuleScreen(title: String, onBack: () -> Unit, vm: WebModuleViewModel = 
                                         val url = request.url.toString()
                                         when (navAction(url)) {
                                             NavAction.STAY -> return false
-                                            NavAction.EXTERNAL -> runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, request.url).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                                            NavAction.EXTERNAL -> {
+                                                // Web links open in the in-app browser; only mail / phone links go to the system (no browser involved).
+                                                val web = foreignWebUrl(url)
+                                                if (web != null) foreign = web
+                                                else runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, request.url).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                                            }
                                             NavAction.BLOCK -> Unit
                                         }
                                         return true
@@ -388,4 +403,5 @@ fun WebModuleScreen(title: String, onBack: () -> Unit, vm: WebModuleViewModel = 
             }
         }
     }
+    foreign?.let { InAppBrowserDialog(it) { foreign = null } }
 }
