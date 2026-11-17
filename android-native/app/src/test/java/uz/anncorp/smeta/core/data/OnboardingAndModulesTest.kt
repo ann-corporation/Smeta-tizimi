@@ -105,7 +105,7 @@ class ModulesTest {
         assertTrue("fakt" in codes(worker) && "foto" in codes(worker) && "obyektlar" in codes(worker) && "tasdiq" in codes(worker))
         assertFalse("moliya" in codes(worker)); assertFalse("buxgalteriya" in codes(worker)); assertFalse("f2" in codes(worker))
         val boss = ModuleCatalog.visible(setOf("control.company.read"), emptySet())
-        assertTrue("moliya" in codes(boss) && "kompaniya" in codes(boss) && "hisobot" in codes(boss))
+        assertTrue("moliya" in codes(boss) && "kompaniya" in codes(boss) && "hisobot" !in codes(boss) && "qarzdor" in codes(boss))
     }
 
     @Test fun companySwitchedOffModulesDisappear() {

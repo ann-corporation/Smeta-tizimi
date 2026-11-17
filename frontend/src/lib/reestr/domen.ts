@@ -41,7 +41,7 @@ export const PREFIKS: Readonly<Record<Domen, readonly string[]>> = {
     't2_norm', 't2_lrv', 't2_svod', 't2_shaxsiy_smeta', 't2_xom', 't2_resurs', 't2_material_alias', 't2_zamena',
     't2_almashtirilgan', 't2_qoshimcha_ish', 't2_resource_observation', 't2_work', 't2_ish_turi', 't2_ish_abc',
     't2_ish_kartasi', 't2_ish_resurslar', 't2_ish_tajriba', 't2_catalog', 't2_katalog', 't2_bosqich_katalog', 't2_birlik',
-    't2_kat', 't2_nom', 't2_tasnif', 't2_markirovka', 't2_soxta_rz', 't2_versiya', 't2_summa', 't2_kesh', 't2_obyekt_kesh',
+    't2_kat', 't2_nom', 't2_tasnif', 't2_markirovka', 't2_soxta_rz', 't2_versiya', 't2_summa', 't2_kesh', 't2_obyekt_kesh', 't2_obyekt_natija_kesh',
     't2_obyekt_jami', 't2_obyekt_nakrutka', 't2_obyekt_nk', 't2_obyekt_paket', 't2_manba', 't2_hisob', 't2_ustamasiz',
     't2_rollup', 't2_kaskad', 't2_f2_ustamali', 't2_ilk_matn', 't2_qator_muhr', 't2_topilmaganlar',
   ],

@@ -14,6 +14,7 @@ import kotlinx.serialization.json.put
  */
 
 /** One generatable document as announced by the server. [params] are opaque to the app: they are sent back unchanged. */
+@kotlinx.serialization.Serializable
 data class GenItem(
     val key: String, val type: String, val title: String, val state: String, val amount: Double?,
     val params: Map<String, Long>, val formats: List<String>,

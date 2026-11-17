@@ -1,0 +1,8 @@
+{"ok":true,"natija":{"ok":true,"qatorlar":[
+ {"id":503,"obyekt_id":101,"obyekt":"Demo korpus A","tur":"f2","raqam":"F2-0014","oy":"2026-11-01","lifecycle_status":"draft","qator_soni":18,"narxsiz_qator":2,"manfiy_qator":0,"farq":0},
+ {"id":502,"obyekt_id":101,"obyekt":"Demo korpus A","tur":"f2","raqam":"F2-0013","oy":"2026-10-01","lifecycle_status":"submitted","qator_soni":24,"narxsiz_qator":0,"manfiy_qator":3,"farq":6000000},
+ {"id":501,"obyekt_id":101,"obyekt":"Demo korpus A","tur":"f2","raqam":"F2-0012","oy":"2026-09-01","lifecycle_status":"approved","qator_soni":20,"narxsiz_qator":0,"manfiy_qator":0,"farq":0},
+ {"id":510,"obyekt_id":102,"obyekt":"Demo maktab binosi","tur":"f2","raqam":"F2-0003","oy":"2026-10-01","lifecycle_status":"approved","qator_soni":40,"narxsiz_qator":0,"manfiy_qator":0,"farq":0},
+ {"id":509,"obyekt_id":102,"obyekt":"Demo maktab binosi","tur":"f2","raqam":"F2-0002","oy":"2026-09-01","lifecycle_status":"approved","qator_soni":38,"narxsiz_qator":0,"manfiy_qator":0,"farq":0},
+ {"id":520,"obyekt_id":104,"obyekt":"Demo omborxona","tur":"f2","raqam":"F2-0001","oy":"2026-10-01","lifecycle_status":"rejected","qator_soni":6,"narxsiz_qator":3,"manfiy_qator":0,"farq":0}
+]}}

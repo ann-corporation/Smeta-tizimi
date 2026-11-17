@@ -246,7 +246,7 @@ private fun TabBody(
                         NativeTarget.JARVIS -> onJarvis()
                         NativeTarget.RAHBAR -> onRahbar()
                         NativeTarget.ZAYAVKA -> onZayavka()
-                        NativeTarget.M29, NativeTarget.NARYAD, NativeTarget.HUJJAT -> onModule(target)
+                        NativeTarget.M29, NativeTarget.NARYAD, NativeTarget.HUJJAT, NativeTarget.F2REESTR, NativeTarget.NAKOP, NativeTarget.QARZDOR, NativeTarget.QABUL, NativeTarget.RESURS -> onModule(target)
                     }
                 },
                 onWeb = onOpenWeb, onObject = onOpenObject, onFakt = onOpenFakt, onOnboard = onOnboard, onNotifications = onNotifications,

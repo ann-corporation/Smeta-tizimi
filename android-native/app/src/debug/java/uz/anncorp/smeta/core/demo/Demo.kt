@@ -114,6 +114,14 @@ private class DemoBff(private val context: Context, private val json: Json, priv
             // files/stepup.flag: the approval decision (signature action) needs a fresh PIN / biometric confirmation, like the real server (403 STEP_UP_KERAK).
             path.startsWith("/api/hujjat-aylanish") && method == "POST" && File(context.filesDir, "stepup.flag").exists() && tasdiq?.current() == null ->
                 ApiResult(403, buildJsonObject { put("ok", false); put("code", STEP_UP_CODE); put("usullar", kotlinx.serialization.json.buildJsonArray { add(JsonPrimitive("pin")); if (qKeys.isNotEmpty()) add(JsonPrimitive("qurilma")) }) }, STEP_UP_CODE)
+            // Debug-only stand-in for the server command parser (POST /api/ombor-buyruq): canned previews, nothing is parsed on the device in release.
+            path.startsWith("/api/ombor-buyruq") -> {
+                val o = body as? JsonObject
+                val said = (o?.get("matn") as? JsonPrimitive)?.content ?: "sement qirq qop kirim"
+                val low = said.lowercase()
+                val tur = when { Regex("chiqim|rasxod|расход|berdim").containsMatchIn(low) -> "rasxod"; Regex("qoldiq|ostatok|остаток|qancha").containsMatchIn(low) -> "qoldiq"; else -> "prixod" }
+                ok("""{"ok":true,"buyruq":{"tur":"$tur","nomi":"Sement M400 (qop 50 kg)","birligi":"qop","miqdor":40,"obyekt_id":101,"kimga":"","izoh":"","eshitildi":"${said.replace("\"", "")}"}}""")
+            }
             path.startsWith("/api/sb-yoz") -> ok(asset("fakt_ok.json"))
             path.startsWith("/api/qulf") -> qulf(path, method, body as? JsonObject)
             path.startsWith("/api/sb") -> {
@@ -123,6 +131,12 @@ private class DemoBff(private val context: Context, private val json: Json, priv
                 when {
                     s("soro") == "rahbar_panel_v1" -> ok(asset("panel.json"))
                     s("soro") == "akt_reestr_obyekt_v1" -> ok(asset("f2list.json"))
+                    s("soro") == "akt_reestr_kompaniya_v1" -> ok(asset("f2reestr.json"))
+                    s("soro") == "qarz_svod_v1" -> ok(asset("qarz_svod.json"))
+                    jadval == "t2_usta_fakt_qoralama" -> ok(asset("usta_pending.json"))
+                    jadval == "t2_sklad_harakat" -> ok(asset("ombor_moves.json"))
+                    jadval == "t2_qator_holat" && filtr.contains("tur=eq.mat") -> ok(asset("resurs_rows.json"))
+                    jadval == "t2_qator_holat" && (filtr.contains("tur=eq.rs") || filtr.contains("tur=eq.ob")) -> ok("""{"ok":true,"soni":0,"jamiServerda":0,"toliq":true,"qatorlar":[]}""")
                     s("soro") == "modul_holat_v1" -> ok("""{"ok":true,"natija":{"ok":true,"modullar":[{"kod":"module.hr","holat":"off"},{"kod":"module.moliya","holat":"on"}]}}""")
                     jadval == "t2_obyekt_jami" -> ok(asset("objects.json"))
                     jadval == "t2_zayavka_royxat" -> ok("""{"ok":true,"soni":3,"jamiServerda":3,"toliq":true,"qatorlar":[
