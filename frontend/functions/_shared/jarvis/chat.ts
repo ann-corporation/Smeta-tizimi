@@ -10,6 +10,7 @@ import { objectTotalAnswer, objectTotalDenied, objectTotalIntent, objectTotalUna
 import { f2RegisterAnswer, f2RegisterIntent } from './f2-register';
 import { warehouseAnswer, warehouseIntent } from './warehouse';
 import { discrepancyAnswer, discrepancyIntent } from './discrepancies';
+import { cumulativeAnswer, cumulativeIntent } from './cumulative';
 import { normAnswer, normReference } from './normative';
 import { jarvisLanguage, jarvisText } from './reply-language';
 import { callJarvisModel, type JarvisModelEnv } from './model';
@@ -78,6 +79,13 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
     qd('👋', 'Salomlashuv — model kerak emas, token sarflanmadi');
     await yozJurnal('salom', javob, qadamlar, {});
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', javob } };
+  }
+  const cumulative = so.studio == null && !navigatsiyaSorovi(savol) ? cumulativeIntent(savol) : null;
+  if (cumulative) {
+    const signal = AbortSignal.timeout(3500);
+    const answer = await cumulativeAnswer((name, body) => rpcData(env, name, body, signal), objectScope, cumulative,
+      men ?? null, kasb.kategoriyalar.includes('f2_fakt_pul'));
+    return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
   }
   const register = so.studio == null ? f2RegisterIntent(savol) : null;
   if (register) {

@@ -11,6 +11,7 @@ import { objectTotalIntent } from '../_shared/jarvis/object-finance';
 import { f2RegisterIntent } from '../_shared/jarvis/f2-register';
 import { warehouseIntent } from '../_shared/jarvis/warehouse';
 import { discrepancyIntent } from '../_shared/jarvis/discrepancies';
+import { cumulativeIntent } from '../_shared/jarvis/cumulative';
 import { onRequestPost } from './ai-savol';
 
 const object = { id: 34, nom: 'Sinov Bino' };
@@ -20,6 +21,7 @@ let register: () => Response;
 let stock: () => Response;
 let men: () => Response;
 let discrepancies: () => Response;
+let cumulative: () => Response;
 const rpc = vi.fn(async (input: string, _init?: RequestInit) => {
   switch (input.split('/').at(-1)) {
     case 't2_agent_kasb_v1': return Response.json({ ok: true, nom: 'Sinov', rol: 'pto', profil: 'company_access', vazifa: 'Sinov', boshqalar: [], namuna_savollar: [], kategoriyalar: categories });
@@ -30,6 +32,7 @@ const rpc = vi.fn(async (input: string, _init?: RequestInit) => {
     case 't2_sklad_markaziy_qoldiq_v1': return stock();
     case 't2_men_v1': return men();
     case 't2_aosr_slichitelniy_v1': return discrepancies();
+    case 't2_nakopitelniy_v2': return cumulative();
     case 't2_agent_muhit_v1': return Response.json({ ok: true, qoidalar: [], xotira: [], manbalar: [] });
     default: return Response.json({ ok: true });
   }
@@ -51,6 +54,7 @@ beforeEach(() => {
   discrepancies = () => Response.json({
     ok: true, obyekt_id: 34, tayyorlik: { farqli: 6, ortiq: 6, kam: 0, tasdiqlagan: null }, yetishmaydi_jami: 2,
   });
+  cumulative = () => Response.json(cumulativeFixture());
   finance = () => Response.json({ ok: true, kompaniya_id: 17, basis: 'direct', objects: [{
     obyekt_id: 34, f2: { known: -102.75, unknown: 1, present: true }, fakt: { known: null, unknown: 2, present: true },
   }] });
@@ -63,6 +67,75 @@ beforeEach(() => {
   vi.stubGlobal('fetch', rpc);
 });
 afterEach(() => vi.unstubAllGlobals());
+
+const cumulativeFixture = () => ({ ok: true, obyekt: { ...object, kompaniya_id: 17 }, davr: '2026-06',
+  jami: { joriy_tasdiqlangan_summa: -25.5, jami_tasdiqlangan_summa: 187.63, jami_tasdiqlangan_malum_summa: 187.63, f2_summa_nomalum: 0 },
+  davrlar: [{ oy: '2026-05', certified: true }, { oy: '2026-06', certified: true }, { oy: '2026-07', certified: false }],
+});
+
+function permitCumulative() {
+  categories.push('f2_fakt_pul');
+  men = () => Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: 17, permissions: ['f2.read'] }] });
+}
+
+it.each([
+  ['Nakopitelniy 2026-06 summasi qancha?', 'Oy bo‘yicha: -25,50 so‘m'],
+  ['2026-06 учун накопителний суммаси', 'Ой бўйича: -25,50 сўм'],
+  ['Покажи накопительную ведомость за 2026-06 без НДС', 'За месяц: -25,50 сум'],
+])('reads the selected cumulative report without recalculating amounts: %s', async (question, answer) => {
+  permitCumulative();
+  const { javob, dalil } = await (await run(question, 17, { obyekt_id: 34 })).json() as { javob: string; dalil: unknown };
+  expect(javob).toContain(answer);
+  expect(javob).toContain('187,63');
+  expect(dalil).toMatchObject({ rpc: 't2_nakopitelniy_v2', id: 34, davr: '2026-06', yol: '/admin/nakopitelniy?obyekt=34&davr=2026-06' });
+  const init = called('t2_nakopitelniy_v2')[0][1];
+  expect(init?.signal).toBeInstanceOf(AbortSignal);
+  expect(JSON.parse(String(init?.body))).toEqual({ p_actor_id: 7, p_obyekt_id: 34, p_davr: '2026-06-01', p_limit: 1, p_offset: 0, p_faqat_faol: false });
+  expect(ai).not.toHaveBeenCalled();
+});
+
+it('cumulative refuses missing F2 permission before reading the scoped report', async () => {
+  categories.push('f2_fakt_pul');
+  expect(await (await run('Nakopitelniy jami', 17, { obyekt_id: 34 })).json()).toMatchObject({ rad: true });
+  expect(called('t2_nakopitelniy_v2')).toHaveLength(0);
+  expect(ai).not.toHaveBeenCalled();
+});
+
+it('cumulative refuses foreign tenant or wrong period responses', async () => {
+  permitCumulative();
+  for (const patch of [{ obyekt: { ...object, kompaniya_id: 18 } }, { davr: '2026-05' }]) {
+    cumulative = () => Response.json({ ...cumulativeFixture(), ...patch });
+    const body = await (await run('Nakopitelniy 2026-06 jami', 17, { obyekt_id: 34 })).json();
+    expect(body).not.toHaveProperty('dalil');
+    expect(body).toMatchObject({ javob: expect.not.stringContaining('187,63') });
+  }
+  expect(ai).not.toHaveBeenCalled();
+});
+
+it('cumulative preserves verified zero and withholds a zero sentinel for unknown or missing data', async () => {
+  permitCumulative();
+  const fixture = cumulativeFixture();
+  const sums = { joriy_tasdiqlangan_summa: 0, jami_tasdiqlangan_summa: 0, jami_tasdiqlangan_malum_summa: 0 };
+  for (const count of [0, 2, null]) {
+    cumulative = () => Response.json({ ...fixture, jami: { ...sums, f2_summa_nomalum: count } });
+    const answer = (await (await run('Nakopitelniy 2026-06 jami', 17, { obyekt_id: 34 })).json() as { javob: string }).javob;
+    if (count === 0) expect(answer.match(/0,00 so‘m/g)).toHaveLength(2);
+    else { expect(answer).not.toContain('0,00'); expect(answer.match(/Summa noma’lum/g)).toHaveLength(2); }
+  }
+  cumulative = () => Response.json({ ...fixture, jami: { ...sums, f2_summa_nomalum: 0 }, davrlar: [{ oy: '2026-06', certified: false }] });
+  const body = await (await run('Nakopitelniy 2026-06 jami', 17, { obyekt_id: 34 })).json();
+  expect(body).toMatchObject({ javob: expect.stringContaining('tasdiqlangan F2 topilmadi') });
+  expect(body).toMatchObject({ javob: expect.not.stringContaining('0,00') });
+});
+
+it('does not route an export, arbitrary period, or payment basis through the direct amount reader', async () => {
+  permitCumulative();
+  expect(cumulativeIntent('Сформируй накопительную ведомость 2026-06')).toBeNull();
+  expect(await (await run('Nakopitelniy shu oy jami')).json()).toMatchObject({ javob: expect.stringContaining('YYYY-MM') });
+  expect(await (await run('Nakopitelniy 2026-06 QQS bilan')).json()).toMatchObject({ javob: expect.stringContaining('F3') });
+  expect(called('t2_nakopitelniy_v2')).toHaveLength(0);
+  expect(ai).not.toHaveBeenCalled();
+});
 
 function permitComparison() {
   men = () => Response.json({ ok: true, context_kompaniyalar: [

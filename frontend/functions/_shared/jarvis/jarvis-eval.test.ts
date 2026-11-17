@@ -33,7 +33,7 @@ const remote = vi.fn(async (input: string, init?: RequestInit) => {
   const project = evalProjects.find(row => row.id === args.p_obyekt_id);
   switch (name) {
     case 't2_agent_kasb_v1': return Response.json({ ok: true, nom: 'Sinov PTO', rol: 'pto', profil: 'pto_smeta', vazifa: 'Sinov', boshqalar: [], namuna_savollar: [], kategoriyalar: configuration.categories, harakatlar: ['ombor_kirim'] });
-    case 't2_men_v1': return Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: evalCompany, permissions: ['warehouse.read'] }] });
+    case 't2_men_v1': return Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: evalCompany, permissions: ['warehouse.read', 'f2.read'] }] });
     case 't2_agent_fakt_v1': return Response.json({ ok: true, fakt: { obyektlar: args.p_obyekt_id == null ? objects : objects.filter(row => row.id === args.p_obyekt_id) }, ishlatilgan: configuration.categories });
     case 't2_obyekt_nakrutka_v1': {
       if (!project) return Response.json({ ok: false, code: 'OBJECT_SCOPE' }, { status: 403 });
@@ -44,6 +44,9 @@ const remote = vi.fn(async (input: string, init?: RequestInit) => {
       kompaniya_id: evalCompany, tur: 'f2', oy: '2026-06-01', holat: 'faol', lifecycle_status: project.state }] : [] });
     case 't2_object_financials_v1': return Response.json({ ok: true, kompaniya_id: configuration.foreignResponse ? 99788 : evalCompany,
       basis: 'direct', objects: [{ obyekt_id: args.p_object_ids?.[0], fakt: { known: configuration.foreignResponse ? 990099 : null, unknown: 2, present: true } }] });
+    case 't2_nakopitelniy_v2': return project ? Response.json({ ok: true, obyekt: { id: project.id, kompaniya_id: evalCompany }, davr: '2026-06',
+      jami: { joriy_tasdiqlangan_summa: project.money[1], jami_tasdiqlangan_summa: project.money[2], f2_summa_nomalum: 0 },
+      davrlar: [{ oy: '2026-06', certified: true }] }) : Response.json({ code: '42501' }, { status: 403 });
     case 't2_sklad_markaziy_qoldiq_v1': return Response.json({ ok: true, qatorlar: evalProjects.filter(row => row.material === args.p_qidir)
       .map(row => ({ nomi: row.material, birligi: 'kg', qoldiq: row.stock })) });
     case 't2_agent_jurnal_yoz_v1': return Response.json({ ok: true, id: 99 });
@@ -106,6 +109,13 @@ it.each(fixtures)('money/nickname $key', async ({ lexicon, project }) => {
   const { body } = await query(lexicon.nickname(project.alias));
   expect(moneyValues(body.javob ?? '')).toEqual(project.money);
   expect(rpc('t2_obyekt_nakrutka_v1')).toEqual([{ p_actor_id: evalActor, p_obyekt_id: project.id }]);
+  expect(boundary.model).not.toHaveBeenCalled();
+});
+
+it.each(fixtures)('money/cumulative $key', async ({ lexicon, project }) => {
+  const { body } = await query(lexicon.cumulative, { obyekt_id: project.id });
+  expect(moneyValues(body.javob ?? '')).toEqual([project.money[1], project.money[2]]);
+  expect(body.dalil).toMatchObject({ id: project.id, davr: '2026-06', yol: `/admin/nakopitelniy?obyekt=${project.id}&davr=2026-06` });
   expect(boundary.model).not.toHaveBeenCalled();
 });
 
