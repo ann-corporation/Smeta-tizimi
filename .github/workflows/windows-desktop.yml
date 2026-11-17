@@ -1,0 +1,70 @@
+# Native Windows desktop app (Compose Desktop). Builds the .msi on a clean runner; no secrets needed.
+name: Windows desktop
+
+on:
+  pull_request:
+    paths:
+      - 'android-native/**'
+      - '.github/workflows/windows-desktop.yml'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  msi:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: android-native
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: WiX check
+        shell: pwsh
+        run: |
+          if (-not (Get-Command candle.exe -ErrorAction SilentlyContinue) -and -not (Get-Command wix.exe -ErrorAction SilentlyContinue)) {
+            choco install wixtoolset --no-progress -y
+            echo "C:\Program Files (x86)\WiX Toolset v3.14\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+          }
+          Get-Command candle.exe -ErrorAction SilentlyContinue | Select-Object Source
+      - name: Desktop tests
+        shell: pwsh
+        run: ./gradlew.bat :shared:test :desktop:test --no-daemon
+      - name: Build MSI (release, ProGuard)
+        id: release
+        shell: pwsh
+        continue-on-error: true
+        run: ./gradlew.bat :desktop:packageReleaseMsi --no-daemon
+      - name: Build MSI (fallback, no ProGuard)
+        if: steps.release.outcome == 'failure'
+        shell: pwsh
+        run: |
+          Write-Host "::warning::ProGuard release build failed; building unobfuscated MSI"
+          ./gradlew.bat :desktop:packageMsi --no-daemon
+      - name: Collect MSI
+        shell: pwsh
+        run: |
+          $f = Get-ChildItem desktop/build/compose/binaries -Recurse -Filter *.msi | Select-Object -First 1
+          if (-not $f) { throw "no msi produced" }
+          New-Item -ItemType Directory -Force out | Out-Null
+          Copy-Item $f.FullName out/
+          "proguard=${{ steps.release.outcome == 'success' }} file=$($f.Name) size=$($f.Length)" | Tee-Object out/BUILD.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qurai-desktop-msi
+          path: android-native/out/*
+          if-no-files-found: error
