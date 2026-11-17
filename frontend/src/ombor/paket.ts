@@ -199,18 +199,21 @@ export type F2Holat = {
 /**
  * F2 tayyorlash holati paketdan (qator_id o'sish tartibida, view kabi). Yangi ustunlar yo'q (eski server) — null:
  * chaqiruvchi eski yo'lga qaytadi. Qoidalar view bilan: smeta_hajm = zamena reja hajmi yoki q.hajm; smeta_narx = q.narx;
- * f2_mumkin_hajm = GREATEST(fakt - f2, 0) (NULL fakt -> 0, postgres GREATEST NULL ni tashlaydi); fakt_manbasi bit -> matn.
+ * f2_mumkin_hajm = GREATEST(fakt - f2, 0), MINUS qatorda LEAST(fakt - f2, 0) (NULL fakt -> 0, postgres GREATEST/LEAST NULL ni tashlaydi); fakt_manbasi bit -> matn.
  */
 export function paketdanF2Holatlar(p: Paket): F2Holat[] | null {
   if (!p.f2_narx || !p.smeta_hajm_farq) return null;
   const tartib = Array.from({ length: p.soni }, (_, i) => i).sort((a, b) => p.id[a] - p.id[b]);
   return tartib.map((i) => {
     const fakt = son(p.fakt_hajm, i), f2 = son(p.f2_hajm, i);
+    const smeta = bormi(p.smeta_hajm_farq!, i) ? son(p.smeta_hajm_farq!, i) : son(p.hajm, i);
+    // MINUS qator (smeta < 0; smeta 0/noma'lum bo'lsa fakt yoki F2 manfiy): min(0, fakt - f2) — ishora saqlanadi (view bilan bir xil).
+    const manfiy = smeta != null && smeta !== 0 ? smeta < 0 : (fakt ?? 0) < 0 || (f2 ?? 0) < 0;
     return {
       qator_id: p.id[i],
-      smeta_hajm: bormi(p.smeta_hajm_farq!, i) ? son(p.smeta_hajm_farq!, i) : son(p.hajm, i),
+      smeta_hajm: smeta,
       smeta_narx: son(p.narx, i), fakt_hajm: fakt, f2_hajm: f2,
-      f2_mumkin_hajm: fakt == null ? 0 : Math.max(fakt - (f2 ?? 0), 0),
+      f2_mumkin_hajm: fakt == null ? 0 : manfiy ? Math.min(fakt - (f2 ?? 0), 0) : Math.max(fakt - (f2 ?? 0), 0),
       f2_narx: son(p.f2_narx!, i),
       almashtirilgan_hajm: son(p.almashtirilgan_hajm, i) ?? 0,
       fakt_manbasi: p.fakt_manbasi[i] === 1 ? 'BL_NORMA' : 'DIRECT',

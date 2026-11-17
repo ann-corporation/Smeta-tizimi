@@ -170,7 +170,7 @@ fun HubScreen(
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
                 value = ui.query, onValueChange = vm::setQuery, singleLine = true,
-                placeholder = { Text(stringResource(R.string.hub_search)) },
+                placeholder = { Text(stringResource(R.string.hub_search), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 leadingIcon = { Icon(Icons.Filled.Search, null) },
                 trailingIcon = { if (ui.query.isNotEmpty()) IconButton(onClick = { vm.setQuery("") }) { Icon(Icons.Filled.Clear, stringResource(R.string.p1_remove)) } },
                 shape = RoundedCornerShape(14.dp),
@@ -186,7 +186,9 @@ fun HubScreen(
         when {
             !ui.hasCompany && !ui.loading -> CenterMessage(Icons.Filled.Home, stringResource(R.string.hub_no_company), stringResource(R.string.hub_no_company_hint), stringResource(R.string.hub_no_company_action), onAction = onOnboard)
             ui.loading && ui.permissions == null && !searching -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-            else -> HubGrid(ui, arranged, searching, vm, open, openAction, onObject, onFakt, onWeb, pageHits, lang, openPage) { allMode = true }
+            else -> HubGrid(ui, arranged, searching, vm, open, openAction, onObject, onFakt, onWeb, pageHits, lang, openPage, FirstStepsActions(
+                onNative = onNative, onWeb = onWeb, onOnboard = onOnboard, uploadTitle = stringResource(R.string.fs_upload_title),
+            )) { allMode = true }
         }
     }
 }
@@ -194,7 +196,7 @@ fun HubScreen(
 @Composable
 private fun HubGrid(
     ui: HubUi, arranged: Arranged, searching: Boolean, vm: HubViewModel, open: (ModuleDef) -> Unit, openAction: (uz.anncorp.smeta.core.data.WsAction) -> Unit, onObject: (Long) -> Unit, onFakt: (Long) -> Unit, onWeb: (String, String) -> Unit,
-    pageHits: List<uz.anncorp.smeta.core.data.CatalogItem>, lang: String, onPage: (uz.anncorp.smeta.core.data.CatalogItem) -> Unit, onAllModules: () -> Unit,
+    pageHits: List<uz.anncorp.smeta.core.data.CatalogItem>, lang: String, onPage: (uz.anncorp.smeta.core.data.CatalogItem) -> Unit, steps: FirstStepsActions, onAllModules: () -> Unit,
 ) {
     val span = GridItemSpan(2)
     LazyVerticalGrid(
@@ -211,6 +213,20 @@ private fun HubGrid(
             if (ui.objectHits.isNotEmpty()) { item(span = { span }) { SectionTitle(R.string.hub_sec_objects) }; items(ui.objectHits, key = { "o" + it.id }, span = { span }) { ObjectChip(it) { onObject(it.id) } } }
             if (ui.rowHits.isNotEmpty()) { item(span = { span }) { SectionTitle(R.string.hub_sec_rows) }; items(ui.rowHits, key = { "r" + it.rid }, span = { span }) { RowHit(it) { onFakt(it.obyektId) } } }
             return@LazyVerticalGrid
+        }
+        // Trial account: the first-steps checklist leads (sample object, upload, F-2, AI, real company); gone once the workspace is a real company.
+        ui.sinov?.takeIf { it.showChecklist }?.let { s ->
+            item(span = { span }) {
+                FirstStepsCard(s, jarvis = uz.anncorp.smeta.core.data.Features.JARVIS, busy = ui.sinovBusy, error = ui.sinovError) { id ->
+                    when (id) {
+                        FirstStepId.DEMO -> vm.openDemo { steps.onNative(NativeTarget.OBJECTS) }
+                        FirstStepId.UPLOAD -> steps.onWeb("/admin/obyektlar", steps.uploadTitle)
+                        FirstStepId.F2 -> steps.onNative(NativeTarget.F2REESTR)
+                        FirstStepId.AI -> steps.onNative(NativeTarget.JARVIS)
+                        FirstStepId.REAL -> steps.onOnboard()
+                    }
+                }
+            }
         }
         // Server-driven role workspace first (the cabinet's sections and quick actions); the plain module launcher stays below as "all apps".
         ui.workspace?.let { ws ->
@@ -316,3 +332,7 @@ private fun FirstObjectCard(onClick: () -> Unit) {
         }
     }
 }
+
+/** Where the first-steps checklist sends the user (the hub's own navigation callbacks). */
+class FirstStepsActions(val onNative: (NativeTarget) -> Unit, val onWeb: (String, String) -> Unit, val onOnboard: () -> Unit, val uploadTitle: String)
+

@@ -142,7 +142,7 @@ it('past ishonchli matn LLM ga (aiHisobli) o\'tadi; byudjet tugasa 402', async (
   expect(ai.aiHisobli).toHaveBeenCalledTimes(1); expect(ai.aiHisobli.mock.calls[0][1]).toBe(7);
   expect(j.llm).toBe(true); expect(j.holat).toBe('tasdiq_kerak');
   ai.aiHisobli.mockRejectedValueOnce(new AiByudjetXatosi('BYUDJET_TUGADI', 'limit tugadi'));
-  // byudjet tugasa: bepul tahlil natijasi saqlanadi (raqam so'zi «o'n besh» ham deterministik o'qiladi), sabab ai_xabar da; hech narsa yozilmaydi
+  // byudjet tugasa: bepul tahlil natijasi saqlanadi, sabab ai_xabar da; hech narsa yozilmaydi
   const r = await post({ amal: 'tahlil', kompaniya_id: 1, sklad_id: 9, matn: 'o\'n besh tonna sement keldi' });
   expect(await r.json()).toMatchObject({ holat: 'tasdiq_kerak', ai_xabar: 'limit tugadi', preview: { miqdor: 15 } });
   expect(yozuvlar().length).toBe(0);

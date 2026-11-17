@@ -29,6 +29,12 @@ data class HomeState(
     val onboardError: uz.anncorp.smeta.core.data.OnboardError? = null,
     /** The user chose to carry on without a company (the account stays company-less; the hub explains how to start). */
     val skipped: Boolean = false,
+    /** Trial (sinov) state: the card on the onboarding screen and the first-steps checklist; null = unknown / old server. */
+    val sinov: uz.anncorp.smeta.core.data.SinovState? = null,
+    val sinovBusy: Boolean = false,
+    val sinovError: uz.anncorp.smeta.core.data.SinovError? = null,
+    /** The user asked to open a real company while a trial workplace exists: the onboarding screen is shown although a workplace is selected. */
+    val forceOnboard: Boolean = false,
 )
 
 sealed interface SignOutUi {
@@ -52,6 +58,7 @@ class HomeViewModel @Inject constructor(
     private val processor: uz.anncorp.smeta.core.data.OutboxProcessor,
     private val company: uz.anncorp.smeta.core.data.CompanyRepository,
     private val workspaces: uz.anncorp.smeta.core.data.WorkspaceRepository,
+    private val sinovRepo: uz.anncorp.smeta.core.data.SinovRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(HomeState(theme = prefs.theme.value))
     val state: StateFlow<HomeState> = _state.asStateFlow()
@@ -80,6 +87,25 @@ class HomeViewModel @Inject constructor(
                 )
             }
             work.set(_state.value.selected)
+            if (session != null && _state.value.selected == null && check !is SessionCheck.Offline) {
+                sinovRepo.state()?.let { s -> _state.update { it.copy(sinov = s) } }
+            }
+        }
+    }
+
+    /** One-tap trial start (server grants the workspace + tokens once); on success the workplace list reloads and the hub opens. */
+    fun startTrial() {
+        if (_state.value.sinovBusy) return
+        _state.update { it.copy(sinovBusy = true, sinovError = null) }
+        viewModelScope.launch {
+            when (val r = sinovRepo.start()) {
+                is uz.anncorp.smeta.core.data.SinovResult.Done -> {
+                    r.companyId?.let { prefs.selectCompany(it) }
+                    _state.update { it.copy(sinovBusy = false, skipped = false, sinov = null) }
+                    load()
+                }
+                is uz.anncorp.smeta.core.data.SinovResult.Failed -> _state.update { it.copy(sinovBusy = false, sinovError = r.error) }
+            }
         }
     }
 
@@ -99,8 +125,8 @@ class HomeViewModel @Inject constructor(
 
     fun createCompany(name: String, inn: String) = onboard { company.create(name, inn.ifBlank { null }) }
     fun joinCompany(code: String) = onboard { company.join(code) }
-    fun resumeOnboarding() = _state.update { it.copy(skipped = false) }
-    fun skipOnboarding() = _state.update { it.copy(skipped = true) }
+    fun resumeOnboarding() = _state.update { it.copy(skipped = false, forceOnboard = true, onboardError = null) }
+    fun skipOnboarding() = _state.update { it.copy(skipped = true, forceOnboard = false, onboardError = null) }
     fun clearOnboardError() = _state.update { it.copy(onboardError = null) }
     /** Remembers the object as recently opened (shown in the hub). */
     fun opened(objectId: Long) = prefs.pushRecent(objectId)
@@ -112,7 +138,7 @@ class HomeViewModel @Inject constructor(
             when (val r = block()) {
                 is uz.anncorp.smeta.core.data.OnboardResult.Done -> {
                     r.companyId?.let { prefs.selectCompany(it) }
-                    _state.update { it.copy(onboardBusy = false, skipped = false) }
+                    _state.update { it.copy(onboardBusy = false, skipped = false, forceOnboard = false) }
                     load()
                 }
                 is uz.anncorp.smeta.core.data.OnboardResult.Failed -> _state.update { it.copy(onboardBusy = false, onboardError = r.error) }

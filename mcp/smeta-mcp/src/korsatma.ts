@@ -25,6 +25,7 @@ export const QOIDALAR = `# QURAI (T2) — domen qoidalari
 
 ## Fakt va F2
 - Fakt — bajarilgan hajm (fakt_yoz, delta: + yoki −). F2 — buyurtmachiga topshiriladigan akt.
+- MINUS qatorlar («normaga keltirish», hajm<0): asosga fakt yozilsa jufti ulush bo'yicha avtomatik ergashadi; eski bo'shliqlar — minus_fakt (korik → qollash, obyektma-obyekt).
 - **F2 narxi = max(smeta narxi, xarid/shartnoma narxi QQS siz)** (f2_qoralama_yangila \`narx_qoida:"max"\` standart).
 - F2 hajmi fakt qoldig'idan (f2_mumkin) oshsa — bloklanmaydi, ogohlantiriladi. Narxsiz qoralama bloklanmaydi; tasdiqda narx kerak.
 - Tasdiqlangan F2 muzlaydi: bekor qilinmaydi, faqat tuzatish/storno. F2 = Nakopitelniy = F3 (bir manba).

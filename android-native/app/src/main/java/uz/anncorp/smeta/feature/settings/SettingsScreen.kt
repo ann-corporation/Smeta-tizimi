@@ -158,7 +158,7 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = hiltViewModel()) 
             if (ui.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
 
             Section(stringResource(R.string.p10_sec_account)) {
-                ValueRow(stringResource(R.string.p10_name), name.ifBlank { "—" }) { dlg = Dlg.NAME }
+                ValueRow(stringResource(R.string.p10_name), name.ifBlank { "вЂ”" }) { dlg = Dlg.NAME }
                 ValueRow(stringResource(R.string.p10_phone), p?.phone ?: stringResource(R.string.p10_phone_none), if (p?.phone != null) stringResource(if (p.phoneVerified) R.string.p10_phone_verified else R.string.p10_phone_unverified) else null) { dlg = Dlg.PHONE }
             }
 
@@ -222,7 +222,7 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = hiltViewModel()) 
                     UpdateUi.UpToDate -> Text(stringResource(R.string.p10_update_none), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
                     is UpdateUi.Available -> {
                         Text(stringResource(R.string.upd_body, u.release.version), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-                        Button(onClick = { runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(u.url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } }, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.upd_get)) }
+                        Button(onClick = { uz.anncorp.smeta.feature.home.startApkDownload(ctx, u.url) }, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.upd_get)) }
                     }
                 }
                 OutlinedButton(onClick = vm::checkUpdate, enabled = ui.update != UpdateUi.Checking, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.p10_update_check)) }
@@ -317,3 +317,4 @@ private fun TextDialog(title: String, initial: String, keyboard: KeyboardType, h
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.p10_cancel)) } },
     )
 }
+

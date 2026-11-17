@@ -21,7 +21,9 @@ import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.runtime.setValue
 import dagger.hilt.android.AndroidEntryPoint
 import uz.anncorp.smeta.core.data.AuthEvents
 import uz.anncorp.smeta.core.data.Prefs
@@ -152,13 +154,20 @@ private const val NAZORAT = "nazorat"
 @Composable
 private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
     val nav = rememberNavController()
+    var jarvisEpoch by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    val here by nav.currentBackStackEntryAsState()
+    val route = here?.destination?.route.orEmpty()
     // Revoked/expired device or explicit sign-out: always back to Login with a clean stack.
     LaunchedEffect(Unit) {
         events.logout.collect {
             lock.reset()
+            jarvisEpoch++
             nav.navigate(LOGIN) { popUpTo(nav.graph.id) { inclusive = true }; launchSingleTop = true }
         }
     }
+    // Jarvis floating button: on every signed-in screen except where it would be in the way (start, sign-in, camera) or redundant (Jarvis itself).
+    val jarvisHidden = route.isEmpty() || route == SPLASH || route == LOGIN || route == SIGNUP || route == INVITE || route.startsWith("jarvis") || route.startsWith("photo/")
+    Box(androidx.compose.ui.Modifier.fillMaxSize()) {
     NavHost(nav, startDestination = start) {
         composable(SPLASH) {
             SplashScreen(onRoute = { r ->
@@ -259,6 +268,8 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
         composable(NARYAD) { uz.anncorp.smeta.feature.naryad.NaryadScreen(onBack = { nav.popBackStack() }, onOutbox = { nav.navigate(OUTBOX) }, onPhoto = { o, n -> nav.navigate("photo/$o?naryad=$n") }) }
         composable(HUJJAT, listOf(navArgument("xat") { type = NavType.LongType; defaultValue = -1L })) { uz.anncorp.smeta.feature.hujjat.HujjatScreen(onBack = { nav.popBackStack() }, onOpenChain = { nav.navigate("approval/$it") }) }
         composable(OUTBOX) { OutboxScreen(onBack = { nav.popBackStack() }, onEditDraft = { nav.navigate("draft/$it") }) }
+    }
+    uz.anncorp.smeta.feature.jarvis.JarvisOverlay(visible = !jarvisHidden, epoch = jarvisEpoch)
     }
 }
 
