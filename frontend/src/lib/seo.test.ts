@@ -131,3 +131,16 @@ describe('SEO: ikonlar, kontent sahifalar, sitemap va marshrutlar', () => {
     expect(routes.exclude).toContain('/ru/*');
   });
 });
+describe('Cloudflare Functions kvotasi: ochiq sahifalar statik', () => {
+  const routes = JSON.parse(oqi('public/_routes.json')) as { include: string[]; exclude: string[] };
+  it('landing va ochiq marketing sahifalar Function chaqirmaydi', () => {
+    for (const p of ['/', '/index.html', '/ru', '/ru/*', '/smeta', '/f2', '/ombor', '/ilova', '/haqida', '/assets/*', '/brand/*', '/robots.txt', '/sitemap.xml', '/sw.js'])
+      expect(routes.exclude, p).toContain(p);
+  });
+  it('API va SPA marshrutlar Function orqali qoladi (admin, api, auth)', () => {
+    expect(routes.include).toContain('/*');
+    for (const p of ['/api/*', '/api', '/admin', '/admin/*', '/tg', '/ilova-qaytdi', '/brauzer-kirish', '/t/*'])
+      expect(routes.exclude.includes(p), p).toBe(false);
+    expect(routes.exclude.length).toBeLessThanOrEqual(100);
+  });
+});
