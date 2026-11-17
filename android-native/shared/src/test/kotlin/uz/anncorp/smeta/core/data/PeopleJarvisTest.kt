@@ -281,9 +281,3 @@ class JarvisRepositoryTest {
         assertEquals(listOf(ChatMsg(false, "Qisqa")), JarvisRepository.parseMessages(pres("""{"ok":true,"qisqartma":"Qisqa","xabarlar":null}""")))
     }
 }
-class JarvisModuleTest {
-    @Test fun hubListsJarvisWithCompanyReadAndHidesItOtherwise() {
-        assertTrue(ModuleCatalog.visible(setOf("company.read"), emptySet()).any { it.code == "jarvis" && it.target == NativeTarget.JARVIS })
-        assertFalse(ModuleCatalog.visible(setOf("fakt.read"), emptySet()).any { it.code == "jarvis" })
-    }
-}

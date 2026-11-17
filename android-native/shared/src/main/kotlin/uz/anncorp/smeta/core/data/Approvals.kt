@@ -23,7 +23,7 @@ data class ApprovalItem(
 )
 
 /** The gateway returns the RPC object as is (it carries `ok`) or wrapped as `{ok:true, natija}`; both are accepted. */
-internal fun payload(body: JsonElement?): JsonObject? {
+fun payload(body: JsonElement?): JsonObject? {
     val o = body.obj() ?: return null
     if ((o["ok"] as? JsonPrimitive)?.booleanOrNull == false) return null
     return o["natija"].obj() ?: o
@@ -247,7 +247,7 @@ class TodayRepository(private val api: BffApi) {
     suspend fun markRead(ids: List<Long>): Boolean = ids.isEmpty() || api.bff("/api/hujjat-aylanish", "POST", markReadPayload(ids)).ok
 }
 
-internal fun ApiResult.syncFailure(): SyncResult = when {
+fun ApiResult.syncFailure(): SyncResult = when {
     networkError -> SyncResult.Offline
     status == 403 -> SyncResult.Forbidden
     else -> SyncResult.Failed(code ?: "HTTP $status")

@@ -31,7 +31,7 @@ enum class AuthError {
 }
 
 /** Maps a shared-server sign-up/invite failure code (royxat-*, kirish-taklif) to the app error. Same codes the website shows. */
-internal fun signUpError(status: Int, code: String?): AuthError = when {
+fun signUpError(status: Int, code: String?): AuthError = when {
     status == 0 -> AuthError.NETWORK
     code == "EMAIL_NOTOGRI" -> AuthError.EMAIL_BAD
     code == "EMAIL_BAND" -> AuthError.ACCOUNT_EXISTS
@@ -185,7 +185,7 @@ class AuthRepository(
 
     // ---- Device enrolment --------------------------------------------------------------------------------------
 
-    internal suspend fun enroll(session: LoginSession): AuthOutcome {
+    suspend fun enroll(session: LoginSession): AuthOutcome {
         val body = buildJsonObject {
             put("operation_id", UUID.randomUUID().toString())
             put("qurilma_nomi", deviceName().take(100))
@@ -239,7 +239,7 @@ class AuthRepository(
     }
 }
 
-internal fun kotlinx.serialization.json.JsonElement?.string(key: String): String? =
+fun kotlinx.serialization.json.JsonElement?.string(key: String): String? =
     ((this as? JsonObject)?.get(key) as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull
 
 sealed interface PollResult {
