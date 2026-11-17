@@ -21,5 +21,14 @@
   "Telegram rad etdi — huquqni tekshiring": { "ru": "Telegram отклонил — проверьте права бота", "en": "Telegram rejected it — check the bot’s rights" },
   "Chiqarildi": { "ru": "Опубликовано", "en": "Published" },
   "O‘chirildi": { "ru": "Удалено", "en": "Deleted" },
-  "Matn bo‘sh yoki juda uzun": { "ru": "Текст пустой или слишком длинный", "en": "Text is empty or too long" }
+  "Matn bo‘sh yoki juda uzun": { "ru": "Текст пустой или слишком длинный", "en": "Text is empty or too long" },
+  "Tarmoqlar: {list}": { "ru": "Сети: {list}", "en": "Networks: {list}" },
+  "Video: {url}": { "ru": "Видео: {url}", "en": "Video: {url}" },
+  "{tarmoq}: ✅ {havola}": { "ru": "{tarmoq}: ✅ {havola}", "en": "{tarmoq}: ✅ {havola}" },
+  "{tarmoq}: ⏳ video tayyorlanmoqda": { "ru": "{tarmoq}: ⏳ видео обрабатывается", "en": "{tarmoq}: ⏳ video is processing" },
+  "{tarmoq}: ❌ {kod}": { "ru": "{tarmoq}: ❌ {kod}", "en": "{tarmoq}: ❌ {kod}" },
+  "🔄 Instagram holatini tekshirish": { "ru": "🔄 Проверить статус Instagram", "en": "🔄 Check Instagram status" },
+  "Qisman chiqarildi — natijani ko‘ring": { "ru": "Опубликовано частично — см. результат", "en": "Partly published — see the result" },
+  "Hech biri chiqmadi — natijani ko‘ring": { "ru": "Ничего не опубликовано — см. результат", "en": "Nothing was published — see the result" },
+  "Instagram hali tayyor emas — keyinroq qayta bosing": { "ru": "Instagram ещё не готов — нажмите позже", "en": "Instagram is not ready yet — press again later" }
 }

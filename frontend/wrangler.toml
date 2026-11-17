@@ -37,3 +37,8 @@ ESKI_HOST_YONLANTIRISH = "0"
 # Telegram brend kanali/guruhi (sir emas): /api/telegram/kanal faqat shu chatlar bilan ishlaydi. TG_GURUH: id (-100…) yoki @username — guruh ulanganda to'ldiriladi.
 TG_KANAL = "@qurai_uz"
 TG_GURUH = "-1004432615700"
+# Meta Graph (sir emas; META_TOKEN — Pages secret): Facebook sahifa + Instagram nashri (/api/telegram/kanal, _shared/meta-graph.ts).
+# META_PAGE_ID bo'sh — ish vaqtida /me/accounts dan META_IG_ID ga mos sahifa topiladi.
+META_PAGE_ID = ""
+META_IG_ID = "17841473771174115"
+META_GRAPH_VERSION = "v21.0"
