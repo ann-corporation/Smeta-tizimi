@@ -1,0 +1,6 @@
+{"ok":true,"natija":{"ok":true,"qatorlar":[
+ {"shartnoma_id":11,"raqam":"1-T","nom":"Korpus A qurilishi","yonalish":"debitor","kontragent":"Buyurtmachi MChJ","shartnoma_summa":2500000000,"f3_sotuv":900000000,"tolangan":600000000,"f2_nakrutkasiz":850000000,"qarz":300000000,"oxirgi_tolov_sana":"2026-10-28","obyektlar":[{"id":101,"nom":"Demo korpus A"}]},
+ {"shartnoma_id":12,"raqam":"7/2","nom":"Maktab binosi","yonalish":"debitor","kontragent":"Ta'lim boshqarmasi","shartnoma_summa":4800000000,"f3_sotuv":1500000000,"tolangan":1500000000,"f2_nakrutkasiz":1400000000,"qarz":0,"oxirgi_tolov_sana":"2026-11-05","obyektlar":[{"id":102,"nom":"Demo maktab binosi"}]},
+ {"shartnoma_id":13,"raqam":"3","nom":"Omborxona","yonalish":"debitor","kontragent":"Sanoat zonasi","shartnoma_summa":null,"f3_sotuv":null,"tolangan":null,"f2_nakrutkasiz":null,"qarz":null,"oxirgi_tolov_sana":null,"obyektlar":[{"id":104,"nom":"Demo omborxona"}]},
+ {"shartnoma_id":14,"raqam":"S-9","nom":"Yetkazib berish","yonalish":"kreditor","kontragent":"Ta'minotchi","shartnoma_summa":10,"f3_sotuv":null,"tolangan":1,"f2_nakrutkasiz":null,"qarz":9,"oxirgi_tolov_sana":null,"obyektlar":[]}
+]}}

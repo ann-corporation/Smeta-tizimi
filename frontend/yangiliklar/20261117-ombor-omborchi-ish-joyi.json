@@ -1,0 +1,9 @@
+{
+  "sana": "2026-11-17",
+  "sarlavha": "Omborchi ish joyi: tez kirim/chiqim, ovozli buyruq",
+  "bandlar": [
+    "Ombor → «Omborchi» yorlig‘i: bir necha harf yozing, materialni tanlang, miqdorni kiriting — saqlandi. Lotin/kirill va turlicha yozilishlar bitta materialga jamlanadi.",
+    "Ovoz yoki matn bilan buyruq: «sement 10 tonna keldi» — tizim kartani ko‘rsatadi, tasdiqlaganingizdan keyingina yoziladi. Telegram botda ham ishlaydi.",
+    "Yozuvni tuzatish va bekor qilish (sabab bilan, tarix saqlanadi), ostatkani Excelga chiqarish."
+  ]
+}

@@ -175,7 +175,7 @@ it('model taklifi eski chatdan yozilmaydi, chaqiruv hisobli', async () => {
     text: JSON.stringify({ javob: 'Sinov javob', harakatlar: [{ amal: 'test', parametrlar: {}, tushuntirish: 'sinov', aniq: true }] }),
     provider: 'openrouter', model: 'test',
   });
-  const r = await run('Narxlar haqida tushuntir', 17, { mode: 'interactive' }, { AI: { run: worker } });
+  const r = await run('Narxlar haqida tushuntir', 17, { mode: 'interactive' }, { AI: { run: worker }, OPENROUTER_API_KEY: 'synthetic' });
   expect(await r.json()).toMatchObject({ ok: true, provider: 'openrouter', harakatlar: [], requires_approval: false });
   expect(ai.mock.calls[0].slice(1, 5)).toEqual([7, 17, 'company_access', 'kasb_savol']);
   expect(called('t2_agent_harakat_taklif_v1')).toHaveLength(0);
@@ -187,6 +187,30 @@ it('limit ishlamasa legacy 402 kontrakti saqlanadi', async () => {
   const r = await run('Narxlar haqida tushuntir');
   expect(r.status).toBe(402);
   expect(await r.json()).toMatchObject({ ok: false, code: 'BYUDJET_YOQ', xabar: expect.stringContaining('oylik limit') });
+});
+it('uses the accounted Workers binding when no external provider is configured', async () => {
+  const worker = vi.fn(async () => ({ response: '{"javob":"Sinov javobi","harakatlar":[]}', usage: { input_tokens: 18, output_tokens: 9 } }));
+  const network = vi.fn(async (input: string, init?: RequestInit) => input.includes('/t2_agent_sarf?')
+    ? new Response('[]', { headers: { 'Content-Range': '*/0' } }) : rpc(input, init));
+  vi.stubGlobal('fetch', network);
+  const response = await run('Narxlar haqida tushuntir', 17, {}, { AI: { run: worker } });
+  expect(response.status).toBe(200);
+  expect(await response.json()).toMatchObject({ ok: true, provider: 'cloudflare-workers-ai', javob: 'Sinov javobi' });
+  expect(worker).toHaveBeenCalledTimes(1);
+  expect(ai).not.toHaveBeenCalled();
+  expect(JSON.parse(String(called('t2_agent_sarf_yoz_v1')[0][1]?.body))).toMatchObject({
+    p_actor_id: 7, p_kompaniya_id: 17, p_amal: 'jarvis_eski_cf', p_kirish: 18, p_chiqish: 9, p_narx_usd: 0,
+  });
+});
+it('rejects a Workers request above its daily limit without calling the model', async () => {
+  const worker = vi.fn();
+  vi.stubGlobal('fetch', (input: string, init?: RequestInit) => input.includes('/t2_agent_sarf?')
+    ? Promise.resolve(new Response('[]', { headers: { 'Content-Range': '0-0/20' } })) : rpc(input, init));
+  const response = await run('Narxlar haqida tushuntir', 17, {}, { AI: { run: worker } });
+  expect(response.status).toBe(402);
+  expect(await response.json()).toMatchObject({ ok: false, code: 'KUNLIK_FOYDALANUVCHI' });
+  expect(worker).not.toHaveBeenCalled();
+  expect(ai).not.toHaveBeenCalled();
 });
 it('sessiyasiz help ham yopiq', async () => {
   auth.mockResolvedValue(null);

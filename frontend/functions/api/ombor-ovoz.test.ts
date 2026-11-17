@@ -81,3 +81,38 @@ it('large provider responses are bounded before JSON allocation',async()=>{
   const r=await post(request(audio()));expect(r.status).toBe(502);
   expect(await r.json()).toEqual({ok:false,code:'VOICE_RESULT_TOO_LARGE'});
 });
+
+// Zaxira: Cloudflare Workers AI (Whisper), ElevenLabs sozlanmagan yoki kompaniya ruxsat etilmagan bo'lsa.
+const ai=()=>({run:vi.fn(async(_m:string,_i:Record<string,unknown>)=>({text:'  50 qop sement keldi  '}))});
+it('falls back to Workers AI Whisper when ElevenLabs is not configured or the company is not enabled',async()=>{
+  for (const e of [{...env,ELEVENLABS_API_KEY:undefined,ELEVENLABS_COMPANY_IDS:undefined},{...env,ELEVENLABS_COMPANY_IDS:'999'}]) {
+    const f=vi.fn();vi.stubGlobal('fetch',f);const a=ai();
+    const form=audio();form.set('language','uzb');
+    const res=await post(request(form),data(),{...e,AI:a} as never);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ok:true,text:'50 qop sement keldi',language:'uz',draft_only:true});
+    expect(a.run).toHaveBeenCalledTimes(1);
+    const [model,input]=a.run.mock.calls[0];
+    expect(model).toBe('@cf/openai/whisper-large-v3-turbo');
+    expect(input).toEqual({audio:btoa('synthetic audio'),language:'uz'});
+    expect(f).not.toHaveBeenCalled(); // tashqi provayderga chiqilmaydi
+  }
+  expect(await(await get('123',data(),{...env,ELEVENLABS_API_KEY:undefined,AI:ai()} as never)).json()).toMatchObject({enabled:true,provider:'workers-ai'});
+});
+it('ElevenLabs stays preferred when configured for the company; Workers AI is not called',async()=>{
+  const f=vi.fn(async()=>Response.json({text:'x',language_code:'uzb'}));vi.stubGlobal('fetch',f);const a=ai();
+  const res=await post(request(audio()),data(),{...env,AI:a} as never);
+  expect(res.status).toBe(200);expect(f).toHaveBeenCalledTimes(1);expect(a.run).not.toHaveBeenCalled();
+});
+it('Workers AI fallback keeps auth, format and error codes; no provider at all keeps the old codes',async()=>{
+  const a=ai();const noEl={...env,ELEVENLABS_API_KEY:undefined,AI:a} as never;
+  expect((await post(request(audio('999')),data(),noEl)).status).toBe(403);
+  expect((await post(request(audio('123','application/pdf')),data(),noEl)).status).toBe(400);
+  expect((await post(request(audio()),{},noEl)).status).toBe(401);
+  expect(a.run).not.toHaveBeenCalled();
+  const empty={run:vi.fn(async()=>({text:' '}))};
+  expect((await post(request(audio()),data(),{...env,ELEVENLABS_API_KEY:undefined,AI:empty} as never)).status).toBe(422);
+  const boom={run:vi.fn(async()=>{throw new Error('x');})};
+  expect((await post(request(audio()),data(),{...env,ELEVENLABS_API_KEY:undefined,AI:boom} as never)).status).toBe(503);
+  expect((await post(request(audio()),data(),{...env,ELEVENLABS_API_KEY:undefined})).status).toBe(503); // AI ham yo'q
+});

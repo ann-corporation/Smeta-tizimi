@@ -1,0 +1,12 @@
+{
+  "sana": "2026-11-17",
+  "sarlavha": "QURAI Android 0.1.10 — Sozlamalar, profil rasmi va texnik nazorat qabuli",
+  "bandlar": [
+    "Sozlamalar (Profil bo'limidan): profil rasmini tanlash, qirqish va yuklash yoki o'chirish; ism va telefonni tahrirlash; til va mavzu.",
+    "Bildirishnomalar: qurilmada qaysi turlar (tasdiqlashlar, xatlar, muddatlar, chizmalar) ko'rinishini tanlash; Telegram ulangan bo'lsa, bot xabarlari ham shu yerdan yoqiladi.",
+    "Xavfsizlik: PIN o'zgartirish, biometrik yoqish va avtoqulf vaqti bir joyda.",
+    "Faol seanslar: joriy seans muddati va «Boshqa qurilmalardan chiqish» tugmasi (bu qurilmada tizimda qolasiz).",
+    "Xotira va ilova haqida: hujjatlar keshini tozalash, versiya va yangilanishni tekshirish, hisobdan chiqish.",
+    "Texnik nazorat qabuli (texnadzor uchun): sizga taqdim etilgan F-2 ro'yxati, tekshiruv natijasi (AOSR yo'q, hajm fakt'dan oshgan qatorlar) va qabul / tuzatishga qaytarish / rad etish; izoh yoziladi, qaror PIN bilan tasdiqlanadi."
+  ]
+}

@@ -83,7 +83,7 @@ private val Tabs = listOf(
 fun HomeScreen(
     onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOpenApproval: (Long) -> Unit, onOutbox: () -> Unit,
     onOpenWeb: (path: String, title: String) -> Unit, onPickFakt: () -> Unit, onPickPhoto: () -> Unit,
-    onJarvis: () -> Unit = {}, onRahbar: () -> Unit = {}, onZayavka: () -> Unit = {}, onInvite: () -> Unit = {}, onInvites: () -> Unit = {}, onNotifications: () -> Unit = {},
+    onJarvis: () -> Unit = {}, onRahbar: () -> Unit = {}, onZayavka: () -> Unit = {}, onInvite: () -> Unit = {}, onInvites: () -> Unit = {}, onNotifications: () -> Unit = {}, onSettings: () -> Unit = {},
     onModule: (NativeTarget) -> Unit = {},
     vm: HomeViewModel = hiltViewModel(),
 ) {
@@ -127,7 +127,7 @@ fun HomeScreen(
                     Text(stringResource(R.string.home_loading), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 tab == OMBOR_TAB -> { BackHandler { tab = 0 }; OmborScreen(onOutbox) }
-                tab == 4 -> ProfileScreen(state, onTheme = vm::setTheme, onSwitch = { sheet = true }, onSignOut = vm::requestSignOut, onInvite = onInvite, onInvites = onInvites)
+                tab == 4 -> ProfileScreen(state, onTheme = vm::setTheme, onSwitch = { sheet = true }, onSignOut = vm::requestSignOut, onInvite = onInvite, onInvites = onInvites, onSettings = onSettings)
                 else -> TabBody(state, tab, vm::load, openObject, onOpenFakt, onOpenApproval, { tab = it }, onOutbox, onOpenWeb, onPickFakt, onPickPhoto, vm::resumeOnboarding, onJarvis, onRahbar, onNotifications, onZayavka, onModule)
             }
         }
@@ -246,7 +246,7 @@ private fun TabBody(
                         NativeTarget.JARVIS -> onJarvis()
                         NativeTarget.RAHBAR -> onRahbar()
                         NativeTarget.ZAYAVKA -> onZayavka()
-                        NativeTarget.M29, NativeTarget.NARYAD, NativeTarget.HUJJAT -> onModule(target)
+                        NativeTarget.M29, NativeTarget.NARYAD, NativeTarget.HUJJAT, NativeTarget.F2REESTR, NativeTarget.NAKOP, NativeTarget.QARZDOR, NativeTarget.QABUL, NativeTarget.RESURS, NativeTarget.NAZORAT -> onModule(target)
                     }
                 },
                 onWeb = onOpenWeb, onObject = onOpenObject, onFakt = onOpenFakt, onOnboard = onOnboard, onNotifications = onNotifications,

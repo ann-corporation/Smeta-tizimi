@@ -8,10 +8,10 @@
  * bo'lgandagina ishlaydi (token hisobi tayyor bo'lgach egasi yoqadi). Boshqaruv amallari (modellar, takliflar, buyruqlar, qoidalar, xotira, fikrni SAQLASH)
  * model chaqirmaydi — doim ochiq; ruxsatni baza tekshiradi.
  */
-import { kasbQuvur, type Qadam } from '../_shared/jarvis/chat';
+import { kasbQuvur, type JarvisEnv, type Qadam } from '../_shared/jarvis/chat';
 import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
-import { parseJsonText, type AiEnv } from '../_shared/ai';
+import { parseJsonText } from '../_shared/ai';
 import { rpcData, type RpcNatija, type Yuk } from '../_shared/agent-rpc';
 import { aiHisobli, aiXatoJavobi, aiXatoMalumoti, modelOf } from '../_shared/agent-hisob';
 import { tizimPrompti, tashqiMatnOra, profilDarajasi, type Muhit } from '../_shared/agent-prompt';
@@ -28,7 +28,7 @@ import { openrouterBalans } from '../_shared/openrouter-balans';
 import { AI_TIZIM_AMALLAR, aiJavobTozala, platformaSuperadminmi } from '../_shared/tizim-maxfiy';
 import { mijozNarxParam, modellarMijozga, orQatorMijozga } from '../_shared/ai-mijoz-narx';
 
-type Env = AiEnv & { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; KUZATUV_KALIT?: string; KUZATUV_ACTOR_ID?: string; AGENT_ISH_YOQILGAN?: string; GITHUB_AGENT_TOKEN?: string; GITHUB_REPO?: string };
+type Env = JarvisEnv & { SESSIYA_KALIT: string; KUZATUV_KALIT?: string; KUZATUV_ACTOR_ID?: string; GITHUB_AGENT_TOKEN?: string; GITHUB_REPO?: string };
 
 const JAVOB = { headers: { 'Cache-Control': 'no-store' } };
 const sonmi = (v: unknown) => v != null && v !== '' && Number.isSafeInteger(Number(v)) && Number(v) > 0;

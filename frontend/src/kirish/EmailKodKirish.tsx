@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, Mail, User, RotateCcw, Pencil } from 'lucide-react';
 import { t } from '../i18n/til';
+import { TurnstileVidjet, useTurnstile } from '../components/Turnstile';
 
 /**
  * Email kod bilan kirish/ro'yxat (egasi 2026-10-26: «pochtaga raqam keladi, keyin login bo'ladi»).
@@ -30,6 +31,7 @@ export function EmailKodKirish({ royxat = false, onKirdi, onXizmatYoq }: {
   const [band, setBand] = useState(false);
   const [xato, setXato] = useState('');
   const [qayta, setQayta] = useState(0);
+  const ts = useTurnstile();
   const opId = useRef<string>(crypto.randomUUID());
   const kodRef = useRef<HTMLInputElement>(null);
 
@@ -43,9 +45,11 @@ export function EmailKodKirish({ royxat = false, onKirdi, onXizmatYoq }: {
   const kodYubor = async () => {
     const e = email.trim().toLowerCase();
     if (!EMAIL.test(e)) { setXato(t('Email manzilini to‘g‘ri kiriting.')); return; }
+    if (ts.yoqilgan && !ts.token) { setXato(t('Avval bot tekshiruvidan (Turnstile) oting')); return; }
     setBand(true); setXato('');
     try {
-      const { d } = await sorov({ amal: 'kod', email: e });
+      const { d } = await sorov({ amal: 'kod', email: e, turnstile_token: ts.token ?? undefined });
+      if (ts.yoqilgan) ts.reset();
       if (!d.ok || !d.tasdiqlash_id) {
         setXato(d.xabar || t('Kod yuborib bo‘lmadi.'));
         if (d.code === 'EMAIL_XIZMATI_SOZLANMAGAN' || d.code === 'SERVER_YANGILANMAGAN' || d.code === 'EMAIL_SINOV_REJIMI' || d.code === 'EMAIL_KALIT_XATO') onXizmatYoq?.();
@@ -107,6 +111,7 @@ export function EmailKodKirish({ royxat = false, onKirdi, onXizmatYoq }: {
         </div>
       </div>
 
+      {!tid && <TurnstileVidjet onToken={ts.setToken} idRef={ts.idRef} />}
       <AnimatePresence initial={false}>
         {tid && (
           <motion.div key="kod" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="entry-field">

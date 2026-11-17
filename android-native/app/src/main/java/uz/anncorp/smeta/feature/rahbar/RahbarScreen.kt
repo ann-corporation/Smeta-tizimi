@@ -119,7 +119,7 @@ class RahbarViewModel @Inject constructor(private val repo: RahbarRepository, pr
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RahbarScreen(onBack: () -> Unit, onOpenObject: (Long) -> Unit, onOpenApprovals: () -> Unit, vm: RahbarViewModel = hiltViewModel()) {
+fun RahbarScreen(onBack: () -> Unit, onOpenObject: (Long) -> Unit, onOpenApprovals: () -> Unit, onDebtors: () -> Unit = {}, vm: RahbarViewModel = hiltViewModel()) {
     val ui by vm.state.collectAsStateWithLifecycle()
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
         WorkTopBar(stringResource(R.string.mod_rahbar), onBack)
@@ -133,14 +133,14 @@ fun RahbarScreen(onBack: () -> Unit, onOpenObject: (Long) -> Unit, onOpenApprova
                     is SyncResult.Offline -> EmptyState(Icons.Filled.CloudOff, stringResource(R.string.rb_offline_empty), stringResource(R.string.err_network), stringResource(R.string.retry)) { vm.refresh() }
                     else -> EmptyState(Icons.Filled.Warning, stringResource(R.string.p1_objects_error), stringResource(R.string.err_server), stringResource(R.string.retry)) { vm.refresh() }
                 }
-                else -> PanelBody(ui, d, onOpenObject, onOpenApprovals, onRetry = { vm.refresh() })
+                else -> PanelBody(ui, d, onOpenObject, onOpenApprovals, onDebtors, onRetry = { vm.refresh() })
             }
         }
     }
 }
 
 @Composable
-private fun PanelBody(ui: RahbarUi, d: RahbarPanelData, onOpenObject: (Long) -> Unit, onOpenApprovals: () -> Unit, onRetry: () -> Unit) {
+private fun PanelBody(ui: RahbarUi, d: RahbarPanelData, onOpenObject: (Long) -> Unit, onOpenApprovals: () -> Unit, onDebtors: () -> Unit, onRetry: () -> Unit) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp, 4.dp, 16.dp, 28.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -157,7 +157,7 @@ private fun PanelBody(ui: RahbarUi, d: RahbarPanelData, onOpenObject: (Long) -> 
             }
         }
         item { TotalsCard(d) }
-        item { CashCard(d) }
+        item { CashCard(d, onDebtors) }
         if (d.approvals.isNotEmpty()) item { ApprovalsCard(d, onOpenApprovals) }
         item { AttentionCard(d, onOpenObject) }
         item { Text(stringResource(R.string.rb_objects), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(top = 4.dp)) }
@@ -211,7 +211,7 @@ private fun TotalsCard(d: RahbarPanelData) {
 }
 
 @Composable
-private fun CashCard(d: RahbarPanelData) {
+private fun CashCard(d: RahbarPanelData, onDebtors: () -> Unit) {
     val c = d.cards
     WorkCard {
         Column(Modifier.padding(16.dp)) {
@@ -220,6 +220,7 @@ private fun CashCard(d: RahbarPanelData) {
             CashLine(stringResource(R.string.rb_paid), c.paid)
             CashLine(stringResource(R.string.rb_receivable), c.receivable, strong = true)
             CashLine(stringResource(R.string.rb_payable), c.payable)
+            androidx.compose.material3.TextButton(onClick = onDebtors, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.p8_dq_title)) }
             c.aging?.let { a ->
                 Spacer(Modifier.height(10.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
