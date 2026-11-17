@@ -79,6 +79,36 @@ it.each([false, true])('recovers an R2 table and adds the catalogue recipe after
   ]) })));
 });
 
+it.each([true, false])('keeps an explicit shifr ahead of ShNQ and model fallbacks (catalogue hit: %s)', async exists => {
+  const code = 'E6-1-1-22';
+  const requested = { ...work, id: 'requested', code };
+  const similar = { ...work, id: 'similar', code: code + '1' };
+  const catalog = { ...katalog, allWorks: () => exists ? [similar, requested] : [similar] };
+  const requests: string[] = [];
+  vi.mocked(fetch).mockImplementation(async (url, init) => {
+    if (String(url).startsWith('/api/normativ-qidir?')) {
+      requests.push('shnq');
+      return Response.json({ ok: true, natijalar: [] });
+    }
+    const { amal } = JSON.parse(String(init?.body));
+    requests.push(amal);
+    if (amal !== 'suhbat') return Response.json({ ok: true, tanlovlar: [] });
+    return Response.json({ ok: true, javob: 'Shifr tekshirildi', savollar: [], ishlar: [
+      { id: 'w1', bolim: 'Asos', tavsif: 'Beton tayyorlov', qidiruv: [code], birlik: 'м3', hajmIfoda: '2', holat: 'TAYYOR' },
+    ] });
+  });
+  const command = vi.fn(() => true);
+  render(<SmetaAiChat doc={emptyDoc('d')} katalog={catalog} kompaniyaId={7} command={command} newId={() => 'x'} />);
+  fireEvent.change(screen.getByLabelText('Smetachiga xabar'), { target: { value: code } });
+  fireEvent.click(screen.getByRole('button', { name: 'Yuborish' }));
+  const add = await screen.findByRole('button', { name: new RegExp(`Tayyorlarini smetaga qo‘shish \\(${exists ? 1 : 0}\\)`) });
+  expect((add as HTMLButtonElement).disabled).toBe(!exists);
+  expect(requests).toContain('suhbat');
+  expect(requests).not.toContain('shnq');
+  expect(requests).not.toContain('tanla');
+  expect(command).not.toHaveBeenCalled();
+});
+
 it('the operator can search and select a norm outside the AI shortlist without changing the estimate', async () => {
   const commands = vi.fn(() => true);
   const extra = { ...work, id: 'outside', code: 'E6-1-1-22', name: 'BOSHQA NORMA' };

@@ -150,9 +150,12 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
     // 1) Local matching pipeline (BM25 + strict unit filter + evidence + calibrated confidence): a confident line is marked at once,
     //    the model only reranks the shortlist of lines the pipeline is unsure about.
     const xotira = xotiraOl(kompaniyaId);   // company memory: codes confirmed here before for similar text come first
+    const kodTekshirish = new Set<string>();
     let next = list.map(i => {
-      if (i.nomzodlar.length) return i;
+      if (i.tanlangan) return i;
       const r = avtoTanlov(katalog, i, list, 20, xotira);
+      if (r?.kodTekshirish || r?.holat === 'KOD') kodTekshirish.add(i.id);
+      if (i.nomzodlar.length && !r?.kodTekshirish && r?.holat !== 'KOD') return i;
       if (!r) return { ...i, nomzodlar: nomzodlarTop(katalog, i) };
       return { ...i, nomzodlar: r.nomzodlar, tanlangan: !i.tanlangan && r.avto ? r.avto : i.tanlangan };
     });
@@ -174,7 +177,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
     };
     const shnqBirlashtir = (i: AiIsh, hits: Awaited<ReturnType<typeof shnqNomzodlar>>) =>
       ({ ...i, nomzodlar: [...hits, ...i.nomzodlar.filter(n => !hits.some(h => h.id === n.id))].slice(0, 20) });
-    const grounded = await shnqBilan(next.filter(i => !i.tanlangan), next);
+    const grounded = await shnqBilan(next.filter(i => !i.tanlangan && !kodTekshirish.has(i.id)), next);
     if (!tirik.current) return list;
     next = next.map(i => {
       const hits = grounded.get(i.id);
@@ -183,7 +186,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
     // Up to two rounds: when no candidate fits, the model rephrases in normative wording and the catalogue is searched again.
     let qaytaIds: Set<string> | null = null;
     for (let round = 0; round < 2; round++) {
-      const sor = next.filter(i => !i.tanlangan && (i.nomzodlar.length || round === 0) && (!qaytaIds || qaytaIds.has(i.id))).map(i => tanlovSorovi(i, next));
+      const sor = next.filter(i => !i.tanlangan && !kodTekshirish.has(i.id) && (i.nomzodlar.length || round === 0) && (!qaytaIds || qaytaIds.has(i.id))).map(i => tanlovSorovi(i, next));
       if (!sor.length) break;
       setBand('tanlash');
       // Only the lines the pipeline could not settle reach the model (it reranks ≤ 20 candidates each). Batches of 8 sent eight at a time:
@@ -205,6 +208,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
       const qayta = new Set<string>();
       const shnqQayta: AiIsh[] = [];
       next = next.map(i => {
+        if (kodTekshirish.has(i.id)) return i;
         const c = by.get(i.id), n = c?.ishId ? i.nomzodlar.find(x => x.id === c.ishId) : null;
         if (n && !tanlovZidmi(i, n, next)) {
           const taxmin = !!n.shnq || /TAXMIN|taxmin|предполож|assum/.test(c!.sabab);
@@ -213,9 +217,11 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
         }
         if (c && !c.ishId) qadam(t('«{i}»: mos norma topilmadi{q}', { i: i.tavsif, q: c.qidiruv?.length ? t(' — qayta qidiraman: {q}', { q: c.qidiruv.join('; ') }) : '' }), c.qidiruv?.length ? 'ishda' : 'savol');
         if (round === 0 && c?.qidiruv?.length) {
+          const r = avtoTanlov(katalog, { ...i, qidiruv: c.qidiruv }, next);
+          if (r?.kodTekshirish) return { ...i, nomzodlar: r.nomzodlar };
           const alternate = c.qidiruv.filter(query => !i.qidiruv.some(original => original.trim().toLowerCase() === query.trim().toLowerCase()));
           if (alternate.length) shnqQayta.push({ ...i, qidiruv: alternate });
-          const extra = nomzodlarTop(katalog, { ...i, qidiruv: c.qidiruv });
+          const extra = r?.nomzodlar ?? nomzodlarTop(katalog, { ...i, qidiruv: c.qidiruv });
           const fresh = extra.filter(x => !i.nomzodlar.some(o => o.id === x.id));
           if (fresh.length) { qayta.add(i.id); return { ...i, nomzodlar: [...fresh, ...i.nomzodlar].slice(0, 20) }; }
         }
