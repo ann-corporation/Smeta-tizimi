@@ -427,8 +427,8 @@ BEGIN
     nullif(pg_catalog.btrim(coalesce(p_qabul_turi,'')), ''), nullif(pg_catalog.btrim(coalesce(p_izoh,'')), ''), 'faol', v_manba, 'actor:' || p_actor_id::text,
     p_sklad_id, p_operation_id, v_hash, p_actor_id, nullif(pg_catalog.btrim(coalesce(p_tur,'')), ''), nullif(pg_catalog.btrim(coalesce(p_sf,'')), ''), p_obyekt_id
   ) RETURNING id INTO v_id;
-  PERFORM public.t2_audit_yoz(p_kompaniya_id, 'ombor_' || p_operatsiya || '_yozildi', 'sklad', p_sklad_id,
-    pg_catalog.format('harakat_id=%s; miqdor=%s; birlik=%s; operation_id=%s', v_id, p_miqdor, v_birligi, p_operation_id),
+  PERFORM public.t2_audit_yoz(p_kompaniya_id, 'ombor_' || p_operatsiya || '_yozildi', 'sklad', NULL::bigint,
+    pg_catalog.format('sklad_id=' || p_sklad_id::text || '; ' || 'harakat_id=%s; miqdor=%s; birlik=%s; operation_id=%s', v_id, p_miqdor, v_birligi, p_operation_id),
     'actor:' || p_actor_id::text, NULL);
   RETURN pg_catalog.jsonb_build_object('ok', true, 'takror', false, 'harakat_id', v_id, 'qoldiq_keyin',
     CASE WHEN p_operatsiya = 'prixod' THEN v_qoldiq + p_miqdor ELSE v_qoldiq - p_miqdor END);
@@ -521,8 +521,8 @@ BEGIN
   IF v_qold < 0 AND v_qold < v_pre THEN
     RAISE EXCEPTION 'QOLDIQ_YETMAYDI' USING errcode = 'P0001', detail = v_qold::text;
   END IF;
-  PERFORM public.t2_audit_yoz(p_kompaniya_id, 'ombor_tuzatildi', 'sklad', p_sklad_id,
-    pg_catalog.format('harakat_id=%s; teskari=%s; yangi=%s; sabab=%s; operation_id=%s', o.id, v_teskari, coalesce(v_yangi::text, '-'), v_sabab, p_operation_id),
+  PERFORM public.t2_audit_yoz(p_kompaniya_id, 'ombor_tuzatildi', 'sklad', NULL::bigint,
+    pg_catalog.format('sklad_id=' || p_sklad_id::text || '; ' || 'harakat_id=%s; teskari=%s; yangi=%s; sabab=%s; operation_id=%s', o.id, v_teskari, coalesce(v_yangi::text, '-'), v_sabab, p_operation_id),
     'actor:' || p_actor_id::text, NULL);
   RETURN pg_catalog.jsonb_build_object('ok', true, 'takror', false, 'teskari_id', v_teskari, 'yangi_id', v_yangi, 'qoldiq_keyin', v_qold);
 EXCEPTION WHEN SQLSTATE 'P0001' THEN
@@ -553,8 +553,8 @@ BEGIN
   END LOOP;
   -- kanonik nomning o'zi ham o'ziga alias (guruh kaliti kanonik nomdan olinadi)
   PERFORM public.t2_material_alias_yoz(v_kan, v_kan, NULL, p_kompaniya_id);
-  PERFORM public.t2_audit_yoz(p_kompaniya_id, 'ombor_alias_tasdiqlandi', 'sklad', p_sklad_id,
-    pg_catalog.format('kanonik_uzunlik=%s; variantlar=%s; operation_id=%s', pg_catalog.length(v_kan), v_son, p_operation_id), 'actor:' || p_actor_id::text, NULL);
+  PERFORM public.t2_audit_yoz(p_kompaniya_id, 'ombor_alias_tasdiqlandi', 'sklad', NULL::bigint,
+    pg_catalog.format('sklad_id=' || p_sklad_id::text || '; ' || 'kanonik_uzunlik=%s; variantlar=%s; operation_id=%s', pg_catalog.length(v_kan), v_son, p_operation_id), 'actor:' || p_actor_id::text, NULL);
   RETURN pg_catalog.jsonb_build_object('ok', true, 'variantlar', v_son);
 END
 $function$;
@@ -627,8 +627,8 @@ BEGIN
     RAISE EXCEPTION 'SOURCE_ROW_INVALID' USING errcode = 'P0001', detail = v_xato::text;
   END IF;
   IF NOT p_dry_run AND v_yangi > 0 THEN
-    PERFORM public.t2_audit_yoz(p_kompaniya_id, 'ombor_prixod_sinxronlandi', 'sklad', p_sklad_id,
-      pg_catalog.format('yangi=%s; mavjud=%s; operation_id=%s', v_yangi, v_bor, p_operation_id), 'actor:' || p_actor_id::text, NULL);
+    PERFORM public.t2_audit_yoz(p_kompaniya_id, 'ombor_prixod_sinxronlandi', 'sklad', NULL::bigint,
+      pg_catalog.format('sklad_id=' || p_sklad_id::text || '; ' || 'yangi=%s; mavjud=%s; operation_id=%s', v_yangi, v_bor, p_operation_id), 'actor:' || p_actor_id::text, NULL);
   END IF;
   RETURN pg_catalog.jsonb_build_object('ok', true, 'dry_run', p_dry_run, 'yangi', v_yangi, 'mavjud', v_bor, 'xato', v_xato);
 END

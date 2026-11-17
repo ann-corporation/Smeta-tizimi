@@ -81,7 +81,7 @@ const rpcNatija = (r: { status: number; data: Record<string, unknown> | null }):
   return json(r.data, (r.data as { ok?: boolean }).ok === false ? 409 : 200);
 };
 async function audit(env: Env, kid: number, sklad: number, amal: string, aktorId: number, tafsilot: string) {
-  await rpc(env, 't2_audit_yoz', { p_kompaniya_id: kid, p_amal_turi: amal, p_modul: 'sklad', p_obyekt_id: sklad, p_tafsilot: tafsilot.slice(0, 500), p_kim: 'actor:' + aktorId, p_ip: null }).catch(() => null);
+  await rpc(env, 't2_audit_yoz', { p_kompaniya_id: kid, p_amal_turi: amal, p_modul: 'sklad', p_obyekt_id: null, p_tafsilot: ('sklad_id=' + sklad + '; ' + tafsilot).slice(0, 500), p_kim: 'actor:' + aktorId, p_ip: null }).catch(() => null);
 }
 const xesh = async (s: string): Promise<string> => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].slice(0, 6).map((b) => b.toString(16).padStart(2, '0')).join('');
 

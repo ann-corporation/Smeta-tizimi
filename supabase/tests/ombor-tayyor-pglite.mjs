@@ -38,9 +38,9 @@ await db.exec(`
   CREATE FUNCTION public.t2_sklad_c11_append_only_guard_v1() RETURNS trigger LANGUAGE plpgsql AS $f$ BEGIN
     IF OLD.c11_sklad_id IS NOT NULL THEN RAISE EXCEPTION 'append-only' USING ERRCODE='55000'; END IF; RETURN OLD; END $f$;
   CREATE TRIGGER g BEFORE DELETE OR UPDATE ON public.t2_sklad_harakat FOR EACH ROW EXECUTE FUNCTION public.t2_sklad_c11_append_only_guard_v1();
-  CREATE TABLE public.audit_log (amal text, tafsilot text);
+  CREATE TABLE public.audit_log (amal text, tafsilot text, obyekt_id bigint);
   CREATE FUNCTION public.t2_audit_yoz(k bigint, amal text, tur text, id bigint, tafsilot text, kim text, x text) RETURNS void LANGUAGE sql AS
-    $f$ INSERT INTO public.audit_log VALUES (amal, tafsilot) $f$;
+    $f$ INSERT INTO public.audit_log VALUES (amal, tafsilot, id) $f$;
   CREATE FUNCTION public.t2_actor_kompaniya_azo_tekshir(k bigint, a bigint) RETURNS text LANGUAGE sql AS
     $f$ SELECT CASE WHEN a = 1 OR a = 2 THEN 'omborchi' ELSE NULL END $f$;
   -- mock: aktor 1 = omborchi (warehouse.write), aktor 2 = faqat o'qiydi
@@ -156,6 +156,9 @@ assert.equal(bad.xato.length, 1);
 // 9) audit yozilgan
 const audit = await q(`SELECT DISTINCT amal FROM public.audit_log ORDER BY 1`);
 for (const a of ['ombor_prixod_yozildi', 'ombor_rasxod_yozildi', 'ombor_tuzatildi', 'ombor_alias_tasdiqlandi', 'ombor_prixod_sinxronlandi']) assert.ok(audit.some((x) => x.amal === a), 'audit: ' + a);
+// audit qatori obyekt_id ga ombor id sini YOZMAYDI (t2_audit_log_obyekt_id_fkey); ombor tafsilotda
+assert.equal((await q('SELECT 1 FROM public.audit_log WHERE obyekt_id IS NOT NULL')).length, 0, 'audit obyekt_id null');
+assert.ok((await q("SELECT 1 FROM public.audit_log WHERE tafsilot LIKE 'sklad_id=9;%'")).length >= 5, 'audit tafsilotida sklad_id');
 // 10) anon/authenticated ijro huquqi yo'q
 assert.equal((await q(`SELECT has_function_privilege('anon','public.t2_ombor_qoldiq_v2(bigint,bigint,bigint,jsonb,integer,integer)','EXECUTE') r`))[0].r, false);
 console.log('OK: ombor-tayyor SQL shartnoma testi o\'tdi');

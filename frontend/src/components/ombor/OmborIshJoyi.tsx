@@ -8,6 +8,7 @@ import {
   type OmborBuyruqNatija, type OmborFiltr, type OmborGuruh, type OmborHarakat, type OmborNomzod, type OmborQoldiq, type OmborRoyxat, type OmborTarix,
 } from '../../api/t2-ombor';
 import { OpsOyna } from '../kompaniya-ops/OpsUi';
+import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 
 /**
  * Omborchi ish joyi (markaziy ombor): tez kirim/chiqim, birlashgan ostatka (variantlar bitta qatorda), harakatlar, material kartasi,
@@ -198,7 +199,8 @@ function QoldiqJadval({ kompaniyaId, skladId, yozishMumkin, yangilash, onO_zgard
   const eksport = async () => {
     setEks(true); const r = await omborEksport(kompaniyaId, skladId, filtr as Record<string, string>); setEks(false);
     if (!r.ok) { toast(xatoMatni(r.code, r.xabar), 'danger'); return; }
-    const a = document.createElement('a'); a.href = URL.createObjectURL(r.blob); a.download = r.faylNomi; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+    // Yagona yuklab berish yo'li: tizim imzosi + manba QR (token serverda yechilgan — /api/ombor-buyruq eksport).
+    downloadBlob(new Uint8Array(await r.blob.arrayBuffer()), r.faylNomi);
   };
   const jami = data?.jami ?? 0;
   return <div className="flex flex-col gap-3">
