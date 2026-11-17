@@ -14,10 +14,11 @@ import {
 import { type BotJavob, type Callback, type TgRasm, bugunJavobi, fotoAmali, jarvisJavobi, kunlikAmali, obyektlarJavobi, yordamMatni } from '../../_shared/telegram-bot';
 import { callbackIshlaV2, faktTaklif, fotoQidiruv, menyuTugmasi, qidiruvKonteksti } from '../../_shared/telegram-bot-oqim';
 import { startTugmalari } from '../../_shared/telegram-tugma';
+import { omborBuyruq, omborCallback } from '../../_shared/telegram-ombor';
 import { NONCE_PREFIKS, kalitYaroqli, nonceYaroqli, xesh, yoqilgan } from '../../_shared/kirish-emailsiz';
 import { menUsernameQatori, taklifJavobi, usernameCallback, usernameJavobi, usernameTaklifi } from '../../_shared/telegram-username';
 
-type Xabar = { message_id?: number; reply_to_message?: { from?: { is_bot?: boolean }; text?: string }; text?: string; caption?: string; photo?: TgRasm[]; contact?: { phone_number?: string; user_id?: number }; chat?: { id?: number; type?: string }; from?: { id?: number; is_bot?: boolean; language_code?: string; username?: string } };
+type Xabar = { message_id?: number; reply_to_message?: { from?: { is_bot?: boolean }; text?: string }; text?: string; caption?: string; photo?: TgRasm[]; voice?: { file_id?: string; file_size?: number }; audio?: { file_id?: string; file_size?: number }; contact?: { phone_number?: string; user_id?: number }; chat?: { id?: number; type?: string }; from?: { id?: number; is_bot?: boolean; language_code?: string; username?: string } };
 export type Update = { update_id?: number; message?: Xabar; edited_message?: Xabar; callback_query?: Callback };
 
 const ROL_NOMI: Record<string, string> = {
@@ -57,7 +58,9 @@ async function callbackAjrat(env: TgEnv, cb: Callback, tgId: number | undefined)
     if (Number.isSafeInteger(cb.message?.message_id)) await tgApi(env, 'editMessageReplyMarkup', { chat_id: chat.id, message_id: cb.message?.message_id, reply_markup: { inline_keyboard: [] } });
     return 'cb:' + u.amal;
   }
-  const r = await callbackIshlaV2(env, a.foydalanuvchi_id, til, cb, chat.id as number);
+  const r = typeof cb.data === 'string' && cb.data.startsWith('ob:')
+    ? await omborCallback(env, a.foydalanuvchi_id, til, cb)   // OMBOR-OVOZ: tasdiq tokeni preview xabari matnida
+    : await callbackIshlaV2(env, a.foydalanuvchi_id, til, cb, chat.id as number);
   await javobBer(r.toast || undefined);
   if (r.xabar) await yubor(env, chat.id as number, r.xabar);
   if (r.tugmalarniOlibTashla && Number.isSafeInteger(cb.message?.message_id)) {
@@ -133,6 +136,14 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
   if (!a?.ok) { await xabarYubor(env, chatId, tgT('Server bilan aloqa yo‘q. Birozdan keyin urinib ko‘ring.', til)); return 'baza_xato'; }
   if (!a.ulangan || !a.foydalanuvchi_id) { await xabarYubor(env, chatId, ulangMatni(env, til)); return 'ulanmagan'; }
   const uid = a.foydalanuvchi_id;
+
+  // OMBOR-OVOZ: ovozli xabar / oddiy matn → omborchi buyrug'i (preview + tasdiq tugmalari). Omborchi bo'lmasa — oddiy oqim davom etadi.
+  const ovoz = msg.voice?.file_id ?? msg.audio?.file_id;
+  if (ovoz || (!b && typeof msg.text === 'string' && msg.text.trim() && !qidiruvKonteksti(msg.reply_to_message))) {
+    const j = await omborBuyruq(env, uid, til, ovoz ? { fileId: ovoz } : { matn: String(msg.text) });
+    if (j) { await yubor(env, chatId, j); return ovoz ? 'ombor_ovoz' : 'ombor_matn'; }
+    if (ovoz) { await xabarYubor(env, chatId, tgT('Ovozli buyruq faqat omborchilar uchun.', til)); return 'ovoz_ruxsatsiz'; }
+  }
 
   // Rasm (izoh bilan yoki izohsiz) → foto-dalil (umumiy, faktga biriktirilmagan). Fakt summasi/hajmi yozilmaydi.
   if (Array.isArray(msg.photo) && msg.photo.length) {

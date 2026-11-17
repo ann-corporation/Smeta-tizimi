@@ -143,8 +143,8 @@ export function kirimRuxsat(permissions: readonly string[] | null | undefined): 
   // Ruxsatlar ro'yxati kelmagan eski sessiya — tugmalar ko'rinadi, qarorni server (gateway + RPC) beradi.
   if (permissions == null) return { korish: true, yozish: true };
   const p = permissions;
-  const yozish = p.includes('document.write');
-  return { korish: yozish || p.includes('document.read'), yozish };
+  const yozish = p.includes('document.write') || p.includes('warehouse.write'); // omborchi (warehouse.write) ham yozadi; RPC ichida takror tekshiriladi
+  return { korish: yozish || p.includes('document.read') || p.includes('warehouse.read'), yozish };
 }
 
 /** Storno faqat 24 soat ichida (server STORNO_WINDOW_EXPIRED bilan ham to'sadi). */

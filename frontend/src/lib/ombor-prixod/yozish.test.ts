@@ -131,6 +131,8 @@ describe('ruxsat', () => {
   it('ko‘rish document.read, yozish/storno document.write; ro‘yxat kelmasa qarorni server beradi', () => {
     expect(kirimRuxsat(['document.read'])).toEqual({ korish: true, yozish: false });
     expect(kirimRuxsat(['document.write'])).toEqual({ korish: true, yozish: true });
+    expect(kirimRuxsat(['warehouse.write'])).toEqual({ korish: true, yozish: true }); // omborchi
+    expect(kirimRuxsat(['warehouse.read'])).toEqual({ korish: true, yozish: false });
     expect(kirimRuxsat(['f2.read'])).toEqual({ korish: false, yozish: false });
     expect(kirimRuxsat(undefined)).toEqual({ korish: true, yozish: true });
   });

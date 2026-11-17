@@ -194,7 +194,7 @@ export async function fotoAmali(env: BotEnv, uid: number, til: TgTil, rasmlar: T
 }
 
 /* ───────── callback (menyu). Hujjat tasdiqi va 2-bosqich oqimlari: telegram-bot-oqim.ts (callbackIshlaV2) ───────── */
-export type Callback = { id?: string; from?: { id?: number; language_code?: string }; data?: string; message?: { message_id?: number; chat?: { id?: number; type?: string } } };
+export type Callback = { id?: string; from?: { id?: number; language_code?: string }; data?: string; message?: { message_id?: number; text?: string; chat?: { id?: number; type?: string } } };
 
 /** Callback ishlovi. `uid` — chaqiruvchi (bog'lanishdan). Qaytadi: javob matni (answerCallbackQuery) + ixtiyoriy yangi xabar/markup tozalash. */
 export async function callbackIshla(env: BotEnv, uid: number, til: TgTil, cb: Callback): Promise<{ toast: string; xabar?: BotJavob; tugmalarniOlibTashla?: boolean; amal: string }> {

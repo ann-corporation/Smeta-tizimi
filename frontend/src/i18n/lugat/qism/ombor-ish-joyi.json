@@ -1,0 +1,194 @@
+{
+  "Omborchi ish joyi": {
+    "ru": "Рабочее место кладовщика",
+    "en": "Storekeeper workspace"
+  },
+  "Kirim / chiqim": {
+    "ru": "Приход / расход",
+    "en": "Receipts / issues"
+  },
+  "Material, birlik va miqdorni kiriting.": {
+    "ru": "Укажите материал, единицу и количество.",
+    "en": "Enter material, unit and quantity."
+  },
+  "Chiqim uchun ro‘yxatdan materialni tanlang.": {
+    "ru": "Для расхода выберите материал из списка.",
+    "en": "For an issue, pick the material from the list."
+  },
+  "Kirim yozildi": {
+    "ru": "Приход записан",
+    "en": "Receipt recorded"
+  },
+  "Chiqim yozildi": {
+    "ru": "Расход записан",
+    "en": "Issue recorded"
+  },
+  "Material: bir necha harf yozing (lotin/kirill)": {
+    "ru": "Материал: введите несколько букв (латиница/кириллица)",
+    "en": "Material: type a few letters (Latin/Cyrillic)"
+  },
+  "Kimga (prorab / brigada)": {
+    "ru": "Кому (прораб / бригада)",
+    "en": "To whom (foreman / crew)"
+  },
+  "Ombordagi ostatka": {
+    "ru": "Остаток на складе",
+    "en": "Warehouse balance"
+  },
+  "Mikrofonga ruxsat berilmadi.": {
+    "ru": "Нет доступа к микрофону.",
+    "en": "Microphone access denied."
+  },
+  "Bu amal allaqachon yozilgan.": {
+    "ru": "Эта операция уже записана.",
+    "en": "This operation is already recorded."
+  },
+  "Ovozli yoki matnli buyruq": {
+    "ru": "Голосовая или текстовая команда",
+    "en": "Voice or text command"
+  },
+  "Buyruq": {
+    "ru": "Команда",
+    "en": "Command"
+  },
+  "Masalan: «sement 10 tonna keldi» yoki «mix 20 kg Aliga berdim»": {
+    "ru": "Например: «цемент 10 тонн пришло» или «гвозди 20 кг выдал Али»",
+    "en": "For example: \"cement 10 tonnes arrived\" or \"nails 20 kg gave to Ali\""
+  },
+  "Ovoz bilan": {
+    "ru": "Голосом",
+    "en": "By voice"
+  },
+  "Tushun": {
+    "ru": "Понять",
+    "en": "Parse"
+  },
+  "Tasdiqlash kartasi": {
+    "ru": "Карточка подтверждения",
+    "en": "Confirmation card"
+  },
+  "Yozuvni BEKOR qilish": {
+    "ru": "ОТМЕНИТЬ запись",
+    "en": "CANCEL the entry"
+  },
+  "Yozuvni TUZATISH": {
+    "ru": "ИСПРАВИТЬ запись",
+    "en": "CORRECT the entry"
+  },
+  "KIRIM": {
+    "ru": "ПРИХОД",
+    "en": "RECEIPT"
+  },
+  "CHIQIM": {
+    "ru": "РАСХОД",
+    "en": "ISSUE"
+  },
+  "Yangi qiymat": {
+    "ru": "Новое значение",
+    "en": "New value"
+  },
+  "Qaysi material?": {
+    "ru": "Какой материал?",
+    "en": "Which material?"
+  },
+  "Tuzatish uchun aniq yozuvni tanlang — ro‘yxatdan «Tuzatish» tugmasidan foydalaning yoki buyruqqa yozuv raqamini qo‘shing (#123).": {
+    "ru": "Для исправления выберите конкретную запись — кнопкой «Исправить» в списке или добавьте номер записи в команду (#123).",
+    "en": "To correct, choose a specific entry — use the \"Correct\" button in the list or add the entry number to the command (#123)."
+  },
+  "Ostatka yetmaydi": {
+    "ru": "Остатка не хватает",
+    "en": "Not enough stock"
+  },
+  "Yetarli ma’lumot yo‘q": {
+    "ru": "Недостаточно данных",
+    "en": "Not enough information"
+  },
+  "Tushunmadim yoki ma’lumot yetarli emas. Aniqroq ayting.": {
+    "ru": "Не понял или данных недостаточно. Скажите точнее.",
+    "en": "Did not understand or not enough details. Please be more specific."
+  },
+  "Material qidirish": {
+    "ru": "Поиск материала",
+    "en": "Search material"
+  },
+  "Qidirish: nom, lotin yoki kirill": {
+    "ru": "Поиск: название, латиница или кириллица",
+    "en": "Search: name, Latin or Cyrillic"
+  },
+  "Material turi": {
+    "ru": "Тип материала",
+    "en": "Material type"
+  },
+  "Faqat ostatkasi bor": {
+    "ru": "Только с остатком",
+    "en": "Only in stock"
+  },
+  "Sabab va to‘g‘ri miqdorni yozing.": {
+    "ru": "Укажите причину и корректное количество.",
+    "en": "Enter a reason and a valid quantity."
+  },
+  "xil yozilish bitta materialga jamlangan": {
+    "ru": "вариантов написания объединены в один материал",
+    "en": "spelling variants merged into one material"
+  },
+  "Yangi miqdor": {
+    "ru": "Новое количество",
+    "en": "New quantity"
+  },
+  "Kirim va chiqim": {
+    "ru": "Приход и расход",
+    "en": "Receipts and issues"
+  },
+  "Faqat kirim": {
+    "ru": "Только приход",
+    "en": "Receipts only"
+  },
+  "Faqat chiqim": {
+    "ru": "Только расход",
+    "en": "Issues only"
+  },
+  "Kim / kimdan": {
+    "ru": "Кому / от кого",
+    "en": "To / from"
+  },
+  "Ostatka yetmaydi — chiqim yozilmadi.": {
+    "ru": "Остатка не хватает — расход не записан.",
+    "en": "Not enough stock — issue not recorded."
+  },
+  "Sana kelajakda bo‘lishi mumkin emas.": {
+    "ru": "Дата не может быть в будущем.",
+    "en": "The date cannot be in the future."
+  },
+  "Ma’lumot noto‘g‘ri (nom, birlik, miqdor).": {
+    "ru": "Неверные данные (название, единица, количество).",
+    "en": "Invalid data (name, unit, quantity)."
+  },
+  "Bu amal boshqa ma’lumot bilan yuborilgan. Sahifani yangilang.": {
+    "ru": "Эта операция уже отправлена с другими данными. Обновите страницу.",
+    "en": "This operation was already sent with different data. Refresh the page."
+  },
+  "Bu yozuv allaqachon tuzatilgan.": {
+    "ru": "Эта запись уже исправлена.",
+    "en": "This entry was already corrected."
+  },
+  "Bu yozuvni tuzatib bo‘lmaydi.": {
+    "ru": "Эту запись нельзя исправить.",
+    "en": "This entry cannot be corrected."
+  },
+  "Tokenlar yetarli emas.": {
+    "ru": "Недостаточно токенов.",
+    "en": "Not enough tokens."
+  },
+  "AI oylik limiti tugadi.": {
+    "ru": "Месячный лимит ИИ исчерпан.",
+    "en": "The monthly AI limit is used up."
+  },
+  "Ovozni matnga o‘tkazish yoqilmagan.": {
+    "ru": "Распознавание речи не включено.",
+    "en": "Speech-to-text is not enabled."
+  },
+  "Omborchi": {
+    "ru": "Кладовщик",
+    "en": "Storekeeper"
+  }
+}

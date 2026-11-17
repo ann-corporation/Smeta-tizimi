@@ -52,7 +52,7 @@ export const PREFIKS: Readonly<Record<Domen, readonly string[]>> = {
     't2_qator_f2da', 't2_qoshilgan_tarixda', 't2_rs_hosila',
   ],
   resurs: [
-    't2_buyurtma', 't2_buyurtmalar', 't2_procurement', 't2_sklad', 't2_skladga', 't2_m29', 't2_texnika', 't2_zayavka', 't2_erp_taminot',
+    't2_buyurtma', 't2_buyurtmalar', 't2_procurement', 't2_ombor', 't2_sklad', 't2_skladga', 't2_m29', 't2_texnika', 't2_zayavka', 't2_erp_taminot',
     't2_erp_texnika', 't2_viborka', 't2_bez_sklad', 't2_qator_bez_sklad', 't2_usta_zayavka',
   ],
   moliya: [

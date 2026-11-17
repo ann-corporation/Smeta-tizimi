@@ -15,6 +15,7 @@ import { PrixodKitobPreview } from '../components/ombor/PrixodKitobPreview';
 import { KirimKunlikForm } from '../components/ombor/KirimKunlikForm';
 import { KirimKunlikJurnal } from '../components/ombor/KirimKunlikJurnal';
 import { OmborTanlov } from '../components/ombor/OmborTanlov';
+import { OmborIshJoyi } from '../components/ombor/OmborIshJoyi';
 import { MarkaziyBerdimForm } from '../components/ombor/MarkaziyBerdimForm';
 import { OmborKirimJadval, OmborQoldiqJadval } from '../components/ombor/OmborKirimJadval';
 import { kirimRuxsat } from '../lib/ombor-prixod/yozish';
@@ -28,7 +29,7 @@ const NAVOIY_KOMPANIYA_ID = 123;
  * Jamlangan ombor: har material bo'yicha jami qoldiq va uning obyektlar orasida taqsimoti (chiziq).
  * Obyekt qoldiqlari: manfiy qoldiq (kirim kiritilmagan chiqim) qizil bilan aniq belgilanadi.
  */
-type Tab = 'ombor-kirim' | 'ombor-qoldiq' | 'qoldiq' | 'kirim' | 'm29' | 'konsolidatsiya';
+type Tab = 'omborchi' | 'ombor-kirim' | 'ombor-qoldiq' | 'qoldiq' | 'kirim' | 'm29' | 'konsolidatsiya';
 const OBYEKT_RANGLARI = ['var(--kat-chel)', 'var(--kat-mat)', 'var(--kat-mash)', 'var(--kat-ob)', 'var(--accent)', 'var(--info)'];
 
 export default function TestSklad() {
@@ -37,7 +38,7 @@ export default function TestSklad() {
   const kompaniyaRef = useRef(aktKomp); kompaniyaRef.current = aktKomp;
   const obyektRef = useRef<number | null>(null);
 
-  const [activeTab, setActiveTab] = useState<Tab>('ombor-kirim');
+  const [activeTab, setActiveTab] = useState<Tab>('omborchi');
   const ruxsat = kirimRuxsat(joriy?.permissions);
   const [excelOchiq, setExcelOchiq] = useState(false);
   const [berdimOchiq, setBerdimOchiq] = useState(false);
@@ -157,6 +158,7 @@ export default function TestSklad() {
         </OpsKpiQator>
 
         <OpsTablar<Tab> yorliq={t('Ombor bo‘limlari')} joriy={activeTab} onTanla={setActiveTab} tablar={[
+          { id: 'omborchi', nom: t('Omborchi'), ikon: <Warehouse /> },
           { id: 'ombor-kirim', nom: t('Kirim'), ikon: <ArrowDownToLine /> },
           { id: 'ombor-qoldiq', nom: t('Qoldiq'), ikon: <Warehouse /> },
           { id: 'konsolidatsiya', nom: t('Jamlangan ombor'), ikon: <Layers /> },
@@ -165,7 +167,7 @@ export default function TestSklad() {
           { id: 'm29', nom: t('M-29 hisobot'), ikon: <ClipboardCheck /> },
         ]} />
 
-        {(activeTab === 'ombor-kirim' || activeTab === 'ombor-qoldiq') && (
+        {(activeTab === 'omborchi' || activeTab === 'ombor-kirim' || activeTab === 'ombor-qoldiq') && (
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
               <OpsMaydon nom={t('Ombor')}>
@@ -188,6 +190,7 @@ export default function TestSklad() {
               {markaziySkladlar.length ? t('Omborni tanlang.') : t('Bu kompaniyada hali ombor yo‘q.')}</div>}
             {tanlanganSklad && activeTab === 'ombor-kirim' && excelOchiq && ruxsat.yozish && <PrixodKitobPreview kompaniyaId={aktKomp} skladId={tanlanganSklad.id}
               skladNomi={tanlanganSklad.nomi} yozishMumkin={ruxsat.yozish} onYozildi={() => setKirimYangilash((n) => n + 1)} />}
+            {tanlanganSklad && ruxsat.korish && activeTab === 'omborchi' && <OmborIshJoyi key={aktKomp + ':' + tanlanganSklad.id} kompaniyaId={aktKomp} skladId={tanlanganSklad.id} skladNomi={tanlanganSklad.nomi} yozishMumkin={ruxsat.yozish} />}
             {tanlanganSklad && ruxsat.korish && activeTab === 'ombor-kirim' && <OmborKirimJadval kompaniyaId={aktKomp} skladId={tanlanganSklad.id} yozishMumkin={ruxsat.yozish} yangilash={kirimYangilash} />}
             {tanlanganSklad && berdimOchiq && ruxsat.yozish && <MarkaziyBerdimForm key={`${aktKomp}:${tanlanganSklad.id}`} kompaniyaId={aktKomp} skladId={tanlanganSklad.id}
               skladNomi={tanlanganSklad.nomi} obyektlar={obyektlar} boshObyektId={tanlanganObyekt?.id ?? null} onYop={() => setBerdimOchiq(false)}
