@@ -39,6 +39,16 @@ describe('f2QoralamaYuki', () => {
     expect(y.qatorlar.map((q) => q.qator_id)).toEqual([1, 2, 3]);
     expect(y.tashlandi).toEqual([{ ish_id: 5, nom: 'q5', qatorlar: 2, qiymat: 3 }]);
   });
+  it('MINUS qator (manfiy mumkin) avto kiradi: manfiy hajm, manfiy summa, jami kamayadi', () => {
+    const r3 = [M({ qator_id: 1, tur: 'rs', ota_id: 9, kat: 'МАТ', mumkin: 4, smeta_narx: 10 }), M({ qator_id: 2, tur: 'rs', ota_id: 8, kat: 'МАТ', mumkin: -1.5, smeta_narx: 10 }), M({ qator_id: 3, tur: 'bl', mumkin: -0.4 })];
+    const y = f2QoralamaYuki(r3);
+    expect(y.qatorlar.map((q) => [q.qator_id, q.certified_quantity, q.certified_amount])).toEqual([[1, 4, 40], [2, -1.5, -15], [3, -0.4, null]]);
+    expect(yukJami(y.qatorlar)).toMatchObject({ summa: 25, narxsiz: 1 });
+  });
+  it('chang_pul minus guruhni tashlamaydi (|qiymat| solishtiriladi)', () => {
+    const r4 = [M({ qator_id: 5, tur: 'bl', mumkin: -1 }), M({ qator_id: 6, tur: 'rs', ota_id: 5, kat: 'ЧЕЛ', mumkin: -1000, smeta_narx: 10 })];
+    expect(f2QoralamaYuki(r4, { changPul: 100 }).qatorlar.map((q) => q.qator_id)).toEqual([5, 6]);
+  });
 });
 
 describe('kfUch / Kesim', () => {
@@ -165,7 +175,7 @@ describe('f2_qoralama_yarat (mock)', () => {
   it('dry_run standart: t2_akt_yarat_v2 frontend_v2 yuki bilan chaqiriladi, ROLLBACK, snapshot olinmaydi', async () => {
     const { mu, h } = mockMuhit((sql, p) => umumiy(sql)
       ?? (sql.includes("holat = 'qoralama'") ? []
-        : sql.includes('f2_mumkin_hajm > 0.000001') ? [{ qator_id: 11, ota_id: null, tur: 'bl', kod: 'E1', nom: 'Ish', birlik: 'm3', kat: null, mumkin: 2, smeta_narx: null },
+        : sql.includes('abs(h.f2_mumkin_hajm) > 0.000001') ? [{ qator_id: 11, ota_id: null, tur: 'bl', kod: 'E1', nom: 'Ish', birlik: 'm3', kat: null, mumkin: 2, smeta_narx: null },
           { qator_id: 12, ota_id: 11, tur: 'rs', kod: null, nom: 'Mehnat', birlik: 'chel-soat', kat: 'ЧЕЛ', mumkin: 4, smeta_narx: 25 }]
           : sql.includes('proargnames') && p[1] === 't2_akt_yarat_v2' ? [AKT_YARAT]
             : sql.includes('"t2_akt_yarat_v2"(') ? [{ t2_akt_yarat_v2: { ok: true, akt_id: 5001 } }] : []));

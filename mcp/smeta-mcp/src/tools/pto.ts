@@ -7,10 +7,10 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import type { Mijoz } from '../db';
-import { f2HujjatManba, Kesim, uuidHosila, xatoIzoh, y2, y6, yukJami, type MavjudAktQator } from '../ish-oqimi';
+import { f2HujjatManba, hajmOshganmi, Kesim, qoldiqIshorali, uuidHosila, xatoIzoh, y2, y6, yukJami, type MavjudAktQator } from '../ish-oqimi';
 import { obyektBormi } from '../malumot';
 import { xatoMatni } from '../maxfiy';
-import { avlodlar, bolimXarita, f2CertYuki, f2YangilaYuki, moslash, tarixTahlil, type DaraxtQator, type SmetaQ, type TarixRef } from '../pto';
+import { avlodlar, bolimXarita, f2CertYuki, f2YangilaYuki, moslash, qoldiqHolati, tarixTahlil, type DaraxtQator, type SmetaQ, type TarixRef } from '../pto';
 import { obyektIdS, tool } from '../tool';
 import { ishNomzodlari, ishonchDarajasi, takliflarQur } from '../frontend';
 import {
@@ -181,7 +181,7 @@ export const f2QoralamaYangila = tool({
                                                            from public.t2_akt_qator where akt_id = $1 order by id`, [aktId])).rows.map((x) => ({ ...x, qator_id: Number(x.qator_id) }));
           const { rows, bajHisobda } = await mumkinOl(m, akt.obyekt_id);
           if (!bajHisobda) ogoh.push('t2_qator_bajarilmadi jadvali yo\'q — «bajarilmadi» filtri qo\'llanmadi');
-          const qolgan = rows.map((r) => (band.has(r.qator_id) ? { ...r, mumkin: y6(r.mumkin - band.get(r.qator_id)!) } : r));
+          const qolgan = rows.map((r) => (band.has(r.qator_id) ? { ...r, mumkin: qoldiqIshorali(r.mumkin, band.get(r.qator_id)!) } : r));
           const y = f2YangilaYuki(mavjud, qolgan, { manba: f2HujjatManba(akt.raqam), narxlar: a.narxlar, qoida: a.narx_qoida, faqatMavjud: a.qosh_yangi !== true, mavjudNarxSaqla: a.mavjud_narx_saqla });
           if (!y.yuk.length) throw new Error('yangilangan qoralamada qator qolmaydi (fakt qoldig\'i yo\'q) — F2 ni bekor qiling (f2_holat cancelled yoki akt_bekor).');
           const idlar = [...new Set([...mavjud.map((x) => x.qator_id), ...y.yuk.map((x) => x.qator_id)])];
@@ -241,7 +241,7 @@ export const f2Yarat = tool({
       const faol = new Map(meta.filter((r) => (r.versiya_holat ?? 'faol') === 'faol').map((r) => [r.id, r]));
       const y = f2CertYuki(a.qatorlar, faol, f2HujjatManba(a.raqam));
       if (y.xato.length) throw new Error(`F2 qatorlari rad etildi: ${y.xato.slice(0, 20).join('; ')}`);
-      const oshgan = a.qatorlar.filter((q) => { const r = faol.get(q.qator_id); return r && r.mumkin != null && q.hajm > r.mumkin + 1e-6; });
+      const oshgan = a.qatorlar.filter((q) => { const r = faol.get(q.qator_id); return r && r.mumkin != null && hajmOshganmi(q.hajm, r.mumkin); });
       if (oshgan.length) ogoh.push(`${oshgan.length} qatorda hajm fakt qoldig'idan (f2_mumkin) katta: ${oshgan.slice(0, 10).map((q) => `#${q.qator_id}`).join(', ')}`);
       const nk = await nkOl(m, a.obyekt_id);
       const k = new Kesim();
@@ -363,7 +363,7 @@ export const nakopitelniy = tool({
 export const ostatka = tool({
   nom: 'ostatka',
   tavsif: 'Ostatka (qoldiq) — t2_qator_holat (zamena qozoni bilan): har qator asl smeta hajmi, smeta (zamena reja) hajmi, F2 tasdiqlangan, fakt, almashtirilgan (zamena qoplagan), qoldiq hajm/summa, F2-mumkin. '
-    + 'Bo\'lim (yuqori rz) kesimida qoldiq / almashtirilgan / F2 summalari ustamasiz va ustamali. Filtr: `bolim_id`, `qator_idlar`, `faqat`: "qoldiq" (qoldiq>0), "ortiqcha" (qoldiq<0 — smetadan oshgan), '
+    + 'Bo\'lim (yuqori rz) kesimida qoldiq / almashtirilgan / F2 summalari ustamasiz va ustamali. Filtr: `bolim_id`, `qator_idlar`, `faqat`: "qoldiq" (qoldiq smeta ishorasida: plyus qatorda >0, MINUS qatorda <0), "ortiqcha" (qoldiq smeta ishorasiga teskari — smetadan oshgan),'
     + '"zamena" (zamena qatorlari va ular almashtirgan asl qatorlar), "almashtirilgan" (almashtirilgan_hajm>0). Zamena qatorida `almashtiradi` (asl qator), asl qatorda `zamenalar`.',
   kirish: {
     obyekt_id: obyektIdS, bolim_id: z.number().int().positive().optional(), qator_idlar: z.array(z.number().int().positive()).max(2000).optional(),
@@ -389,7 +389,7 @@ export const ostatka = tool({
     const zamenaga = (r: HRow) => r.replaces_line_id != null || zamenalar.has(r.qator_id) || (r.ota_id != null && (zamenaOta.has(r.ota_id) || zamenalar.has(r.ota_id)));
     const ids = new Set(a.qator_idlar ?? []);
     const tanla = rows.filter((r) => (!a.bolim_id || bx.get(r.qator_id) === a.bolim_id) && (!ids.size || ids.has(r.qator_id)) && (
-      a.faqat === 'qoldiq' ? (r.qoldiq_hajm ?? 0) > 1e-6 : a.faqat === 'ortiqcha' ? (r.qoldiq_hajm ?? 0) < -1e-6 : a.faqat === 'zamena' ? zamenaga(r) : a.faqat === 'almashtirilgan' ? (r.almashtirilgan_hajm ?? 0) > 1e-6 : true));
+      a.faqat === 'qoldiq' ? qoldiqHolati(r.smeta_hajm, r.qoldiq_hajm) === 'qoldiq' : a.faqat === 'ortiqcha' ? qoldiqHolati(r.smeta_hajm, r.qoldiq_hajm) === 'ortiqcha' : a.faqat === 'zamena' ? zamenaga(r) : a.faqat === 'almashtirilgan' ? (r.almashtirilgan_hajm ?? 0) > 1e-6 : true));
     const nk = await nkOl(m, a.obyekt_id);
     const g = new Map<number | null, { qoldiq: Kesim; almashtirilgan: Kesim; f2: Kesim; smeta: Kesim; n: number }>();
     for (const r of tanla) {
@@ -534,7 +534,7 @@ export const slichitelniy = tool({
       if (a.boglanmagan) {
         const akt = (await m.query<{ id: string | number; raqam: string | null; sana: string | null; holat: string; ish_nomi: string | null; ish_tavsifi: string | null }>(`select a.id, a.raqam, a.sana::text as sana, a.holat, a.ish_nomi, a.ish_tavsifi from public.t2_aosr a where a.obyekt_id = $1 and a.kompaniya_id = $2 and a.holat <> 'bekor' and not exists (select 1 from public.t2_aosr_bog b where b.aosr_id = a.id) order by a.id limit $3`, [a.obyekt_id, Number(ob.kompaniya_id), limit])).rows.map((x) => ({ ...x, id: Number(x.id) }));
         const meta = (await m.query<{ id: string | number; ota_id: string | number | null; tartib: number | null; tur: string | null; nom: string | null }>(`select q.id, q.ota_id, q.tartib, q.tur, q.nom from public.t2_qator q where q.obyekt_id = $1 and q.versiya_holat = 'faol'`, [a.obyekt_id])).rows.map((x) => ({ ...x, id: Number(x.id), ota_id: x.ota_id == null ? null : Number(x.ota_id) }));
-        const faktli = new Set((await m.query<{ qator_id: string | number }>(`select h.qator_id from public.t2_qator_holat h where h.obyekt_id = $1 and h.versiya_holat = 'faol' and coalesce(h.fakt_hajm, 0) > 0`, [a.obyekt_id])).rows.map((x) => Number(x.qator_id)));
+        const faktli = new Set((await m.query<{ qator_id: string | number }>(`select h.qator_id from public.t2_qator_holat h where h.obyekt_id = $1 and h.versiya_holat = 'faol' and abs(coalesce(h.fakt_hajm, 0)) > 0.000001`, [a.obyekt_id])).rows.map((x) => Number(x.qator_id)));
         const tk = takliflarQur(akt.map((x) => ({ id: x.id, ish_nomi: x.ish_nomi, ish_tavsifi: x.ish_tavsifi })), ishNomzodlari(meta, faktli));
         const royxat = akt.map((x) => ({ id: x.id, raqam: x.raqam, sana: x.sana, holat: x.holat, ish_nomi: x.ish_nomi, nomzodlar: (tk.get(x.id) ?? []).map((t) => ({ qator_id: t.qatorId, ball: t.ball, ishonch: ishonchDarajasi(t.ball), nom: t.nom, razdel: t.razdelNom, fakt_bor: t.faktBor })) }));
         return { boglanmagan: royxat.length, yuqori_ishonch: royxat.filter((x) => x.nomzodlar[0]?.ishonch === 'yuqori').length, nomzodsiz: royxat.filter((x) => !x.nomzodlar.length).length, aktlar: royxat, eslatma: 'Hech narsa yozilmadi: bog\'lash — «АОСР smeta qatoriga bog\'lash» oynasida tasdiq bilan (hajm bilan).' };
