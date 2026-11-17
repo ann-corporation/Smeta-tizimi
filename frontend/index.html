@@ -2,7 +2,11 @@
 <html lang="uz">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/brand/qur-icon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/brand/qur-icon-16.png" />
     <link rel="shortcut icon" href="/favicon.ico" />
@@ -30,8 +34,12 @@
             "@type": "Organization",
             "@id": "https://qurai.uz/#org",
             "name": "QURAI",
+            "alternateName": "QURAI qurilish platformasi",
+            "description": "QURAI — qurilish uchun raqamli platforma",
             "url": "https://qurai.uz/",
-            "logo": "https://qurai.uz/brand/qur-icon-512.png"
+            "logo": "https://qurai.uz/brand/qur-icon-512.png",
+            "areaServed": { "@type": "Country", "name": "Uzbekistan" },
+            "sameAs": []
           },
           {
             "@type": "WebSite",
@@ -47,6 +55,12 @@
             "url": "https://qurai.uz/",
             "applicationCategory": "BusinessApplication",
             "operatingSystem": "Web, Android, Windows",
+            "audience": {
+              "@type": "Audience",
+              "audienceType": "Qurilish kompaniyalari, pudratchilar, PTO mutaxassislari, prorablar, omborchilar va rahbarlar",
+              "geographicArea": { "@type": "Country", "name": "Uzbekistan" }
+            },
+            "areaServed": { "@type": "Country", "name": "Uzbekistan" },
             "description": "Qurilish uchun raqamli ish joyi: smeta, fakt, F-2, nakopitelniy, ijro hujjatlari va ombor.",
             "inLanguage": ["uz", "ru", "en"],
             "image": "https://qurai.uz/brand/qur-icon-512.png",
@@ -70,7 +84,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="QURAI" />
-    <link rel="apple-touch-icon" href="/ikonlar/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <script>
       (function () {
         try {
@@ -94,7 +108,7 @@
     <div id="root">
       <main class="qurai-seo">
         <h1>QURAI — qurilish uchun raqamli ish joyi</h1>
-        <p>QURAI qurilish kompaniyalari, pudratchilar va ustalar uchun bitta tizim: smeta tuzish va narxlash, haqiqiy bajarilgan ishlar (fakt), F-2 aktlari, nakopitelniy va slichitelniy qaydnomalar, ijro hujjatlari hamda ombor hisobi.</p>
+        <p><strong>QURAI — qurilish uchun raqamli platforma.</strong> QURAI qurilish kompaniyalari, pudratchilar va ustalar uchun bitta tizim: smeta tuzish va narxlash, haqiqiy bajarilgan ishlar (fakt), F-2 aktlari, nakopitelniy va slichitelniy qaydnomalar, ijro hujjatlari hamda ombor hisobi.</p>
         <h2>Imkoniyatlar</h2>
         <ul>
           <li>Smeta studiyasi: LRV, resurs smetasi va manbali narxlash.</li>
@@ -104,6 +118,7 @@
           <li>Sayt, Android ilova va Windows dastur.</li>
         </ul>
         <h2>Ochiq bo'limlar</h2>
+        <p><a href="/smeta">AI smeta va ShNK normalari</a> · <a href="/f2">F-2, Forma-3, nakopitelniy</a> · <a href="/ombor">Ombor</a> · <a href="/ilova">Android ilova va Telegram bot</a> · <a href="/haqida">QURAI haqida</a> · <a href="/ru/haqida">На русском</a></p>
         <p><a href="/tender">Tender</a> · <a href="/bozor">Bozor</a> · <a href="/yuk">Yuk tashish</a></p>
         <noscript><p>Tizimga kirish uchun brauzerda JavaScript yoqilgan bo'lishi kerak.</p></noscript>
       </main>

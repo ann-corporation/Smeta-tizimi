@@ -1,7 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://qurai.uz/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
-  <url><loc>https://qurai.uz/tender</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
-  <url><loc>https://qurai.uz/bozor</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
-  <url><loc>https://qurai.uz/yuk</loc><changefreq>daily</changefreq><priority>0.6</priority></url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url><loc>https://qurai.uz/</loc><lastmod>2026-11-17</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://qurai.uz/smeta</loc><xhtml:link rel="alternate" hreflang="uz" href="https://qurai.uz/smeta"/><xhtml:link rel="alternate" hreflang="ru" href="https://qurai.uz/ru/smeta"/><lastmod>2026-11-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://qurai.uz/f2</loc><xhtml:link rel="alternate" hreflang="uz" href="https://qurai.uz/f2"/><xhtml:link rel="alternate" hreflang="ru" href="https://qurai.uz/ru/f2"/><lastmod>2026-11-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://qurai.uz/ombor</loc><xhtml:link rel="alternate" hreflang="uz" href="https://qurai.uz/ombor"/><xhtml:link rel="alternate" hreflang="ru" href="https://qurai.uz/ru/ombor"/><lastmod>2026-11-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://qurai.uz/ilova</loc><xhtml:link rel="alternate" hreflang="uz" href="https://qurai.uz/ilova"/><xhtml:link rel="alternate" hreflang="ru" href="https://qurai.uz/ru/ilova"/><lastmod>2026-11-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://qurai.uz/haqida</loc><xhtml:link rel="alternate" hreflang="uz" href="https://qurai.uz/haqida"/><xhtml:link rel="alternate" hreflang="ru" href="https://qurai.uz/ru/haqida"/><lastmod>2026-11-17</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://qurai.uz/ru/smeta</loc><xhtml:link rel="alternate" hreflang="uz" href="https://qurai.uz/smeta"/><xhtml:link rel="alternate" hreflang="ru" href="https://qurai.uz/ru/smeta"/><lastmod>2026-11-17</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://qurai.uz/ru/f2</loc><xhtml:link rel="alternate" hreflang="uz" href="https://qurai.uz/f2"/><xhtml:link rel="alternate" hreflang="ru" href="https://qurai.uz/ru/f2"/><lastmod>2026-11-17</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://qurai.uz/ru/ombor</loc><xhtml:link rel="alternate" hreflang="uz" href="https://qurai.uz/ombor"/><xhtml:link rel="alternate" hreflang="ru" href="https://qurai.uz/ru/ombor"/><lastmod>2026-11-17</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://qurai.uz/ru/ilova</loc><xhtml:link rel="alternate" hreflang="uz" href="https://qurai.uz/ilova"/><xhtml:link rel="alternate" hreflang="ru" href="https://qurai.uz/ru/ilova"/><lastmod>2026-11-17</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://qurai.uz/ru/haqida</loc><xhtml:link rel="alternate" hreflang="uz" href="https://qurai.uz/haqida"/><xhtml:link rel="alternate" hreflang="ru" href="https://qurai.uz/ru/haqida"/><lastmod>2026-11-17</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://qurai.uz/tender</loc><lastmod>2026-11-17</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://qurai.uz/bozor</loc><lastmod>2026-11-17</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://qurai.uz/yuk</loc><lastmod>2026-11-17</lastmod><changefreq>daily</changefreq><priority>0.6</priority></url>
 </urlset>
