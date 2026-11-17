@@ -16,6 +16,7 @@ import { callbackIshlaV2, faktTaklif, fotoQidiruv, menyuTugmasi, qidiruvKontekst
 import { startTugmalari } from '../../_shared/telegram-tugma';
 import { omborBuyruq, omborCallback } from '../../_shared/telegram-ombor';
 import { NONCE_PREFIKS, kalitYaroqli, nonceYaroqli, xesh, yoqilgan } from '../../_shared/kirish-emailsiz';
+import { type KanalEnv, kanalCallback, kanalCallbackmi, kanalTahrirJavobi, tahrirBelgisi } from '../../_shared/telegram-kanal';
 import { menUsernameQatori, taklifJavobi, usernameCallback, usernameJavobi, usernameTaklifi } from '../../_shared/telegram-username';
 
 type Xabar = { message_id?: number; reply_to_message?: { from?: { is_bot?: boolean }; text?: string }; text?: string; caption?: string; photo?: TgRasm[]; voice?: { file_id?: string; file_size?: number }; audio?: { file_id?: string; file_size?: number }; contact?: { phone_number?: string; user_id?: number }; chat?: { id?: number; type?: string }; from?: { id?: number; is_bot?: boolean; language_code?: string; username?: string } };
@@ -57,6 +58,13 @@ async function callbackAjrat(env: TgEnv, cb: Callback, tgId: number | undefined)
     if (u.xabar) await xabarYubor(env, chat.id as number, u.xabar.matn);
     if (Number.isSafeInteger(cb.message?.message_id)) await tgApi(env, 'editMessageReplyMarkup', { chat_id: chat.id, message_id: cb.message?.message_id, reply_markup: { inline_keyboard: [] } });
     return 'cb:' + u.amal;
+  }
+  if (kanalCallbackmi(cb.data)) {
+    /* KANAL-BOSHQARUV: kanalga chiqarish/o'chirish FAQAT egasi (superadmin) shu tugmani bosganda; qoralama egasi va rol qayta tekshiriladi. */
+    const k = await kanalCallback(env as KanalEnv, a.foydalanuvchi_id, til, String(cb.data), chat.id as number);
+    await javobBer(k.toast || undefined);
+    if (k.tugmalarniOlibTashla && Number.isSafeInteger(cb.message?.message_id)) await tgApi(env, 'editMessageReplyMarkup', { chat_id: chat.id, message_id: cb.message?.message_id, reply_markup: { inline_keyboard: [] } });
+    return k.amal;
   }
   const r = typeof cb.data === 'string' && cb.data.startsWith('ob:')
     ? await omborCallback(env, a.foydalanuvchi_id, til, cb)   // OMBOR-OVOZ: tasdiq tokeni preview xabari matnida
@@ -137,6 +145,9 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
   if (!a.ulangan || !a.foydalanuvchi_id) { await xabarYubor(env, chatId, ulangMatni(env, til)); return 'ulanmagan'; }
   const uid = a.foydalanuvchi_id;
 
+  // KANAL-BOSHQARUV: «Tahrirlash» xabariga javob — qoralama matni yangilanadi (chiqarilmaydi).
+  const kpId = tahrirBelgisi(msg.reply_to_message);
+  if (kpId && typeof msg.text === 'string') return kanalTahrirJavobi(env as KanalEnv, uid, til, chatId, kpId, msg.text);
   // OMBOR-OVOZ: ovozli xabar / oddiy matn → omborchi buyrug'i (preview + tasdiq tugmalari). Omborchi bo'lmasa — oddiy oqim davom etadi.
   const ovoz = msg.voice?.file_id ?? msg.audio?.file_id;
   if (ovoz || (!b && typeof msg.text === 'string' && msg.text.trim() && !qidiruvKonteksti(msg.reply_to_message))) {
