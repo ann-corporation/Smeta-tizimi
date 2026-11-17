@@ -18,7 +18,7 @@ class ModuleFeedTest {
         assertEquals(1, rows.size)
         val r = rows[0]
         assertEquals("Sement", r.title)
-        assertEquals("faol", r.subtitle)
+        assertEquals("Faol", r.subtitle)
         assertEquals(1500000.0, r.amount!!, 0.0)
         // the id and the company id are never shown; a phone number stays text
         assertTrue(r.all.none { it.label == "Id" || it.label.startsWith("Kompaniya") })
