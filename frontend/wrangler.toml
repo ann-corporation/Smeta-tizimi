@@ -34,3 +34,6 @@ PUBLIC_ORIGIN = "https://qurai.uz"
 BREND_URL = "https://qurai.uz"
 # Eski hostdan 301: Google OAuth origin va BotFather /setdomain qilingach '1' ga o'zgartiriladi.
 ESKI_HOST_YONLANTIRISH = "0"
+# Telegram brend kanali/guruhi (sir emas): /api/telegram/kanal faqat shu chatlar bilan ishlaydi. TG_GURUH: id (-100…) yoki @username — guruh ulanganda to'ldiriladi.
+TG_KANAL = "@qurai_uz"
+TG_GURUH = ""
