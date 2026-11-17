@@ -31,7 +31,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '17'  # ProGuard 7.2 reads classes up to Java 18 (JDK 21 jmods fail)
       - uses: gradle/actions/setup-gradle@v4
       - name: WiX check
         shell: pwsh
