@@ -22,7 +22,7 @@ import java.math.BigDecimal
 import javax.inject.Inject
 
 /** Voice / typed command state: recording, waiting for the server, the preview card to confirm, or a short message. */
-data class CmdUi(val recording: Boolean = false, val working: Boolean = false, val preview: CommandPreview? = null, val message: CmdMessage? = null, val suggestions: List<NameSuggestion> = emptyList())
+data class CmdUi(val recording: Boolean = false, val working: Boolean = false, val preview: CommandPreview? = null, val message: CmdMessage? = null, val suggestions: List<NameSuggestion> = emptyList(), val question: AskQuestion? = null)
 enum class CmdMessage { NO_MIC, TOO_SHORT, OFFLINE, FORBIDDEN, NOT_UNDERSTOOD, UNAVAILABLE, FAILED, LOW_STOCK, NO_WAREHOUSE }
 
 data class OmborUi(
@@ -114,6 +114,7 @@ class OmborViewModel @Inject constructor(
         val w = ctx.current.value
         if (audio == null || w == null) { cmd.value = CmdUi(message = CmdMessage.TOO_SHORT); return }
         val sklad = commandWarehouse() ?: run { cmd.value = CmdUi(message = CmdMessage.NO_WAREHOUSE); return }
+        lastText = ""
         launchCommand { priceMode.value = repo.priceMode(w.companyId, sklad); commands.audio(w.companyId, sklad, audio, lang()) }
     }
 
@@ -123,11 +124,25 @@ class OmborViewModel @Inject constructor(
         val w = ctx.current.value ?: return
         if (text.isBlank()) return
         val sklad = commandWarehouse() ?: run { cmd.value = CmdUi(message = CmdMessage.NO_WAREHOUSE); return }
+        lastText = text
         launchCommand { val m = repo.priceMode(w.companyId, sklad); priceMode.value = m; commands.text(w.companyId, sklad, text, lang(), m) }
+    }
+
+    /** The text a clarifying question refers to (typed, or what the server heard for a recording). */
+    private var lastText: String = ""
+
+    /** Tap on an answer button: the same text is sent again with the choice. Without buttons the user just types more (the field stays). */
+    fun answerQuestion(choice: AskOption) {
+        val w = ctx.current.value ?: return
+        val sklad = commandWarehouse() ?: run { cmd.value = CmdUi(message = CmdMessage.NO_WAREHOUSE); return }
+        val text = lastText.ifBlank { cmd.value.question?.heard.orEmpty() }
+        if (text.isBlank()) { cmd.value = CmdUi(message = CmdMessage.NOT_UNDERSTOOD); return }
+        launchCommand { commands.answer(w.companyId, sklad, text, lang(), choice) }
     }
 
     private fun failMessage(o: CommandOutcome): CmdUi = when (o) {
         is CommandOutcome.Preview -> CmdUi(preview = o.preview)
+        is CommandOutcome.Question -> CmdUi(question = o.question)
         CommandOutcome.Offline -> CmdUi(message = CmdMessage.OFFLINE)
         CommandOutcome.Forbidden -> CmdUi(message = CmdMessage.FORBIDDEN)
         CommandOutcome.NotUnderstood -> CmdUi(message = CmdMessage.NOT_UNDERSTOOD)

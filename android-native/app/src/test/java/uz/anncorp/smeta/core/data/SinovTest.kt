@@ -72,7 +72,7 @@ class SinovTest {
     @Test fun firstStepsChecklist() {
         val base = SinovState(started = true, companyId = 1, real = false, canStart = false, demoObjectId = null, demoAvailable = true, balance = 1000.0)
         val steps = firstSteps(base, jarvis = true)
-        assertEquals(listOf(FirstStepId.DEMO, FirstStepId.UPLOAD, FirstStepId.F2, FirstStepId.AI, FirstStepId.REAL), steps.map { it.id })
+        assertEquals(listOf(FirstStepId.DEMO, FirstStepId.F2, FirstStepId.AI, FirstStepId.REAL), steps.map { it.id })
         assertFalse(steps.first().done); assertTrue(steps.first().available)
         assertFalse(firstSteps(base, jarvis = false).any { it.id == FirstStepId.AI })
         assertFalse(firstSteps(base.copy(demoAvailable = false), jarvis = true).first().available)

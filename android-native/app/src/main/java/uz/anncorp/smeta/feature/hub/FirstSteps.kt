@@ -25,14 +25,13 @@ import uz.anncorp.smeta.core.data.SinovError
 import uz.anncorp.smeta.core.data.SinovState
 import uz.anncorp.smeta.feature.onboarding.messageRes
 
-enum class FirstStepId { DEMO, UPLOAD, F2, AI, REAL }
+enum class FirstStepId { DEMO, F2, AI, REAL }
 
 data class FirstStep(val id: FirstStepId, val done: Boolean, val available: Boolean)
 
 /** Pure: the checklist rows. The AI step is hidden when the assistant is off; the sample step is shown disabled until the server has a sample. */
 fun firstSteps(s: SinovState, jarvis: Boolean): List<FirstStep> = buildList {
     add(FirstStep(FirstStepId.DEMO, done = s.demoOpened, available = s.demoOpened || s.demoAvailable))
-    add(FirstStep(FirstStepId.UPLOAD, done = false, available = true))
     add(FirstStep(FirstStepId.F2, done = false, available = true))
     if (jarvis) add(FirstStep(FirstStepId.AI, done = false, available = true))
     add(FirstStep(FirstStepId.REAL, done = false, available = true))
@@ -41,7 +40,6 @@ fun firstSteps(s: SinovState, jarvis: Boolean): List<FirstStep> = buildList {
 @StringRes
 private fun FirstStepId.label(): Int = when (this) {
     FirstStepId.DEMO -> R.string.fs_demo
-    FirstStepId.UPLOAD -> R.string.fs_upload
     FirstStepId.F2 -> R.string.fs_f2
     FirstStepId.AI -> R.string.fs_ai
     FirstStepId.REAL -> R.string.fs_real
@@ -50,7 +48,6 @@ private fun FirstStepId.label(): Int = when (this) {
 @StringRes
 private fun FirstStep.action(): Int = when (id) {
     FirstStepId.DEMO -> if (done) R.string.fs_open else R.string.fs_open_demo
-    FirstStepId.UPLOAD -> R.string.fs_go
     FirstStepId.F2 -> R.string.fs_go
     FirstStepId.AI -> R.string.fs_go
     FirstStepId.REAL -> R.string.fs_go

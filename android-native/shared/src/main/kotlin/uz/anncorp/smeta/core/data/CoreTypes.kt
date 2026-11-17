@@ -1,4 +1,4 @@
-﻿package uz.anncorp.smeta.core.data
+package uz.anncorp.smeta.core.data
 
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -46,10 +46,16 @@ sealed interface SyncResult {
 // ---------- modules / feature flags ----------
 
 /** Where a module opens: a native screen, or the website page inside the authenticated in-app WebView. */
-enum class ModuleKind { NATIVE, WEB }
+enum class ModuleKind { NATIVE }
 
 /** Native destinations the hub can jump to (the UI maps each to a tab or a route). */
-enum class NativeTarget { OBJECTS, FAKT, PHOTO, APPROVALS, TODAY, WAREHOUSE, JARVIS, RAHBAR, ZAYAVKA, M29, NARYAD, HUJJAT, F2REESTR, NAKOP, QARZDOR, QABUL, RESURS, NAZORAT }
+enum class NativeTarget {
+    OBJECTS, FAKT, PHOTO, APPROVALS, TODAY, WAREHOUSE, JARVIS, RAHBAR, ZAYAVKA, M29, NARYAD, HUJJAT, F2REESTR, NAKOP, QARZDOR, QABUL, RESURS, NAZORAT,
+    /** Smeta (object tree) and F-2 (per object list) open after an object is picked. */
+    SMETA, F2,
+    /** Office modules read through the simple native reader (ModuleFeed.kt). */
+    NARX, MOLIYA, BUXGALTERIYA, AOSR, TENDER, LOGISTIKA, HR, SOTUV, KOMPANIYA,
+}
 
 /**
  * Feature flags. Warehouse (Ombor) is merged and enabled. USERNAME (@username, people search, company invites; docs/architecture/USERNAME_V1.md)
