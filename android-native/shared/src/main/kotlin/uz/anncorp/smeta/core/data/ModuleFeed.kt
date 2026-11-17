@@ -81,7 +81,7 @@ fun labelValue(v: String): String = VALUE_LABELS[v.trim().lowercase()] ?: v
 /** `qarz_summa` -> `Qarz summa` (kept for callers that need the raw column name). */
 fun humanKey(k: String): String = k.replace('_', ' ').trim().replaceFirstChar { it.uppercase() }
 
-private fun isHiddenKey(k: String) = k in HIDDEN || (k.endsWith("_id") && k != "obyekt_id") || k.endsWith("_hash") || k.startsWith("p_")
+private fun isHiddenKey(k: String) = k in HIDDEN || k.endsWith("_id") || k.endsWith("_hash") || k.startsWith("p_")
 
 /** Looks like an ISO date or timestamp; shown shortened. */
 private fun short(v: String): String = if (Regex("^\\d{4}-\\d{2}-\\d{2}T.*").matches(v)) v.substring(0, 10) else v
