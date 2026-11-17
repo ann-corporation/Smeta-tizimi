@@ -78,5 +78,15 @@ class ModuleFeedTest {
         FeedCatalog.codes.forEach { assertTrue(it, FeedCatalog.module(it, "2026-11")!!.sources.isNotEmpty()) }
         assertNull(FeedCatalog.module("yo'q", "2026-11"))
     }
-}
 
+    @Test fun codesBecomeUzbekWords() {
+        val r = parseFeed(el("""{"ok":true,"qatorlar":[{"nom":"Sement","tur":"mat","holat":"faol","xavf":true,"yopiq":false}]}"""), FeedSource("x", table = "t")).single()
+        assertEquals("Faol", r.subtitle)
+        assertEquals("Material", r.all.first { it.label == "Turi" }.value)
+        assertEquals("Xavfli", r.all.first { it.label == "Xavfli" }.label)
+        assertEquals("Qoralama", labelValue("qoralama"))
+        assertEquals("Tasdiqlangan", labelValue("tasdiqlangan"))
+        assertEquals("noma'lum_x", labelValue("noma'lum_x"))
+        assertEquals("Shartnoma summasi", labelKey("shartnoma_summa"))
+    }
+}

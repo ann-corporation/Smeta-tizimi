@@ -52,7 +52,33 @@ private val HIDDEN = setOf("id", "versiya", "kompaniya_id", "ok", "operation_id"
 
 private fun JsonElement?.scalar(): String? = (this as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content?.trim()?.takeIf { it.isNotEmpty() }
 
-/** `qarz_summa` -> `Qarz summa`. */
+/** Human Uzbek names of the usual server columns; unknown columns fall back to the column name with spaces. Shared with the Windows app. */
+private val KEY_LABELS = mapOf(
+    "nom" to "Nomi", "nomi" to "Nomi", "kat" to "Turkum", "tur" to "Turi", "turi" to "Turi", "birlik" to "Birlik", "birligi" to "Birlik", "narx" to "Narx", "xavf" to "Xavfli", "manba" to "Manba",
+    "holat" to "Holat", "status" to "Holat", "bosqich" to "Bosqich", "sana" to "Sana", "davr" to "Davr", "oy" to "Oy", "summa" to "Summa", "jami" to "Jami", "qarz" to "Qarz", "tolangan" to "To'langan",
+    "shartnoma_summa" to "Shartnoma summasi", "shartnoma_id" to "Shartnoma", "raqam" to "Raqam", "taraf" to "Taraf", "izoh" to "Izoh", "rol" to "Rol", "login" to "Login", "lavozim" to "Lavozim",
+    "ism" to "Ism", "telefon" to "Telefon", "mijoz" to "Mijoz", "muddat" to "Muddat", "takliflar_soni" to "Takliflar soni", "sarlavha" to "Sarlavha", "kontragent" to "Kontragent",
+    "item_text" to "Material", "requested_qty" to "So'ralgan miqdor", "delivered_qty" to "Yetkazilgan", "unit" to "Birlik", "priority" to "Muhimlik", "required_date" to "Kerak sanasi", "is_director" to "Direktor",
+    "toliq_nom" to "To'liq nomi", "inn" to "STIR", "manzil" to "Manzil", "rahbar" to "Rahbar", "kod" to "Kod", "ball" to "Ball", "kadr_id" to "Xodim", "yopiq" to "Yopiq", "foyda" to "Foyda",
+    "rentabellik" to "Rentabellik, %", "kassa" to "Kassa", "bank" to "Bank", "kirim" to "Kirim", "chiqim" to "Chiqim", "jami_kirim" to "Jami kirim", "jami_chiqim" to "Jami chiqim", "qoldiq" to "Qoldiq", "miqdor" to "Miqdor",
+    "obyekt_id" to "Obyekt", "yaratildi" to "Yaratilgan", "jami_shartnoma" to "Jami shartnoma", "jami_tolangan" to "Jami to'langan", "jami_qarz" to "Jami qarz", "birlik_jami" to "Birliklar", "sotilgan" to "Sotilgan", "bron" to "Bron",
+    "bosh" to "Bo'sh", "sotuv_summa" to "Sotuv summasi", "maosh" to "Maosh", "operatsiya" to "Amal", "obyekt" to "Obyekt", "nomi_obyekt" to "Obyekt",
+)
+
+/** Server status / kind codes -> Uzbek words (shown instead of "faol", "qoralama", "mat"...). */
+private val VALUE_LABELS = mapOf(
+    "faol" to "Faol", "nofaol" to "Nofaol", "qoralama" to "Qoralama", "tasdiqlangan" to "Tasdiqlangan", "imzolangan" to "Imzolangan", "bekor" to "Bekor qilingan", "yopilgan" to "Yopilgan", "ochiq" to "Ochiq",
+    "kutmoqda" to "Kutmoqda", "jarayonda" to "Jarayonda", "bajarildi" to "Bajarildi", "rad_etilgan" to "Rad etilgan", "yuborilgan" to "Yuborilgan", "reja" to "Reja",
+    "mat" to "Material", "material" to "Material", "mehnat" to "Mehnat", "rs" to "Resurs", "ob" to "Uskuna", "xizmat" to "Xizmat", "subpudrat" to "Subpudrat", "transport" to "Transport", "texnika_ijara" to "Texnika ijarasi",
+    "loyihalash" to "Loyihalash", "laboratoriya" to "Laboratoriya", "prixod" to "Kirim", "rasxod" to "Chiqim", "bron" to "Bron", "shartnoma" to "Shartnoma", "direktor" to "Direktor", "pto" to "PTO", "prorab" to "Prorab",
+    "omborchi" to "Omborchi", "buxgalter" to "Buxgalter", "submitted" to "Yuborilgan", "approved" to "Tasdiqlangan", "draft" to "Qoralama", "partially_delivered" to "Qisman yetkazilgan", "delivered" to "Yetkazilgan",
+    "rejected" to "Rad etilgan", "yuqori" to "Yuqori", "orta" to "O'rta", "past" to "Past", "berildi" to "Berildi", "hisoblandi" to "Hisoblandi", "sotuvda_emas" to "Sotuvda emas", "zaxira" to "Zaxira",
+)
+
+fun labelKey(k: String): String = KEY_LABELS[k] ?: k.replace('_', ' ').trim().replaceFirstChar { it.uppercase() }
+fun labelValue(v: String): String = VALUE_LABELS[v.trim().lowercase()] ?: v
+
+/** `qarz_summa` -> `Qarz summa` (kept for callers that need the raw column name). */
 fun humanKey(k: String): String = k.replace('_', ' ').trim().replaceFirstChar { it.uppercase() }
 
 private fun isHiddenKey(k: String) = k in HIDDEN || (k.endsWith("_id") && k != "obyekt_id") || k.endsWith("_hash") || k.startsWith("p_")
@@ -81,18 +107,18 @@ fun findFeedRecord(body: JsonElement?): JsonObject? {
 
 fun buildFeedRow(index: Int, o: JsonObject): FeedRow {
     val facts = o.entries.filter { (k, v) -> !isHiddenKey(k) && v.scalar() != null }
-    val title = TITLE_KEYS.firstNotNullOfOrNull { k -> o[k].scalar()?.takeIf { v -> v.toDoubleOrNull() == null || k == "raqam" || k == "kod" } } ?: o["id"].scalar()?.let { "#$it" } ?: "#${index + 1}"
-    val titleKey = TITLE_KEYS.firstOrNull { o[it].scalar() == title }
+    val title = TITLE_KEYS.firstNotNullOfOrNull { k -> o[k].scalar()?.takeIf { v -> v.toDoubleOrNull() == null || k == "raqam" || k == "kod" } }?.let { labelValue(it) } ?: o["id"].scalar()?.let { "#$it" } ?: "#${index + 1}"
+    val titleKey = TITLE_KEYS.firstOrNull { k -> o[k].scalar()?.let { labelValue(it) } == title }
     val subKey = SUBTITLE_KEYS.firstOrNull { it != titleKey && o[it].scalar() != null }
     val amountKey = AMOUNT_KEYS.firstOrNull { it != titleKey && o[it].num() != null && o[it].scalar() != null && o[it].num() != 0.0 } ?: AMOUNT_KEYS.firstOrNull { it != titleKey && o[it].num() != null }
-    fun fact(k: String, v: JsonElement?) = FeedFact(humanKey(k), when {
+    fun fact(k: String, v: JsonElement?) = FeedFact(labelKey(k), when {
         (v as? JsonPrimitive)?.booleanOrNull != null -> if (v.booleanOrNull == true) "✓" else "–"
         v.num() != null && TEXT_NUMBER_KEYS.none { k == it || k.endsWith("_" + it) || k.startsWith(it + "_") } && !(v as JsonPrimitive).isString -> formatMoney(v.num(), if (v.num()!! % 1.0 == 0.0) 0 else 2)
-        else -> short(v.scalar().orEmpty())
+        else -> labelValue(short(v.scalar().orEmpty()))
     }, v.num())
     val show = facts.filter { (k, _) -> k != titleKey && k != subKey && k != amountKey }.take(5).map { (k, v) -> fact(k, v) }
     val all = facts.map { (k, v) -> fact(k, v) }
-    return FeedRow(o["id"].scalar() ?: "row$index", title.take(160), subKey?.let { short(o[it].scalar().orEmpty()) }, amountKey?.let { o[it].num() }, amountKey?.let { humanKey(it) }, show, all)
+    return FeedRow(o["id"].scalar() ?: "row$index", title.take(160), subKey?.let { labelValue(short(o[it].scalar().orEmpty())) }, amountKey?.let { o[it].num() }, amountKey?.let { labelKey(it) }, show, all)
 }
 
 fun parseFeed(body: JsonElement?, source: FeedSource): List<FeedRow> {
