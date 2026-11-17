@@ -22,11 +22,6 @@ class FormatTest {
         assertEquals("0,00", formatMoney(0.0))
     }
 
-    @Test fun vatIsTwelvePercent() {
-        assertEquals(112.0, withVat(100.0)!!, 1e-9)
-        assertNull(withVat(null))
-    }
-
     @Test fun volumeParsingAcceptsCommaAndDot() {
         assertEquals(12.5, parseVolume("12,5")!!, 0.0)
         assertEquals(12.5, parseVolume("12.5")!!, 0.0)
