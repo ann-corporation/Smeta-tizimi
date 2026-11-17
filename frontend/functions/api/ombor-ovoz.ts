@@ -2,7 +2,7 @@ import { tekshir, type Sess } from '../_shared/auth';
 import { cachedAuthority, yopiqModul } from '../_shared/permission-policy';
 import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shared/role-authority';
 
-type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; ELEVENLABS_API_KEY?: string; ELEVENLABS_COMPANY_IDS?: string };
+type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; ELEVENLABS_API_KEY?: string; ELEVENLABS_COMPANY_IDS?: string; AI?: { run: (model: string, input: Record<string, unknown>) => Promise<unknown> } };
 type Context = Parameters<PagesFunction<Env>>[0];
 const MAX_BODY = 8 * 1024 * 1024;
 const json = (body: unknown, status = 200) => Response.json(body, {status,headers:{'Cache-Control':'no-store'}});
@@ -61,7 +61,7 @@ async function multipart(req: Request): Promise<FormData | Response> {
 export const onRequestGet: PagesFunction<Env> = async ctx => {
   const session=await actor(ctx);if(session instanceof Response)return session;
   const denied=access(session,Number(new URL(ctx.request.url).searchParams.get('kompaniya_id')));
-  return denied ?? json({ok:true,enabled:providerScope(ctx.env,Number(new URL(ctx.request.url).searchParams.get('kompaniya_id')))===null,provider:'elevenlabs',draft_only:true});
+  return denied ?? json({ok:true,enabled:providerScope(ctx.env,Number(new URL(ctx.request.url).searchParams.get('kompaniya_id')))===null||!!ctx.env.AI,provider:providerScope(ctx.env,Number(new URL(ctx.request.url).searchParams.get('kompaniya_id')))===null?'elevenlabs':'workers-ai',draft_only:true});
 };
 
 export const onRequestPost: PagesFunction<Env> = async ctx => {
@@ -72,13 +72,15 @@ export const onRequestPost: PagesFunction<Env> = async ctx => {
   try {form=await multipart(ctx.request);}catch{return fail('AUDIO_FORM_REQUIRED',400);}
   if(form instanceof Response)return form;
   const denied=access(session,Number(form.get('kompaniya_id')));if(denied)return denied;
-  const scope=providerScope(ctx.env,Number(form.get('kompaniya_id')));if(scope)return scope;
+  // ElevenLabs sozlangan va kompaniya ruxsat etilgan bo'lsa — u; aks holda Cloudflare Workers AI (Whisper); ikkalasi yo'q bo'lsa — eski xato kodi.
+  const scope=providerScope(ctx.env,Number(form.get('kompaniya_id')));if(scope&&!ctx.env.AI)return scope;
   const audio:unknown=form.get('audio');
   if(!(audio instanceof Blob)||audio.size===0)return fail('AUDIO_REQUIRED',400);
   if(audio.size>MAX_BODY)return fail('AUDIO_TOO_LARGE',413);
   if(!/^audio\/(?:webm|ogg|mp4|mpeg|wav|x-wav|aac|flac)(?:;|$)/i.test(audio.type))return fail('AUDIO_FORMAT_UNSUPPORTED',400);
   const language=String(form.get('language')??'auto');
   if(!['auto','uzb','rus','eng'].includes(language))return fail('LANGUAGE_INVALID',400);
+  if(scope)return whisper(ctx,audio,language);
   const upload=new FormData();upload.set('file',audio,'ombor-audio');upload.set('model_id','scribe_v2');
   upload.set('tag_audio_events','false');upload.set('diarize','false');
   if(language!=='auto')upload.set('language_code',language);
@@ -101,3 +103,17 @@ export const onRequestPost: PagesFunction<Env> = async ctx => {
     return json({ok:true,text:result.text.trim(),language:typeof result.language_code==='string'?result.language_code.slice(0,8):null,draft_only:true});
   } catch {return fail(ctx.request.signal.aborted?'VOICE_CANCELED':'VOICE_UNAVAILABLE',ctx.request.signal.aborted?499:503);}
 };
+
+/** Zaxira STT: Cloudflare Workers AI (kalitsiz binding). Kirish: base64 audio + til ishorasi; chiqish — faqat matn (hech narsa yozilmaydi). */
+async function whisper(ctx: Context, audio: Blob, language: string): Promise<Response> {
+  try {
+    const bytes = new Uint8Array(await audio.arrayBuffer());
+    let bin = ''; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    const hint: Record<string, string> = { uzb: 'uz', rus: 'ru', eng: 'en' };
+    const out = await ctx.env.AI!.run('@cf/openai/whisper-large-v3-turbo', { audio: btoa(bin), ...(hint[language] ? { language: hint[language] } : {}) }) as { text?: unknown } | null;
+    const text = typeof out?.text === 'string' ? out.text.trim() : '';
+    if (!text) return fail('VOICE_NO_SPEECH', 422);
+    if (text.length > 60_000) return fail('VOICE_RESULT_TOO_LARGE', 502);
+    return json({ ok: true, text, language: hint[language] ?? null, draft_only: true });
+  } catch { return fail(ctx.request.signal.aborted ? 'VOICE_CANCELED' : 'VOICE_UNAVAILABLE', ctx.request.signal.aborted ? 499 : 503); }
+}
