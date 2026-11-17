@@ -1,4 +1,4 @@
-﻿package uz.anncorp.smeta.core.data
+package uz.anncorp.smeta.core.data
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -47,22 +47,22 @@ object ModuleCatalog {
         ModuleDef("qabul", R.string.mod_qabul, R.string.mod_qabul_d, ModuleKind.NATIVE, listOf("fakt.write"), target = NativeTarget.QABUL),
         ModuleDef("nazorat", R.string.p10_mod_nazorat, R.string.p10_mod_nazorat_d, ModuleKind.NATIVE, listOf("quality.decide"), target = NativeTarget.NAZORAT, webPath = "/admin/nazorat"),
         ModuleDef("resurs", R.string.mod_resurs, R.string.mod_resurs_d, ModuleKind.NATIVE, listOf(BOSS, "smeta.write", "warehouse.read"), target = NativeTarget.RESURS),
-        ModuleDef("smeta", R.string.mod_estimate, R.string.mod_estimate_d, ModuleKind.WEB, listOf(BOSS, "smeta.write"), webPath = "/admin/smeta-studio"),
-        ModuleDef("narx", R.string.mod_prices, R.string.mod_prices_d, ModuleKind.WEB, listOf(BOSS, "narx.write"), webPath = "/admin/narxlar"),
-        ModuleDef("f2", R.string.mod_f2, R.string.mod_f2_d, ModuleKind.WEB, listOf("f2.prepare"), webPath = "/admin/f2-tayyorlash"),
+        ModuleDef("smeta", R.string.mod_estimate, R.string.mod_estimate_d, ModuleKind.NATIVE, listOf(BOSS, "smeta.write"), target = NativeTarget.SMETA, webPath = "/admin/smeta-studio"),
+        ModuleDef("narx", R.string.mod_prices, R.string.mod_prices_d, ModuleKind.NATIVE, listOf(BOSS, "narx.write"), target = NativeTarget.NARX, webPath = "/admin/narxlar"),
+        ModuleDef("f2", R.string.mod_f2, R.string.mod_f2_d, ModuleKind.NATIVE, listOf("f2.prepare"), target = NativeTarget.F2, webPath = "/admin/f2-tayyorlash"),
         ModuleDef("f2reestr", R.string.mod_f2_registry, R.string.mod_f2_registry_d, ModuleKind.NATIVE, listOf("f2.read"), target = NativeTarget.F2REESTR, webPath = "/admin/f2-reestr"),
         ModuleDef("nakop", R.string.mod_accum, R.string.mod_accum_d, ModuleKind.NATIVE, listOf("f2.read"), target = NativeTarget.NAKOP, webPath = "/admin/nakopitelniy"),
-        ModuleDef("moliya", R.string.mod_finance, R.string.mod_finance_d, ModuleKind.WEB, listOf(BOSS, "financial.write"), "module.moliya", webPath = "/admin/moliya"),
-        ModuleDef("buxgalteriya", R.string.mod_accounting, R.string.mod_accounting_d, ModuleKind.WEB, listOf(BOSS, "accounting.write"), "module.moliya", webPath = "/admin/buxgalteriya"),
+        ModuleDef("moliya", R.string.mod_finance, R.string.mod_finance_d, ModuleKind.NATIVE, listOf(BOSS, "financial.write"), "module.moliya", target = NativeTarget.MOLIYA, webPath = "/admin/moliya"),
+        ModuleDef("buxgalteriya", R.string.mod_accounting, R.string.mod_accounting_d, ModuleKind.NATIVE, listOf(BOSS, "accounting.write"), "module.moliya", target = NativeTarget.BUXGALTERIYA, webPath = "/admin/buxgalteriya"),
         ModuleDef("hujjat", R.string.mod_documents, R.string.mod_documents_d, ModuleKind.NATIVE, listOf(BOSS, "project.read", "document.write"), "module.hujjat", NativeTarget.HUJJAT, webPath = "/admin/hujjat-aylanish"),
         ModuleDef("m29", R.string.mod_m29, R.string.mod_m29_d, ModuleKind.NATIVE, listOf(BOSS, "smeta.write", "warehouse.write"), target = NativeTarget.M29, webPath = "/admin/m29"),
         ModuleDef("naryad", R.string.mod_naryad, R.string.mod_naryad_d, ModuleKind.NATIVE, listOf(BOSS, "smeta.write", "self.work.read"), target = NativeTarget.NARYAD, webPath = "/admin/naryad"),
-        ModuleDef("aosr", R.string.mod_aosr, R.string.mod_aosr_d, ModuleKind.WEB, listOf(BOSS, "document.write"), "module.hujjat", webPath = "/admin/aosr"),
-        ModuleDef("tender", R.string.mod_tender, R.string.mod_tender_d, ModuleKind.WEB, listOf(BOSS, "project.write", "object.write", "procurement.read", "supply.offer"), "module.xarid", webPath = "/admin/tender"),
-        ModuleDef("logistika", R.string.mod_logistics, R.string.mod_logistics_d, ModuleKind.WEB, listOf(BOSS, "project.write", "object.write", "warehouse.read", "procurement.read", "logistics.read"), "module.logistika", webPath = "/admin/logistika"),
-        ModuleDef("hr", R.string.mod_hr, R.string.mod_hr_d, ModuleKind.WEB, listOf(BOSS, "project.write", "object.write", "hr.read", "machinery.read", "machinery.log"), "module.hr", webPath = "/admin/erp"),
-        ModuleDef("sotuv", R.string.mod_sales, R.string.mod_sales_d, ModuleKind.WEB, listOf("sales.read"), "module.sotuv", webPath = "/admin/sotuv"),
-        ModuleDef("kompaniya", R.string.mod_company, R.string.mod_company_d, ModuleKind.WEB, listOf(BOSS, "company.member.manage", "company.profile.update"), webPath = "/admin/kompaniya"),
+        ModuleDef("aosr", R.string.mod_aosr, R.string.mod_aosr_d, ModuleKind.NATIVE, listOf(BOSS, "document.write"), "module.hujjat", target = NativeTarget.AOSR, webPath = "/admin/aosr"),
+        ModuleDef("tender", R.string.mod_tender, R.string.mod_tender_d, ModuleKind.NATIVE, listOf(BOSS, "project.write", "object.write", "procurement.read", "supply.offer"), "module.xarid", target = NativeTarget.TENDER, webPath = "/admin/tender"),
+        ModuleDef("logistika", R.string.mod_logistics, R.string.mod_logistics_d, ModuleKind.NATIVE, listOf(BOSS, "project.write", "object.write", "warehouse.read", "procurement.read", "logistics.read"), "module.logistika", target = NativeTarget.LOGISTIKA, webPath = "/admin/logistika"),
+        ModuleDef("hr", R.string.mod_hr, R.string.mod_hr_d, ModuleKind.NATIVE, listOf(BOSS, "project.write", "object.write", "hr.read", "machinery.read", "machinery.log"), "module.hr", target = NativeTarget.HR, webPath = "/admin/erp"),
+        ModuleDef("sotuv", R.string.mod_sales, R.string.mod_sales_d, ModuleKind.NATIVE, listOf("sales.read"), "module.sotuv", target = NativeTarget.SOTUV, webPath = "/admin/sotuv"),
+        ModuleDef("kompaniya", R.string.mod_company, R.string.mod_company_d, ModuleKind.NATIVE, listOf(BOSS, "company.member.manage", "company.profile.update"), target = NativeTarget.KOMPANIYA, webPath = "/admin/kompaniya"),
     )
 
     /** [permissions] null = unknown (offline / not loaded yet): show everything, like the website does while loading. */

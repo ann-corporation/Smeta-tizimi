@@ -100,7 +100,7 @@ fun OmborScreen(onOutbox: () -> Unit, vm: OmborViewModel = hiltViewModel(), bann
             if (ui.syncing) CircularProgressIndicator(Modifier.width(16.dp).height(16.dp), strokeWidth = 2.dp)
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(R.string.ombor_tab_stock, R.string.ombor_tab_in, R.string.ombor_tab_out).forEachIndexed { i, res ->
+            listOf(R.string.ombor_tab_stock, R.string.ombor_tab_in, R.string.ombor_tab_out, R.string.t14_tab_report).forEachIndexed { i, res ->
                 FilterChip(selected = tab == i, onClick = { tab = i }, label = { Text(stringResource(res)) })
             }
         }
@@ -114,6 +114,7 @@ fun OmborScreen(onOutbox: () -> Unit, vm: OmborViewModel = hiltViewModel(), bann
         if (ui.computedBalance && tab == 0) Text(stringResource(R.string.ombor_computed_note), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.padding(horizontal = 20.dp))
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
+                tab == 3 -> OmborReportPanel((ui.scope as? OmborScope.Central)?.id ?: ui.warehouses.firstOrNull()?.id)
                 tab != 0 -> MovesList(filterMoves(ui.moves, tab == 1, ui.scope, ui.query), ui.objectNames, showObject = ui.scope !is OmborScope.Obyekt)
                 ui.rows.isEmpty() && ui.syncing && ui.updatedAt == null -> CenterMessage(null, stringResource(R.string.ombor_loading))
                 ui.rows.isEmpty() && ui.updatedAt == null -> when (ui.result) {
@@ -148,6 +149,7 @@ fun OmborScreen(onOutbox: () -> Unit, vm: OmborViewModel = hiltViewModel(), bann
             onReceive = { preset = row; entryOp = OmborOp.RECEIVE.name; item = null }, onIssue = { preset = row; entryOp = OmborOp.ISSUE.name; item = null }, onDismiss = { item = null },
         )
     }
+    ui.cmd.question?.let { q -> QuestionDialog(q, ui.cmd.working, onAnswer = vm::answerQuestion, onDismiss = vm::dismissCommand) }
     ui.cmd.preview?.let { p -> CommandPreviewDialog(p, ui, vm, onEdit = { op, row -> preset = row; entryOp = op.name }) }
     if (scanning) ScanDialog(onResult = { vm.setQuery(it); scanning = false }, onDismiss = { scanning = false })
     if (picking) ScopePicker(ui, allLabel, onPick = { vm.setScope(it); picking = false }, onDismiss = { picking = false })

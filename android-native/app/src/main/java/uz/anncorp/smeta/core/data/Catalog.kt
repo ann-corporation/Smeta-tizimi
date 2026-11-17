@@ -31,10 +31,9 @@ data class CatalogItem(
 )
 data class Catalog(val version: Int, val companyId: Long?, val groups: List<CatalogGroup>, val items: List<CatalogItem>)
 
-/** How an item opens. */
+/** How an item opens: every page of the app is a native screen (no web container). */
 sealed interface CatalogOpen {
     data class Native(val target: NativeTarget) : CatalogOpen
-    data class Web(val path: String) : CatalogOpen
 }
 
 private fun JsonElement?.cObj(): JsonObject? = this as? JsonObject
@@ -74,11 +73,14 @@ fun parseCatalog(e: JsonElement?): Catalog? {
 internal fun nativeTargetFor(code: String): NativeTarget? =
     if (code == "zayavka") NativeTarget.ZAYAVKA else if (code == "nazorat") NativeTarget.NAZORAT else ModuleCatalog.all.firstOrNull { it.code == code && it.kind == ModuleKind.NATIVE && it.enabled }?.target
 
-/** Native screen for [CatalogItem.native], only when the app really has it and it is switched on; otherwise the web container. */
-fun CatalogItem.open(): CatalogOpen {
-    val target = native?.let(::nativeTargetFor)
-    return if (target != null) CatalogOpen.Native(target) else CatalogOpen.Web(path)
-}
+/** The native screen of the item: its server `native` code, else the module whose website path it is. Null = this build has no native screen for it (the page is not listed). */
+fun CatalogItem.nativeTarget(): NativeTarget? =
+    native?.let(::nativeTargetFor) ?: ModuleCatalog.all.firstOrNull { it.webPath == path && it.target != null && it.enabled }?.target
+
+fun CatalogItem.open(): CatalogOpen? = nativeTarget()?.let { CatalogOpen.Native(it) }
+
+/** Only the pages this build can open natively. */
+fun Catalog.native(): List<CatalogItem> = items.filter { it.nativeTarget() != null }
 
 /** Lower-case, no apostrophe variants, so "o'zbek", "oʻzbek" and "ozbek" all match. */
 internal fun normalizeSearch(s: String): String = s.lowercase().filter { it != '\'' && it != '‘' && it != '’' && it != 'ʻ' && it != 'ʼ' && it != '`' }
@@ -86,9 +88,10 @@ internal fun normalizeSearch(s: String): String = s.lowercase().filter { it != '
 /** Every query word must appear in the item's titles (all languages), band or group name. Empty query = everything. */
 fun Catalog.search(query: String): List<CatalogItem> {
     val words = normalizeSearch(query).split(' ', '\t').filter { it.isNotBlank() }
-    if (words.isEmpty()) return items.dedupeNative()
+    val own = native()
+    if (words.isEmpty()) return own.dedupeNative()
     val groupTitle = groups.associate { it.id to it.title.haystack() }
-    return items.dedupeNative().filter { item ->
+    return own.dedupeNative().filter { item ->
         val hay = normalizeSearch("${item.title.haystack()} ${item.band.haystack()} ${groupTitle[item.group].orEmpty()}")
         words.all { w -> hay.contains(w) }
     }
@@ -100,7 +103,7 @@ fun Catalog.search(query: String): List<CatalogItem> {
  * the server's order. Pages that open in the web container are never merged.
  */
 fun List<CatalogItem>.dedupeNative(): List<CatalogItem> {
-    fun target(i: CatalogItem) = i.native?.let(::nativeTargetFor)
+    fun target(i: CatalogItem) = i.nativeTarget()
     fun canonical(i: CatalogItem) = ModuleCatalog.all.firstOrNull { it.code == i.native }?.webPath == i.path
     val keep = HashMap<NativeTarget, CatalogItem>()
     for (i in this) {
@@ -114,20 +117,9 @@ fun List<CatalogItem>.dedupeNative(): List<CatalogItem> {
 data class CatalogSection(val group: CatalogGroup, val items: List<CatalogItem>)
 
 /** Groups [items] by server group in the server's group order; empty groups drop out. */
-fun Catalog.sections(items: List<CatalogItem> = this.items): List<CatalogSection> {
+fun Catalog.sections(items: List<CatalogItem> = this.native()): List<CatalogSection> {
     val by = items.dedupeNative().groupBy { it.group }
     return groups.mapNotNull { g -> by[g.id]?.takeIf { it.isNotEmpty() }?.let { CatalogSection(g, it) } }
-}
-
-/**
- * URL the web container starts from: the page path plus app-embed hints the website understands (lib/app-embed.ts):
- * `app=android` (hide the web sidebar/top bar), `k` = selected workplace, `tema` = dark | light. Only digits/letters, so it passes the
- * server's ticket path whitelist (/api/mobil/web-bilet BILET_YOL). Existing query strings are kept.
- */
-fun embedPath(path: String, companyId: Long?, dark: Boolean): String {
-    val sep = if (path.contains('?')) '&' else '?'
-    val k = companyId?.takeIf { it > 0 }?.let { "&k=$it" }.orEmpty()
-    return "$path${sep}app=android$k&tema=${if (dark) "dark" else "light"}"
 }
 
 /** Offline copy of the last good catalogue per company. */

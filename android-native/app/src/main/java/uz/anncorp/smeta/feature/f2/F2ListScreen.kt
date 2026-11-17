@@ -137,10 +137,9 @@ private fun statusExplain(s: F2Status): String = stringResource(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun F2ListScreen(onBack: () -> Unit, onOpenWeb: (path: String, title: String) -> Unit, onDocs: (Long) -> Unit = {}, vm: F2ListViewModel = hiltViewModel()) {
+fun F2ListScreen(onBack: () -> Unit, onDocs: (Long) -> Unit = {}, vm: F2ListViewModel = hiltViewModel()) {
     val ui by vm.state.collectAsStateWithLifecycle()
     var detail by remember { mutableStateOf<F2Act?>(null) }
-    val webTitle = stringResource(R.string.mod_f2_registry)
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
         WorkTopBar(stringResource(R.string.f2_title) + if (ui.name.isNotBlank()) " · " + ui.name else "", onBack)
         PullToRefreshBox(isRefreshing = ui.syncing && ui.acts != null, onRefresh = { vm.refresh() }, modifier = Modifier.weight(1f).fillMaxWidth()) {
@@ -151,13 +150,12 @@ fun F2ListScreen(onBack: () -> Unit, onOpenWeb: (path: String, title: String) ->
                     is SyncResult.Forbidden -> EmptyState(Icons.Filled.Lock, stringResource(R.string.f2_forbidden), stringResource(R.string.f2_forbidden_body))
                     else -> EmptyState(Icons.Filled.Warning, stringResource(R.string.err_server), stringResource(R.string.err_network), stringResource(R.string.retry)) { vm.refresh() }
                 }
-                acts.isEmpty() -> EmptyState(Icons.Outlined.Description, stringResource(R.string.f2_empty), stringResource(R.string.f2_empty_hint), stringResource(R.string.f2_open_web)) { onOpenWeb("/admin/f2-reestr", webTitle) }
+                acts.isEmpty() -> EmptyState(Icons.Outlined.Description, stringResource(R.string.f2_empty), stringResource(R.string.f2_empty_hint))
                 else -> LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp, 4.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     item { Summary(ui, acts) }
                     items(acts, key = { it.id }) { a -> ActCard(a) { detail = a } }
                     item {
                         Button(onClick = { onDocs(vm.id) }, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.docs_f2_button)) }
-                        androidx.compose.material3.OutlinedButton(onClick = { onOpenWeb("/admin/f2-reestr", webTitle) }, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget).padding(top = 8.dp)) { Text(stringResource(R.string.f2_open_web)) }
                         Text(stringResource(R.string.f2_pdf_hint), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp))
                     }
                 }
@@ -166,7 +164,7 @@ fun F2ListScreen(onBack: () -> Unit, onOpenWeb: (path: String, title: String) ->
     }
     detail?.let { a ->
         ModalBottomSheet(onDismissRequest = { detail = null }) {
-            DetailSheet(a, onWeb = { detail = null; onOpenWeb("/admin/f2-reestr", webTitle) })
+            DetailSheet(a, onDocs = { detail = null; onDocs(vm.id) })
         }
     }
 }
@@ -236,7 +234,7 @@ internal fun StatusChip(s: F2Status, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun DetailSheet(a: F2Act, onWeb: () -> Unit) {
+private fun DetailSheet(a: F2Act, onDocs: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.f2_act_title, a.raqam ?: ("#" + a.id)), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
@@ -248,8 +246,7 @@ private fun DetailSheet(a: F2Act, onWeb: () -> Unit) {
         DetailLine(stringResource(R.string.f2_unpriced), (a.unpriced ?: 0).toString(), warn = (a.unpriced ?: 0) > 0)
         DetailLine(stringResource(R.string.f2_minus_rows), (a.negativeRows ?: 0).toString())
         if (a.hasDiff) Text(stringResource(R.string.f2_flag_diff_long), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
-        Text(stringResource(R.string.f2_sums_on_web), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Button(onClick = onWeb, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.f2_open_web)) }
+        Button(onClick = onDocs, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.docs_f2_button)) }
     }
 }
 

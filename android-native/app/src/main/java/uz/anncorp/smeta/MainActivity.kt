@@ -43,7 +43,6 @@ import uz.anncorp.smeta.feature.work.FaktScreen
 import uz.anncorp.smeta.feature.work.ObjectCardScreen
 import uz.anncorp.smeta.feature.work.OutboxScreen
 import uz.anncorp.smeta.feature.work.ObjectsScreen
-import uz.anncorp.smeta.feature.web.WebModuleScreen
 import uz.anncorp.smeta.feature.jarvis.JarvisScreen
 import uz.anncorp.smeta.feature.rahbar.RahbarScreen
 import uz.anncorp.smeta.feature.smeta.SmetaBrowseScreen
@@ -125,7 +124,9 @@ private const val APPROVAL = "approval/{id}"
 private const val PHOTO = "photo/{id}?naryad={naryad}"
 private const val SIGNUP = "signup"
 private const val INVITE = "invite"
-private const val WEB = "web?path={path}&title={title}"
+private const val MODUL = "modul/{code}"
+private const val PICK_SMETA = "pick/smeta"
+private const val PICK_F2 = "pick/f2"
 private const val PICK_FAKT = "pick/fakt"
 private const val PICK_PHOTO = "pick/photo"
 private const val JARVIS = "jarvis"
@@ -188,7 +189,6 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
             HomeScreen(
                 onOpenObject = { nav.navigate("object/$it") }, onOpenFakt = { nav.navigate("fakt/$it") },
                 onOpenApproval = { nav.navigate("approval/$it") }, onOutbox = { nav.navigate(OUTBOX) },
-                onOpenWeb = { path, title -> nav.navigate("web?path=${Uri.encode(path)}&title=${Uri.encode(title)}") },
                 onPickFakt = { nav.navigate(PICK_FAKT) }, onPickPhoto = { nav.navigate(PICK_PHOTO) },
                 onJarvis = { nav.navigate(JARVIS) }, onRahbar = { nav.navigate(RAHBAR) }, onZayavka = { nav.navigate(ZAYAVKA) },
                 onModule = { t ->
@@ -201,6 +201,11 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
                         uz.anncorp.smeta.core.data.NativeTarget.QABUL -> nav.navigate(QABUL)
                         uz.anncorp.smeta.core.data.NativeTarget.RESURS -> nav.navigate(PICK_RESURS)
                         uz.anncorp.smeta.core.data.NativeTarget.NAZORAT -> nav.navigate(NAZORAT)
+                        uz.anncorp.smeta.core.data.NativeTarget.SMETA -> nav.navigate(PICK_SMETA)
+                        uz.anncorp.smeta.core.data.NativeTarget.F2 -> nav.navigate(PICK_F2)
+                        uz.anncorp.smeta.core.data.NativeTarget.NARX, uz.anncorp.smeta.core.data.NativeTarget.MOLIYA, uz.anncorp.smeta.core.data.NativeTarget.BUXGALTERIYA, uz.anncorp.smeta.core.data.NativeTarget.AOSR,
+                        uz.anncorp.smeta.core.data.NativeTarget.TENDER, uz.anncorp.smeta.core.data.NativeTarget.LOGISTIKA, uz.anncorp.smeta.core.data.NativeTarget.HR, uz.anncorp.smeta.core.data.NativeTarget.SOTUV,
+                        uz.anncorp.smeta.core.data.NativeTarget.KOMPANIYA -> nav.navigate("modul/" + t.name.lowercase())
                         else -> nav.navigate("hujjat")
                     }
                 }, onInvite = { nav.navigate(PEOPLE_INVITE) }, onInvites = { nav.navigate(PEOPLE_INVITES) },
@@ -221,9 +226,9 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
         composable(PHOTO, idArg + listOf(navArgument("naryad") { type = NavType.LongType; defaultValue = -1L })) {
             PhotoScreen(onBack = { nav.popBackStack() }, onQueued = { nav.navigate(OUTBOX) { popUpTo(PHOTO) { inclusive = true } } })
         }
-        composable(WEB, listOf(navArgument("path") { type = NavType.StringType; defaultValue = "" }, navArgument("title") { type = NavType.StringType; defaultValue = "" })) { e ->
-            WebModuleScreen(title = e.arguments?.getString("title").orEmpty(), onBack = { nav.popBackStack() })
-        }
+        composable(MODUL, listOf(navArgument("code") { type = NavType.StringType })) { uz.anncorp.smeta.feature.modul.ModuleScreen(onBack = { nav.popBackStack() }, onDebtors = { nav.navigate(QARZDOR) }) }
+        composable(PICK_SMETA) { PickObjectScreen(R.string.mod_estimate, onBack = { nav.popBackStack() }) { nav.navigate("smeta/$it") } }
+        composable(PICK_F2) { PickObjectScreen(R.string.mod_f2, onBack = { nav.popBackStack() }) { nav.navigate("f2/$it") } }
         composable(PICK_FAKT) { PickObjectScreen(R.string.mod_fact, onBack = { nav.popBackStack() }) { nav.navigate("fakt/$it") } }
         composable(PICK_NAKOP) { PickObjectScreen(R.string.p8_nk_title, onBack = { nav.popBackStack() }) { nav.navigate("nakop/$it") } }
         composable(PICK_RESURS) { PickObjectScreen(R.string.p8_rv_title, onBack = { nav.popBackStack() }) { nav.navigate("resurs/$it") } }
@@ -235,14 +240,12 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
         composable(NAKOP, idArg) {
             uz.anncorp.smeta.feature.nakop.NakopScreen(
                 onBack = { nav.popBackStack() }, onResources = { nav.navigate("resurs/$it") }, onOpenF2 = { nav.navigate("f2/$it") },
-                onOpenWeb = { path, title -> nav.navigate("web?path=${Uri.encode(path)}&title=${Uri.encode(title)}") },
             )
         }
         composable(RESURS, idArg) { uz.anncorp.smeta.feature.resurs.ResursScreen(onBack = { nav.popBackStack() }) }
         composable(QARZDOR) {
             uz.anncorp.smeta.feature.qarzdor.QarzdorScreen(
                 onBack = { nav.popBackStack() }, onOpenObject = { nav.navigate("object/$it") },
-                onOpenWeb = { path, title -> nav.navigate("web?path=${Uri.encode(path)}&title=${Uri.encode(title)}") },
             )
         }
         composable(QABUL) { uz.anncorp.smeta.feature.qabul.QabulScreen(onBack = { nav.popBackStack() }, onPhoto = { nav.navigate("photo/$it") }) }
@@ -255,7 +258,6 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
         composable(F2LIST, idArg) {
             F2ListScreen(
                 onBack = { nav.popBackStack() }, onDocs = { nav.navigate("docs/$it?f2=true") },
-                onOpenWeb = { path, title -> nav.navigate("web?path=${Uri.encode(path)}&title=${Uri.encode(title)}") },
             )
         }
         composable(DOCS, idArg + listOf(navArgument("f2") { type = NavType.BoolType; defaultValue = false })) { DocumentsScreen(onBack = { nav.popBackStack() }) }

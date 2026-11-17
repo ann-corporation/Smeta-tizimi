@@ -69,6 +69,8 @@ sealed interface CommandOutcome {
     /** The endpoint is not reachable / not enabled for this device (404/503, voice not configured). */
     data object Unavailable : CommandOutcome
     data class Failed(val code: String?) : CommandOutcome
+    /** The server understood part of it and asks ONE short question (holat "savol") with answer buttons; the answer re-sends the same text with `tanlov`. */
+    data class Question(val question: AskQuestion) : CommandOutcome
 }
 
 sealed interface ConfirmOutcome {
@@ -84,6 +86,8 @@ interface OmborCommandApi {
     suspend fun audio(companyId: Long, skladId: Long, audio: RecordedAudio, lang: String): CommandOutcome
     /** The user's edited card: the server re-validates it and answers with a fresh preview + token. */
     suspend fun edited(companyId: Long, skladId: Long, kind: CommandKind, name: String, unit: String, qty: Double, party: String, note: String, objectName: String?, price: Double? = null, priceMode: String? = null): CommandOutcome
+    /** The tapped button of a [CommandOutcome.Question]: the same [text] again plus the choice. */
+    suspend fun answer(companyId: Long, skladId: Long, text: String, lang: String, choice: AskOption): CommandOutcome
     suspend fun confirm(companyId: Long, skladId: Long, token: String): ConfirmOutcome
     /** Names entered before in this warehouse (most recent / most frequent first). Null = could not load (autocomplete just stays empty). */
     suspend fun suggest(companyId: Long, skladId: Long, query: String): List<NameSuggestion>?
@@ -204,6 +208,7 @@ fun parseCommandReply(body: JsonElement?): CommandOutcome {
             return CommandOutcome.Preview(CommandPreview(CommandKind.BALANCE, root["buyruq"].obj()?.get("nomi").str().orEmpty().trim(), "", null, null, "", "", reportText(h), heard))
         }
         "qoldiq_yetmaydi" -> return CommandOutcome.LowStock
+        "savol" -> return parseAskQuestion(root)?.let { CommandOutcome.Question(it) } ?: CommandOutcome.NotUnderstood
         else -> return CommandOutcome.NotUnderstood
     }
 }
@@ -229,6 +234,8 @@ class BffOmborCommandApi(private val api: BffApi) : OmborCommandApi {
     override suspend fun audio(companyId: Long, skladId: Long, audio: RecordedAudio, lang: String) = send(audioCommandBody(companyId, skladId, audio, lang))
     override suspend fun edited(companyId: Long, skladId: Long, kind: CommandKind, name: String, unit: String, qty: Double, party: String, note: String, objectName: String?, price: Double?, priceMode: String?) =
         send(editedCommandBody(companyId, skladId, kind, name, unit, qty, party, note, objectName, price, priceMode))
+
+    override suspend fun answer(companyId: Long, skladId: Long, text: String, lang: String, choice: AskOption) = send(askAnswerBody(companyId, skladId, lang, text, choice))
 
     private suspend fun send(body: JsonObject): CommandOutcome {
         val r = api.bff(COMMAND_PATH, "POST", body)

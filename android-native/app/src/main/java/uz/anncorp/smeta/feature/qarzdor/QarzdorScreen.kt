@@ -126,12 +126,11 @@ private fun filterLabel(f: DebtFilter): String = stringResource(
 /** Debtors drill-down: the customers' debt per contract, biggest first, with the object panel (server package) of every object of the contract. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QarzdorScreen(onBack: () -> Unit, onOpenObject: (Long) -> Unit, onOpenWeb: (String, String) -> Unit, vm: QarzdorViewModel = hiltViewModel()) {
+fun QarzdorScreen(onBack: () -> Unit, onOpenObject: (Long) -> Unit, vm: QarzdorViewModel = hiltViewModel()) {
     val ui by vm.state.collectAsStateWithLifecycle()
     var filter by rememberSaveable { mutableStateOf(DebtFilter.OWED) }
     var query by rememberSaveable { mutableStateOf("") }
     var openId by rememberSaveable { mutableStateOf<Long?>(null) }
-    val webTitle = stringResource(R.string.p8_dq_payables)
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
         WorkTopBar(stringResource(R.string.p8_dq_title), onBack)
         val all = ui.lines
@@ -151,7 +150,6 @@ fun QarzdorScreen(onBack: () -> Unit, onOpenObject: (Long) -> Unit, onOpenWeb: (
                         item { OutlinedTextField(query, { query = it }, label = { Text(stringResource(R.string.p8_dq_search)) }, singleLine = true, modifier = Modifier.fillMaxWidth()) }
                         if (shown.isEmpty()) item { Text(stringResource(if (all.isEmpty()) R.string.p8_dq_empty else R.string.p8_reg_no_match), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                         items(shown, key = { it.contractId }) { l -> DebtCard(l) { openId = l.contractId } }
-                        item { OutlinedButton(onClick = { onOpenWeb("/admin/qarzdorlik", webTitle) }, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.p8_dq_payables)) } }
                     }
                 }
             }
