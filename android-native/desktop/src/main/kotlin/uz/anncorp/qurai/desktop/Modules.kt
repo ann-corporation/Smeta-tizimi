@@ -70,7 +70,7 @@ private fun NeedObject(c: Ctx, content: @Composable (Obj) -> Unit) {
 }
 
 @Composable
-private fun Page(title: String, sub: String? = null, content: @Composable () -> Unit) {
+private fun Page(title: String, sub: String? = null, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) { Title(title, sub); content() }
 }
 
@@ -110,7 +110,7 @@ fun ObjectsScreen(c: Ctx, onOpen: (Obj) -> Unit) {
                 Col("Smeta (QQS bilan)", 170.dp, true, { m[it.id]?.smeta?.qqsBilan }) { money(m[it.id]?.smeta?.qqsBilan) },
                 Col("Fakt %", 80.dp, true, { m[it.id]?.factPct }) { formatPercent(m[it.id]?.factPct) },
                 Col("F-2 %", 80.dp, true, { m[it.id]?.f2Pct }) { formatPercent(m[it.id]?.f2Pct) },
-            ), key = { it.id }, onClick = onOpen, selected = { it.id == c.obj?.id },
+            ), modifier = Modifier.weight(1f), key = { it.id }, onClick = onOpen, selected = { it.id == c.obj?.id },
         )
     }
 }
@@ -138,7 +138,7 @@ fun SmetaScreen(c: Ctx) = NeedObject(c) { o ->
         Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant).padding(vertical = 6.dp)) {
             HeadCell("Kod / nom", 560.dp); HeadCell("Birlik", 70.dp); HeadCell("Hajm", 100.dp, true); HeadCell("Narx", 110.dp, true); HeadCell("Smeta summa", 150.dp, true); HeadCell("Fakt", 140.dp, true); HeadCell("F-2", 140.dp, true)
         }
-        LazyColumn(Modifier.fillMaxSize()) {
+        LazyColumn(Modifier.weight(1f)) {
             items(vis, key = { it.id }) { x ->
                 val sum = if (x.isRz) x.roll else x.summa
                 Row(Modifier.fillMaxWidth().clickable(enabled = x.hasChildren) { expanded = if (x.id in expanded) expanded - x.id else expanded + x.id }.padding(vertical = 4.dp)) {
@@ -344,7 +344,7 @@ fun NakopScreen(c: Ctx) = NeedObject(c) { o ->
         Hint("Yuklab olinganda tokenlar yechilishi mumkin; qayta yuklash bepul. Tasdiqlangan F-2 oylari: ${acts.valueOrNull().orEmpty().count { it.state == F2Status.APPROVED }} ta")
         msg?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         if (own.isEmpty()) Hint("Bu obyekt uchun nakopitelniy / slichitelniy hozircha yo'q (tasdiqlangan F-2 kerak)")
-        LazyColumn(Modifier.fillMaxSize()) {
+        LazyColumn(Modifier.weight(1f)) {
             items(own, key = { it.key }) { g ->
                 GenRow(g, busy == g.key) { fmt ->
                     scope.launch {
@@ -393,7 +393,7 @@ fun NarxScreen(c: Ctx) {
                 Col("Natija (max)", 130.dp, true, { it.natija }) { money(it.natija) },
                 Col("Manba", 100.dp, sort = { it.manba }) { it.manba ?: "" },
                 Col("Xavf", 60.dp, sort = { it.xavf }) { if (it.xavf) "farq>5%" else "" },
-            ),
+            ), modifier = Modifier.weight(1f),
         )
     }
 }
@@ -433,7 +433,7 @@ fun MoneyScreen(c: Ctx) {
                     Col("Qarz", 150.dp, true, { m[it.id]?.debt }) { money(m[it.id]?.debt) },
                     Col("Fakt %", 80.dp, true, { m[it.id]?.factPct }) { formatPercent(m[it.id]?.factPct) },
                     Col("F-2 %", 80.dp, true, { m[it.id]?.f2Pct }) { formatPercent(m[it.id]?.f2Pct) },
-                ), key = { it.id },
+                ), modifier = Modifier.weight(1f), key = { it.id },
             )
         } else {
             if (debts == null) { Loading(); return@Page }
@@ -450,7 +450,7 @@ fun MoneyScreen(c: Ctx) {
                     Col("To'langan", 150.dp, true, { it.tolangan }) { money(it.tolangan) },
                     Col("Qarz", 150.dp, true, { it.qarz }) { money(it.qarz) },
                     Col("Oxirgi to'lov", 110.dp, sort = { it.oxirgiTolov }) { it.oxirgiTolov?.take(10) ?: "" },
-                ),
+                ), modifier = Modifier.weight(1f),
             )
         }
     }
@@ -496,7 +496,7 @@ fun DocsScreen(c: Ctx) = NeedObject(c) { o ->
                     Col("Rol", 110.dp) { it.rol ?: "" },
                     Col("Muddat", 120.dp, sort = { it.muddat }) { it.muddat?.take(10) ?: "" },
                     Col("Kechikkan", 90.dp) { if (it.kechikkan) "ha" else "" },
-                ), key = { it.id },
+                ), modifier = Modifier.weight(1f), key = { it.id },
             )
             Hint("Qaror (tasdiqlash / rad etish) hozircha Android ilovada yoki saytda; bu yerda faqat ko'rish.")
         }
@@ -524,7 +524,7 @@ fun NotifScreen(c: Ctx, onRead: () -> Unit) {
                 Col("", 30.dp) { if (it.oqildi) "" else "●" },
                 Col("Mavzu", 420.dp, sort = { it.mavzu }) { notifKind(it.mavzu).label() },
                 Col("Vaqt", 170.dp, sort = { it.yaratildi }) { it.yaratildi?.let { s -> formatIsoStamp(s) } ?: "" },
-            ), key = { it.id },
+            ), modifier = Modifier.weight(1f), key = { it.id },
         )
     }
 }
