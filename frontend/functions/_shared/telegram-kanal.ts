@@ -10,10 +10,11 @@
  *    (fail closed). Token hech qachon javob/logga chiqmaydi (tgApi buni ta'minlaydi).
  *  • Rasm — faqat o'z saytimiz originidan (https).
  */
+import { type MetaEnv, type Sahifa, type TarmoqNatija, fbNashr, igNashr, igReelsYakunla, metaBormi, sahifaOl } from './meta-graph';
 import { r2Yoz } from './r2-saqlash';
 import { type TgEnv, type TgTil, saytUrl, tgApi, tgRpc, tgT, xabarYubor } from './telegram';
 
-export type KanalEnv = TgEnv & {
+export type KanalEnv = TgEnv & MetaEnv & {
   TG_KANAL?: string; TG_GURUH?: string;
   R2_CANONICAL?: { put(k: string, v: string): Promise<unknown>; get(k: string): Promise<{ json(): Promise<unknown> } | null> };
 };
@@ -26,9 +27,13 @@ export const MAX_ISHLATISH_MS = 7 * 24 * 3600 * 1000;
 
 export type Qoralama = {
   id: string; tur: 'post' | 'ochir'; egasi: number; chat: ChatAlias; chat_id: string;
-  matn?: string; rasm?: string | null; xabar_id?: number;
-  holat: 'kutilmoqda' | 'tahrir' | 'bajarilmoqda' | 'chiqarildi' | 'bekor' | 'xato'; yaratildi: string; natija_xabar_id?: number;
+  matn?: string; rasm?: string | null; video?: string | null; xabar_id?: number;
+  /** Ijtimoiy tarmoqlar (eski qoralamalarda yo'q = faqat telegram); natijalar — har tarmoq uchun (token/xom xatosiz). */
+  tarmoqlar?: Tarmoq[]; natijalar?: Partial<Record<Tarmoq, TarmoqNatija>>;
+  holat: 'kutilmoqda' | 'tahrir' | 'bajarilmoqda' | 'kutish' | 'chiqarildi' | 'bekor' | 'xato'; yaratildi: string; natija_xabar_id?: number;
 };
+export const TARMOQLAR = ['telegram', 'facebook', 'instagram'] as const;
+export type Tarmoq = typeof TARMOQLAR[number];
 
 /* ───────── sozlangan chatlar ───────── */
 export function chatTanla(env: KanalEnv, nom: unknown): { alias: ChatAlias; id: string } | null {
@@ -69,6 +74,12 @@ export function rasmYaroqli(env: KanalEnv, url: unknown): string | null {
     const u = new URL(String(url));
     return u.protocol === 'https:' && u.host === new URL(saytUrl(env)).host ? u.toString() : null;
   } catch { return null; }
+}
+
+/** Video: faqat o'z originimiz (https) va .mp4 (Instagram Reels / Facebook video / Telegram sendVideo shu URL ni o'zlari yuklab oladi). */
+export function videoYaroqli(env: KanalEnv, url: unknown): string | null {
+  const u = rasmYaroqli(env, url);
+  return u && /\.mp4$/i.test(new URL(u).pathname) ? u : null;
 }
 
 /* ───────── holat ───────── */
@@ -156,23 +167,40 @@ const tugmalar = (q: Qoralama, til: TgTil) => ({ inline_keyboard: q.tur === 'pos
   ? [[{ text: tgT('✅ Chiqarish', til), callback_data: `kp:y:${q.id}` }, { text: tgT('✏️ Tahrirlash', til), callback_data: `kp:e:${q.id}` }, { text: tgT('❌ Bekor', til), callback_data: `kp:n:${q.id}` }]]
   : [[{ text: tgT('🗑 O‘chirish', til), callback_data: `kp:y:${q.id}` }, { text: tgT('❌ Bekor', til), callback_data: `kp:n:${q.id}` }]] });
 const korinish = (q: Qoralama, til: TgTil) => q.tur === 'post'
-  ? [tgT('Post qoralamasi — {chat}', til, { chat: q.chat_id }), q.rasm ? tgT('Rasm: {url}', til, { url: q.rasm }) : '', '', q.matn ?? '', '', tgT('Faqat «Chiqarish» bosilganda e’lon qilinadi.', til), BELGI + q.id].filter((x, i) => x !== '' || i > 1).join('\n')
+  ? [tgT('Post qoralamasi — {chat}', til, { chat: q.chat_id }), tgT('Tarmoqlar: {list}', til, { list: (q.tarmoqlar ?? ['telegram']).join(', ') }),
+    q.rasm ? tgT('Rasm: {url}', til, { url: q.rasm }) : '', q.video ? tgT('Video: {url}', til, { url: q.video }) : '', '', q.matn ?? '', '', tgT('Faqat «Chiqarish» bosilganda e’lon qilinadi.', til), BELGI + q.id].filter((x, i) => x !== '' || i === 4 || i > 5).join('\n')
   : [tgT('Postni o‘chirish — {chat}, xabar № {id}', til, { chat: q.chat_id, id: q.xabar_id ?? 0 }), '', tgT('Faqat «O‘chirish» bosilganda o‘chiriladi.', til), BELGI + q.id].join('\n');
 
 async function qoralamaYubor(env: KanalEnv, q: Qoralama, e: EgasiChat) {
   return xabarYubor(env, e.chat_id, korinish(q, e.til), { reply_markup: tugmalar(q, e.til) });
 }
 
-export async function postTaklif(env: KanalEnv, egasi: number, c: { alias: ChatAlias; id: string }, b: { matn?: unknown; rasm?: unknown }) {
+/**
+ * tarmoqlar berilmasa: media bor → hammasi (telegram, facebook, instagram); media yo'q → instagram'siz (u media talab qiladi);
+ * META_TOKEN sozlanmagan bo'lsa — faqat telegram. Aniq so'ralgan tarmoq mumkin bo'lmasa — xato (jimgina tashlanmaydi).
+ */
+export async function postTaklif(env: KanalEnv, egasi: number, c: { alias: ChatAlias; id: string }, b: { matn?: unknown; rasm?: unknown; video?: unknown; tarmoqlar?: unknown }) {
   const matn = typeof b.matn === 'string' ? b.matn.trim() : '';
   const rasm = rasmYaroqli(env, b.rasm);
-  if (!matn || matn.length > (rasm ? 1000 : MAX_POST)) return { ok: false as const, status: 400, code: 'MATN_NOTOGRI' };
+  const video = videoYaroqli(env, b.video);
+  if (!matn || matn.length > (rasm || video ? 1000 : MAX_POST)) return { ok: false as const, status: 400, code: 'MATN_NOTOGRI' };
   if (b.rasm != null && b.rasm !== '' && !rasm) return { ok: false as const, status: 400, code: 'RASM_MANZIL_NOTOGRI' };
+  if (b.video != null && b.video !== '' && !video) return { ok: false as const, status: 400, code: 'VIDEO_MANZIL_NOTOGRI' };
+  if (rasm && video) return { ok: false as const, status: 400, code: 'MEDIA_IKKALASI' };
+  let tarmoqlar: Tarmoq[];
+  if (b.tarmoqlar == null) tarmoqlar = ['telegram', ...(metaBormi(env) ? (rasm || video ? ['facebook', 'instagram'] : ['facebook']) : [])] as Tarmoq[];
+  else {
+    const t = Array.isArray(b.tarmoqlar) ? [...new Set(b.tarmoqlar)] : [];
+    if (!t.length || !t.every((x): x is Tarmoq => (TARMOQLAR as readonly unknown[]).includes(x))) return { ok: false as const, status: 400, code: 'TARMOQ_NOTOGRI' };
+    tarmoqlar = t;
+    if (t.includes('instagram') && !rasm && !video) return { ok: false as const, status: 400, code: 'MEDIA_KERAK' };
+    if ((t.includes('instagram') || t.includes('facebook')) && !metaBormi(env)) return { ok: false as const, status: 503, code: 'META_SOZLANMAGAN' };
+  }
   const e = await egasiChat(env, egasi);
   if (!e) return { ok: false as const, status: 409, code: 'EGASI_TELEGRAM_ULANMAGAN' };
-  const q: Qoralama = { id: yangiId(), tur: 'post', egasi, chat: c.alias, chat_id: c.id, matn, rasm, holat: 'kutilmoqda', yaratildi: new Date().toISOString() };
+  const q: Qoralama = { id: yangiId(), tur: 'post', egasi, chat: c.alias, chat_id: c.id, matn, rasm, video, tarmoqlar, holat: 'kutilmoqda', yaratildi: new Date().toISOString() };
   if (!(await qoralamaSaqla(env, q))) return { ok: false as const, status: 503, code: 'SAQLANMADI' };
-  if (!(await auditYoz(env, 'post_taklif', egasi, { id: q.id, chat: c.alias, uzunlik: matn.length, rasm: !!rasm }))) return { ok: false as const, status: 503, code: 'AUDIT_YOZILMADI' };
+  if (!(await auditYoz(env, 'post_taklif', egasi, { id: q.id, chat: c.alias, uzunlik: matn.length, rasm: !!rasm, video: !!video, tarmoqlar }))) return { ok: false as const, status: 503, code: 'AUDIT_YOZILMADI' };
   if (!(await qoralamaYubor(env, q, e))) return { ok: false as const, status: 502, code: 'TELEGRAM_RAD' };
   return { ok: true as const, qoralama_id: q.id };
 }
@@ -188,7 +216,7 @@ export async function postOchirTaklif(env: KanalEnv, egasi: number, c: { alias: 
 }
 
 /* ───────── webhook: callback (kp:y|e|n:<id>) va tahrir javobi ───────── */
-export const kanalCallbackmi = (d: unknown) => typeof d === 'string' && /^kp:[yen]:[a-f0-9]{16}$/.test(d);
+export const kanalCallbackmi = (d: unknown) => typeof d === 'string' && /^kp:[yenr]:[a-f0-9]{16}$/.test(d);
 
 export async function kanalCallback(env: KanalEnv, uid: number, til: TgTil, data: string, chatId: number): Promise<{ toast: string; amal: string; tugmalarniOlibTashla?: boolean }> {
   const [, ish, id] = data.split(':');
@@ -196,7 +224,7 @@ export async function kanalCallback(env: KanalEnv, uid: number, til: TgTil, data
   const q = await qoralamaOl(env, id);
   if (!q || q.egasi !== uid) return yoq('Qoralama topilmadi', 'kp_yoq');
   if (!(await superadminUid(env, uid))) return yoq('Faqat egasi uchun', 'kp_ruxsatsiz');
-  if (q.holat !== 'kutilmoqda' && q.holat !== 'tahrir') return { ...yoq('Bu qoralama allaqachon yopilgan', 'kp_yopiq'), tugmalarniOlibTashla: true };
+  if (q.holat !== 'kutilmoqda' && q.holat !== 'tahrir' && !(ish === 'r' && q.holat === 'kutish')) return { ...yoq('Bu qoralama allaqachon yopilgan', 'kp_yopiq'), tugmalarniOlibTashla: true };
   if (Date.now() - Date.parse(q.yaratildi) > MAX_ISHLATISH_MS) return { ...yoq('Qoralama eskirgan', 'kp_eskirgan'), tugmalarniOlibTashla: true };
   const c = chatTanla(env, q.chat_id);
   if (!c) return yoq('Kanal sozlanmagan', 'kp_chat_yoq');
@@ -205,33 +233,97 @@ export async function kanalCallback(env: KanalEnv, uid: number, til: TgTil, data
     q.holat = 'bekor'; await qoralamaSaqla(env, q); await auditYoz(env, 'bekor', uid, { id: q.id, tur: q.tur, chat: q.chat });
     return { ...yoq('Bekor qilindi', 'kp_bekor'), tugmalarniOlibTashla: true };
   }
+  if (ish === 'r') return igYakunla(env, q, uid, til, chatId);
   if (ish === 'e') {
     if (q.tur !== 'post') return yoq('Bu qoralamani tahrirlab bo‘lmaydi', 'kp_tahrir_yoq');
     q.holat = 'tahrir'; await qoralamaSaqla(env, q);
     await xabarYubor(env, chatId, tgT('Yangi matnni shu xabarga javob (reply) qilib yuboring.', til) + '\n' + BELGI + q.id, { reply_markup: { force_reply: true, selective: true } });
     return yoq('Yangi matnni yuboring', 'kp_tahrir');
   }
-  // 'y' — FAQAT shu yerda yoziladi. Avval holat «bajarilmoqda» (takror bosish/qayta yuborishdan himoya), so'ng audit, so'ng Telegram.
+  // 'y' — FAQAT shu yerda yoziladi. Avval holat «bajarilmoqda» (takror bosish/qayta yuborishdan himoya), so'ng audit, so'ng tarmoqlar.
+  const tarm = q.tarmoqlar ?? ['telegram'];
   q.holat = 'bajarilmoqda';
-  if (!(await qoralamaSaqla(env, q)) || !(await auditYoz(env, q.tur === 'post' ? 'chiqarish_urinish' : 'ochirish_urinish', uid, { id: q.id, chat: q.chat, xabar_id: q.xabar_id ?? null, uzunlik: q.matn?.length ?? null }))) {
+  if (!(await qoralamaSaqla(env, q)) || !(await auditYoz(env, q.tur === 'post' ? 'chiqarish_urinish' : 'ochirish_urinish', uid, { id: q.id, chat: q.chat, xabar_id: q.xabar_id ?? null, uzunlik: q.matn?.length ?? null, tarmoqlar: q.tur === 'post' ? tarm : null }))) {
     q.holat = 'kutilmoqda'; await qoralamaSaqla(env, q); return yoq('Audit yozilmadi — bajarilmadi', 'kp_audit_xato');
   }
-  let r: { ok: boolean; result?: { message_id?: number }; description?: string };
-  if (q.tur === 'post') {
-    r = q.rasm
-      ? await tgApi<{ message_id?: number }>(env, 'sendPhoto', { chat_id: c.id, photo: q.rasm, caption: q.matn })
-      : await tgApi<{ message_id?: number }>(env, 'sendMessage', { chat_id: c.id, text: q.matn, disable_web_page_preview: false });
-  } else {
-    r = await tgApi(env, 'deleteMessage', { chat_id: c.id, message_id: q.xabar_id });
-  }
+  if (q.tur === 'post') return postChiqar(env, q, c, uid, til, chatId, tarm);
+  const r = await tgApi(env, 'deleteMessage', { chat_id: c.id, message_id: q.xabar_id });
   if (!r.ok) {
     q.holat = 'xato'; await qoralamaSaqla(env, q); await auditYoz(env, 'xato', uid, { id: q.id, tur: q.tur, chat: q.chat, sabab: String(r.description ?? '').slice(0, 120) });
     return { ...yoq('Telegram rad etdi — huquqni tekshiring', 'kp_telegram_rad'), tugmalarniOlibTashla: true };
   }
-  q.holat = 'chiqarildi'; q.natija_xabar_id = q.tur === 'post' ? (r.result as { message_id?: number } | undefined)?.message_id : q.xabar_id;
+  q.holat = 'chiqarildi'; q.natija_xabar_id = q.xabar_id;
   await qoralamaSaqla(env, q);
-  await auditYoz(env, q.tur === 'post' ? 'chiqarildi' : 'ochirildi', uid, { id: q.id, chat: q.chat, xabar_id: q.natija_xabar_id ?? null });
-  return { ...yoq(q.tur === 'post' ? 'Chiqarildi' : 'O‘chirildi', q.tur === 'post' ? 'kp_chiqarildi' : 'kp_ochirildi'), tugmalarniOlibTashla: true };
+  await auditYoz(env, 'ochirildi', uid, { id: q.id, chat: q.chat, xabar_id: q.natija_xabar_id ?? null });
+  return { ...yoq('O‘chirildi', 'kp_ochirildi'), tugmalarniOlibTashla: true };
+}
+
+/* ───────── ko'p tarmoqqa chiqarish (egasi «Chiqarish» bosgach) ───────── */
+const NOM: Record<Tarmoq, string> = { telegram: 'Telegram', facebook: 'Facebook', instagram: 'Instagram' };
+const tgHavola = (chatId: string, id: number | undefined) => (chatId.startsWith('@') && id ? `https://t.me/${chatId.slice(1)}/${id}` : undefined);
+
+async function tgNashr(env: KanalEnv, q: Qoralama, c: { id: string }): Promise<TarmoqNatija> {
+  const r = q.video ? await tgApi<{ message_id?: number }>(env, 'sendVideo', { chat_id: c.id, video: q.video, caption: q.matn })
+    : q.rasm ? await tgApi<{ message_id?: number }>(env, 'sendPhoto', { chat_id: c.id, photo: q.rasm, caption: q.matn })
+      : await tgApi<{ message_id?: number }>(env, 'sendMessage', { chat_id: c.id, text: q.matn, disable_web_page_preview: false });
+  const id = r.result?.message_id;
+  return r.ok ? { ok: true, id: id == null ? undefined : String(id), havola: tgHavola(c.id, id) } : { ok: false, kod: 'TG_RAD' };
+}
+
+/** Natijalar xabari egasining chatiga: tarmoq bo'yicha ✅ havola / ❌ kod / ⏳ kutilmoqda (+ Instagram uchun «Tekshirish» tugmasi). */
+async function natijaXabari(env: KanalEnv, q: Qoralama, til: TgTil, chatId: number) {
+  const satr = (Object.keys(q.natijalar ?? {}) as Tarmoq[]).map((t) => {
+    const n = q.natijalar![t]!;
+    return n.ok ? tgT('{tarmoq}: ✅ {havola}', til, { tarmoq: NOM[t], havola: n.havola ?? n.id ?? '' })
+      : n.holat === 'kutilmoqda' ? tgT('{tarmoq}: ⏳ video tayyorlanmoqda', til, { tarmoq: NOM[t] })
+        : tgT('{tarmoq}: ❌ {kod}', til, { tarmoq: NOM[t], kod: n.kod ?? '?' });
+  });
+  const kut = q.holat === 'kutish';
+  await xabarYubor(env, chatId, satr.join('\n'), kut ? { reply_markup: { inline_keyboard: [[{ text: tgT('🔄 Instagram holatini tekshirish', til), callback_data: `kp:r:${q.id}` }]] } } : {});
+}
+
+async function postChiqar(env: KanalEnv, q: Qoralama, c: { alias: ChatAlias; id: string }, uid: number, til: TgTil, chatId: number, tarm: Tarmoq[]) {
+  const yoq = (toast: string, amal: string, tugma = true) => ({ toast: tgT(toast, til), amal, tugmalarniOlibTashla: tugma });
+  const natijalar: Partial<Record<Tarmoq, TarmoqNatija>> = {};
+  let sahifa: Sahifa | null = null; let sahifaKod = '';
+  if (tarm.includes('facebook') || tarm.includes('instagram')) { const s = await sahifaOl(env); if (s.ok) sahifa = s.data; else sahifaKod = s.kod; }
+  const m = { matn: q.matn ?? '', rasm: q.rasm, video: q.video };
+  for (const t of tarm) {
+    natijalar[t] = t === 'telegram' ? await tgNashr(env, q, c) : !sahifa ? { ok: false, kod: sahifaKod || 'SAHIFA_TOPILMADI' } : t === 'facebook' ? await fbNashr(env, sahifa, m) : await igNashr(env, sahifa, m);
+    const n = natijalar[t]!;
+    await auditYoz(env, 'ijtimoiy_' + t, uid, { id: q.id, ok: n.ok, kod: n.kod ?? null, post_id: n.id ?? null, kutilmoqda: n.holat === 'kutilmoqda' });
+  }
+  q.natijalar = natijalar;
+  const kutish = Object.values(natijalar).some((n) => n?.holat === 'kutilmoqda');
+  const okSoni = Object.values(natijalar).filter((n) => n?.ok).length;
+  q.holat = kutish ? 'kutish' : okSoni ? 'chiqarildi' : 'xato';
+  q.natija_xabar_id = Number(natijalar.telegram?.ok ? natijalar.telegram.id : undefined) || undefined;
+  await qoralamaSaqla(env, q);
+  if (okSoni) await auditYoz(env, 'chiqarildi', uid, { id: q.id, chat: q.chat, xabar_id: q.natija_xabar_id ?? null, tarmoqlar: tarm.filter((t) => natijalar[t]?.ok) });
+  else await auditYoz(env, 'xato', uid, { id: q.id, tur: q.tur, chat: q.chat, sabab: tarm.map((t) => `${t}:${natijalar[t]?.kod ?? ''}`).join(',').slice(0, 120) });
+  const faqatTg = tarm.length === 1 && tarm[0] === 'telegram';
+  if (!faqatTg) await natijaXabari(env, q, til, chatId);
+  if (faqatTg) return okSoni ? yoq('Chiqarildi', 'kp_chiqarildi') : yoq('Telegram rad etdi — huquqni tekshiring', 'kp_telegram_rad');
+  return okSoni === tarm.length ? yoq('Chiqarildi', 'kp_chiqarildi')
+    : okSoni || kutish ? yoq('Qisman chiqarildi — natijani ko‘ring', 'kp_qisman')
+      : yoq('Hech biri chiqmadi — natijani ko‘ring', 'kp_rad');
+}
+
+/** `kp:r:<id>` — Instagram Reels konteyneri tayyor bo'lganda chiqaradi (Worker ichida kutish chegaralangan; qolgani shu tugma orqali). */
+async function igYakunla(env: KanalEnv, q: Qoralama, uid: number, til: TgTil, chatId: number) {
+  const yoq = (toast: string, amal: string, tugma = false) => ({ toast: tgT(toast, til), amal, tugmalarniOlibTashla: tugma });
+  const n0 = q.natijalar?.instagram;
+  if (q.holat !== 'kutish' || !n0?.creation_id) return yoq('Bu qoralama allaqachon yopilgan', 'kp_yopiq', true);
+  q.holat = 'bajarilmoqda'; await qoralamaSaqla(env, q);
+  const s = await sahifaOl(env);
+  const n = s.ok ? await igReelsYakunla(env, s.data, n0.creation_id, 2) : { ok: false, kod: s.kod } as TarmoqNatija;
+  q.natijalar!.instagram = n;
+  q.holat = n.holat === 'kutilmoqda' ? 'kutish' : Object.values(q.natijalar!).some((x) => x?.ok) ? 'chiqarildi' : 'xato';
+  await qoralamaSaqla(env, q);
+  await auditYoz(env, 'ijtimoiy_instagram_yakun', uid, { id: q.id, ok: n.ok, kod: n.kod ?? null, post_id: n.id ?? null });
+  if (n.holat === 'kutilmoqda') return yoq('Instagram hali tayyor emas — keyinroq qayta bosing', 'kp_ig_kutish');
+  await natijaXabari(env, q, til, chatId);
+  return yoq(n.ok ? 'Chiqarildi' : 'Hech biri chiqmadi — natijani ko‘ring', n.ok ? 'kp_chiqarildi' : 'kp_rad', true);
 }
 
 /** Egasi «Tahrirlash» xabariga javob (reply) berdi: matn yangilanadi, qoralama qayta yuboriladi. Chiqarilmaydi. */
@@ -243,7 +335,7 @@ export async function kanalTahrirJavobi(env: KanalEnv, uid: number, til: TgTil, 
   const q = await qoralamaOl(env, id);
   if (!q || q.egasi !== uid || q.tur !== 'post' || q.holat !== 'tahrir' || !(await superadminUid(env, uid))) { await xabarYubor(env, chatId, tgT('Qoralama topilmadi', til)); return 'kp_tahrir_yoq'; }
   const m = yangiMatn.trim();
-  if (!m || m.length > (q.rasm ? 1000 : MAX_POST)) { await xabarYubor(env, chatId, tgT('Matn bo‘sh yoki juda uzun', til)); return 'kp_tahrir_notogri'; }
+  if (!m || m.length > (q.rasm || q.video ? 1000 : MAX_POST)) { await xabarYubor(env, chatId, tgT('Matn bo‘sh yoki juda uzun', til)); return 'kp_tahrir_notogri'; }
   q.matn = m; q.holat = 'kutilmoqda';
   await qoralamaSaqla(env, q); await auditYoz(env, 'tahrir', uid, { id: q.id, uzunlik: m.length });
   await qoralamaYubor(env, q, { chat_id: chatId, til });
