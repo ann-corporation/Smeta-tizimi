@@ -80,8 +80,7 @@ fun CatalogItem.open(): CatalogOpen {
     return if (target != null) CatalogOpen.Native(target) else CatalogOpen.Web(path)
 }
 
-/** Lower-case, no apostrophe variants, so "o'zbek", "oʻzbek" and "ozbek" all match. */
-internal fun normalizeSearch(s: String): String = s.lowercase().filter { it != '\'' && it != '‘' && it != '’' && it != 'ʻ' && it != 'ʼ' && it != '`' }
+// normalizeSearch now lives in :shared (core/data/Search.kt).
 
 /** Every query word must appear in the item's titles (all languages), band or group name. Empty query = everything. */
 fun Catalog.search(query: String): List<CatalogItem> {

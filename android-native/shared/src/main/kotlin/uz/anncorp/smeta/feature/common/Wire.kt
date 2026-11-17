@@ -13,6 +13,7 @@ import uz.anncorp.smeta.core.data.ApiResult
 import uz.anncorp.smeta.core.data.formatMoney
 import uz.anncorp.smeta.core.data.formatVolume
 import uz.anncorp.smeta.core.data.ObjectMoney
+import uz.anncorp.smeta.core.data.PAKET_FORMAT
 import uz.anncorp.smeta.core.data.arr
 import uz.anncorp.smeta.core.data.num
 import uz.anncorp.smeta.core.data.obj
@@ -23,7 +24,11 @@ import uz.anncorp.smeta.core.data.parseRahbarPanel
 import uz.anncorp.smeta.core.data.parseSb
 import uz.anncorp.smeta.core.data.rahbarPanelRequest
 import uz.anncorp.smeta.core.data.str
+import uz.anncorp.smeta.feature.ombor.CommandKind
 import uz.anncorp.smeta.feature.ombor.Warehouse
+import uz.anncorp.smeta.feature.ombor.confirmBody
+import uz.anncorp.smeta.feature.ombor.editedCommandBody
+import uz.anncorp.smeta.feature.ombor.textCommandBody
 import uz.anncorp.smeta.feature.ombor.parseWarehouses
 import uz.anncorp.smeta.feature.ombor.warehousesRequest
 
@@ -85,24 +90,11 @@ fun parseFaktJournal(body: JsonElement?): List<FaktDoc>? = parseSb(body)?.rows?.
     FaktDoc(r.l("id") ?: return@mapNotNull null, r.s("raqam"), r.s("oy"), r.s("lifecycle_status"), r.n("hujjat_jami"))
 }
 
-/** One line of a fact entry: row id and the volume done (a minus is a real value, "normaga keltirish"). */
-data class FaktLine(val qatorId: Long, val hajm: Double)
-
-fun faktWriteBody(companyId: Long, obyektId: Long, sana: String, lines: List<FaktLine>, operationId: String): JsonObject = buildJsonObject {
-    put("amal", "fakt_yoz_v2"); put("kompaniya_id", companyId); put("obyekt_id", obyektId); put("sana", sana)
-    put("qatorlar", buildJsonArray { lines.forEach { add(buildJsonObject { put("qator_id", it.qatorId); put("hajm", it.hajm) }) } })
-    put("operation_id", operationId)
-}
-
-data class FaktOutcome(val ok: Boolean, val error: String?, val raqam: String?, val jami: Double?, val warnings: List<String>)
-
-fun parseFaktOutcome(r: ApiResult): FaktOutcome {
-    val o = r.body.obj()
-    val ok = r.ok && o?.b("ok") != false
-    val warn = mutableListOf<String>()
-    o?.get("ogohlantirish").arr()?.forEach { e -> e.obj()?.let { w -> warn += "${w.s("nom").orEmpty()}: ${w.n("bor")?.let { formatVolume(it) } ?: T_DASH} + ${w.n("qoshilmoqda")?.let { formatVolume(it) } ?: T_DASH} > ${w.n("chegara")?.let { formatVolume(it) } ?: T_DASH}" } }
-    (o?.n("narxsiz_soni") ?: o?.n("narxsiz"))?.takeIf { it > 0 }?.let { warn += "${it.toInt()} ta qator narxsiz" }
-    return FaktOutcome(ok, o?.s("error") ?: r.code, o?.s("raqam"), o?.n("jami"), warn)
+/** Human lines for the warnings of a fact write (volume over the estimate, rows without a price). */
+fun faktWarnings(r: uz.anncorp.smeta.core.data.FaktResult): List<String> {
+    val w = r.over.map { "${it.nom}: ${it.bor?.let(::formatVolume) ?: T_DASH} + ${it.qoshilmoqda?.let(::formatVolume) ?: T_DASH} > ${it.chegara?.let(::formatVolume) ?: T_DASH}" }.toMutableList()
+    if (r.unpricedCount > 0) w += "${r.unpricedCount} ta qator narxsiz"
+    return w
 }
 
 private const val T_DASH = "—"
@@ -124,7 +116,6 @@ data class Packet(val obyektId: Long, val nodes: List<SNode>) {
     val blCount: Int get() = nodes.count { it.isBl }
 }
 
-const val PAKET_FORMAT = "t2-paket/1"
 
 /** Column-oriented packet -> tree in web order (children by tartib then id, depth first). Wrong format / misaligned columns -> null (never half data). */
 fun parsePacket(body: JsonElement?): Packet? {
@@ -235,16 +226,6 @@ fun parseNarx(body: JsonElement?): List<NarxRow>? = parseSb(body)?.rows?.map { r
     NarxRow(r.s("nom").orEmpty(), r.s("birlik"), r.s("kat"), r.n("obyekt_soni")?.toInt() ?: 0, r.n("smeta_max"), r.n("smeta_min"), r.n("belgilangan_narx"), r.n("natija"), r.s("manba"), r.b("xavf") == true, r.n("qator_soni")?.toInt() ?: 0)
 }
 
-// ---------- debts ----------
-
-data class DebtRow(val raqam: String?, val nom: String?, val kontragent: String?, val shartnoma: Double?, val f3: Double?, val tolangan: Double?, val qarz: Double?, val oxirgiTolov: String?)
-
-fun debtRequest(companyId: Long): JsonObject = buildJsonObject { put("soro", "qarz_svod_v1"); put("kompaniya_id", companyId) }
-
-fun parseDebtRows(body: JsonElement?): List<DebtRow>? = rowsOf(body)?.filter { it.s("yonalish").let { y -> y == null || y == "debitor" } }?.map { o ->
-    DebtRow(o.s("raqam"), o.s("nom"), o.s("kontragent"), o.n("shartnoma_summa"), o.n("f3_sotuv"), o.n("tolangan"), o.n("qarz"), o.s("oxirgi_tolov_sana"))
-}
-
 // ---------- documents ----------
 
 data class DocRow(val id: Long, val name: String, val type: String, val mime: String, val size: Long, val updated: String, val ready: Boolean)
@@ -295,18 +276,15 @@ fun omborBody(amal: String, companyId: Long, skladId: Long, build: kotlinx.seria
     put("amal", amal); put("kompaniya_id", companyId); put("sklad_id", skladId); build()
 }
 
-fun omborText(companyId: Long, skladId: Long, text: String, tanlov: JsonObject? = null): JsonObject = omborBody("tahlil", companyId, skladId) {
-    put("til", "uzb"); put("matn", text.trim().take(500)); if (tanlov != null && tanlov.isNotEmpty()) put("tanlov", tanlov)
+fun omborText(companyId: Long, skladId: Long, text: String, tanlov: JsonObject? = null): JsonObject = buildJsonObject {
+    textCommandBody(companyId, skladId, text, "uzb").forEach { (k, v) -> put(k, v) }
+    if (tanlov != null && tanlov.isNotEmpty()) put("tanlov", tanlov)
 }
 
-fun omborEdited(companyId: Long, skladId: Long, tur: String, nomi: String, birligi: String, miqdor: Double, kontragent: String, izoh: String): JsonObject = omborBody("tahlil", companyId, skladId) {
-    put("buyruq", buildJsonObject {
-        put("amal", if (tur == "chiqim" || tur == "rasxod") "chiqim" else "prixod"); put("nomi", nomi.trim().take(500)); put("miqdor", miqdor)
-        if (birligi.isNotBlank()) put("birlik", birligi.trim().take(100)); if (kontragent.isNotBlank()) put("kontragent", kontragent.trim().take(500)); if (izoh.isNotBlank()) put("izoh", izoh.trim().take(1000))
-    })
-}
+fun omborEdited(companyId: Long, skladId: Long, tur: String, nomi: String, birligi: String, miqdor: Double, kontragent: String, izoh: String): JsonObject =
+    editedCommandBody(companyId, skladId, if (tur == "chiqim" || tur == "rasxod") CommandKind.ISSUE else CommandKind.RECEIVE, nomi, birligi, miqdor, kontragent, izoh, null)
 
-fun omborConfirm(companyId: Long, skladId: Long, token: String): JsonObject = omborBody("tasdiq", companyId, skladId) { put("token", token) }
+fun omborConfirm(companyId: Long, skladId: Long, token: String): JsonObject = confirmBody(companyId, skladId, token)
 
 private fun JsonElement?.strList(): List<String> = this.arr()?.mapNotNull { (it as? JsonPrimitive)?.content?.trim()?.takeIf { s -> s.isNotEmpty() } }.orEmpty()
 

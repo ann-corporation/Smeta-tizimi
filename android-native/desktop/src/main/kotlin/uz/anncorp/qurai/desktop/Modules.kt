@@ -37,7 +37,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import uz.anncorp.smeta.core.data.AMAL_FAKT
 import uz.anncorp.smeta.core.data.DOC_MAX_BYTES
+import uz.anncorp.smeta.core.data.FaktLine
+import uz.anncorp.smeta.core.data.faktPayload
+import uz.anncorp.smeta.core.data.parseFaktResult
 import uz.anncorp.smeta.core.data.DocGenRepository
 import uz.anncorp.smeta.core.data.F2Act
 import uz.anncorp.smeta.core.data.F2Status
@@ -218,8 +222,8 @@ private fun ActRows(c: Ctx, o: Obj, a: F2Act) {
     rows.Banner()
     val r = rows.valueOrNull().orEmpty()
     val direct = r.sumOf { it.summa ?: 0.0 }
-    Row { Kv("Qatorlar soni", r.size.toString()); Kv("Qatorlar summasi (ustamasiz, QQS siz)", money(direct)); Kv("QQS bilan (12 %)", money(uz.anncorp.smeta.core.data.withVat(direct))) }
-    Hint("Ustamali va QQS bilan butun obyekt summasi yuqorida (serverdan). Akt qatorlari summasi: faqat to'g'ridan-to'g'ri.")
+    Row { Kv("Qatorlar soni", r.size.toString()); Kv("Qatorlar summasi (ustamasiz, QQS siz)", money(direct)) }
+    Hint("Ustamali va QQS bilan summalar faqat serverdan (yuqorida, obyekt bo'yicha qabul qilingan F-2). Akt qatorlari summasi: faqat ustamasiz.")
     Box(Modifier.fillMaxWidth().height(260.dp)) {
         SortTable(
             r, listOf(
@@ -313,14 +317,14 @@ fun FaktScreen(c: Ctx) = NeedObject(c) { o ->
             confirmButton = { TextButton(onClick = {
                 confirm = false; busy = true
                 scope.launch {
-                    val r = c.sv.api.bff("/api/sb-yoz", "POST", faktWriteBody(c.place.companyId, o.id, date, draft.map { FaktLine(it.first.id, it.second) }, UUID.randomUUID().toString()))
-                    val out = parseFaktOutcome(r)
+                    val r = c.sv.api.bff("/api/sb-yoz", "POST", faktPayload(AMAL_FAKT, c.place.companyId, o.id, date, draft.map { FaktLine(it.first.id, it.second) }, UUID.randomUUID().toString()))
+                    val out = parseFaktResult(r.body)
                     msg = when {
                         r.networkError -> Tx.offlineWrite
-                        out.ok -> "Yozildi: ${out.raqam ?: ""} ${out.jami?.let { "jami " + money(it) } ?: ""} ${out.warnings.joinToString("; ")}".trim().also { draft.clear(); refresh++ }
-                        else -> "Xato: ${out.error ?: "HTTP ${r.status}"}"
+                        out?.ok == true -> "Yozildi: ${out.raqam ?: ""} ${out.jami?.let { "jami " + money(it) } ?: ""} ${faktWarnings(out).joinToString("; ")}".trim().also { draft.clear(); refresh++ }
+                        else -> "Xato: ${out?.error ?: r.code ?: "HTTP ${r.status}"}"
                     }
-                    Log.i("fakt write ok=${out.ok} status=${r.status}")
+                    Log.i("fakt write ok=${out?.ok} status=${r.status}")
                     busy = false
                 }
             }) { Text("Yozish") } },
@@ -441,17 +445,17 @@ fun MoneyScreen(c: Ctx) {
             if (debts == null) { Loading(); return@Page }
             debts.Banner()
             val rows = debts.valueOrNull().orEmpty()
-            val known = rows.mapNotNull { it.qarz }
+            val known = rows.mapNotNull { it.debt }
             Row { Kv("Qarz jami (ma'lum qatorlar)", money(if (known.isEmpty()) null else known.sum())); Kv("Shartnoma", rows.size.toString()) }
             SortTable(
                 rows, listOf(
-                    Col("Kontragent", 260.dp, sort = { it.kontragent?.lowercase() }) { it.kontragent ?: "" },
-                    Col("Shartnoma", 200.dp, sort = { it.raqam }) { listOfNotNull(it.raqam, it.nom).joinToString(" ") },
-                    Col("Summa", 150.dp, true, { it.shartnoma }) { money(it.shartnoma) },
-                    Col("F-3 sotuv", 150.dp, true, { it.f3 }) { money(it.f3) },
-                    Col("To'langan", 150.dp, true, { it.tolangan }) { money(it.tolangan) },
-                    Col("Qarz", 150.dp, true, { it.qarz }) { money(it.qarz) },
-                    Col("Oxirgi to'lov", 110.dp, sort = { it.oxirgiTolov }) { it.oxirgiTolov?.take(10) ?: "" },
+                    Col("Kontragent", 260.dp, sort = { it.counterparty?.lowercase() }) { it.counterparty ?: "" },
+                    Col("Shartnoma", 200.dp, sort = { it.number }) { listOfNotNull(it.number, it.name).joinToString(" ") },
+                    Col("Summa", 150.dp, true, { it.contractSum }) { money(it.contractSum) },
+                    Col("F-3 sotuv", 150.dp, true, { it.f3Sale }) { money(it.f3Sale) },
+                    Col("To'langan", 150.dp, true, { it.paid }) { money(it.paid) },
+                    Col("Qarz", 150.dp, true, { it.debt }) { money(it.debt) },
+                    Col("Oxirgi to'lov", 110.dp, sort = { it.lastPayment }) { it.lastPayment?.take(10) ?: "" },
                 ), modifier = Modifier.weight(1f),
             )
         }

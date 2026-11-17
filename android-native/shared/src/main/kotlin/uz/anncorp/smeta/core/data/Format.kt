@@ -89,10 +89,7 @@ fun formatPercent(p: Double?): String {
     return bd.toPlainString().replace('.', ',') + "%"
 }
 
-const val VAT_RATE = 0.12
-
-/** Net (QQS-free) amount -> amount with QQS (12 %). */
-fun withVat(net: Double?): Double? = net?.let { BigDecimal.valueOf(it).multiply(BigDecimal.valueOf(1.0 + VAT_RATE)).setScale(2, RoundingMode.HALF_UP).toDouble() }
+// No QQS / markup arithmetic on the client: ustamali and QQS bilan come ONLY from the server (_t2_summa_paket_v1).
 
 /** ISO date or timestamp from the server ("2026-11-14T08:10:00+00:00") as "14.11.2026 08:10" (date only when no time part); anything unparsable is returned unchanged. */
 fun formatIsoStamp(s: String): String {

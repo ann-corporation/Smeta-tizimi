@@ -5,8 +5,10 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import uz.anncorp.smeta.core.data.ApiResult
 import uz.anncorp.smeta.core.data.ObjectMoney
+import uz.anncorp.smeta.core.data.debtRequest
 import uz.anncorp.smeta.core.data.f2ListRequest
 import uz.anncorp.smeta.core.data.objectsRequest
+import uz.anncorp.smeta.core.data.parseDebts
 import uz.anncorp.smeta.core.data.parseF2List
 import uz.anncorp.smeta.core.data.parseRahbarPanel
 import uz.anncorp.smeta.core.data.parseSb
@@ -29,7 +31,7 @@ class Repo(private val sv: Services) {
     suspend fun actRows(aktId: Long, names: Map<Long, SNode>) = sv.read("aktqator:$aktId", { sb(f2ActRowsRequest(aktId)) }) { parseActRows(it, names) }
     suspend fun faktJournal(oid: Long) = sv.read("faktjurnal:$oid", { sb(faktJournalRequest(oid)) }, ::parseFaktJournal)
     suspend fun narx(cid: Long) = sv.read("narx:$cid", { sb(narxRequest(cid)) }, ::parseNarx)
-    suspend fun debts(cid: Long) = sv.read("qarz:$cid", { sb(debtRequest(cid)) }, ::parseDebtRows)
+    suspend fun debts(cid: Long) = sv.read("qarz:$cid", { sb(debtRequest(cid)) }, ::parseDebts)
     suspend fun docs(cid: Long, oid: Long) = sv.read("hujjatlar:$cid:$oid", { sv.api.bff(docsPath(cid, oid)) }, ::parseDocs)
     suspend fun warehouses(cid: Long): Loaded<List<Warehouse>> = sv.read("sklad:$cid", { sb(warehousesRequest(cid)) }) { b -> parseSb(b)?.let { parseWarehouses(it.rows) } }
     suspend fun profile() = sv.read("profil", { sv.api.bff("/api/profil") }, ::parseProfile)

@@ -93,18 +93,10 @@ class WireTest {
         assertNull(parseStockLines(json.parseToJsonElement("""{"ok":false}""")))
     }
 
-    @Test fun faktBodyKeepsMinusAndOperationId() {
-        val b = faktWriteBody(1, 2, "2026-11-01", listOf(FaktLine(9, -2.5)), "op-1")
-        assertEquals("fakt_yoz_v2", b["amal"].toString().trim('"')); assertEquals("op-1", b["operation_id"].toString().trim('"')); assertTrue(b.toString().contains("-2.5"))
-        val out = parseFaktOutcome(res("""{"ok":true,"raqam":"F-1","jami":10,"narxsiz_soni":2,"ogohlantirish":[{"qator_id":1,"nom":"Ish","bor":9,"qoshilmoqda":2,"chegara":10}]}"""))
-        assertTrue(out.ok); assertEquals(2, out.warnings.size)
-    }
-
     @Test fun narxAndDebtAndDocs() {
         val n = parseNarx(json.parseToJsonElement("""{"ok":true,"qatorlar":[{"nom":"Sement","birlik":"qop","obyekt_soni":3,"natija":null,"xavf":true}]}"""))!!
         assertNull(n[0].natija); assertTrue(n[0].xavf)
-        val d = parseDebtRows(json.parseToJsonElement("""{"ok":true,"natija":{"ok":true,"qatorlar":[{"yonalish":"debitor","qarz":5},{"yonalish":"kreditor","qarz":9}]}}"""))!!
-        assertEquals(1, d.size)
+        
         val docs = parseDocs(json.parseToJsonElement("""{"ok":true,"documents":[{"id":"12","filename":"a.pdf","canonicalStatus":"READY"}]}"""))!!
         assertEquals(12L, docs[0].id); assertTrue(docs[0].ready)
     }
