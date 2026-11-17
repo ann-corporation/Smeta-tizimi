@@ -8,7 +8,7 @@ export function jarvisLanguage(question: string, preference?: unknown): JarvisLa
   const q = question.toLowerCase();
   if (/(?:^|[^\p{L}])(?:шу|бу|билан|учун|борми|сўм|омбор|нима)(?!\p{L})/u.test(q)) return 'uz-Cyrl';
   if (/(?:^|[^\p{L}])(?:bilan|uchun|qancha|shuni|qanday|qaysi|korsat)(?!\p{L})/u.test(q)) return 'uz';
-  if (/(?:^|[^\p{L}])(?:сколько|каков\p{L}*|какой|покажи\p{L}*|подготовь|что|сравни\p{L}*|итого|статус|ндс|остатки)(?!\p{L})/u.test(q)) return 'ru';
+  if (/(?:^|[^\p{L}])(?:сколько|каков\p{L}*|какой|найди|покажи\p{L}*|подготовь|что|сравни\p{L}*|итого|статус|ндс|остатки)(?!\p{L})/u.test(q)) return 'ru';
   if (/[ўқғҳ]/u.test(q)) return 'uz-Cyrl';
   if (/[а-яё]/u.test(q) && !/[a-z]{2,}/u.test(q)) return 'ru';
   return 'uz';

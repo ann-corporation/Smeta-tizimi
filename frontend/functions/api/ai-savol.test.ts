@@ -12,6 +12,7 @@ import { f2RegisterIntent } from '../_shared/jarvis/f2-register';
 import { warehouseIntent } from '../_shared/jarvis/warehouse';
 import { discrepancyIntent } from '../_shared/jarvis/discrepancies';
 import { cumulativeIntent } from '../_shared/jarvis/cumulative';
+import { estimateRowIntent } from '../_shared/jarvis/estimate-row';
 import { onRequestPost } from './ai-savol';
 
 const object = { id: 34, nom: 'Sinov Bino' };
@@ -22,6 +23,7 @@ let stock: () => Response;
 let men: () => Response;
 let discrepancies: () => Response;
 let cumulative: () => Response;
+let estimate: () => Response;
 const rpc = vi.fn(async (input: string, _init?: RequestInit) => {
   switch (input.split('/').at(-1)) {
     case 't2_agent_kasb_v1': return Response.json({ ok: true, nom: 'Sinov', rol: 'pto', profil: 'company_access', vazifa: 'Sinov', boshqalar: [], namuna_savollar: [], kategoriyalar: categories });
@@ -33,6 +35,7 @@ const rpc = vi.fn(async (input: string, _init?: RequestInit) => {
     case 't2_men_v1': return men();
     case 't2_aosr_slichitelniy_v1': return discrepancies();
     case 't2_nakopitelniy_v2': return cumulative();
+    case 't2_jarvis_smeta_qator_aniq_v1': return estimate();
     case 't2_agent_muhit_v1': return Response.json({ ok: true, qoidalar: [], xotira: [], manbalar: [] });
     default: return Response.json({ ok: true });
   }
@@ -55,6 +58,9 @@ beforeEach(() => {
     ok: true, obyekt_id: 34, tayyorlik: { farqli: 6, ortiq: 6, kam: 0, tasdiqlagan: null }, yetishmaydi_jami: 2,
   });
   cumulative = () => Response.json(cumulativeFixture());
+  estimate = () => Response.json({ ok: true, obyekt_id: 34, kompaniya_id: 17,
+    qatorlar: [{ id: 21, kod: 'Е06-01-001-1 К-8', nom: 'Пример работы', tur: 'bl', hajm: null, birlik: 'м³',
+      ierarxiya: ['Надземная часть', 'Узел А'], ierarxiya_toliq: true }] });
   finance = () => Response.json({ ok: true, kompaniya_id: 17, basis: 'direct', objects: [{
     obyekt_id: 34, f2: { known: -102.75, unknown: 1, present: true }, fakt: { known: null, unknown: 2, present: true },
   }] });
@@ -67,6 +73,35 @@ beforeEach(() => {
   vi.stubGlobal('fetch', rpc);
 });
 afterEach(() => vi.unstubAllGlobals());
+
+it.each([
+  ['Smetadan E06-01-001-1 K-8 bandini top', 'Hajm: noma’lum'],
+  ['Сметада Е06-01-001-1 К-8 қайси бўлимда?', 'Ҳажм: номаълум'],
+  ['Найди позицию E06-01-001-1 K-8', 'Объём: неизвестно'],
+])('shows exact shifr and source hierarchy without inventing a quantity: %s', async (question, label) => {
+  men = () => Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: 17, permissions: ['smeta.read'] }] });
+  const body = await (await run(question, 17, { obyekt_id: 34 })).json();
+  expect(body).toMatchObject({ javob: expect.stringContaining(label), dalil: { qator_ids: [21], yol: '/admin/holat/34' } });
+  expect(body).toMatchObject({ javob: expect.stringContaining('Надземная часть › Узел А') });
+  expect(JSON.parse(String(called('t2_jarvis_smeta_qator_aniq_v1')[0][1]?.body))).toEqual({ p_actor_id: 7, p_kompaniya_id: 17, p_obyekt_id: 34, p_kod: 'E06-01-001-1 K-8' });
+  expect(ai).not.toHaveBeenCalled();
+});
+
+it('does not turn price or write questions into exact row reads and keeps an unauthorized lookup closed', async () => {
+  expect(estimateRowIntent('E06-01-001-1 narxi qancha?')).toBeNull();
+  expect(estimateRowIntent('E06-01-001-1 ga fakt yoz')).toBeNull();
+  expect(estimateRowIntent('E06-01-001-1 K-8 K-9 K-10 K-11 K-12')).toBeNull();
+  expect(await (await run('Smetadan E06-01-001-1 bandni top', 17, { obyekt_id: 34 })).json()).toMatchObject({ rad: true });
+  expect(called('t2_jarvis_smeta_qator_aniq_v1')).toHaveLength(0);
+  expect(ai).not.toHaveBeenCalled();
+});
+
+it('keeps an explicit normative reference on the source lookup route', async () => {
+  const body = await (await run('Покажи ШНК 4.02.06-04 для позиции Е06-01-001-1', 17, { obyekt_id: 34 })).json();
+  expect(body).toMatchObject({ rad: true, javob: expect.stringContaining('норматива') });
+  expect(called('t2_jarvis_smeta_qator_aniq_v1')).toHaveLength(0);
+  expect(ai).not.toHaveBeenCalled();
+});
 
 const cumulativeFixture = () => ({ ok: true, obyekt: { ...object, kompaniya_id: 17 }, davr: '2026-06',
   jami: { joriy_tasdiqlangan_summa: -25.5, jami_tasdiqlangan_summa: 187.63, jami_tasdiqlangan_malum_summa: 187.63, f2_summa_nomalum: 0 },

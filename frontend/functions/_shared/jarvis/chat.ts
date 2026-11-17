@@ -11,6 +11,7 @@ import { f2RegisterAnswer, f2RegisterIntent } from './f2-register';
 import { warehouseAnswer, warehouseIntent } from './warehouse';
 import { discrepancyAnswer, discrepancyIntent } from './discrepancies';
 import { cumulativeAnswer, cumulativeIntent } from './cumulative';
+import { estimateRowAnswer, estimateRowIntent } from './estimate-row';
 import { normAnswer, normReference } from './normative';
 import { jarvisLanguage, jarvisText } from './reply-language';
 import { callJarvisModel, type JarvisModelEnv } from './model';
@@ -101,6 +102,13 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
     const answer = await discrepancyAnswer((name, body) => rpcData(env, name, body), objectScope, men ?? null);
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
   }
+  const norm = so.studio == null ? normReference(savol) : null;
+  const estimateCode = so.studio == null && !norm ? estimateRowIntent(savol) : null;
+  if (estimateCode) {
+    const signal = AbortSignal.timeout(3500);
+    const answer = await estimateRowAnswer((name, body) => rpcData(env, name, body, signal), objectScope, estimateCode, men ?? null);
+    return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
+  }
   const isMoneyQuestion = pulSorovi(savol);
   if (isMoneyQuestion && !kasb.kategoriyalar.includes('smeta_pul')) {
     const javob = text('Smeta qiymatini ko‘rish uchun lavozimingizga ruxsat kerak.', 'Для просмотра сметной стоимости нужен доступ.');
@@ -131,7 +139,6 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
       : objectTotalDenied(text);
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
   }
-  const norm = so.studio == null ? normReference(savol) : null;
   if (norm) {
     const answer = await normAnswer(env, actor, kid, norm, men ?? null, text);
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
