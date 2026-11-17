@@ -23,6 +23,9 @@ export const OYNA_BOSH_SOAT = 17; // UTC, [17, 24) + [0, 6): tungi/past yuk (Tos
 export const OYNA_OXIR_SOAT = 6;
 export const oynadaMi = (d: Date) => d.getUTCHours() >= OYNA_BOSH_SOAT || d.getUTCHours() < OYNA_OXIR_SOAT;
 const SNAP_SAQLASH_KUN = 30;
+/** Bitta chaqiruvdagi qator va snapshot soni (Cloudflare CPU limiti). */
+export const ARXIV_PARTIYA_LIMIT = 250;
+export const SNAP_CHAQIRUV_LIMIT = 2;
 /** Baza hajmi ogohlantirish chegarasi (MB; Supabase Free 500). 380: arxiv/VACUUM FULL uchun vaqtincha joy zaxirasi qolsin. */
 export const ARXIV_OGOH_STANDART_MB = 380;
 
@@ -77,11 +80,14 @@ export async function arxivTickIsh(d: ArxivDeps, env: Pick<Env, 'DB_LIMIT_MB' | 
   if (!o.majbur && !oynadaMi(hozir)) return { ok: true, oyna: false, ishlar: [] as IshNatija[], qoldi: false };
   const ishlar: IshNatija[] = [];
   const xatolar: string[] = [];
+  // CPU byudjeti (Cloudflare 1102, 2026-11-18): bitta chaqiruvda faqat BITTA kichik partiya; workflow qoldi:true bo'lsa qayta chaqiradi.
+  let ishBor = false;
   for (const s of qatorArxivRoyxati()) {
-    const n = await jadvalArxivla(d, s, { maxPartiya: 2, pauzaMs: o.pauzaMs ?? 1500 });
+    const n = await jadvalArxivla(d, s, { maxPartiya: 1, pauzaMs: o.pauzaMs ?? 1500, limit: ARXIV_PARTIYA_LIMIT });
     ishlar.push(n);
+    if (n.partiya > 0 || n.xato) { ishBor = true; if (n.partiya > 0) n.qoldi = true; break; }
   }
-  ishlar.push(await snapshotSovut(d).catch((e): IshNatija => ({ jadval: 'snapshot.bolak_mazmun', partiya: 0, qator: 0, bayt: 0, xato: 'SNAP_' + String(e?.message ?? '').slice(0, 40), qoldi: false })));
+  if (!ishBor) ishlar.push(await snapshotSovut(d, SNAP_CHAQIRUV_LIMIT).catch((e): IshNatija => ({ jadval: 'snapshot.bolak_mazmun', partiya: 0, qator: 0, bayt: 0, xato: 'SNAP_' + String(e?.message ?? '').slice(0, 40), qoldi: false })));
   for (const n of ishlar) {
     await d.rpc('t2_arxiv_jurnal_yoz_v1', { p_jadval: n.jadval, p_rejim: n.jadval.startsWith('snapshot.') ? 'snapshot-sovuq' : 'qator-arxiv', p_qator: n.qator, p_r2_bayt: n.bayt, p_xato: n.xato }).catch(() => null);
     if (n.xato) xatolar.push(`${n.jadval}:${n.xato}`);
