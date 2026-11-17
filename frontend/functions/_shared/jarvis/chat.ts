@@ -15,6 +15,7 @@ import { estimateRowAnswer, estimateRowIntent } from './estimate-row';
 import { taskListAnswer, taskListIntent } from './tasks';
 import { approvalsAnswer, approvalsIntent } from './approvals';
 import { documentAnswer, documentIntent } from './documents';
+import { priceRowAnswer, priceRowIntent, verifiedPriceCandidates } from './prices';
 import { normAnswer, normReference } from './normative';
 import { jarvisLanguage, jarvisText } from './reply-language';
 import { callJarvisModel, type JarvisModelEnv } from './model';
@@ -25,7 +26,7 @@ import { uslubBolimi, uslubYangila, type UslubXususiyat } from '../agent-uslub';
 import { jarvisKichikGap, jarvisRahmatJavobi } from '../../../src/lib/jarvis/intent';
 import { qidiruvSozlari } from '../../../src/lib/jarvis/qidiruv-sozlari';
 import { studioKontekstTekshir } from '../../../src/lib/jarvis/studio-kontekst';
-export type JarvisEnv = JarvisModelEnv & Partial<NormativEnv> & { AGENT_ISH_YOQILGAN?: string };
+export type JarvisEnv = JarvisModelEnv & Partial<NormativEnv> & { AGENT_ISH_YOQILGAN?: string; R2_CANONICAL?: R2Bucket };
 const sonmi = (v: unknown) => v != null && v !== '' && Number.isSafeInteger(Number(v)) && Number(v) > 0;
 const matn = (v: unknown, n: number) => (v == null || String(v).trim() === '' ? null : String(v).trim().slice(0, n));
 
@@ -106,6 +107,11 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
   }
   const norm = so.studio == null ? normReference(savol) : null;
+  const priceRow = so.studio == null && norm === null ? priceRowIntent(savol) : null;
+  if (priceRow !== null) {
+    const answer = await priceRowAnswer(env.R2_CANONICAL, priceRow, text);
+    return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
+  }
   const estimateCode = so.studio == null && !norm ? estimateRowIntent(savol) : null;
   if (estimateCode) {
     const signal = AbortSignal.timeout(3500);
@@ -170,7 +176,7 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
      resurs belgilari bo'yicha smeta qatorlari, lavozim ruxsati bazada tekshiriladi (narx faqat smeta_pul). Model chaqirilmaydi.
      Ma'lumot, aniq qidiruv, qoidalar va bilim bir-biriga bog'liq emas — bitta to'lqinda parallel. */
   const sz = qidiruvSozlari(savol);
-  const [fk, qr, m, blr] = await Promise.all([
+  const [fk, qr, m, blr, katalog] = await Promise.all([
     rpcData(env, 't2_agent_fakt_v1', { p_actor_id: actor, p_kompaniya_id: kid, p_kategoriyalar: toifalar, p_obyekt_id: sonmi(so.obyekt_id) ? Number(so.obyekt_id) : null }),
     sz.resurs.length
       ? rpcData(env, 't2_agent_qidiruv_v1', { p_actor_id: actor, p_kompaniya_id: kid, p_obyekt_sozlar: sz.obyekt, p_resurs_sozlar: sz.resurs,
@@ -178,6 +184,7 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
       : Promise.resolve(null),
     rpcData(env, 't2_agent_muhit_v1', { p_actor_id: actor, p_kompaniya_id: kid, p_profil: kasb.profil }),
     rpcData(env, 't2_agent_bilim_v1', { p_actor_id: actor, p_kompaniya_id: kid }).catch(() => null),
+    verifiedPriceCandidates(env.R2_CANONICAL, savol, so.katalog),
   ]);
   if (!fk.ok) return { status: fk.status, body: fk.data };
   const ishlatilgan = (fk.data.ishlatilgan ?? []) as string[];
@@ -189,13 +196,6 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
   const faktJson = faktMatni(fk.data.fakt);
   qd('✅', `Olindi: ${(faktJson.length / 1024).toFixed(1)} KB (${nomlar(ishlatilgan)})${taqiqlangan.length ? ` · yopiq: ${nomlar(taqiqlangan)}` : ''}`);
   let aniq: Record<string, unknown> | null = null;
-  /* Platforma narx indeksi (R2, ochiq ma'lumotnoma): brauzer topgan ≤ 6 qator; har maydon tekshiriladi va qisqartiriladi. */
-  const katalog = (Array.isArray(so.katalog) ? so.katalog.slice(0, 6) : []).flatMap((x: unknown) => {
-    const r = (x ?? {}) as Record<string, unknown>;
-    const narx = typeof r.narx === 'number' ? r.narx : NaN;
-    const nom = matn(r.nom, 200);
-    return nom && Number.isFinite(narx) && narx >= 0 ? [{ nom, birlik: matn(r.birlik, 30), narx, manba: matn(r.manba, 160), hudud: matn(r.hudud, 80) }] : [];
-  });
   if (katalog.length) qd('📚', `Platforma narx indeksi: ${katalog.length} ta mos qator (katalog/birja/prays, NDS siz)`);
   if (sz.resurs.length) {
     const n = qr?.ok && Array.isArray(qr.data.qatorlar) ? qr.data.qatorlar.length : 0;

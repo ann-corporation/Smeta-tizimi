@@ -15,6 +15,7 @@ import { cumulativeIntent } from '../_shared/jarvis/cumulative';
 import { estimateRowIntent } from '../_shared/jarvis/estimate-row';
 import { approvalsIntent } from '../_shared/jarvis/approvals';
 import { documentIntent } from '../_shared/jarvis/documents';
+import { verifiedPriceCandidates } from '../_shared/jarvis/prices';
 import { onRequestPost } from './ai-savol';
 
 const object = { id: 34, nom: 'Sinov Bino' };
@@ -93,6 +94,52 @@ beforeEach(() => {
   vi.stubGlobal('fetch', rpc);
 });
 afterEach(() => vi.unstubAllGlobals());
+
+const priceRevision = 'a'.repeat(16);
+function priceBucket() {
+  const prefix = `narx-katalog/${priceRevision}/`;
+  const files: Record<string, unknown> = {
+    'narx-katalog/CURRENT.json': { revision: priceRevision },
+    [prefix + 'manifest.json']: { revision: priceRevision, files: { dict: { path: 'dict.json' }, lookup: [{ from: 1, to: 50, path: 'i/0000.json' }] } },
+    [prefix + 'dict.json']: { birlik: ['м³'], hudud: ['Sinov hududi'], zavod: [], ndsHolati: ['nds_siz', 'nds_bilan'], ndsIzoh: [],
+      variant: [], guruh: [], manba: { id: 1, nom: 'Sinov manba', tur: 'katalog', sana: '2026-10-05', yil: 2026, kvartal: 4 } },
+    [prefix + 'i/0000.json']: { rows: [
+      [50, 0, 'CODE-50', 'БЕТОН М200', 0, '0.000125', 0, -1, 0, -1, null, null, -1, -1],
+      [49, 0, 'CODE-49', 'БЕТОН М200', 0, '99', 0, -1, 1, -1, null, null, -1, -1],
+      [48, 0, 'CODE-48', 'БЕТОН М300', 0, '73', 0, -1, 0, -1, null, null, -1, -1],
+    ] },
+  };
+  return { get: vi.fn(async (key: string) => key in files
+    ? { text: async () => JSON.stringify(files[key]), arrayBuffer: async () => new ArrayBuffer(0) } : null) };
+}
+
+it.each([
+  'Katalogdagi #50 narxi qancha?', 'Каталогдаги #50 нархи қанча?', 'Какая цена в каталоге №50?',
+])('reads an exact reference price from the published row without model or recalc: %s', async question => {
+  const bucket = priceBucket();
+  const body = await (await run(question, 17, { katalog: [{ narx: 999999 }] }, { R2_CANONICAL: bucket })).json() as TaskReply;
+  expect(body).toMatchObject({ dalil: { id: 50, revision: priceRevision, source_id: 1 } });
+  expect(body.javob).toContain('0,000125');
+  expect(body.javob).toContain('Sinov manba');
+  expect(body.javob).toContain('м³');
+  expect(body.javob).toContain('2026-10-05');
+  expect(body.javob).not.toContain('999999');
+  expect(ai).not.toHaveBeenCalled();
+});
+
+it('ignores browser price values and rejects missing revision, wrong grade and non-net rows', async () => {
+  const bucket = priceBucket();
+  const rows = await verifiedPriceCandidates(bucket, 'Beton M200 narxi qancha?', [
+    { id: 50, revision: priceRevision, narx: 999999 }, { id: 49, revision: priceRevision },
+    { id: 48, revision: priceRevision }, { id: 47, revision: 'b'.repeat(16) }, { narx: 123456 },
+  ]);
+  expect(rows).toEqual([{ id: 50, nom: 'БЕТОН М200', birlik: 'м³', narx: '0.000125', manba: 'Sinov manba', sana: '2026-10-05', hudud: 'Sinov hududi' }]);
+  expect(await verifiedPriceCandidates(bucket, 'Beton M200 narxi qancha?', [{ id: 50, revision: 'b'.repeat(16) }])).toEqual([]);
+  const gross = await (await run('Katalogdagi #49 narxi qancha?', 17, {}, { R2_CANONICAL: bucket })).json() as TaskReply;
+  expect(gross.javob).toContain('QQSsiz narx topilmadi');
+  expect(gross.dalil).toBeUndefined();
+  expect(ai).not.toHaveBeenCalled();
+});
 
 it.each([
   'Hujjat №50 ni och', 'Ҳужжат №50 ни кўрсат', 'Открой документ №50',
