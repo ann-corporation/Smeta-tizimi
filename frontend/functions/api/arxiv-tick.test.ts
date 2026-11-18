@@ -69,7 +69,7 @@ describe('arxivTickIsh', () => {
       if (nom.startsWith('t2_jarvis_') && nom.endsWith('_pick_v1')) { c.push(nom); return []; }
       return rpc(nom, args);
     };
-    const bucket = { async put() {}, async get() {}, async head() {}, async delete() {} };
+    const bucket = { async put() {}, async get() {}, async head() {}, async delete() {} } as unknown as R2Bucket;
     const now = new Date('2026-11-15T22:00:00Z');
     await arxivTickIsh(d, { R2_CANONICAL: bucket }, now);
     expect(c.filter(nom => nom.startsWith('t2_jarvis_'))).toEqual([]);
