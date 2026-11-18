@@ -28,6 +28,7 @@ import { QatorTanlagich, type TanlanganQator } from './QatorTanlagich';
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { Bolim } from '../zakazchik/tomon-ui';
 import { inp, sana, tugma, tugmaAsosiy } from '../zakazchik/tomon-yordam';
+import { DiskdanTanlashTugma } from '../../hujjat-maydoni/DiskdanTanlash';
 
 const RANG: Record<string, string> = { joriy: 'fz-stamp--ok', eskirgan: 'fz-stamp--warn', ruxsatsiz: 'fz-stamp--draft', bekor: 'fz-stamp--draft' };
 
@@ -110,7 +111,7 @@ function YangiRevizya({ kompaniyaId, toplam, onTayyor }: { kompaniyaId: number; 
   return (
     <div className="space-y-2 rounded border border-border p-2">
       <div className="text-xs font-semibold">{birinchi ? t('Birinchi chiqarish (rev. 0)') : t('Yangi revizya')}</div>
-      <input type="file" className="block text-xs" aria-label={t('Chizma fayli')} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+      <input type="file" className="block text-xs" aria-label={t('Chizma fayli')} onChange={(e) => setFile(e.target.files?.[0] ?? null)} /><DiskdanTanlashTugma onFayllar={(f) => setFile(f[0] ?? null)} />
       <textarea className={`${inp} block h-14 w-full`} value={izoh} onChange={(e) => setIzoh(e.target.value)} placeholder={birinchi ? t('Izoh (ixtiyoriy)') : t('Nima o‘zgardi? (majburiy)')} />
       <textarea className={`${inp} block h-12 w-full`} value={taasir} onChange={(e) => setTaasir(e.target.value)} placeholder={t('Smetaga ta’siri (ixtiyoriy): qaysi ish qo‘shiladi, almashadi yoki hajmi o‘zgaradi')} />
       <button type="button" className={tugma} disabled={band || (!birinchi && izoh.trim().length < 3)} onClick={() => void yarat()}>{t('Qoralama yaratish')}</button>

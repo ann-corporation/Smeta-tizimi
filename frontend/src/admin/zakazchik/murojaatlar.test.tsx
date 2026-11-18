@@ -16,6 +16,12 @@ vi.mock('../../api/t2-tomon', async (asl) => ({
   zakazchikObyektlarOl: m.zakazchikObyektlarOl, murojaatJavob: m.murojaatJavob, murojaatQarori: m.murojaatQarori, murojaatYarat: m.murojaatYarat,
 }));
 
+vi.mock('../../hujjat-maydoni/DiskdanTanlash', () => ({
+  DiskdanTanlashTugma: ({ onFayllar, accept }: { onFayllar: (f: File[]) => void; accept?: string }) => (
+    <button type="button" data-accept={accept} onClick={() => onFayllar([new File(['x'], 'disk.pdf', { type: 'application/pdf' })])}>Diskdan tanlash</button>
+  ),
+}));
+
 import Murojaatlar from './Murojaatlar';
 
 const qisqa = (o: Record<string, unknown> = {}) => ({ id: 3, aloqa_id: 1, turi: 'remark', sarlavha: 'Beton sinfi mos emas', muhimlik: 'yuqori', muddat: '2026-10-01', holat: 'ochiq', raund: 1, menga: true,
@@ -87,5 +93,18 @@ describe('Murojaatlar', () => {
     m.murojaatQarori.mockResolvedValue({ ok: true, natija: {} });
     fireEvent.click(screen.getByRole('button', { name: 'Qabul qilish va yopish' }));
     await waitFor(() => expect(m.murojaatQarori).toHaveBeenCalledWith(5, 3, 'yopish', ''));
+  });
+  it('Diskdan tanlangan dalil kompyuterdan yuklangandek R2 ga yuklanadi va javob bilan ketadi', async () => {
+    render(<Murojaatlar />);
+    fireEvent.click(await screen.findByText('Beton sinfi mos emas'));
+    await screen.findByRole('button', { name: 'Bajarildi' });
+    fireEvent.change(screen.getByPlaceholderText(/Nima qilindi/), { target: { value: 'Diskdan dalil' } });
+    m.hujjatYukla.mockResolvedValue({ ok: true, data: { document_id: 88 } });
+    m.murojaatJavob.mockResolvedValue({ ok: true, natija: { dalil_soni: 1 } });
+    const tugmalar = screen.getAllByRole('button', { name: 'Diskdan tanlash' });
+    fireEvent.click(tugmalar[tugmalar.length - 1]);
+    fireEvent.click(screen.getByRole('button', { name: 'Bajarildi' }));
+    await waitFor(() => expect(m.murojaatJavob).toHaveBeenCalledWith(5, 3, 'Diskdan dalil', [88]));
+    expect((m.hujjatYukla.mock.calls[0][0].file as File).name).toBe('disk.pdf');
   });
 });

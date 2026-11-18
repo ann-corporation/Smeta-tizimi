@@ -9,6 +9,7 @@ import { toast } from '../umumiy/ui/Toast';
 import { t } from '../i18n/til';
 import { FmtN } from '../lib/format';
 import { Sahifa } from '../umumiy/ui/Sahifa';
+import { DiskdanTanlashTugma } from '../hujjat-maydoni/DiskdanTanlash';
 
 const invoiceRowKeys = new WeakMap<object, string>();
 function invoiceRowKey(row: object) { let key=invoiceRowKeys.get(row); if(!key){key=crypto.randomUUID();invoiceRowKeys.set(row,key);}return key; }
@@ -98,7 +99,7 @@ export default function TestFaktura() {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement> | { target: { files: File[] } }) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
@@ -300,7 +301,7 @@ export default function TestFaktura() {
               <div className="fz-card__body" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
                 {!yangiFaktura ? (
                   <div style={{ border: '2px dashed var(--border-strong)', borderRadius: 'var(--radius-md)', padding: 40, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center', cursor: 'pointer' }} onClick={() => !isParsing && fileInputRef.current?.click()}>
-                    <input type="file" accept=".pdf, image/png, image/jpeg, image/jpg" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+                    <input type="file" accept=".pdf, image/png, image/jpeg, image/jpg" className="hidden" ref={fileInputRef} onChange={handleFileUpload} /><DiskdanTanlashTugma accept=".pdf,image/png,image/jpeg" disabled={isParsing} onFayllar={(f) => handleFileUpload({ target: { files: f } })} />
                     <FileUp size={32} style={{ color: 'var(--accent-text)' }} />
                     <div><h3 style={{ margin: 0, font: '600 15px/22px var(--font-display)' }}>{t('PDF hujjat tanlang')}</h3>
                       <p style={{ margin: 0, color: 'var(--text-dim)' }}>{t('Faktura PDF faylini yuklang, AI o‘zi o‘qiydi')}</p></div>

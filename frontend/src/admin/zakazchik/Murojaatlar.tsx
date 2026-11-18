@@ -20,6 +20,7 @@ import {
 import { t, tilOl } from '../../i18n/til';
 import { Bolim } from './tomon-ui';
 import { HODISA_NOMI, inp, sana, tugma, tugmaAsosiy } from './tomon-yordam';
+import { DiskdanTanlashTugma } from '../../hujjat-maydoni/DiskdanTanlash';
 
 const MUHIMLIK: Muhimlik[] = ['past', 'oddiy', 'yuqori', 'kritik'];
 const MUHIMLIK_NOMI: Record<Muhimlik, string> = { past: 'Past', oddiy: 'Oddiy', yuqori: 'Yuqori', kritik: 'Kritik' };
@@ -83,7 +84,7 @@ function Yaratish({ kompaniyaId, aloqalar, turlar, onYaratildi }: { kompaniyaId:
       <label className="text-xs text-text-dim">{t('Joy (qavat, o‘q, uchastka)')}<input className={`${inp} mt-1 block w-full`} value={joy} onChange={(e) => setJoy(e.target.value)} /></label>
       <label className="text-xs text-text-dim md:col-span-3">{t('Tavsif')}<textarea className={`${inp} mt-1 block h-16 w-full`} value={matn} onChange={(e) => setMatn(e.target.value)} /></label>
       <label className="text-xs text-text-dim md:col-span-3">{t('Foto / fayl dalil (ixtiyoriy)')}
-        <input type="file" multiple accept="image/*,application/pdf" capture="environment" className="mt-1 block text-xs" onChange={(e) => setFoto(Array.from(e.target.files ?? []))} aria-label={t('Foto dalil')} /></label>
+        <input type="file" multiple accept="image/*,application/pdf" capture="environment" className="mt-1 block text-xs" onChange={(e) => setFoto(Array.from(e.target.files ?? []))} aria-label={t('Foto dalil')} /></label><DiskdanTanlashTugma kopmi accept="image/*,application/pdf" onFayllar={(f) => setFoto(f)} />
       <div className="flex items-end"><button type="button" className={tugmaAsosiy} disabled={band || aloqaId === '' || sarlavha.trim().length < 3} onClick={() => void yubor()}>{t('Murojaat yuborish')}</button></div>
     </div>
   );
@@ -155,7 +156,7 @@ function Tafsilot({ kompaniyaId, id, turlar, yangila }: { kompaniyaId: number; i
           <textarea className={`${inp} block h-16 w-full`} value={matn} onChange={(e) => setMatn(e.target.value)}
             placeholder={m.menga && m.holat === 'ochiq' ? t('Nima qilindi? (majburiy)') : t('Izoh / sabab')} />
           {m.menga && m.holat === 'ochiq' && m.turi === 'predpisaniya' && <p className="text-[11px] text-warn">{t('Predpisaniyani bajarganingizni foto bilan tasdiqlang (majburiy).')}</p>}
-          <input type="file" multiple accept={m.turi === 'predpisaniya' ? 'image/*' : undefined} capture={m.turi === 'predpisaniya' ? 'environment' : undefined} className="block text-xs" onChange={(e) => setFayllar(Array.from(e.target.files ?? []))} aria-label={t('Dalil fayllari')} />
+          <input type="file" multiple accept={m.turi === 'predpisaniya' ? 'image/*' : undefined} capture={m.turi === 'predpisaniya' ? 'environment' : undefined} className="block text-xs" onChange={(e) => setFayllar(Array.from(e.target.files ?? []))} aria-label={t('Dalil fayllari')} /><DiskdanTanlashTugma kopmi accept={m.turi === 'predpisaniya' ? 'image/*' : undefined} onFayllar={(f) => setFayllar(f)} />
           <div className="flex flex-wrap gap-2">
             {m.menga && m.holat === 'ochiq' && <button type="button" className={tugmaAsosiy} disabled={band || matn.trim().length < 3 || (m.turi === 'predpisaniya' && fayllar.length === 0 && !d.hujjatlar.some((h) => h.men_biriktirdim && h.raund === m.raund))} onClick={() => void javob()}>{t('Bajarildi')}</button>}
             {fayllar.length > 0 && <button type="button" className={tugma} disabled={band} onClick={() => void dalilQosh()}>{t('Faqat dalil qo‘shish')}</button>}

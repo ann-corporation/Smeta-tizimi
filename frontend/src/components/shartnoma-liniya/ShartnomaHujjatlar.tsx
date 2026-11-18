@@ -17,6 +17,7 @@ import {
 } from '../../api/t2-shartnoma-hujjat';
 import { hajmKorinish, joriySumma, sanaKorinish } from '../../lib/shartnoma-hujjat-korinish';
 import { raqamTozala } from '../../lib/raqam-belgi';
+import { DiskdanTanlashTugma } from '../../hujjat-maydoni/DiskdanTanlash';
 
 const QABUL = '.pdf,.jpg,.jpeg,.png,.tif,.tiff,.doc,.docx,.xls,.xlsx,application/pdf,image/*';
 
@@ -37,7 +38,7 @@ export function ShartnomaHujjatlar({ kompaniyaId, shartnomaId }: { kompaniyaId: 
 
   function tanla(dsId: number | null) { nishon.current = dsId; fayl.current?.click(); }
 
-  async function faylTanlandi(fs: FileList | null) {
+  async function faylTanlandi(fs: FileList | File[] | null) {
     if (!kompaniyaId || !fs || fs.length === 0 || band) return;
     setBand(true);
     let soni = 0;
@@ -90,7 +91,7 @@ export function ShartnomaHujjatlar({ kompaniyaId, shartnomaId }: { kompaniyaId: 
 
   return (
     <section className="fz-panel text-[12.5px]" aria-label={tr('Asl hujjatlar va qo‘shimcha kelishuvlar')}>
-      <input ref={fayl} type="file" multiple accept={QABUL} className="hidden" aria-label={tr('Fayl tanlash')} onChange={(e) => void faylTanlandi(e.target.files)} />
+      <input ref={fayl} type="file" multiple accept={QABUL} className="hidden" aria-label={tr('Fayl tanlash')} onChange={(e) => void faylTanlandi(e.target.files)} /><DiskdanTanlashTugma kopmi accept={QABUL} onFayllar={(f) => faylTanlandi(f)} />
       <div className="mb-1.5 flex items-center gap-2">
         <Paperclip size={14} className="text-text-mute" />
         <p className="fz-panel__h">{tr('Asl hujjatlar va qo‘shimcha kelishuvlar')}</p>
