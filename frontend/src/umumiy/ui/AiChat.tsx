@@ -1,3 +1,4 @@
+import { JarvisVazifa } from './ai-yordamchi/JarvisVazifa';
 import { suhbatKonteksti } from '../../lib/ai-yordamchi/suhbat-kontekst';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
@@ -378,6 +379,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const UMUMIY_SAVOLLAR = ['Bu sahifa nima uchun kerak?', 'Bu yerdagi raqamlar nimani bildiradi?', 'Keyingi qadam nima?'];
   return (
     <>
+      {foydalanuvchiId && kompaniyaId && yordamchi?.joriyObyekt && yordamchi.vosita && <JarvisVazifa key={foydalanuvchiId+':'+kompaniyaId+':'+yordamchi.joriyObyekt.id} scope={{actorId:foydalanuvchiId,companyId:kompaniyaId,objectId:yordamchi.joriyObyekt.id}} api={yordamchi.vosita.api} />}
       {yordamchi && <div className={`border-b border-border bg-surface-2 px-4 ${ixcham ? 'py-1' : 'py-2'}`} data-testid="jarvis-conversation-bar">
         <div className="flex items-center gap-2">
           <select aria-label={t('Suhbatni tanlash')} value="" onChange={(e) => { const selected = korinadigan.find((q) => q.id === e.target.value); if (selected) suhbatDavom(selected); }} className="min-w-0 flex-1 rounded border border-border bg-surface px-2 py-1 text-sm">

@@ -1,0 +1,12 @@
+import {it,expect,vi,beforeEach} from 'vitest';
+const m=vi.hoisted(()=>({auth:vi.fn(),rpc:vi.fn()}));
+vi.mock('../_shared/auth',()=>({tekshir:m.auth}));
+vi.mock('../_shared/agent-rpc',()=>({rpcData:m.rpc}));
+import {onRequestPost} from './agent-ish';
+import {reconciliationTask} from '../../src/lib/ai-yordamchi/vazifa-solishtiruv';
+const scope={actorId:999,companyId:17,objectId:101};
+const call=(body:unknown)=>onRequestPost({request:new Request('https://test/api/agent-ish',{method:'POST',body:JSON.stringify(body)}),env:{SUPABASE_URL:'https://test',SUPABASE_KEY:'test',SESSIYA_KALIT:'test'},data:{}} as never);
+beforeEach(()=>{m.auth.mockResolvedValue({foydalanuvchi_id:7});m.rpc.mockReset();m.rpc.mockResolvedValue({ok:true,status:200,data:{ok:true,tasks:[]}});});
+it('does not trust client actor when saving task',async()=>{const task=reconciliationTask('t','Check',scope,['a','b']);await call({amal:'vazifa_saqla',kompaniya_id:17,obyekt_id:101,id:'t',task,expected_revision:-1});expect(m.rpc).toHaveBeenCalledWith(expect.anything(),'t2_jarvis_vazifa_saqla_v1',expect.objectContaining({p_actor_id:7,p_task:expect.objectContaining({scope:{...scope,actorId:7}})}));});
+it('rejects unauthenticated requests before RPC',async()=>{m.auth.mockResolvedValue(null);const r=await call({amal:'vazifa_royxat',kompaniya_id:17,obyekt_id:101});expect(r.status).toBe(401);expect(m.rpc).not.toHaveBeenCalled();});
+it('rejects write steps before RPC',async()=>{const task=reconciliationTask('t','Check',scope,['a','b']);task.steps[0].write=true;const r=await call({amal:'vazifa_saqla',kompaniya_id:17,obyekt_id:101,id:'t',task,expected_revision:-1});expect(r.status).toBe(422);expect(m.rpc).not.toHaveBeenCalled();});

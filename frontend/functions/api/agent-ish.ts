@@ -1,3 +1,5 @@
+import { GOAL_PLAN_SCHEMA, GOAL_PLAN_SYSTEM, parseGoalPlan } from '../../src/lib/ai-yordamchi/vazifa-reja';
+import { taskPayload } from '../_shared/jarvis-vazifa';
 /**
  * agent-ish.ts — AI agent ISH MUHITI shlyuzi: kontekst/qoida/xotira, takliflar (admin tasdig'i), tasdiqlangan veb-manbalar, savol.
  *
@@ -41,7 +43,7 @@ const matn = (v: unknown, n: number) => (v == null || String(v).trim() === '' ? 
 const PROFIL = /^[a-z_]{3,40}$/;
 
 /** Model chaqiradigan (token sarflaydigan) amallar. */
-const AI_AMALLAR = new Set(['savol', 'kasb_savol', 'jarvis_niyat', 'veb_tahlil', 'veb_ol', 'rivojlanish_tahlil', 'qadam_taklif', 'bilim_yigish']);
+const AI_AMALLAR = new Set(['vazifa_reja', 'savol', 'kasb_savol', 'jarvis_niyat', 'veb_tahlil', 'veb_ol', 'rivojlanish_tahlil', 'qadam_taklif', 'bilim_yigish']);
 const chiqar = (r: RpcNatija) => Response.json(r.data, { status: r.status, ...JAVOB });
 const xato = (m: string, status = 400) => Response.json({ ok: false, error: m }, { status, ...JAVOB });
 
@@ -417,6 +419,30 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
 
   if (amal === 'xotira_yoz') {
     return chiqar(await rpcData(env, 't2_agent_xotira_yoz_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_profil: profil, p_kalit: String(so.kalit ?? ''), p_mazmun: String(so.mazmun ?? '').slice(0, 4000) }));
+  }
+  if (amal === 'vazifa_reja') {
+    const oid=so.obyekt_id; const goal=typeof so.goal==='string'?so.goal.trim():'';
+    if(kid==null || !Number.isSafeInteger(oid) || Number(oid)<=0 || !goal || goal.length>2000) return xato('Vazifa maqsadi va obyekt kerak',422);
+    const guard=await rpcData(env,'t2_agent_scope_guard_v1',{p_actor_id:k.actor,p_kompaniya_id:kid,p_loyiha_id:null,p_obyekt_id:Number(oid)});
+    if(!guard.ok)return chiqar(guard);
+    try {
+      const response=await aiHisobli(env,k.actor,kid,null,'jarvis_vazifa_reja',{system:GOAL_PLAN_SYSTEM,text:tashqiMatnOra('user-goal',goal),tier:'fast',temperature:0,maxOutputTokens:700,jsonSchema:GOAL_PLAN_SCHEMA,totalTimeoutMs:15000});
+      const plan=parseGoalPlan(parseJsonText(response.text));
+      if(!plan)return xato('AI reja formati noto‘g‘ri. Amal bajarilmadi.',502);
+      return Response.json({ok:true,plan},JAVOB);
+    } catch(e){return aiXatoJavobi(e);}
+  }
+  if (['vazifa_royxat','vazifa_ol','vazifa_saqla'].includes(amal)) {
+    const oid = so.obyekt_id;
+    if (kid == null || !Number.isSafeInteger(oid) || Number(oid) <= 0) return xato('Vazifa uchun kompaniya va obyekt kerak', 422);
+    const params = {p_actor_id:k.actor,p_kompaniya_id:kid,p_obyekt_id:Number(oid)};
+    if (amal === 'vazifa_royxat') return chiqar(await rpcData(env,'t2_jarvis_vazifa_royxat_v1',params));
+    const id=String(so.id ?? '');
+    if (!/^[A-Za-z0-9_.-]{1,40}$/.test(id)) return xato('Vazifa identifikatori noto‘g‘ri',422);
+    if (amal === 'vazifa_ol') return chiqar(await rpcData(env,'t2_jarvis_vazifa_ol_v1',{...params,p_id:id}));
+    const task=taskPayload(so.task,{actorId:k.actor,companyId:kid,objectId:Number(oid)});
+    if (!task || task.id!==id || !Number.isSafeInteger(so.expected_revision) || Number(so.expected_revision)<-1 || task.revision!==Number(so.expected_revision)+1) return xato('Vazifa holati noto‘g‘ri',422);
+    return chiqar(await rpcData(env,'t2_jarvis_vazifa_saqla_v1',{...params,p_id:id,p_expected_revision:so.expected_revision,p_task:task}));
   }
   /* JARVIS SUHBATLARI (serverda, t2_jarvis_suhbat): faqat egasi o'qiydi; actor sessiyadan, a'zolik bazada (scope_guard); model chaqirilmaydi. */
   if (amal === 'suhbat_royxat' || amal === 'suhbat_ol' || amal === 'suhbat_saqla' || amal === 'suhbat_ochir') {
