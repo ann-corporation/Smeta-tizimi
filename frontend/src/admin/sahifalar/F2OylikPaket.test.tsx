@@ -8,6 +8,8 @@ vi.mock('../../api/f2-oylik-paket', () => ({
   portfelObyektOl: vi.fn(async () => ({ smeta: [], tafsilot: [], kontekst: { imzo: {}, shartnoma: null, nakrutka: null, podval: null }, aktQatorlar: new Map(), podvallar: new Map() })),
   f3SvodOl: vi.fn(async () => []),
 }));
+// Summa FAQAT serverdan (yagona yadro): sintetik server javobi.
+vi.mock('../../api/t2-f2-portfel', () => ({ aktSummalarParallel: vi.fn(async (_k: number, ids: number[], tayyor: (x: Map<number, unknown>, n: number) => void) => { tayyor(new Map(ids.map((id) => [id, null])), ids.length); }) }));
 vi.mock('../../api/t2-token', () => ({ tokenBilan: vi.fn(), mazmunXeshi: vi.fn() }));
 
 const malumot: ReestrMalumot = {

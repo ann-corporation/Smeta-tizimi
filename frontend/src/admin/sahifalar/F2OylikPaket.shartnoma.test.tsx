@@ -8,10 +8,11 @@ vi.mock('../../api/f2-oylik-paket', () => ({
   portfelObyektOl: vi.fn(async () => ({ smeta: [], tafsilot: [], kontekst: { imzo: {}, shartnoma: null, nakrutka: null, podval: null }, aktQatorlar: new Map(), podvallar: new Map() })),
   f3SvodOl: vi.fn(async () => []),
 }));
+// Summa FAQAT serverdan (yagona yadro): sintetik server javobi.
+vi.mock('../../api/t2-f2-portfel', () => ({ aktSummalarParallel: vi.fn(async (_k: number, ids: number[], tayyor: (x: Map<number, unknown>, n: number) => void) => { tayyor(new Map(ids.map((id) => [id, { qqs_bilan: 1_120_000.35, qqs: 120_000.04, ustamali: 1_000_000.31, ustamasiz: 900_000, narxsiz_soni: 0, qator_soni: 1 }])), ids.length); }) }));
 vi.mock('../../api/t2-token', () => ({ tokenBilan: vi.fn(), mazmunXeshi: vi.fn() }));
 vi.mock('../../api/t2-shartnoma-oylik-paket', () => ({
-  oyFaktSoni: vi.fn(async (id: number) => (id === 1 ? 3 : 0)),
-  oyM29Holati: vi.fn(async () => 'yoq'),
+  oylikPaketOl: vi.fn(async () => [{ id: 1, nom: 'Alfa', faktSoni: 3, m29: 'yoq', aktlar: [] }, { id: 2, nom: 'Beta', faktSoni: 0, m29: 'yoq', aktlar: [] }]),
   oylikPaketlarRoyxati: m.arxiv,
   oylikPaketniTopshir: vi.fn(), paketZipniSaqla: vi.fn(), saqlanganZipniOl: vi.fn(), yangiTopshirishId: () => 'op',
 }));

@@ -1,0 +1,9 @@
+{
+  "sana": "2026-11-18",
+  "sarlavha": "Shartnoma oylik paketi bir zumda ochiladi",
+  "bandlar": [
+    "Oylik paket sahifasi endi bitta server so‘rovi bilan ochiladi: obyekt smetalari yuklanmaydi, summalar faqat serverdan keladi va qatorlar to‘lib boradi.",
+    "Fayllar faqat «Paketni yuklab olish» bosilganda, tanlangan F2 lar uchun 4 tadan parallel yasaladi; jarayon «N/M tayyor» ko‘rinadi.",
+    "Paket uchun token bitta yechim bilan olinadi; avval to‘langan hujjat qayta yuklansa qayta to‘lanmaydi."
+  ]
+}
