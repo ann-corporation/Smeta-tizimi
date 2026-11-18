@@ -26,8 +26,10 @@ export function aktdanKiritma(aktQatorlari: readonly AktBand[], bolimlar: readon
   for (const x of aktQatorlari) { if (stornoQatorimi(x)) continue; const q0 = sonQ(x.certified_quantity) ?? sonQ(x.hajm); if (q0 != null && hajmQ.has(x.qator_id)) otaHajm.set(x.qator_id, q0); }
   for (const x of aktQatorlari) {
     if (stornoQatorimi(x)) continue; // Сторно (eski F2) bloki alohida saqlanadi (aktniYangila), kiritmalarga tushmaydi
-    const snap = (x.raw_snapshot ?? {}) as { narxsizSabab?: unknown; qolTahrir?: { hajm?: unknown; narx?: unknown; norma?: unknown } | null };
+    const snap = (x.raw_snapshot ?? {}) as { narxsizSabab?: unknown; qolTahrir?: { hajm?: unknown; narx?: unknown; norma?: unknown; olib?: unknown } | null };
     const qol = snap.qolTahrir && typeof snap.qolTahrir === 'object' ? snap.qolTahrir : null;
+    // Tombstone: ota ish qatorida ongli olib tashlangan avtomatik resurslar — qayta tushmaydi (faqat shu ishning haqiqiy avto resursi).
+    if (qol && Array.isArray(qol.olib)) for (const oid of qol.olib) { const n = Number(oid); if (Number.isFinite(n) && avtoOta.get(n) === x.qator_id) (nk.qolOlib ??= {})[n] = true; }
     const id = x.qator_id; const qty = sonQ(x.certified_quantity) ?? sonQ(x.hajm);
     if (qol && avtoOta.has(id) && qol.hajm === true) {
       // Avtomatik resurs, hajmi qo'lda: nisbat = aktdagi resurs hajmi / aktdagi ish hajmi (yo'q bo'lsa — saqlangan nisbat).
@@ -53,5 +55,7 @@ export function aktdanKiritma(aktQatorlari: readonly AktBand[], bolimlar: readon
   }
   // A-27: ishi aktda yo'q (yoki hajmi o'qilmagan) avtomatik resurs jim yo'qolmaydi — «ro'yxatda topilmadi» sanog'iga.
   for (const a of avtoAktda) if (nk.hajm[a.ota] === undefined) yoq++;
+  // Resurs aktda BOR bo'lsa tombstone eskirgan (keyin qayta qo'shilgan) — olib tashlangan hisoblanmaydi.
+  if (nk.qolOlib) for (const a of avtoAktda) delete nk.qolOlib[a.id];
   return { k: nk, yoq, hajmQ };
 }

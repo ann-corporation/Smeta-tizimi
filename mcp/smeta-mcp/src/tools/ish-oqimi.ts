@@ -240,7 +240,11 @@ export const f2QoralamaTahrir = tool({
         const manba = f2HujjatManba(akt.raqam);
         qosh = rows.map((r) => f2Qator(r, r.mumkin, manba, a.narx_override?.[String(r.qator_id)]));
       }
-      const t = qoralamaTahrirYuki(mavjud, { ozgartir: a.ozgartir, olibTashla: a.olib_tashla, qosh });
+      const otaXarita = new Map<number, number | null>();
+      if (a.olib_tashla?.length) {
+        for (const r of (await m.query<{ id: number; ota_id: number | null }>('select id, ota_id from public.t2_qator where id = any($1::bigint[])', [a.olib_tashla])).rows) otaXarita.set(Number(r.id), r.ota_id == null ? null : Number(r.ota_id));
+      }
+      const t = qoralamaTahrirYuki(mavjud, { ozgartir: a.ozgartir, olibTashla: a.olib_tashla, qosh, ota: otaXarita });
       if (t.xato.length) throw new Error(`Tahrir rad etildi: ${t.xato.slice(0, 20).join('; ')}`);
       const idlar = [...new Set([...mavjud.map((x) => x.qator_id), ...t.yuk.map((x) => x.qator_id)])];
       const katlar = new Map((await m.query<{ id: number; kat: string | null; tur: string }>('select id, kat, tur from public.t2_qator where id = any($1::bigint[])', [idlar])).rows.map((r) => [Number(r.id), r]));

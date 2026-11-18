@@ -40,7 +40,7 @@ export function f2SessiyaTozala(obyektId: number): void {
 export function f2QatorniOlibTashla(k: F2Kiritma, id: number): F2Kiritma {
   const kes = <V,>(o: Record<number, V>): Record<number, V> => { const { [id]: _o, ...qolgan } = o; void _o; return qolgan; };
   return { hajm: kes(k.hajm), narx: kes(k.narx), summa: kes(k.summa), narxsiz: kes(k.narxsiz),
-    ...(k.qolNorma ? { qolNorma: kes(k.qolNorma) } : {}), ...(k.qolNarx ? { qolNarx: kes(k.qolNarx) } : {}) };
+    ...(k.qolNorma ? { qolNorma: kes(k.qolNorma) } : {}), ...(k.qolNarx ? { qolNarx: kes(k.qolNarx) } : {}), ...(k.qolOlib ? { qolOlib: k.qolOlib } : {}) };
 }
 
 export { bosKiritma };
