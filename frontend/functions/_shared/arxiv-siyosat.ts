@@ -27,6 +27,7 @@ const QATOR = (jadval: string, kalit: string, kalitTur: 'bigint' | 'uuid', vaqt:
 const SAQLANADI = (jadval: string, izoh: string): ArxivSiyosat => ({ jadval, rejim: 'saqlanadi', saqlashKun: null, format: '-', tiklash: '-', izoh });
 
 export const ARXIV_SIYOSATLARI: readonly ArxivSiyosat[] = [
+  SAQLANADI('t2_hm_versiya', 'Hujjat maydoni fayl versiyalari: faqat metama\'lumot (baytlar R2 da); foydalanuvchi versiyani o\'chirguncha yoki fayl savatda 30 kun turgach tozalanadi - sovuq arxivga o\'tkazilmaydi'),
   QATOR('t2_onboarding_command_log', 'operation_id', 'uuid', 'created_at', 7, 'buyruq payloadlari; faqat audit tarixi'),
   QATOR('t2_addrepl_command', 'operation_id', 'uuid', 'created_at', 7, 'qo\'shimcha/zamena buyruq jurnali (idempotentlik kaliti 7 kundan keyin kerak emas)'),
   QATOR('t2_ai_telemetriya', 'id', 'bigint', 'vaqt', 30, 'AI chaqiruv telemetriyasi (yuza/kechikish/xato kodi/token); matn yo\'q; 30 kundan keyin R2 ga'),

@@ -1,4 +1,4 @@
-﻿import { lazy, Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { t } from './i18n/til';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { SAHIFALAR } from './lib/reestr/sahifa';
@@ -62,6 +62,7 @@ const TestDaraxt    = lazy(() => import('./test02/TestDaraxt'));
 const BossDashboard = lazy(() => import('./admin/sahifalar/BossDashboard'));
 const DirektorPult = lazy(() => import('./admin/sahifalar/DirektorPult'));
 const DocumentsPage = lazy(() => import('./admin/pages/DocumentsPage'));
+const HujjatMaydoni = lazy(() => import('./hujjat-maydoni/HujjatMaydoni'));
 const HujjatNazoratPage = lazy(() => import('./admin/pages/HujjatNazoratPage'));
 const ParticipantsPage = lazy(() => import('./admin/pages/ParticipantsPage'));
 const SystemControlPage = lazy(() => import('./admin/pages/SystemControlPage'));
@@ -235,6 +236,7 @@ export default function App() {
             <Route path="narxlar" element={<Narxlar />} />
             <Route path="mindmap" element={<TestXarita />} />
             <Route path="documents" element={<Suspense fallback={<SahifaYuklanmoqda />}><DocumentsPage /></Suspense>} />
+        <Route path="hujjat-maydoni" element={<Suspense fallback={<SahifaYuklanmoqda />}><HujjatMaydoni /></Suspense>} />
             <Route path="hujjat-nazorat" element={<Suspense fallback={<SahifaYuklanmoqda />}><HujjatNazoratPage /></Suspense>} />
             <Route path="participants" element={<Suspense fallback={<SahifaYuklanmoqda />}><ParticipantsPage /></Suspense>} />
             <Route path="zakazchik" element={<Suspense fallback={<SahifaYuklanmoqda />}><ZakazchikKabinet /></Suspense>} />
