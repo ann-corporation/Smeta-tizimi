@@ -8,7 +8,7 @@ const source = 't2_aosr_slichitelniy_v1';
 export function discrepancyIntent(question: string): boolean {
   const q = question.toLowerCase().replace(/[’ʻʼ‘']/g, '');
   if (/summa|narx|qiymat|сумм|цен[ау]|қиймат|yoz\b|kirit|yarat|saqla|tasdiqla\b|yubor|созда|внес|утверди|запиш|шу ой|shu oy|oylik|davr|период|месяц|\d{4}-\d{2}|на дату/u.test(q)) return false;
-  return /\bslich\b|slichitel|сличитель/u.test(q)
+  return /\bslich\b|slichitel|сличител/u.test(q)
     || (/(?:smeta|смет)/u.test(q) && /(?:fakt|факт)/u.test(q) && /farq|тафовут|фарқ|сравн|расхожд/u.test(q))
     || /(?:farq|фарқ|расхожд).*(?:aosr|аоср|asos)|(?:aosr|аоср|asos).*(?:farq|фарқ|расхожд)/u.test(q);
 }
