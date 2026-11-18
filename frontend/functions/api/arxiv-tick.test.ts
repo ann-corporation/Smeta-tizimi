@@ -61,6 +61,24 @@ describe('arxivTickIsh', () => {
     await arxivTickIsh(bosh(c, { mb: 400 }), {}, new Date('2026-11-15T22:00:00Z'));
     expect(c).toContain('t2_arxiv_ogohlantir_v1');
   });
+  it('drains the Jarvis purge queue before staging new archives when enabled', async () => {
+    const c: string[] = [];
+    const d = bosh(c);
+    const rpc = d.rpc;
+    d.rpc = async (nom, args) => {
+      if (nom.startsWith('t2_jarvis_') && nom.endsWith('_pick_v1')) { c.push(nom); return []; }
+      return rpc(nom, args);
+    };
+    const bucket = { async put() {}, async get() {}, async head() {}, async delete() {} } as unknown as R2Bucket;
+    const now = new Date('2026-11-15T22:00:00Z');
+    await arxivTickIsh(d, { R2_CANONICAL: bucket }, now);
+    expect(c.filter(nom => nom.startsWith('t2_jarvis_'))).toEqual([]);
+    const result = await arxivTickIsh(d, { R2_CANONICAL: bucket, JARVIS_ARCHIVE_YOQILGAN: '1' }, now);
+    expect(result.ok).toBe(true);
+    expect(c.filter(nom => nom.startsWith('t2_jarvis_'))).toEqual([
+      't2_jarvis_suhbat_archive_purge_pick_v1', 't2_jarvis_suhbat_archive_pick_v1',
+    ]);
+  });
   it('xato bo\'lsa ogohlantirish va ok:false', async () => {
     const c: string[] = [];
     const d = bosh(c); const rpc = d.rpc;

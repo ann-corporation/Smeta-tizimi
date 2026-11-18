@@ -1,5 +1,6 @@
 package uz.anncorp.qurai.desktop
 
+import uz.anncorp.smeta.core.data.Loaded
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put

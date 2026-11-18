@@ -86,7 +86,33 @@ data class F2Ui(
 )
 
 @HiltViewModel
-class F2ListViewModel @Inject constructor(handle: SavedStateHandle, objects: ObjectsRepository, private val repo: F2Repository, money: MoneyRepository) : ViewModel() {
+class F2ListViewModel @Inject constructor(
+    handle: SavedStateHandle, objects: ObjectsRepository, private val repo: F2Repository, money: MoneyRepository,
+    private val transitions: uz.anncorp.smeta.core.data.F2TransitionRepository, private val ctx: uz.anncorp.smeta.core.data.WorkContext,
+    private val api: uz.anncorp.smeta.core.data.BffApi,
+) : ViewModel() {
+    /** Result text of the last approval step ("OK" = done); online only, nothing is queued. */
+    val stepMsg = MutableStateFlow<String?>(null)
+    val stepBusy = MutableStateFlow(false)
+    /** Server totals of the opened act (aktId to result); the app never computes QQS or markup. */
+    val summa = MutableStateFlow<Pair<Long, uz.anncorp.smeta.core.data.AktSumma?>?>(null)
+    fun loadSumma(aktId: Long) {
+        summa.value = aktId to null
+        viewModelScope.launch { summa.value = aktId to uz.anncorp.smeta.core.data.AktSummaRepository(api).load(aktId) }
+    }
+    fun step(a: F2Act, to: F2Status, reason: String?) {
+        val w = ctx.current.value ?: return
+        if (stepBusy.value) return
+        viewModelScope.launch {
+            stepBusy.value = true; stepMsg.value = null
+            when (val r = transitions.transition(w.companyId, a, to, java.util.UUID.randomUUID().toString(), reason)) {
+                is uz.anncorp.smeta.core.data.F2TransitionResult.Done -> { stepMsg.value = "OK"; refresh() }
+                is uz.anncorp.smeta.core.data.F2TransitionResult.Error -> stepMsg.value = if (r.offline) uz.anncorp.smeta.core.data.OFFLINE_WRITE_MESSAGE else uz.anncorp.smeta.core.data.serverErrorText(r.code)
+            }
+            stepBusy.value = false
+        }
+    }
+
     val id: Long = checkNotNull(handle["id"])
     private val sync = MutableStateFlow<Pair<Boolean, SyncResult?>>(true to null)
 
@@ -164,7 +190,7 @@ fun F2ListScreen(onBack: () -> Unit, onDocs: (Long) -> Unit = {}, vm: F2ListView
     }
     detail?.let { a ->
         ModalBottomSheet(onDismissRequest = { detail = null }) {
-            DetailSheet(a, onDocs = { detail = null; onDocs(vm.id) })
+            DetailSheet(a, onDocs = { detail = null; onDocs(vm.id) }, vm = vm, onDone = { detail = null })
         }
     }
 }
@@ -234,7 +260,14 @@ internal fun StatusChip(s: F2Status, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun DetailSheet(a: F2Act, onDocs: () -> Unit) {
+private fun DetailSheet(a: F2Act, onDocs: () -> Unit, vm: F2ListViewModel, onDone: () -> Unit) {
+    val msg by vm.stepMsg.collectAsStateWithLifecycle()
+    val busy by vm.stepBusy.collectAsStateWithLifecycle()
+    var rejecting by remember(a.id) { mutableStateOf(false) }
+    var reason by remember(a.id) { mutableStateOf("") }
+    val summa by vm.summa.collectAsStateWithLifecycle()
+    androidx.compose.runtime.LaunchedEffect(a.id) { vm.stepMsg.value = null; vm.loadSumma(a.id) }
+    androidx.compose.runtime.LaunchedEffect(msg) { if (msg == "OK") { vm.stepMsg.value = null; onDone() } }
     Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.f2_act_title, a.raqam ?: ("#" + a.id)), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
@@ -246,6 +279,26 @@ private fun DetailSheet(a: F2Act, onDocs: () -> Unit) {
         DetailLine(stringResource(R.string.f2_unpriced), (a.unpriced ?: 0).toString(), warn = (a.unpriced ?: 0) > 0)
         DetailLine(stringResource(R.string.f2_minus_rows), (a.negativeRows ?: 0).toString())
         if (a.hasDiff) Text(stringResource(R.string.f2_flag_diff_long), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
+        summa?.takeIf { it.first == a.id }?.second?.let { s ->
+            when (s) {
+                is uz.anncorp.smeta.core.data.AktSumma.Known -> {
+                    MoneyDual(displayMoney(s.pack, null), showVat = true)
+                    if ((s.unpriced ?: 0) > 0) Text(stringResource(R.string.f2_unpriced) + ": " + s.unpriced, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
+                }
+                is uz.anncorp.smeta.core.data.AktSumma.Unknown -> Text(uz.anncorp.smeta.core.data.aktSummaUnknownText(s.code), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        uz.anncorp.smeta.core.data.f2StepLabel(a.state)?.let { label ->
+            Button(onClick = { uz.anncorp.smeta.core.data.f2NextStep(a.state)?.let { vm.step(a, it, null) } }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(label) }
+        }
+        if (uz.anncorp.smeta.core.data.f2CanReject(a.state)) {
+            androidx.compose.material3.OutlinedButton(onClick = { rejecting = !rejecting }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text("Rad etish") }
+            if (rejecting) {
+                androidx.compose.material3.OutlinedTextField(reason, { reason = it }, label = { Text("Rad etish sababi") }, modifier = Modifier.fillMaxWidth())
+                Button(onClick = { if (reason.isNotBlank()) vm.step(a, F2Status.REJECTED, reason) else vm.stepMsg.value = uz.anncorp.smeta.core.data.serverErrorText("REASON_REQUIRED") }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text("Rad etishni tasdiqlash") }
+            }
+        }
+        msg?.takeIf { it != "OK" }?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
         Button(onClick = onDocs, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.docs_f2_button)) }
     }
 }

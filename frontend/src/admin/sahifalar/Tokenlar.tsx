@@ -7,6 +7,7 @@ import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { yangiOperationId } from '../../api/supabase';
 import { narxHisob, tokenHolatOl, tokenXato, tolovSorovYarat, type NarxTafsilot, type TokenHarakat, type TokenHolat } from '../../api/t2-token';
 import { t, tilLocale } from '../../i18n/til';
+import { DiskRejalari } from '../../hujjat-maydoni/DiskRejalari';
 import { balansOlchov, kunlikSarf, type KunSarf } from '../../lib/token-korinish';
 
 const TUR_NOMI: Record<TokenHarakat['tur'], string> = { oylik: 'Obuna (oylik)', toldirish: 'Sotib olindi', bonus: 'Bonus', sarf: 'Sarf', qaytarish: 'Qaytarildi', tuzatish: 'Tuzatish' };
@@ -186,6 +187,8 @@ export function Tokenlar() {
               </table></div>
             )}
           </section>
+
+          {kid && <DiskRejalari h={h} kompaniyaId={kid} onOzgardi={() => void yukla()} />}
 
           <section className="fz-card" aria-label={t('Narxlar')}>
             <div className="fz-card__head"><h2 className="fz-card__title">{t('Amallar narxi')}</h2></div>

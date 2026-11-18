@@ -142,7 +142,7 @@ fun ApprovalDetailScreen(onBack: () -> Unit, vm: ApprovalDetailViewModel = hiltV
     val doneMsg = ui.done?.let {
         stringResource(when (it) { Decision.APPROVE -> R.string.p2_appr_done_approve; Decision.RETURN -> R.string.p2_appr_done_return; Decision.REJECT -> R.string.p2_appr_done_reject })
     }
-    val errMsg = ui.error?.let { e -> if (e == DecisionError.FAILED) stringResource(R.string.p2_appr_err_generic, ui.errorCode ?: "?") else stringResource(errorRes(e)) }
+    val errMsg = ui.error?.let { e -> uz.anncorp.smeta.core.data.decisionErrorText(e, ui.errorCode) }
 
     LaunchedEffect(doneMsg) { if (doneMsg != null) { snack.showSnackbar(doneMsg); onBack() } }
     LaunchedEffect(errMsg) { if (errMsg != null) { snack.showSnackbar(errMsg); vm.clearError() } }

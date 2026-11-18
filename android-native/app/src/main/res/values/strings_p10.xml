@@ -104,4 +104,5 @@
     <string name="p10_nz_msg_remark">Izoh kiriting (kamida 3 belgi).</string>
     <string name="p10_nz_msg_no_right">Bu qaror uchun huquqingiz yo\'q.</string>
     <string name="p10_nz_msg_state">Taqdim holati o\'zgargan. Ro\'yxatni yangilang.</string>
+    <string name="p16_stale_banner">Oflayn: ro\'yxatlar %1$s dagi saqlangan nusxadan. Yozish va tasdiqlash uchun internetga ulaning.</string>
 </resources>

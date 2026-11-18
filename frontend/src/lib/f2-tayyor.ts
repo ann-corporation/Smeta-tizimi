@@ -200,7 +200,10 @@ export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarx
     const smetaNarx = son(r.narx) ?? (ktx?.smetaNarxda ? son(h.get(r.id)?.smeta_narx) : null);
     // Smeta narxida: oldingi F2 narxi taklif zanjiridan chiqariladi (null beriladi), lekin eski/zaxira sifatida ko'rinadi.
     const t = narxTaklif(ktx?.smetaNarxda ? null : f2Narx, smetaNarx, p?.narx);
-    const x: F2Resurs = { id: r.id, tur: r.tur as F2Resurs['tur'], kat: r.kat, kod: r.kod, nom: r.nom || 'Nomsiz', birlik: r.birlik, norma: son((r as T2Qator & { norma?: number | null }).norma), mumkin: mumkin(r.id), avto, taklifNarx: t.narx, taklifManba: t.manba, ...(erkin ? { erkin: true } : {}), ...(qor(r.id) > 0 ? { qoralama: qor(r.id) } : {}), ...ortiqchaBelgi(r.id) };
+    /* Normasiz rs (qo'shimcha/zamena BL ga qo'shilgan ЧЕЛ/МАШ, norma null): «norma × ish hajmi» formulasi yo'q — avtomatik chiqmaydi
+       va jim tushib qolmaydi, mustaqil resurs (o'z hajmi t2_akt_qator da). Aks holda F2 jami/hujjat serverdagi yadro summasidan kam chiqardi. */
+    const norma = son((r as T2Qator & { norma?: number | null }).norma);
+    const x: F2Resurs = { id: r.id, tur: r.tur as F2Resurs['tur'], kat: r.kat, kod: r.kod, nom: r.nom || 'Nomsiz', birlik: r.birlik, norma, mumkin: mumkin(r.id), avto: avto && norma != null && norma > 0, taklifNarx: t.narx, taklifManba: t.manba, ...(erkin ? { erkin: true } : {}), ...(qor(r.id) > 0 ? { qoralama: qor(r.id) } : {}), ...ortiqchaBelgi(r.id) };
     if (p && t.manba === 'protokol') x.protokol = `№ ${p.raqam} от ${p.sana.slice(0, 10).split('-').reverse().join('.')}`;
     if (ktx?.smetaNarxda) {
       x.eskiNarx = f2Narx != null && f2Narx > 0 ? y6(f2Narx) : null;

@@ -2,7 +2,16 @@ package uz.anncorp.qurai.desktop
 
 import uz.anncorp.smeta.feature.common.*
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.res.loadImageBitmap
+import androidx.compose.ui.res.useResource
+import uz.anncorp.smeta.core.ui.QuraiTokens
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -52,7 +61,11 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import uz.anncorp.smeta.core.data.ChatCursor
 import uz.anncorp.smeta.core.data.ChatInfo
+import uz.anncorp.smeta.core.data.ChatSnapshot
+import uz.anncorp.smeta.core.data.ChatWrite
+import uz.anncorp.smeta.core.data.JarvisRepository
 import uz.anncorp.smeta.core.data.ChatMsg
 import uz.anncorp.smeta.core.data.JarvisResult
 import uz.anncorp.smeta.core.data.TodayRepository
@@ -69,8 +82,8 @@ object Shortcuts {
 }
 
 enum class Mod(val title: String, val needsObject: Boolean) {
-    Objects("Obyektlar", false), Smeta("Smeta", true), F2("F-2 aktlar", true), Fakt("Fakt", true), Nakop("Nakopitelniy / Slichitelniy", true),
-    Narx("Narx / katalog", false), Ombor("Ombor", false), Money("Moliya", false), Docs("Hujjatlar", true), Notif("Bildirishnomalar", false), Settings("Sozlamalar", false),
+    Objects("Obyektlar", false), Smeta("Smeta", true), F2("F2 va Nakopitelniy", true), Fakt("Fakt", true), Nakop("Nakopitelniy va F3", true),
+    Narx("Narx manbalari", false), Ombor("Ta'minot va sklad", false), Money("Moliya va shartnomalar", false), Docs("Hujjatlar", true), Notif("Bildirishnomalar", false), Settings("Sozlamalar", false),
 }
 
 /** Jarvis chat state lives in the shell so the conversation survives switching modules and hiding the panel. */
@@ -79,7 +92,8 @@ class JarvisState {
     var chatId by mutableStateOf(UUID.randomUUID().toString())
     var busy by mutableStateOf(false)
     var chats by mutableStateOf<List<ChatInfo>>(emptyList())
-    fun reset() { msgs.clear(); chatId = UUID.randomUUID().toString() }
+    var etag by mutableStateOf<String?>(null)
+    fun reset() { msgs.clear(); chatId = UUID.randomUUID().toString(); etag = null }
 }
 
 @Composable
@@ -129,18 +143,21 @@ fun MainScreen(sv: Services, me: SessionUser) {
     val obj = list.firstOrNull { it.id == objId } ?: list.firstOrNull()
 
     Row(Modifier.fillMaxSize()) {
-        Column(Modifier.width(220.dp).fillMaxHeight().background(MaterialTheme.colorScheme.surfaceVariant).padding(12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text("QURAI", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(6.dp))
+        val borderColor = MaterialTheme.colorScheme.outlineVariant
+        Column(Modifier.width(QuraiTokens.SIDEBAR_OPEN.dp).fillMaxHeight().background(MaterialTheme.colorScheme.surfaceContainerLow).drawBehind { drawLine(borderColor, Offset(size.width, 0f), Offset(size.width, size.height), 1f) }.padding(QuraiTokens.SPACE_3.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(QuraiTokens.SPACE_2.dp), modifier = Modifier.padding(bottom = QuraiTokens.SPACE_3.dp)) {
+                Image(BitmapPainter(useResource("qurai-icon.png", ::loadImageBitmap)), null, Modifier.size(28.dp))
+                Text("QURAI", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            }
             Mod.entries.forEachIndexed { i, m ->
                 val sel = m == mod
                 val label = if (m == Mod.Notif && unread > 0) "${m.title} ($unread)" else m.title
                 Row(
-                    Modifier.fillMaxWidth().background(if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small).clickable { mod = m }.padding(horizontal = 10.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    Modifier.fillMaxWidth().height(QuraiTokens.CONTROL_LG.dp).background(if (sel) Color(QuraiTokens.dark.accentSoft) else Color.Transparent, MaterialTheme.shapes.small).clickable { mod = m }.padding(horizontal = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(label, fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal, color = if (sel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface, maxLines = 1)
-                    if (i < 9) Text("${i + 1}", style = MaterialTheme.typography.labelSmall, color = if (sel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(label, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Normal, color = if (sel) Color(QuraiTokens.dark.accentText) else MaterialTheme.colorScheme.onSurface, maxLines = 1)
+                    if (i < 9) Text("Ctrl+${i + 1}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             Spacer(Modifier.weight(1f))
@@ -216,19 +233,26 @@ fun androidx.compose.foundation.layout.ColumnScope.JarvisPanel(sv: Services, p: 
                 is JarvisResult.Server -> res.message ?: "Server xatosi"
             }))
             st.busy = false
-            runCatching { sv.jarvis.saveChat(p.companyId, st.chatId, st.msgs.toList()) }
+            runCatching {
+                val all = st.msgs.toList()
+                val tag = st.etag
+                val cursor = ChatCursor(st.chatId, tag)
+                val write = if (tag == null) sv.jarvis.writeMessages(p.companyId, cursor, JarvisRepository.chatTitle(all), all.takeLast(JarvisRepository.MAX_SAVED))
+                else sv.jarvis.writeMessages(p.companyId, cursor, null, all.takeLast(2), UUID.randomUUID().toString())
+                if (write is ChatWrite.Saved) st.etag = write.etag
+            }
         }
     }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Text("Jarvis", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
         Box {
-            TextButton(onClick = { menu = true; scope.launch { st.chats = sv.jarvis.chats(p.companyId).orEmpty() } }) { Text("Tarix") }
+            TextButton(onClick = { menu = true; scope.launch { st.chats = sv.jarvis.syncChats(p.companyId)?.chats.orEmpty() } }) { Text("Tarix") }
             androidx.compose.material3.DropdownMenu(menu, { menu = false }) {
                 if (st.chats.isEmpty()) androidx.compose.material3.DropdownMenuItem(text = { Text("Saqlangan suhbat yo'q") }, onClick = { menu = false })
                 st.chats.take(15).forEach { ch ->
                     androidx.compose.material3.DropdownMenuItem(text = { Text(ch.title.ifBlank { "Suhbat" }, maxLines = 1) }, onClick = {
                         menu = false
-                        scope.launch { sv.jarvis.openChat(p.companyId, ch.id)?.let { m -> st.msgs.clear(); st.msgs.addAll(m); st.chatId = ch.id } }
+                        scope.launch { (sv.jarvis.syncChats(p.companyId, ChatCursor(ch.id))?.active as? ChatSnapshot.Changed)?.let { s -> st.msgs.clear(); st.msgs.addAll(s.messages.orEmpty()); st.chatId = ch.id; st.etag = s.etag } }
                     })
                 }
             }

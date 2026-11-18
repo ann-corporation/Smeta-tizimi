@@ -70,7 +70,15 @@ object DataModule {
 
     /** Real network client, or (debug builds only, when the demo flag file exists) fixture-backed demo data. */
     @Provides @Singleton
-    fun bffApi(@ApplicationContext c: Context, api: ApiClient, json: Json, tasdiq: TasdiqStore): BffApi = Demo.bff(c, json, { api.stepUp }, tasdiq) ?: api
+    fun bffApi(caching: CachingBffApi): BffApi = caching
+
+    /** Offline read copies: encrypted (Keystore), per device credential (= per signed-in user), 72 h, wiped on sign-out. Reads only; writes stay online-only. */
+    @Provides @Singleton
+    fun cachingBffApi(@ApplicationContext c: Context, api: ApiClient, json: Json, tasdiq: TasdiqStore, tokens: TokenStore): CachingBffApi {
+        val cache = EncryptedCache(File(c.noBackupFilesDir, "readcache"), KeystoreCipher("qurai_readcache_key"))
+        val base: BffApi = Demo.bff(c, json, { api.stepUp }, tasdiq) ?: api
+        return CachingBffApi(base, cache, { tokens.load()?.deviceId })
+    }
 
     @Provides @Singleton
     fun updateChecker(@ApplicationContext c: Context, http: OkHttpClient, json: Json): UpdateChecker {
@@ -131,6 +139,8 @@ object DataModule {
     fun docCache(@ApplicationContext c: Context) = DocCache(File(c.noBackupFilesDir, "docs"), KeystoreCipher("qurai_doc_key"))
 
     @Provides @Singleton
+    fun f2TransitionRepository(api: BffApi) = F2TransitionRepository(api)
+    @Provides @Singleton
     fun docGenRepository(api: BffApi) = DocGenRepository(api)
 
     @Provides @Singleton
@@ -168,6 +178,12 @@ object DataModule {
 
     @Provides @Singleton
     fun jarvisRepository(api: BffApi) = JarvisRepository(api)
+
+    @Provides @Singleton
+    fun jarvisPendingStore(@ApplicationContext c: Context, tokens: TokenStore, json: Json): JarvisPendingStore =
+        JarvisOutbox(File(c.noBackupFilesDir, "jarvis-outbox"), KeystoreCipher("qurai_jarvis_outbox"), json) {
+            if (Demo.enabled(c)) "00000000-0000-4000-8000-000000000001" else tokens.load()?.deviceId
+        }
 
     @Provides @Singleton
     fun workspaceRepository(api: BffApi, json: Json, prefs: Prefs) = WorkspaceRepository(api, json, prefs)

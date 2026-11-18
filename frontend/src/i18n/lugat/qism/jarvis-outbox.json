@@ -1,0 +1,5 @@
+{
+  "Saqlanmagan xabarlarni tiklab bo‘lmadi.": { "ru": "Не удалось восстановить несохранённые сообщения.", "en": "Could not restore unsaved messages." },
+  "Yuborilmagan xabarlarni bekor qilish": { "ru": "Отменить неотправленные сообщения", "en": "Discard unsent messages" },
+  "Mahalliy navbatdagi xabarlar o‘chirilsinmi?": { "ru": "Удалить сообщения из очереди на этом устройстве?", "en": "Discard messages queued on this device?" }
+}

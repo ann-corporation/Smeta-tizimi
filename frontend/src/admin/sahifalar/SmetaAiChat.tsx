@@ -45,6 +45,7 @@ import { tajribaYukla } from '../../lib/smeta-ai/tajriba-yukla';
 import { avtoTanlov, birlashtir, katalogSahifasi, kichikNomzodlar, nomzodlarTop, smetagaQoshish, xotiraMatni, tanlovSorovi, tanlovDalili, tanlovZidmi, tasdiqKerak, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
 import { ifodaHisobla } from '../../lib/smeta-ai/ifoda';
 import { foundationReference } from '../../lib/smeta-ai/normative-reference';
+import { shnqNomzodlar } from '../../lib/smeta-ai/shnq-moslash';
 import { includedWorkReviews } from '../../lib/smeta-ai/included-work';
 import { smetachiSuhbat, smetachiTanla, smetaTajribaYoz, smetaXotirasi, smetaXotiraYoz, type XotiraDaraja, type XotiraYozuv } from '../../api/smeta-ai';
 import { ModelChip } from '../../umumiy/ui/ModelChip';
@@ -153,7 +154,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
     let next = list.map(i => {
       if (i.tanlangan) return i;
       const r = avtoTanlov(katalog, i, list, 20, xotira);
-      if (r?.kodTekshirish) kodTekshirish.add(i.id);
+      if (r?.kodTekshirish || r?.holat === 'KOD') kodTekshirish.add(i.id);
       if (i.nomzodlar.length && !r?.kodTekshirish && r?.holat !== 'KOD') return i;
       if (!r) return { ...i, nomzodlar: nomzodlarTop(katalog, i) };
       return { ...i, nomzodlar: r.nomzodlar, tanlangan: !i.tanlangan && r.avto ? r.avto : i.tanlangan };
@@ -162,6 +163,26 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
     for (const i of next.filter(x => x.tanlangan && !x.tanlangan.qolda && !list.find(o => o.id === x.id)?.tanlangan)) qadam(t('«{i}» → {k} {n} — tizim tanlovi', { i: i.tavsif, k: i.tanlangan!.kod, n: i.tanlangan!.nom.slice(0, 70) }), 'ok');
     next = next.map(i => i.tanlangan && !i.tanlangan.qolda && tanlovZidmi(i, { ...i.tanlangan, id: i.tanlangan.workId }, next) ? { ...i, tanlangan: null } : i);
     if (tirik.current) setIshlar(next);
+    const shnqBilan = async (rows: AiIsh[], context: AiIsh[]) => {
+      const grounded = new Map<string, Awaited<ReturnType<typeof shnqNomzodlar>>>();
+      const pending = rows.sort((a, b) => a.nomzodlar.length - b.nomzodlar.length).slice(0, 16);
+      const deadline = AbortSignal.timeout(5500);
+      for (let offset = 0; offset < pending.length && !deadline.aborted && tirik.current; offset += 4) {
+        await Promise.all(pending.slice(offset, offset + 4).map(async i => {
+          const hits = await shnqNomzodlar(katalog, kompaniyaId, i, context, deadline);
+          if (hits.length) grounded.set(i.id, hits);
+        }));
+      }
+      return grounded;
+    };
+    const shnqBirlashtir = (i: AiIsh, hits: Awaited<ReturnType<typeof shnqNomzodlar>>) =>
+      ({ ...i, nomzodlar: [...hits, ...i.nomzodlar.filter(n => !hits.some(h => h.id === n.id))].slice(0, 20) });
+    const grounded = await shnqBilan(next.filter(i => !i.tanlangan && !kodTekshirish.has(i.id)), next);
+    if (!tirik.current) return list;
+    next = next.map(i => {
+      const hits = grounded.get(i.id);
+      return hits ? shnqBirlashtir(i, hits) : i;
+    });
     // Up to two rounds: when no candidate fits, the model rephrases in normative wording and the catalogue is searched again.
     let qaytaIds: Set<string> | null = null;
     for (let round = 0; round < 2; round++) {
@@ -185,23 +206,37 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
       if (xatoBor && !tanlovlar.length) break;
       const by = new Map(tanlovlar.map(x => [x.id, x]));
       const qayta = new Set<string>();
+      const shnqQayta: AiIsh[] = [];
       next = next.map(i => {
+        if (kodTekshirish.has(i.id)) return i;
         const c = by.get(i.id), n = c?.ishId ? i.nomzodlar.find(x => x.id === c.ishId) : null;
         if (n && !tanlovZidmi(i, n, next)) {
-          const taxmin = /TAXMIN|taxmin|предполож|assum/.test(c!.sabab);
+          const taxmin = !!n.shnq || /TAXMIN|taxmin|предполож|assum/.test(c!.sabab);
           qadam(t('«{i}» → {k} {n} — {s}', { i: i.tavsif, k: n.kod, n: n.nom.slice(0, 70), s: c!.sabab }), taxmin ? 'savol' : 'ok');
-          return { ...i, tanlangan: { workId: n.id, kod: n.kod, nom: n.nom, birlik: n.birlik, sabab: c!.sabab, ...(taxmin ? { taxmin: true } : {}) } };
+          return { ...i, ...(n.shnq ? { tasdiqlandi: false } : {}), tanlangan: { workId: n.id, kod: n.kod, nom: n.nom, birlik: n.birlik, sabab: c!.sabab, ...(taxmin ? { taxmin: true } : {}) } };
         }
         if (c && !c.ishId) qadam(t('«{i}»: mos norma topilmadi{q}', { i: i.tavsif, q: c.qidiruv?.length ? t(' — qayta qidiraman: {q}', { q: c.qidiruv.join('; ') }) : '' }), c.qidiruv?.length ? 'ishda' : 'savol');
         if (round === 0 && c?.qidiruv?.length) {
           const r = avtoTanlov(katalog, { ...i, qidiruv: c.qidiruv }, next);
           if (r?.kodTekshirish) return { ...i, nomzodlar: r.nomzodlar };
+          const alternate = c.qidiruv.filter(query => !i.qidiruv.some(original => original.trim().toLowerCase() === query.trim().toLowerCase()));
+          if (alternate.length) shnqQayta.push({ ...i, qidiruv: alternate });
           const extra = r?.nomzodlar ?? nomzodlarTop(katalog, { ...i, qidiruv: c.qidiruv });
           const fresh = extra.filter(x => !i.nomzodlar.some(o => o.id === x.id));
           if (fresh.length) { qayta.add(i.id); return { ...i, nomzodlar: [...fresh, ...i.nomzodlar].slice(0, 20) }; }
         }
         return i;
       });
+      if (shnqQayta.length) {
+        const retryHits = await shnqBilan(shnqQayta, next);
+        if (!tirik.current) return list;
+        next = next.map(i => {
+          const hits = retryHits.get(i.id);
+          if (!hits?.some(h => !i.nomzodlar.some(n => n.id === h.id && n.shnq))) return i;
+          qayta.add(i.id);
+          return shnqBirlashtir(i, hits);
+        });
+      }
       if (tirik.current) setIshlar(next);
       if (!qayta.size) break;
       qaytaIds = qayta;
@@ -213,7 +248,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
 
   async function yubor(txt?: string) {
     const m = (txt ?? matn).trim() || (ilova ? t('Ushbu loyiha hujjati bo‘yicha smeta ishlarini tuzing.') : '');
-    if (!m || band) return;
+    if (!m || band || executionLock.current) return;
     const yuborilganIlova = ilova ?? doimiy;
     if (ilova) setDoimiy(ilova);
     setIlova(null);
@@ -257,15 +292,17 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
   const overlaps = useMemo(() => includedWorkReviews(ishlar, doc), [ishlar, doc]);
   const tayyor = useMemo(() => ishlar.filter(i => i.tanlangan && i.hajm && !overlaps.has(i.id) && !tasdiqKerak(i)), [ishlar, overlaps]);
   const tasdiqKutadi = ishlar.filter(i => tasdiqKerak(i));
-  async function qosh() {
+  async function qosh(): Promise<boolean> {
+    let applied = false;
     if (tasdiqKutadi.length) qadam(t('{n} ta ishda AI taxmini tasdiqlanmagan — ular qo‘shilmaydi: {l}', { n: tasdiqKutadi.length, l: tasdiqKutadi.map(i => i.tavsif).join('; ') }), 'savol');
-    if (!katalog || !tayyor.length) return;
+    if (!katalog || !tayyor.length) return false;
     qadam(t('Smetaga qo‘shyapman: {n} ta ish', { n: tayyor.length }));
     setBand('qoshish');
     try {
       const r = await smetagaQoshish(doc, ishlar, katalog, newId);
-      if (!tirik.current) return;
+      if (!tirik.current) return false;
       if (r.commands.length && command({ type: 'BATCH', label: 'Smetachi AI', commands: r.commands })) {
+        applied = true;
         setIshlar(list => list.filter(i => !r.qoshildi.includes(i.id)));
         // The platform learns from every estimator: which norm was put for which described work (AI's pick or the person's own).
         if (kompaniyaId != null) {
@@ -285,44 +322,48 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
         if (savol.length) setXabarlar(x => [...x, { rol: 'assistant', matn: [t('Normada loyiha bo‘yicha belgilanadigan resurslar bor. Loyihadagi aniq materialni yozing (sinf/marka/diametr):'), ...[...new Set(savol)].map(s => '• ' + s)].join('\n') }]);
       }
       if (r.otkazildi.length) setHolat(r.otkazildi.map(o => `${ishlar.find(i => i.id === o.id)?.tavsif ?? o.id}: ${o.sabab}`).join(' · '));
+      return applied && r.otkazildi.length === 0;
     } finally { setBand(''); }
   }
-  /** Runs the selected actions: document edits as ONE batch, then step actions (pricing, documents …) in order. */
+  const executionLock = useRef(false);
+  const currentDoc = useRef(doc); currentDoc.current = doc;
+  async function documentUpdated(previous: EstimateDoc) {
+    for(let n=0;n<80 && tirik.current;n++) {
+      if(currentDoc.current !== previous) return;
+      await new Promise(resolve=>setTimeout(resolve,25));
+    }
+    throw new Error(t('Smeta yangilanishi tasdiqlanmadi. Keyingi amallar bajarilmadi.'));
+  }
+  /** Failure stops dependent steps; already completed actions cannot be blindly replayed. */
   async function bajar() {
-    const tanlangan = amallar.filter(a => a.tanlangan);
-    const natija: string[] = [], buyruqlar: StudioCommand[] = [], keyin: AgentAmal[] = [];
-    // «qosh» first: the proposed works must be in the estimate before pricing and documents run on it.
-    // The estimator's "count it separately" for works that overlap a composite norm (armature/formwork inside reinforced concrete).
-    if (tanlangan.some(a => a.tur === 'takror_tasdiq')) {
-      const ids = new Set(overlaps.keys());
-      setIshlar(list => list.map(i => (ids.has(i.id) ? { ...i, takrorTasdiq: true } : i)));
-      natija.push(`✓ ${t('Alohida hisoblash tasdiqlandi: {n} ish', { n: ids.size })}`);
-      await new Promise(r => setTimeout(r, 300));
-    }
-    if (tanlangan.some(a => a.tur === 'qosh')) { await qosh(); await new Promise(r => setTimeout(r, 300)); }
-    for (const a of tanlangan) {
-      if (a.tur === 'qosh' || a.tur === 'takror_tasdiq') continue;
-      try {
-        if (a.tur === 'bosqich') { if (a.qiymat === 'lrv' || a.qiymat === 'narx' || a.qiymat === 'res') onBosqich?.(a.qiymat); continue; }
-        const c = amalBuyruqlari(doc, a, newId);
-        if (c) buyruqlar.push(...c); else keyin.push(a);
-      } catch (e) { natija.push(`✗ ${t(AMAL_NOMI[a.tur])}: ${e instanceof Error ? e.message : String(e)}`); }
-    }
-    setBand('amal');
+    if(executionLock.current || band || !tirik.current) return;
+    executionLock.current=true; setBand('amal');
+    const selected=amallar.filter(a=>a.tanlangan);
+    const completed=new Set<AgentAmal>();const uncertain=new Set<AgentAmal>();const result:string[]=[];
     try {
-      if (buyruqlar.length) natija.push(command({ type: 'BATCH', label: t('Smetachi AI: amallar'), commands: buyruqlar }) ? `✓ ${t('Smeta o‘zgartirildi: {n} amal', { n: buyruqlar.length })}` : `✗ ${t('Smeta o‘zgarmadi — qiymatlarni tekshiring')}`);
-      // Step actions run after the edits are in the document (the next render), one by one.
-      if (keyin.length) await new Promise(r => setTimeout(r, 300));
-      for (const a of keyin) {
-        qadam(t('Bajaryapman: {a}', { a: t(AMAL_NOMI[a.tur]) + (a.qiymat ? ' · ' + a.qiymat : '') }));
-        try {
-          const nom = a.tur === 'hujjat' ? 'hujjat' : a.tur;
-          natija.push(`✓ ${await agentChaqir(nom, a, () => { const b = AMAL_BOSQICH[a.tur]; if (b) onBosqich?.(b); })}`);
-        } catch (e) { natija.push(`✗ ${t(AMAL_NOMI[a.tur])}: ${e instanceof Error && e.message !== 'AGENT_STEP_UNAVAILABLE' ? e.message : t('bosqich ochilmadi')}`); }
+      if(selected.some(a=>a.ogoh)) throw new Error(t('Avval amal ogohlantirishlarini hal qiling.'));
+      // Confirmation changes proposal state; continue explicitly on the next render, not an arbitrary delay.
+      const confirm=selected.find(a=>a.tur==='takror_tasdiq');
+      if(confirm){const ids=new Set(overlaps.keys());setIshlar(list=>list.map(i=>ids.has(i.id)?{...i,takrorTasdiq:true}:i));completed.add(confirm);setHolat(t('Alohida hisoblash tasdiqlandi. Qolgan amallarni davom ettiring.'));return;}
+      const add=selected.find(a=>a.tur==='qosh');
+      if(add){const before=currentDoc.current;uncertain.add(add);if(!await qosh())throw new Error(t('Ishlar to‘liq qo‘shilmadi. Keyingi amallar bajarilmadi.'));completed.add(add);await documentUpdated(before);}
+      const commands:StudioCommand[]=[];const edits:AgentAmal[]=[];const steps:AgentAmal[]=[];
+      for(const a of selected){if(a.tur==='qosh'||a.tur==='takror_tasdiq')continue;if(a.tur==='bosqich'){steps.push(a);continue;}const c=amalBuyruqlari(currentDoc.current,a,newId);if(c){commands.push(...c);edits.push(a);}else steps.push(a);}
+      if(!tirik.current)return;
+      if(commands.length){const before=currentDoc.current;edits.forEach(a=>uncertain.add(a));if(!command({type:'BATCH',label:t('Smetachi AI: amallar'),commands}))throw new Error(t('Smeta o‘zgarmadi — qiymatlarni tekshiring'));edits.forEach(a=>completed.add(a));result.push('✓ '+t('Smeta o‘zgartirildi: {n} amal',{n:commands.length}));if(steps.length)await documentUpdated(before);}
+      else edits.forEach(a=>completed.add(a));
+      for(const a of steps){
+        if(!tirik.current)return;
+        if(a.tur==='bosqich'){if(a.qiymat==='lrv'||a.qiymat==='narx'||a.qiymat==='res')onBosqich?.(a.qiymat);completed.add(a);continue;}
+        uncertain.add(a);qadam(t('Bajaryapman: {a}',{a:t(AMAL_NOMI[a.tur])}));
+        const message=await agentChaqir(a.tur,a,()=>{const b=AMAL_BOSQICH[a.tur];if(b)onBosqich?.(b);},()=>tirik.current);
+        completed.add(a);result.push('✓ '+message);
       }
-    } finally { setBand(''); }
-    setAmallar([]);
-    if (natija.length) setXabarlar(x => [...x, { rol: 'assistant', matn: natija.join('\n') }]);
+    } catch(e){if(tirik.current){const message=e instanceof Error?e.message:t('Amal bajarilmadi');setHolat(message);result.push('✗ '+message);}}
+    finally{
+      executionLock.current=false;
+      if(tirik.current){setBand('');setAmallar(list=>list.filter(a=>!completed.has(a)).map(a=>uncertain.has(a)?{...a,tanlangan:false}:a));if(result.length)setXabarlar(xs=>[...xs,{rol:'assistant',matn:result.join('\n')}]);}
+    }
   }
   function ishniYangila(id: string, o: Partial<AiIsh>) { setIshlar(list => list.map(i => (i.id === id ? { ...i, ...o } : i))); }
   function formula(id: string, v: string) {

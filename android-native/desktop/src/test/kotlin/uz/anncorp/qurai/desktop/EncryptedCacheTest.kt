@@ -1,5 +1,6 @@
 package uz.anncorp.qurai.desktop
 
+import uz.anncorp.smeta.core.data.EncryptedCache
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull

@@ -183,7 +183,7 @@ async function suhbatPost<T>(amal: string, k: number, yuk: Record<string, unknow
   } catch { return null; }
 }
 export const suhbatRoyxatOl = (k: number) => suhbatPost<{ royxat: ServerSuhbat[] }>('suhbat_royxat', k).then((r) => r?.royxat ?? null);
-export const suhbatServerdanOl = (k: number, id: string) => suhbatPost<{ sarlavha: string; qisqartma: string | null; xabarlar: Array<{ r: 'user' | 'ai'; m: string }> | null }>('suhbat_ol', k, { klient_id: id });
+export const suhbatServerdanOl = (k: number, id: string) => suhbatPost<{ sarlavha: string; qisqartma: string | null; xabarlar: Array<{ r: 'user' | 'ai'; m: string }> | null; arxivlangan?: true }>('suhbat_ol', k, { klient_id: id });
 export const suhbatServerga = (k: number, id: string, sarlavha: string, xabarlar: Array<{ r: 'user' | 'ai'; m: string }>) => suhbatPost<{ ok: boolean }>('suhbat_saqla', k, { klient_id: id, sarlavha, xabarlar });
 export const suhbatServerdanOchir = (k: number, id: string) => suhbatPost<{ ok: boolean }>('suhbat_ochir', k, { klient_id: id });
 

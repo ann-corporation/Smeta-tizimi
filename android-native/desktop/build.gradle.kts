@@ -1,4 +1,4 @@
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+﻿import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -16,7 +16,7 @@ kotlin {
     compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) }
 }
 
-val appVersion = "0.2.0"
+val appVersion = "0.2.1"
 val apiBase = (project.findProperty("apiBase") as String?) ?: "https://qurai.uz"
 
 // Build-time constants (no secrets): app version and the canonical API host.
@@ -61,6 +61,7 @@ compose.desktop {
                 perUserInstall = true
                 // Fixed UUID: later versions upgrade this install in place instead of installing side by side.
                 upgradeUuid = "6f1c0d4e-52c3-4f5b-9a77-3c1d8e2b9a10"
+                iconFile.set(project.file("qurai.ico"))
                 shortcut = true
                 menu = true
             }

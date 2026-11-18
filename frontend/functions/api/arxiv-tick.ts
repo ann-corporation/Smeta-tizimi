@@ -15,8 +15,9 @@ import { jadvalArxivla, partiyaTikla, type ArxivDeps, type IshNatija } from '../
 import { qatorArxivRoyxati, siyosatOl } from '../_shared/arxiv-siyosat';
 import { r2Bosh, r2Oqi, r2Yoz, sha256Hex } from '../_shared/r2-saqlash';
 import { sovuqKalit } from '../../src/lib/snapshot-r2/sovuq';
+import { jarvisArchiveBatch, jarvisArchivePurge } from '../_shared/jarvis-conversation-archive';
 
-type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; R2_CANONICAL?: R2Bucket; BILDIRISHNOMA_CRON_KALIT?: string; DB_LIMIT_MB?: string; ARXIV_OGOH_MB?: string };
+type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; R2_CANONICAL?: R2Bucket; BILDIRISHNOMA_CRON_KALIT?: string; DB_LIMIT_MB?: string; ARXIV_OGOH_MB?: string; JARVIS_ARCHIVE_YOQILGAN?: string };
 const javob = (d: unknown, status = 200) => Response.json(d, { status, headers: { 'Cache-Control': 'no-store' } });
 const MB = 1024 * 1024;
 export const OYNA_BOSH_SOAT = 17; // UTC, [17, 24) + [0, 6): tungi/past yuk (Toshkent 22:00-11:00)
@@ -76,7 +77,7 @@ export async function snapshotSovut(d: ArxivDeps, limit = 10): Promise<IshNatija
   return n;
 }
 
-export async function arxivTickIsh(d: ArxivDeps, env: Pick<Env, 'DB_LIMIT_MB' | 'ARXIV_OGOH_MB'>, hozir: Date, o: { majbur?: boolean; pauzaMs?: number } = {}) {
+export async function arxivTickIsh(d: ArxivDeps, env: Pick<Env, 'DB_LIMIT_MB' | 'ARXIV_OGOH_MB' | 'R2_CANONICAL' | 'JARVIS_ARCHIVE_YOQILGAN'>, hozir: Date, o: { majbur?: boolean; pauzaMs?: number } = {}) {
   if (!o.majbur && !oynadaMi(hozir)) return { ok: true, oyna: false, ishlar: [] as IshNatija[], qoldi: false };
   const ishlar: IshNatija[] = [];
   const xatolar: string[] = [];
@@ -88,6 +89,11 @@ export async function arxivTickIsh(d: ArxivDeps, env: Pick<Env, 'DB_LIMIT_MB' | 
     if (n.partiya > 0 || n.xato) { ishBor = true; if (n.partiya > 0) n.qoldi = true; break; }
   }
   if (!ishBor) ishlar.push(await snapshotSovut(d, SNAP_CHAQIRUV_LIMIT).catch((e): IshNatija => ({ jadval: 'snapshot.bolak_mazmun', partiya: 0, qator: 0, bayt: 0, xato: 'SNAP_' + String(e?.message ?? '').slice(0, 40), qoldi: false })));
+  // Jarvis arxivi ham CPU byudjetiga bo'ysunadi: ish bor chaqiruvda ishga tushmaydi.
+  if (!ishBor && env.JARVIS_ARCHIVE_YOQILGAN === '1' && env.R2_CANONICAL) {
+    ishlar.push(await jarvisArchivePurge(d, env.R2_CANONICAL));
+    ishlar.push(await jarvisArchiveBatch(d, env.R2_CANONICAL));
+  }
   for (const n of ishlar) {
     await d.rpc('t2_arxiv_jurnal_yoz_v1', { p_jadval: n.jadval, p_rejim: n.jadval.startsWith('snapshot.') ? 'snapshot-sovuq' : 'qator-arxiv', p_qator: n.qator, p_r2_bayt: n.bayt, p_xato: n.xato }).catch(() => null);
     if (n.xato) xatolar.push(`${n.jadval}:${n.xato}`);
