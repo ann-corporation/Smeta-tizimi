@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 0.1.12: start with a trial (1000 tokens) and "First steps" -->
+    <string name="sn_title">Try the system for free</string>
+    <string name="sn_hint">One tap opens your personal trial workspace and adds %1$d tokens to your balance. No company name or tax ID needed.</string>
+    <string name="sn_start">Start trial — %1$d tokens</string>
+    <string name="sn_once">Tokens are granted once. Later you open your real company in the same workspace and keep your tokens.</string>
+    <string name="sn_err_limit">Today\'s trial spots are used up. Try again tomorrow or continue by opening a company.</string>
+    <string name="sn_err_already">You already have a workspace.</string>
+    <string name="sn_err_no_demo">The sample object is not available yet.</string>
+    <string name="sn_err_auth">Please sign in first.</string>
+    <string name="fs_title">First steps</string>
+    <string name="fs_balance">Trial balance: %1$d tokens</string>
+    <string name="fs_demo">Open the sample object — a ready small estimate</string>
+    <string name="fs_upload">Upload your own estimate (Excel)</string>
+    <string name="fs_f2">Prepare an F-2</string>
+    <string name="fs_ai">Ask the AI assistant</string>
+    <string name="fs_real">Open your real company workspace (tokens are kept)</string>
+    <string name="fs_open_demo">Open</string>
+    <string name="fs_open">Open</string>
+    <string name="fs_go">Start</string>
+    <string name="fs_soon">soon</string>
+    <string name="fs_note">Viewing and editing are free. Document preparation, export and AI results spend tokens.</string>
+    <string name="fs_upload_title">Estimate upload</string>
+</resources>

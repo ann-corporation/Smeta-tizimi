@@ -12,7 +12,7 @@ type Env = { R2_CANONICAL?: R2Bucket };
 const VERSION = /^\d+\.\d+\.\d+$/;
 const SHA256 = /^[a-f0-9]{64}$/;
 const FILE: Record<RelizPlatforma, RegExp> = {
-  windows: /^(?:[\w -]+[\w .-]*\.exe|INSTALL_RU\.md)$/i,
+  windows: /^(?:[\w -]+[\w .-]*\.(?:exe|msi)|INSTALL_RU\.md)$/i,
   android: /^[\w][\w .-]*\.apk$/i,
   macos: /^[\w][\w .-]*\.dmg$/i,
 };
@@ -37,6 +37,7 @@ function contentType(file: string): string {
   if (f.endsWith('.apk')) return 'application/vnd.android.package-archive';
   if (f.endsWith('.dmg')) return 'application/x-apple-diskimage';
   if (f.endsWith('.exe')) return 'application/vnd.microsoft.portable-executable';
+  if (f.endsWith('.msi')) return 'application/x-msi';
   if (f.endsWith('.md')) return 'text/markdown; charset=utf-8';
   return 'application/octet-stream';
 }

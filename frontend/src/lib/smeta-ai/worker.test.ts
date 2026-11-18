@@ -4,7 +4,7 @@ import { emptyDoc } from '../smeta-studio/model';
 import { applyCommand } from '../smeta-studio/commands';
 import { sourceMeasureBasis } from '../smeta-studio/source-measure-basis';
 import { calcDoc } from '../smeta-studio/calc';
-import { aytilmaganShart, birlashtir, masofaOraligi, tasdiqKerak, katalogSahifasi, nomzodlarTop, smetagaQoshish, tanlovDalili, tanlovSorovi, tanlovZidmi, tizimTanlovi, type AiKatalog } from './worker';
+import { avtoTanlov, aytilmaganShart, birlashtir, masofaOraligi, tasdiqKerak, katalogSahifasi, nomzodlarTop, smetagaQoshish, tanlovDalili, tanlovSorovi, tanlovZidmi, tizimTanlovi, type AiKatalog } from './worker';
 import { suhbatJavobiniTekshir, tanlovlarniTekshir } from './protokol';
 
 const W = (id: string, code: string, name: string, unitCode: string): NormWork =>
@@ -43,6 +43,18 @@ describe('smetachi AI — contract validation', () => {
 });
 
 describe('smetachi AI — catalogue grounding and batch', () => {
+  it('matches the whole shifr, unifies Latin/Cyrillic spelling, and leaves incompatible or ambiguous codes for review', () => {
+    const variant = W('variant', 'Е6-1-1-12', 'ДРУГОЙ ВАРИАНТ', 'u100m3');
+    const exact = W('exact', 'Е6-1-1', 'БЕТОННАЯ ПОДГОТОВКА', 'u100m3');
+    const source = (rows: NormWork[]): AiKatalog => ({ ...k, allWorks: () => rows, search: () => ({ rows, total: rows.length }) });
+    const intent = { qidiruv: ['E6-1-1'], birlik: 'м3' as const };
+
+    expect(avtoTanlov(source([variant, exact]), intent)).toMatchObject({ holat: 'KOD', avto: { workId: 'exact' } });
+    expect(avtoTanlov(source([variant]), intent)).toMatchObject({ holat: 'TOPILMADI', avto: null, nomzodlar: [], kodTekshirish: true });
+    expect(avtoTanlov(source([exact]), { ...intent, birlik: 'м2' })).toMatchObject({ avto: null, nomzodlar: [], kodTekshirish: true });
+    expect(avtoTanlov(source([exact, { ...exact, id: 'edition' }]), intent)).toMatchObject({ holat: 'TEKSHIRISH', avto: null,
+      nomzodlar: [{ id: 'exact' }, { id: 'edition' }], kodTekshirish: true });
+  });
   it('uses the same explicit source basis and snapshot for AI addition; absent recipes are blocked', async () => {
     const revision = '66bb1a23bd18c63006d447b5';
     const workId = `norm-library:${revision}:Е06-01-001-1`;

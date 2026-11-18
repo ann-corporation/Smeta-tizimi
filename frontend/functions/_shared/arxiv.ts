@@ -28,7 +28,7 @@ export type PartiyaNatija =
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
-export const ndjsonGzip = (qatorlar: Qator[]): Uint8Array => gzipSync(enc.encode(qatorlar.map((q) => JSON.stringify(q)).join('\n')), { level: 9 });
+export const ndjsonGzip = (qatorlar: Qator[]): Uint8Array => gzipSync(enc.encode(qatorlar.map((q) => JSON.stringify(q)).join('\n')), { level: 6 });
 export function ndjsonOch(bayt: Uint8Array): Qator[] {
   const matn = dec.decode(gunzipSync(bayt));
   return matn === '' ? [] : matn.split('\n').map((s) => JSON.parse(s) as Qator);

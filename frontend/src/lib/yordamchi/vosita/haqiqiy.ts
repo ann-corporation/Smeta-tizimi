@@ -14,6 +14,7 @@ import { moslashQutisiOl } from '../../../api/t2-moslash';
 import { tokenBilan } from '../../../api/t2-token';
 import { sbT2QoshimchaIshYarat, sbT2ZamenaIshYarat } from '../../../api/t2-additional-replacement';
 import { abcXato } from '../../../api/t2-ish-abc';
+import { f2Tasdiq, f2Vosita } from '../../../api/f2-buyruq';
 import { daraxtVaHolatOl, ustamaManbaOl } from '../../oylik-hujjat/ostatka-slichitelniy';
 import { slichitelniyModeli } from '../../slichitelniy-vedomost';
 import { slichitelniyTsiklYuki } from '../../slichitelniy-tsikl';
@@ -127,6 +128,7 @@ export function haqiqiyVositaApi(k: number): VositaApi {
       return m.rows.filter((q) => { const h = `${q.kod ?? ''} ${q.nom ?? ''}`.toLowerCase(); return t.every((x) => h.includes(x)); }).slice(0, 6)
         .map((q) => ({ id: q.id, kod: q.kod, nom: q.nom ?? '', birlik: q.birlik, tur: q.tur, otaId: q.ota_id, versiya: q.versiya }));
     },
+    f2Mcp: (nom, args) => (nom === 'f2_tasdiq' ? f2Tasdiq(k, String(args.token ?? '')) : f2Vosita(k, nom, args)),
     zamenaSaqla: async (p) => {
       const baza = { kompaniyaId: k, obyektId: p.obyektId, operationId: p.operationId, expectedVersion: p.qator.versiya, sabab: p.sabab, otaQatorId: p.qator.otaId ?? p.qator.id, nom: p.nom, birlik: p.birlik, hajm: p.hajm, keyinQatorId: p.qator.id };
       const r = p.rejim === 'zamena' ? await sbT2ZamenaIshYarat({ ...baza, almashtirilayotganQatorId: p.qator.id }) : await sbT2QoshimchaIshYarat(baza);

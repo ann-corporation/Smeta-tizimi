@@ -22,6 +22,9 @@ import { onRequestPost as hujjatYaratPost } from '../hujjat-yarat';
 import { onRequestGet as tomonGet, onRequestPost as tomonPost } from '../tomon';
 import { onRequestGet as telegramGet, onRequestPost as telegramPost } from '../telegram/index';
 import { onRequestPost as omborBuyruqPost } from '../ombor-buyruq';
+import { onRequestPost as f2BuyruqPost } from '../f2-buyruq';
+import { onRequestPost as yukTashishPost } from '../yuk-tashish';
+import { yukTashishAmalmi } from '../../_shared/yuk-tashish';
 
 // Native Android BFF (P0). Same trust model as api/desktop/bff.ts: verified device Bearer -> server-only cookie -> unchanged
 // middleware + handler. Roles never come from the token; the unchanged middleware derives fresh authority from the database.
@@ -54,8 +57,12 @@ const handlers: Record<string, Record<string, PagesFunction<Env>>> = {
   '/api/telegram': { GET: telegramGet, POST: telegramPost },
   // Omborchi yagona nuqtasi (matn/ovoz buyrug'i, eslatma, ostatka, tasdiq). Ruxsat/aktor serverda (sessiya cookie'si BFF'dan); ovoz JSON udio_b64 sifatida.
   '/api/ombor-buyruq': { POST: omborBuyruqPost },
+  // Jarvis F2/fakt vositalari (smeta MCP o'qish + yozish): yozish faqat server dry_run preview + tasdiq tokeni bilan; ruxsat/aktor/token serverda.
+  '/api/f2-buyruq': { POST: f2BuyruqPost },
+  // Logistika yuk birjasi (haydovchi/yuk egasi): web bilan bir xil handler; aktor sessiyadan, ruxsat/tenant RPC ichida. Faqat oq ro'yxatdagi amallar.
+  '/api/yuk-tashish': { POST: yukTashishPost },
 } as never;
-export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|obyekt-tugun-summa|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol|agent-ish|qulf|hujjat-royxat|hujjat-ol|hujjat-yarat|tomon|telegram|ombor-buyruq)(?:\?[^#\s]*)?$/;
+export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|obyekt-tugun-summa|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol|agent-ish|qulf|hujjat-royxat|hujjat-ol|hujjat-yarat|tomon|telegram|ombor-buyruq|f2-buyruq|yuk-tashish)(?:\?[^#\s]*)?$/;
 /** /api/profil also hosts account-security actions (parol, google/telegram ulash, hisob_birlashtir, usul_uz, birlashtir_*): the native device token may NOT reach them.
  *  Exposed: GET (own profile + session window), the @username / people-search / invite-answer actions (USERNAME_V1), `yangila` (name, phone, language, avatar colour)
  *  and `boshqa_sessiyalar_chiqish` (sign out everywhere; the BFF re-enrols THIS device so it stays signed in, see reissueDevice). */
@@ -66,12 +73,18 @@ export const MOBIL_TOMON_YOZISH: ReadonlySet<string> = new Set(['nazorat_qaror',
 /** /api/telegram: status + notification preferences only (never kod / uz / admin_*). */
 export const MOBIL_TELEGRAM_AMAL: ReadonlySet<string> = new Set(['sozlama']);
 /** /api/ombor-buyruq: omborchi buyrug'i va o'qishlar. eksport (ikkilik fayl, token yechiladi) va lias (variant birlashtirish) qurilmaga ochilmaydi. Ruxsat va yozish tokeni serverda. */
-export const MOBIL_OMBOR_AMAL: ReadonlySet<string> = new Set(['kontekst','qoldiq','royxat','tarix','eslatma','tahlil','tasdiq','yoz','tuzat']);
+export const MOBIL_OMBOR_AMAL: ReadonlySet<string> = new Set(['kontekst','qoldiq','royxat','tarix','eslatma','taklif','hisobot','vosita','narx_qoy','tahlil','tasdiq','yoz','tuzat']);
+/** /api/f2-buyruq: Jarvis F2/fakt vositalari. `vosita` (o'qish yoki preview) va `tasdiq` (token + tasdiqlayman). Ruxsat, aktor, token yechish serverda. */
+export const MOBIL_F2_AMAL: ReadonlySet<string> = new Set(['vosita', 'tasdiq']);
 /** /api/kirish-taklif is public-by-design (qabul = sign-up without a session): the device may only reach yarat (director creates a phone invite link/code). */
 export const MOBIL_TAKLIF_AMAL: ReadonlySet<string> = new Set(['yarat']);
 const amalRuxsat = (amallar: ReadonlySet<string>, method: string, body: unknown): boolean => {
   if (method !== 'POST') return false;
   try { const o = typeof body === 'string' ? JSON.parse(body) : body; return !!o && typeof o === 'object' && typeof (o as { amal?: unknown }).amal === 'string' && amallar.has((o as { amal: string }).amal); } catch { return false; }
+};
+/** /api/yuk-tashish: faqat _shared/yuk-tashish AMALLAR oq ro'yxatidagi amal (web bilan bir xil); noma'lum amal serverga yetmaydi. */
+const yukTashishAmalRuxsat = (body: unknown): boolean => {
+  try { const o = typeof body === 'string' ? JSON.parse(body) : body; return !!o && typeof o === 'object' && yukTashishAmalmi((o as { amal?: unknown }).amal); } catch { return false; }
 };
 /** /api/agent-ish also hosts admin/superadmin actions (models, budgets, rules, rivojlanish...): the device may reach ONLY the Jarvis chat (kasb_savol, same aiHisobli charging) and the server-side chat list/save (t2_jarvis_suhbat), identical to web. */
 export const MOBIL_AGENT_AMAL: ReadonlySet<string> = new Set(['kasb_savol','suhbat_royxat','suhbat_ol','suhbat_saqla','suhbat_ochir']);
@@ -84,6 +97,8 @@ export function yolRuxsat(target: URL, method: string, body: unknown): boolean {
     case '/api/kirish-taklif': return amalRuxsat(MOBIL_TAKLIF_AMAL, method, body);
     case '/api/agent-ish': return amalRuxsat(MOBIL_AGENT_AMAL, method, body);
     case '/api/ombor-buyruq': return amalRuxsat(MOBIL_OMBOR_AMAL, method, body);
+    case '/api/f2-buyruq': return amalRuxsat(MOBIL_F2_AMAL, method, body);
+    case '/api/yuk-tashish': return method === 'POST' && yukTashishAmalRuxsat(body);
     case '/api/telegram': return method === 'GET' || amalRuxsat(MOBIL_TELEGRAM_AMAL, method, body);
     case '/api/tomon': return method === 'GET' ? MOBIL_TOMON_OQISH.has(target.searchParams.get('bolim') ?? '') : amalRuxsat(MOBIL_TOMON_YOZISH, method, body);
     default: return true;

@@ -16,6 +16,8 @@ import kirishMatnlar from '../../src/i18n/lugat/qism/telegram-kirish.json';
 import bot2Matnlar from '../../src/i18n/lugat/qism/telegram-bot-2.json';
 import usernameMatnlar from '../../src/i18n/lugat/qism/telegram-username.json';
 import kanalMatnlar from '../../src/i18n/lugat/qism/telegram-kanal.json';
+import omborSiklMatnlar from '../../src/i18n/lugat/qism/ombor-ideal-sikl.json';
+import omborSavolMatnlar from '../../src/i18n/lugat/qism/telegram-ombor-savol.json';
 import { KANONIK_ORIGIN, publicOrigin } from '../../src/lib/sayt-manzil';
 
 export type TgEnv = {
@@ -39,7 +41,7 @@ export const miniAppUrl = (env: TgEnv) => saytUrl(env) + '/tg';
 export const tokenBormi = (env: TgEnv) => /^\d+:[A-Za-z0-9_-]{20,}$/.test(String(env.TELEGRAM_BOT_TOKEN || '').trim());
 
 /* ───────── i18n (lugat/qism/telegram-bot.json; kalit = o'zbek lotin matn) ───────── */
-const LUG = { ...(matnlar as Record<string, { ru: string; en: string }>), ...(kirishMatnlar as Record<string, { ru: string; en: string }>), ...(bot2Matnlar as Record<string, { ru: string; en: string }>), ...(usernameMatnlar as Record<string, { ru: string; en: string }>), ...(kanalMatnlar as Record<string, { ru: string; en: string }>) };
+const LUG = { ...(matnlar as Record<string, { ru: string; en: string }>), ...(kirishMatnlar as Record<string, { ru: string; en: string }>), ...(bot2Matnlar as Record<string, { ru: string; en: string }>), ...(usernameMatnlar as Record<string, { ru: string; en: string }>), ...(kanalMatnlar as Record<string, { ru: string; en: string }>), ...(omborSiklMatnlar as Record<string, { ru: string; en: string }>), ...(omborSavolMatnlar as Record<string, { ru: string; en: string }>) };
 export function tilAniqla(languageCode: unknown): TgTil {
   const s = String(languageCode || '').toLowerCase();
   return s.startsWith('ru') ? 'ru' : s.startsWith('en') ? 'en' : 'uz';

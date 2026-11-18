@@ -94,3 +94,15 @@ Room + SQLCipher cache (key wrapped by Keystore), FTS4 row search, draft batch, 
 - **F-2 list** per object (status donut, flags, detail sheet, open the web registry) and **visuals** on the object card (rings, section bars, F-2 timeline), info tips for fact / F-2 / QQS / markup, skeleton loaders, empty-state illustrations.
 - Debug demo: `boss.flag` switches the demo workplace to a director with boss permissions.
 - Money rule: row-level amounts in the tree are the markup-free server values and are labelled so; the QQS-inclusive and with-markup figures exist only per object (server package) and are shown above the tree. See ROADMAP.md.
+
+## Bitta kod, ikki platforma (Android + Windows)
+
+Qoida: biznes mantiq, API shartnomalari, parserlar va Jarvis `:shared` da yashaydi; platformaga xos kod faqat oyna/navigatsiya/maket va Windows DPAPI / Android Keystore kabi qurilma qismlari uchun.
+
+| Qatlam | Joyi | Kim ishlatadi |
+| --- | --- | --- |
+| API mijozi, auth, Jarvis, pul/F-2/hujjat/tasdiq shartnomalari | `:shared` (`core/data`) | Android + Windows |
+| Ombor buyruqlari, F-2/fakt/smeta daraxti/narx/qarz/hujjat parserlari (`feature/common/Wire.kt`, sinovlari `WireTest`) | `:shared` | Windows (Android `:app` ga ulash mumkin) |
+| Ekranlar | `:app` (Android Compose) va `:desktop` (Compose Desktop: chap navigatsiya, jadvallar, Ctrl+K) | har platformaning o'zi |
+
+Yangi funksiya: avval `:shared` ga (parser + so'rov + sinov), keyin har platformada yupqa ekran. Android agenti `:shared` ga ko'chirgan mantiq Windows da bevosita ishlatiladi; Windows dagi `Repo.kt` faqat shu mantiqni oflayn keshga ulaydi.

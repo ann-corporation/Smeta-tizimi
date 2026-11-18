@@ -58,3 +58,12 @@ jobs:
             -H 'Content-Type: application/json' -H "X-Cron-Kalit: $BILDIRISHNOMA_CRON_KALIT" --data '{"db":true}' --max-time 60 || echo 000)
           echo "HTTP $code"; head -c 200 resp.json; echo
           if [ "$code" != "200" ]; then echo "::warning::hajm tekshiruvi muvaffaqiyatsiz (HTTP $code)"; fi
+      - name: AI ishchilar holati (kuniga 1 marta)
+        run: |
+          if [ -z "$PROD_URL" ] || [ -z "$BILDIRISHNOMA_CRON_KALIT" ]; then echo "sozlanmagan - o'tkazib yuborildi."; exit 0; fi
+          soat=$(date -u +%H); daq=$(date -u +%M)
+          if [ "$((10#$soat))" -ne 4 ] || [ $((10#$daq)) -ge 15 ]; then echo "AI holat tekshiruvi vaqti emas."; exit 0; fi
+          code=$(curl -sS -o resp.json -w '%{http_code}' -X POST "$PROD_URL/api/telegram/monitor" \
+            -H 'Content-Type: application/json' -H "X-Cron-Kalit: $BILDIRISHNOMA_CRON_KALIT" --data '{"ai":true}' --max-time 60 || echo 000)
+          echo "HTTP $code"; head -c 200 resp.json; echo
+          if [ "$code" != "200" ]; then echo "::warning::AI holat tekshiruvi muvaffaqiyatsiz (HTTP $code)"; fi

@@ -131,6 +131,13 @@
     <string name="ombor_cmd_unit">Unit</string>
     <string name="ombor_cmd_object">Object</string>
     <string name="ombor_cmd_party">To / from: %1$s</string>
+    <string name="ombor_cmd_price">Price (optional)</string>
+    <string name="ombor_cmd_price_ask">Do you know the price? (you can skip)</string>
+    <string name="ombor_cmd_price_skip">Skip</string>
+    <string name="ombor_cmd_price_mode_ask">Price incl. or excl. VAT? Choose.</string>
+    <string name="ombor_cmd_qqs_in">Incl. VAT</string>
+    <string name="ombor_cmd_qqs_ex">Excl. VAT</string>
+    <string name="ombor_cmd_price_both">Excl. VAT: %1$s · Incl. VAT: %2$s</string>
     <string name="ombor_cmd_save">Save</string>
     <string name="ombor_cmd_edit">Edit</string>
     <string name="ombor_cmd_balance_none">No balance found for this material</string>

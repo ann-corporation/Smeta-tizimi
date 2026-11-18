@@ -89,5 +89,9 @@ class OmborRepository @Inject constructor(
 
     suspend fun hasEntry(operationId: String): Boolean = outbox.get(operationId) != null
 
+    /** The storekeeper's last QQS choice for a receipt price ("bilan" = with QQS, the default; "siz" = without), remembered per warehouse. */
+    suspend fun priceMode(companyId: Long, skladId: Long): String = if (db.meta().get("ombor_qqs:$companyId:$skladId") == "siz") "siz" else "bilan"
+    suspend fun setPriceMode(companyId: Long, skladId: Long, mode: String) { db.meta().put(MetaEntity("ombor_qqs:$companyId:$skladId", if (mode == "siz") "siz" else "bilan")) }
+
     fun newOperationId(): String = UUID.randomUUID().toString()
 }

@@ -11,6 +11,26 @@ export const CHANG_HAJM = 1e-6;
 export const y6 = (x: number) => Math.round(x * 1e6) / 1e6;
 export const y2 = (x: number) => Math.round(x * 100) / 100;
 
+/**
+ * F2 ga olinadigan qoldiq bormi? Ishorali: MINUS qator («normaga keltirish», masalan «ИСКЛЮЧИТЬ …», K=7) uchun
+ * f2_mumkin_hajm manfiy bo'ladi (= fakt − olingan F2, ikkalasi manfiy), shuning uchun faqat `> 0` emas, |x| > chang.
+ */
+export const mumkinBor = (x: number | null | undefined): x is number => x != null && Number.isFinite(x) && Math.abs(x) > CHANG_HAJM;
+
+/**
+ * Qoldiqdan boshqa ochiq qoralamalarda band hajmni ayirish; ishora O'ZGARMAYDI (minus qatorda 0 dan oshib musbatga o'tmaydi,
+ * plyus qatorda 0 dan pastga tushmaydi): minus qator uchun min(0, …), plyus uchun max(0, …).
+ */
+export function qoldiqIshorali(mumkin: number, band: number): number {
+  const r = y6(mumkin - band);
+  return mumkin < 0 ? Math.min(0, r) : Math.max(0, r);
+}
+
+/** F2 hajmi fakt qoldig'idan oshadimi (faqat ogohlantirish)? Minus hajm minus qoldiqdan, plyus hajm plyus qoldiqdan oshmasligi kerak. */
+export function hajmOshganmi(hajm: number, mumkin: number, chang = 1e-6): boolean {
+  return hajm >= 0 ? hajm > Math.max(mumkin, 0) + chang : mumkin >= 0 || hajm < mumkin - chang;
+}
+
 /** Asos UUID + qo'shimcha → barqaror UUID (ko'p obyektli chaqiruvda idempotentlik: takroriy chaqiruv o'sha operation_id). */
 export function uuidHosila(asos: string, qoshimcha: string): string {
   const h = createHash('md5').update(`${asos}:${qoshimcha}`).digest('hex');
@@ -21,7 +41,7 @@ export function uuidHosila(asos: string, qoshimcha: string): string {
 
 export type MumkinQator = {
   qator_id: number; ota_id: number | null; tur: string; kod: string | null; nom: string | null; birlik: string | null; kat: string | null;
-  /** t2_qator_holat.f2_mumkin_hajm (fakt − olingan F2). */
+  /** t2_qator_holat.f2_mumkin_hajm (fakt − olingan F2); MINUS qatorda manfiy (ishora smeta hajmi bilan bir xil). */
   mumkin: number;
   smeta_narx: number | null;
 };
@@ -66,7 +86,7 @@ export type ChangGuruh = { ish_id: number | null; nom: string | null; qatorlar: 
 export function f2QoralamaYuki(rows: readonly MumkinQator[], o: { raqam?: string | null; override?: NarxOverride; changPul?: number } = {}) {
   const manba = f2HujjatManba(o.raqam);
   const ov = o.override ?? {};
-  const toza = rows.filter((r) => Number.isFinite(r.mumkin) && r.mumkin > CHANG_HAJM && ['bl', 'rs', 'mat', 'ob'].includes(r.tur));
+  const toza = rows.filter((r) => mumkinBor(r.mumkin) && ['bl', 'rs', 'mat', 'ob'].includes(r.tur));
   const yuk = toza.map((r) => ({ r, q: f2Qator(r, r.mumkin, manba, ov[String(r.qator_id)]) }));
   const tashlandi: ChangGuruh[] = [];
   let natija = yuk;
@@ -84,7 +104,7 @@ export function f2QoralamaYuki(rows: readonly MumkinQator[], o: { raqam?: string
     }
     const tashla = new Set<number>();
     for (const [k, g] of guruh) {
-      if (g.resurs > 0 && !g.nomalum && g.qiymat < chang) { tashla.add(k); tashlandi.push({ ish_id: g.ishId, nom: g.nom, qatorlar: g.n, qiymat: y2(g.qiymat) }); }
+      if (g.resurs > 0 && !g.nomalum && Math.abs(g.qiymat) < chang) { tashla.add(k); tashlandi.push({ ish_id: g.ishId, nom: g.nom, qatorlar: g.n, qiymat: y2(g.qiymat) }); }
     }
     natija = yuk.filter(({ r }) => !tashla.has(kalit(r)));
   }

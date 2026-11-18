@@ -29,6 +29,7 @@ const SAQLANADI = (jadval: string, izoh: string): ArxivSiyosat => ({ jadval, rej
 export const ARXIV_SIYOSATLARI: readonly ArxivSiyosat[] = [
   QATOR('t2_onboarding_command_log', 'operation_id', 'uuid', 'created_at', 7, 'buyruq payloadlari; faqat audit tarixi'),
   QATOR('t2_addrepl_command', 'operation_id', 'uuid', 'created_at', 7, 'qo\'shimcha/zamena buyruq jurnali (idempotentlik kaliti 7 kundan keyin kerak emas)'),
+  QATOR('t2_ai_telemetriya', 'id', 'bigint', 'vaqt', 30, 'AI chaqiruv telemetriyasi (yuza/kechikish/xato kodi/token); matn yo\'q; 30 kundan keyin R2 ga'),
   QATOR('t2_ozgarish', 'id', 'bigint', 'vaqt', 30, 'qator o\'zgarish tarixi (muhr farq ko\'rinishi o\'qiydi - 30 kundan kamaytirilmaydi)'),
   QATOR('t2_audit_log', 'id', 'bigint', 'yaratilgan_vaqt', 7, 'audit jurnali'),
   QATOR('t2_f2_import_draft_qator', 'id', 'bigint', 'yaratildi', 7, 'F2 import qoralama qatorlari; hal qilinmaganlari qoladi', { ustun: 'holat', emas: 'hal_qilinmagan' }),
