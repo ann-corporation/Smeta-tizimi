@@ -36,10 +36,10 @@ try {
     grant execute on function public.t2_agent_scope_guard_v1(bigint,bigint) to service_role;
   `);
   await db.exec(await sql('../migrations/20261218400000_t2_jarvis_suhbat_v1.sql'));
-  const migration = await sql('../migrations/20270101002000_t2_jarvis_suhbat_sync_archive.sql');
+  const migration = await sql('../migrations/20270111001000_t2_jarvis_suhbat_sync_archive.sql');
   await db.exec('begin');
   await db.exec(migration);
-  await db.exec(await sql('../migrations/20270101002000_t2_jarvis_suhbat_sync_archive.acceptance.sql'));
+  await db.exec(await sql('../migrations/20270111001000_t2_jarvis_suhbat_sync_archive.acceptance.sql'));
   await db.exec('rollback');
   const signature = 'public.t2_jarvis_suhbat_sync_v1(bigint,bigint,text,text)';
   const writeSignature = 'public.t2_jarvis_suhbat_mutate_v1(bigint,bigint,text,text,text,text,jsonb,uuid)';
@@ -91,6 +91,21 @@ try {
   assert.equal(frozen.xabarlar, null);
   assert.deepEqual(frozen.archive, { row: cold.row, sha256: sha, bytes });
   assert.equal((await sync(8, 17, 'expired')).suhbat.holat, 'missing');
+  await db.exec(`
+    begin;
+    insert into public.t2_jarvis_suhbat(kompaniya_id,foydalanuvchi_id,klient_id,sarlavha,xabarlar,yangilandi)
+    select 17,7,'fixture-'||i,'Fixture','[{"r":"user","m":"Synthetic archive overflow"}]',now()-interval '1 day'
+    from generate_series(1,22) i;
+    select public._t2_jarvis_suhbat_tozala(7,17);
+  `);
+  const overflow = (await db.query('select public.t2_jarvis_suhbat_archive_pick_v1(20) as rows')).rows[0].rows;
+  assert.equal(overflow.length, 4);
+  assert.equal((await sync(7, 17, 'fixture-1')).suhbat.xabarlar[0].m, 'Synthetic archive overflow');
+  assert.equal((await sync(8, 17, 'fixture-1')).suhbat.holat, 'missing');
+  await db.query("update public.t2_jarvis_suhbat set yangilandi=now()+interval '1 second' where klient_id='fixture-1'");
+  const afterEdit = (await db.query('select public.t2_jarvis_suhbat_archive_pick_v1(20) as rows')).rows[0].rows;
+  assert.equal(afterEdit.length, 3);
+  await db.exec('rollback');
   const rename = await mutate(7, 17, 'current', first.suhbat.etag, 'rename', 'Renamed');
   assert.equal(rename.ok, true);
   const changed = await sync(7, 17, 'current', first.suhbat.etag);
@@ -161,7 +176,7 @@ try {
   assert.equal((await sync(7, 17)).royxat.length, 20);
   assert.equal((await sync(7, 17, 'synthetic-0')).suhbat.holat, 'changed');
   await db.exec('reset role');
-  const undo = await sql('../migrations/20270101002000_t2_jarvis_suhbat_sync_archive.rollback.sql');
+  const undo = await sql('../migrations/20270111001000_t2_jarvis_suhbat_sync_archive.rollback.sql');
   await assert.rejects(() => db.exec(undo), /JARVIS_ARCHIVE_ROLLBACK_REQUIRES_RESTORE/);
   assert.equal(await registered(), true);
   const restore = async body => (await db.query(

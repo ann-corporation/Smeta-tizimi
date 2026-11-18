@@ -2,14 +2,24 @@
 alter table public.t2_jarvis_suhbat
   add column archive_sha256 text check (archive_sha256 is null or archive_sha256 ~ '^[a-f0-9]{64}$'),
   add column archive_bytes integer check (archive_bytes is null or archive_bytes between 1 and 32768),
+  add column archive_queued_at timestamptz,
   add constraint t2_jarvis_archive_pointer check ((archive_sha256 is null) = (archive_bytes is null));
 
--- Old readers still call this function. The archive worker now owns transcript eviction.
--- No conversation or text is deleted by an ordinary read, a new conversation, or the legacy writer.
+-- Keep the newest twenty conversations hot per actor and company. Older ones are
+-- queued for verified archival; only the archive commit may evict their transcript.
 create or replace function public._t2_jarvis_suhbat_tozala(p_actor_id bigint, p_kompaniya_id bigint)
 returns void language plpgsql security definer set search_path = '' as $$
 begin
-  return;
+  with overflow as (
+    select id from public.t2_jarvis_suhbat
+    where foydalanuvchi_id = p_actor_id and kompaniya_id = p_kompaniya_id
+    order by yangilandi desc, id desc offset 20
+  )
+  update public.t2_jarvis_suhbat s
+  set archive_queued_at = now()
+  from overflow o
+  where s.id = o.id and s.xabarlar is not null
+    and (s.archive_queued_at is null or s.archive_queued_at < s.yangilandi);
 end
 $$;
 
@@ -254,7 +264,7 @@ returns jsonb language sql stable security invoker set search_path = '' as $$
   from (
     select id, yangilandi, jsonb_build_object('v', 1, 'row', id::text, 'turns', xabarlar)::text as body
     from public.t2_jarvis_suhbat
-    where xabarlar is not null and yangilandi < now() - interval '90 days'
+    where xabarlar is not null and (yangilandi < now() - interval '90 days' or archive_queued_at >= yangilandi)
     order by yangilandi, id limit greatest(0, least(coalesce(p_limit, 10), 20))
   ) selection
 $$;
@@ -269,13 +279,13 @@ begin
   end if;
   select jsonb_build_object('v', 1, 'row', id::text, 'turns', xabarlar)::text into body
   from public.t2_jarvis_suhbat
-  where id = p_row and xabarlar is not null and yangilandi < now() - interval '90 days'
+  where id = p_row and xabarlar is not null and (yangilandi < now() - interval '90 days' or archive_queued_at >= yangilandi)
   for update;
   if not found or octet_length(convert_to(body, 'UTF8')) <> p_bytes
      or encode(sha256(convert_to(body, 'UTF8')), 'hex') <> p_sha256 then
     return jsonb_build_object('ok', true, 'archived', false);
   end if;
-  update public.t2_jarvis_suhbat set archive_sha256 = p_sha256, archive_bytes = p_bytes, xabarlar = null where id = p_row;
+  update public.t2_jarvis_suhbat set archive_sha256 = p_sha256, archive_bytes = p_bytes, archive_queued_at = null, xabarlar = null where id = p_row;
   return jsonb_build_object('ok', true, 'archived', true);
 end
 $$;

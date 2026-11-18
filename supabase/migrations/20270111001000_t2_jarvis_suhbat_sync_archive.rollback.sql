@@ -15,5 +15,11 @@ drop function if exists public.t2_jarvis_suhbat_archive_commit_v1(bigint,text,in
 drop function if exists public.t2_jarvis_suhbat_archive_restore_v1(bigint,text);
 drop function if exists public.t2_jarvis_suhbat_archive_pick_v1(integer);
 drop index if exists public.t2_jarvis_suhbat_archive_pick_idx;
-alter table public.t2_jarvis_suhbat drop constraint t2_jarvis_archive_pointer, drop column archive_sha256, drop column archive_bytes;
 -- Leave legacy cleanup disabled: re-enabling it would delete the just-restored transcripts.
+create or replace function public._t2_jarvis_suhbat_tozala(p_actor_id bigint, p_kompaniya_id bigint)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  return;
+end
+$$;
+alter table public.t2_jarvis_suhbat drop constraint t2_jarvis_archive_pointer, drop column archive_sha256, drop column archive_bytes, drop column archive_queued_at;
