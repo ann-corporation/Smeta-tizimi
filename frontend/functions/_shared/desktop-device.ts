@@ -3,6 +3,8 @@ import { supabaseBaseUrl } from './supabase-url';
 
 export type DesktopEnv = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string };
 export const DESKTOP_ORIGIN = 'http://tauri.localhost';
+/** Native Android app. Accepted ONLY together with a verified Bearer device token (never for cookie/CSRF paths). */
+export const ANDROID_ORIGIN = 'app://qurai-android';
 export const DESKTOP_SESSION_MS = 90 * 24 * 3600_000;
 export const uuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
 export const positiveId = (v: unknown): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v > 0;
@@ -53,7 +55,8 @@ export const ilovaVersiya = (v: unknown): string | null => typeof v === 'string'
 export async function desktopSessiya(request: Request, env: DesktopEnv): Promise<Sess | null> {
   devices.delete(request);
   denials.delete(request);
-  if (request.headers.get('Origin') !== DESKTOP_ORIGIN) return null;
+  const origin = request.headers.get('Origin');
+  if (origin !== DESKTOP_ORIGIN && origin !== ANDROID_ORIGIN) return null;
   const token = request.headers.get('Authorization')?.match(/^Bearer ([A-Za-z0-9_-]{43})$/)?.[1];
   if (!token) return null;
   try {

@@ -1,4 +1,4 @@
-﻿import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const m = vi.hoisted(() => ({
@@ -108,10 +108,10 @@ describe('AiXarajatBolimi', () => {
     const yangila = vi.fn();
     render(<AiXarajatBolimi m={markaz({ limit_usd: null, limit_faol: false }) as never} kompaniyalar={[]} yangila={yangila} />);
     const [plLimit] = screen.getAllByPlaceholderText('50');
-    fireEvent.click(screen.getAllByRole('button', { name: 'Saqlash' })[1]);
+    expect(screen.queryByTestId('saqlash-paneli')).toBeNull();
     expect(m.byudjetBelgila).not.toHaveBeenCalled();
     fireEvent.change(plLimit, { target: { value: '120' } });
-    fireEvent.click(screen.getAllByRole('button', { name: 'Saqlash' })[1]);
+    fireEvent.click(within(screen.getByTestId('saqlash-paneli')).getByRole('button', { name: /Saqlash/ }));
     await waitFor(() => expect(m.byudjetBelgila).toHaveBeenCalledWith(null, 120, 80, true));
     expect(yangila).toHaveBeenCalled();
   });
@@ -168,7 +168,7 @@ describe('AiXarajatBolimi — ustama va foyda', () => {
     expect(screen.getByText('$7.00')).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Standart ustama (%)'), { target: { value: '60' } });
     expect(screen.getByText('$8.00')).toBeTruthy();
-    fireEvent.click(screen.getAllByRole('button', { name: 'Saqlash' })[0]);
+    fireEvent.click(within(screen.getByTestId('saqlash-paneli')).getByRole('button', { name: /Saqlash/ }));
     await waitFor(() => expect(m.ustamaBelgila).toHaveBeenCalledWith(null, 60));
     expect(yangila).toHaveBeenCalled();
   });

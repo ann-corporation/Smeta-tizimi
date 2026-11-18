@@ -1,4 +1,5 @@
 import { tekshir } from '../_shared/auth';
+import { r2Yoz } from '../_shared/r2-saqlash';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 
 type Env = { SESSIYA_KALIT: string; SUPABASE_URL: string; SUPABASE_KEY: string; R2_CANONICAL: R2Bucket };
@@ -54,7 +55,7 @@ async function writeActor(ctx: EventContext<Env, string, unknown>): Promise<numb
   return s.foydalanuvchi_id as number;
 }
 async function immutablePut(bucket: R2Bucket, key: string, body: string | ArrayBuffer, sha: string, extra: Record<string, string> = {}) {
-  const result = await bucket.put(key, body, { onlyIf: { etagDoesNotMatch: '*' }, customMetadata: { sha256: sha, ...extra }, httpMetadata: { contentType: 'application/octet-stream', cacheControl: 'private, max-age=31536000, immutable' } });
+  const result = await r2Yoz(bucket, key, body, { onlyIf: { etagDoesNotMatch: '*' }, customMetadata: { sha256: sha, ...extra }, httpMetadata: { contentType: 'application/octet-stream', cacheControl: 'private, max-age=31536000, immutable' } });
   if (!result) {
     const old = await bucket.head(key);
     if (old?.customMetadata?.sha256 !== sha) throw new Error('IMMUTABLE_CONFLICT');

@@ -693,31 +693,12 @@ export function useFakturaAiParse() {
   });
 }
 
-export type FakturaFolderStatus = { count: number; url: string };
-export type FakturaDriveHolatRes = {
-  ok: boolean;
-  yangi?: FakturaFolderStatus;
-  arxiv?: FakturaFolderStatus;
-  dublikat?: FakturaFolderStatus;
-  xato?: FakturaFolderStatus;
-  xabar?: string;
-};
-
-export function useFakturaDriveHolat() {
-  return useQuery({
-    queryKey: ['fakturaDriveHolat'],
-    queryFn: () => gas<FakturaDriveHolatRes>('apiFakturaDriveHolat'),
-    staleTime: 60 * 1000,
-  });
-}
-
 export function useFakturaAvtoSinx() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => gas<{ ok: boolean; ishlanganFayllar?: number; yozilganQatorlar?: number; qolganFayllar?: number; xabar?: string }>('apiFakturaAvtoSinx'),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['fakturalar'] });
-      qc.invalidateQueries({ queryKey: ['fakturaDriveHolat'] });
     }
   });
 }
@@ -730,16 +711,6 @@ export function useF2Lokalkalar(obyekt: string) {
     queryFn: () => gas<{ ok: boolean; parent: string; kop: boolean; lokalkalar: string[] }>('apiF2LokalkaRoyxat', obyekt),
     enabled: !!obyekt,
     staleTime: 5 * 60 * 1000,
-  });
-}
-
-/** Kompyuterdan fayl yuklash — base64 bo'lib GAS'ga boradi */
-export function useF2FaylYukla() {
-  return useMutation({
-    mutationFn: ({ obyekt, base64, mimeType, filename, oyNom }: {
-      obyekt: string; base64: string; mimeType: string; filename: string; oyNom: string;
-    }) => gas<{ ok: boolean; fileId?: string; name?: string; xabar?: string }>(
-      'apiF2FaylYukla', obyekt, base64, mimeType, filename, oyNom),
   });
 }
 
@@ -1013,22 +984,6 @@ export function useF2ReestrHujjatJami() {
   });
 }
 
-/** Eski kiritilgan F2 arxiv faylini Drive dan qidirish */
-/**
- * Arxivdagi oy faylini topish (tahrirlash uchun).
- * `nomzodlar` — aniq mos kelmasa, oyi mos keladigan ehtimoliy fayllar
- * (2026-08-13: oy nomi lotin/kiril/raqamli shakllarda solishtiriladi).
- */
-export function useF2EskiFaylOqi() {
-  return useMutation({
-    mutationFn: ({ obyekt, oyNom }: { obyekt: string; oyNom: string }) =>
-      gas<{
-        ok: boolean; fileId?: string; faylNomi?: string; xabar?: string;
-        nomzodlar?: { id: string; nom: string }[];
-      }>('apiF2EskiFaylOqi', obyekt, oyNom),
-  });
-}
-
 /** Yozuv holati — 3 soniyada bir so'raladi, tugagach to'xtaydi */
 /** Qotib qolgan yozish ishini tozalash — trigger + kesh + holat o'chadi. */
 export function useF2JobTozala() {
@@ -1048,17 +1003,6 @@ export function useF2JobHolat(faol: boolean) {
       const s = q.state.data?.job?.status;
       return s && s !== 'tugadi' && s !== 'xato' ? 3000 : false;
     },
-  });
-}
-
-/** Drive'dagi obyekt papkasidagi tayyor Ф2 fayllar */
-export function useF2Fayllar(obyekt: string) {
-  return useQuery({
-    queryKey: ['f2fayllar', obyekt],
-    queryFn: () => gas<{ ok: boolean; fayllar: { id: string; name: string; url?: string }[]; xabar?: string }>(
-      'apiF2FayllarOl', obyekt),
-    enabled: !!obyekt,
-    staleTime: 2 * 60 * 1000,
   });
 }
 

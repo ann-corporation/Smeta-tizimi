@@ -1,7 +1,7 @@
 [package]
 name = "smeta-desktop"
-version = "0.1.0"
-description = "TIZIM 02 Windows client"
+version = "0.1.1"
+description = "QURAI Windows client"
 edition = "2021"
 rust-version = "1.99"
 publish = false
@@ -21,6 +21,7 @@ base64 = "=0.23.1"
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.154"
 zeroize = "=1.9.1"
+tauri-plugin-opener = "2"
 
 # Secret storage per platform. No mock/fallback vault ships: unsupported targets fail closed.
 [target.'cfg(target_os = "windows")'.dependencies]
@@ -37,7 +38,10 @@ openssl = { version = "0.10", features = ["vendored"] }
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
-desktop-e2e = []
+# Legacy "local bundle + native BFF/offline lease" mode (default OFF). Build with
+# `--features local-bff --config src-tauri/tauri.local-bff.conf.json`. Default build = "Onlayn qobiq".
+local-bff = []
+desktop-e2e = ["local-bff"]
 
 [profile.release]
 codegen-units = 1

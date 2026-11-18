@@ -1,0 +1,10 @@
+{
+  "sana": "2026-11-15",
+  "sarlavha": "Saqlash tugmasi endi doim ko‘rinadi",
+  "bandlar": [
+    "Fakt jurnali, Qarzdorlik asoslari, Podval konstruktori va Smeta versiyalari farqida o‘zgartirish kiritilgach ekran pastida «O‘zgarishlar saqlanmagan (N)» paneli chiqadi: Saqlash (Ctrl+S) va Bekor qilish tugmalari bilan — endi eng pastgacha skroll qilish shart emas.",
+    "Saqlanmagan o‘zgarish bilan boshqa sahifaga o‘tmoqchi bo‘lsangiz, tizim so‘raydi (Qolish / Saqlamasdan chiqish). Esc o‘zgarishlarni tashlamaydi.",
+    "Ba’zi oynalar ekrandan baland bo‘lsa, endi ichida aylantiriladi (Zamena/Qo‘shimcha ish, Bajarilmaydi, Resursni ishdan chiqarish).",
+    "Narx kartasini arxivga o‘tkazish va narx dalilini olib tashlash endi tasdiq so‘raydi."
+  ]
+}

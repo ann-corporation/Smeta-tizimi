@@ -104,7 +104,7 @@ export function SlichitelniyTayyorlik({ kompaniyaId, obyektId, onOzgardi }: { ko
       {royxat.length > 0 && (
         <div className="max-h-[320px] overflow-auto border border-border">
           <table className="w-full text-[12px]">
-            <thead><tr className="text-left text-text-mute"><th className="w-6" /><th>{t('Shifr')}</th><th>{t('Nomi')}</th><th>{t('Smeta')}</th><th>{t('Fakt')}</th><th>{t('Amal')}</th></tr></thead>
+            <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left text-text-mute"><th className="w-6" /><th>{t('Shifr')}</th><th>{t('Nomi')}</th><th>{t('Smeta')}</th><th>{t('Fakt')}</th><th>{t('Amal')}</th></tr></thead>
             <tbody>
               {royxat.map((r) => (
                 <tr key={r.qator_id} className="border-t border-border">

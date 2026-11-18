@@ -1,0 +1,10 @@
+{
+  "sana": "2026-11-15",
+  "sarlavha": "@username — odamni topish, taklif qilish, eslatish",
+  "bandlar": [
+    "Telegram’dagi kabi har foydalanuvchining noyob @username i bo‘ladi: Akkaunt → Profil bo‘limida tanlang (jonli bo‘shlik tekshiruvi va ismdan tayyor variantlar bilan).",
+    "Odamni kompaniyaga qo‘shishda bitta maydonga @username, telefon raqami yoki email yozing — turi o‘zi aniqlanadi. Odam taklifni qabul qilgach a’zo bo‘ladi, hech kim jimgina qo‘shilmaydi.",
+    "Telefon yoki email bo‘yicha topilishni sozlash mumkin: hamma / faqat kompaniyadoshlar / hech kim. Telefon va email hech kimga ko‘rsatilmaydi.",
+    "Telegram bot: /username, /men da @username, /start da Telegram username’ingizni tasdiq bilan qabul qilish va /taklif buyrug‘i."
+  ]
+}

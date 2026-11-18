@@ -1,0 +1,406 @@
+{
+ "AI ishchilar": {
+  "ru": "AI-агенты",
+  "en": "AI agents"
+ },
+ "Akkaunt markazi": {
+  "ru": "Центр аккаунта",
+  "en": "Account center"
+ },
+ "Bozor": {
+  "ru": "Рынок",
+  "en": "Marketplace"
+ },
+ "Bozor kabineti (sotuvchi)": {
+  "ru": "Кабинет продавца (рынок)",
+  "en": "Marketplace seller dashboard"
+ },
+ "Bozor moderatsiyasi": {
+  "ru": "Модерация рынка",
+  "en": "Marketplace moderation"
+ },
+ "Bozordan narx so‘rash": {
+  "ru": "Запросить цену на рынке",
+  "en": "Request a market price"
+ },
+ "Bugun": {
+  "ru": "Сегодня",
+  "en": "Today"
+ },
+ "Buxgalteriya (provodka, hisob-kitob)": {
+  "ru": "Бухгалтерия (проводки, расчёты)",
+  "en": "Accounting (entries, settlements)"
+ },
+ "Buyurtmachi kabineti": {
+  "ru": "Кабинет заказчика",
+  "en": "Client cabinet"
+ },
+ "Chizmalar": {
+  "ru": "Чертежи",
+  "en": "Drawings"
+ },
+ "Chizmalar va revizyalar": {
+  "ru": "Чертежи и ревизии",
+  "en": "Drawings and revisions"
+ },
+ "Direktor pulti": {
+  "ru": "Директорский пульт",
+  "en": "Director console"
+ },
+ "F2": {
+  "ru": "Ф-2",
+  "en": "F2"
+ },
+ "F2 import (tayyor F2 faylidan)": {
+  "ru": "Импорт Ф-2 (из готового файла)",
+  "en": "F-2 import (from a ready file)"
+ },
+ "F2 reestri": {
+  "ru": "Реестр Ф2",
+  "en": "F2 register"
+ },
+ "F2 tarixi va tasdiqlash": {
+  "ru": "История и утверждение Ф-2",
+  "en": "F-2 history & approval"
+ },
+ "F2 tayyorlash": {
+  "ru": "Подготовка Ф-2",
+  "en": "Prepare F-2"
+ },
+ "F2 va Nakopitelniy": {
+  "ru": "Ф-2 и накопительная",
+  "en": "F2 and cumulative statement"
+ },
+ "Fakt": {
+  "ru": "Факт",
+  "en": "Actuals"
+ },
+ "Fakt kiritish": {
+  "ru": "Ввод факта",
+  "en": "Enter actual progress"
+ },
+ "Fayl bog‘lash (texnik)": {
+  "ru": "Привязка файлов (техн.)",
+  "en": "File linking (technical)"
+ },
+ "Foto-dalil": {
+  "ru": "Фото-доказательства",
+  "en": "Photo evidence"
+ },
+ "Haydovchi rejimi": {
+  "ru": "Режим водителя",
+  "en": "Driver mode"
+ },
+ "Hujjat aylanishi": {
+  "ru": "Документооборот",
+  "en": "Document flow"
+ },
+ "Hujjat aylanishi (kiruvchi, xat, tasdiq)": {
+  "ru": "Документооборот (входящие, письма, согласование)",
+  "en": "Document workflow (inbox, letters, approval)"
+ },
+ "Hujjat nazorati": {
+  "ru": "Контроль документов",
+  "en": "Document control"
+ },
+ "Hujjatlar": {
+  "ru": "Документы",
+  "en": "Documents"
+ },
+ "Hujjatlar dizayni": {
+  "ru": "Оформление документов",
+  "en": "Document design"
+ },
+ "Integratsiyalar va audit": {
+  "ru": "Интеграции и аудит",
+  "en": "Integrations and audit"
+ },
+ "Ish grafigi va pul oqimi": {
+  "ru": "График работ и денежный поток",
+  "en": "Work schedule and cash flow"
+ },
+ "Ish joylarim": {
+  "ru": "Мои пространства",
+  "en": "My workspaces"
+ },
+ "Kadrlar va texnika": {
+  "ru": "Кадры и техника",
+  "en": "Staff & equipment"
+ },
+ "Kadrlar, KPI va ish haqi": {
+  "ru": "Кадры, KPI и зарплата",
+  "en": "HR, KPI and payroll"
+ },
+ "Kiruvchi (tomonlar)": {
+  "ru": "Входящие (стороны)",
+  "en": "Inbox (parties)"
+ },
+ "Kompaniya, a‘zolar va modullar": {
+  "ru": "Компания, участники и модули",
+  "en": "Company, members and modules"
+ },
+ "Kontragentlar": {
+  "ru": "Контрагенты",
+  "en": "Counterparties"
+ },
+ "Korzinka": {
+  "ru": "Корзина",
+  "en": "Trash"
+ },
+ "Kurs (o‘rganish)": {
+  "ru": "Курс (обучение)",
+  "en": "Course (learning)"
+ },
+ "Laboratoriya (sinov so‘rovlari)": {
+  "ru": "Лаборатория (запросы на испытания)",
+  "en": "Laboratory (test requests)"
+ },
+ "Loyiha ishtirokchilari": {
+  "ru": "Участники проекта",
+  "en": "Project participants"
+ },
+ "Loyiha va smeta": {
+  "ru": "Проект и смета",
+  "en": "Design and estimate"
+ },
+ "Loyiha ↔ Smeta ↔ Fakt": {
+  "ru": "Проект ↔ Смета ↔ Факт",
+  "en": "Design ↔ Estimate ↔ Actual"
+ },
+ "Loyihachi: bugun": {
+  "ru": "Проектировщик: сегодня",
+  "en": "Designer: today"
+ },
+ "Loyihalar": {
+  "ru": "Проекты",
+  "en": "Projects"
+ },
+ "M-29 (material sarfi)": {
+  "ru": "М-29 (расход материалов)",
+  "en": "M-29 (material usage)"
+ },
+ "Mening imzom": {
+  "ru": "Моя подпись",
+  "en": "My signature"
+ },
+ "Mening topshiriqlarim": {
+  "ru": "Мои задачи",
+  "en": "My tasks"
+ },
+ "Mening xizmatlarim": {
+  "ru": "Мои услуги",
+  "en": "My services"
+ },
+ "Mindmap (xarita)": {
+  "ru": "Майнд-карта",
+  "en": "Mind map"
+ },
+ "Moliya (to‘lov, xarajat)": {
+  "ru": "Финансы (оплаты, расходы)",
+  "en": "Finance (payments, expenses)"
+ },
+ "Moliya va shartnomalar": {
+  "ru": "Финансы и договоры",
+  "en": "Finance and contracts"
+ },
+ "Murojaatlar (remark, so‘rov)": {
+  "ru": "Обращения (замечания, запросы)",
+  "en": "Requests (remarks, queries)"
+ },
+ "Nakopitelniy va F3": {
+  "ru": "Накопительная ведомость и Ф-3",
+  "en": "Cumulative statement & F-3"
+ },
+ "Nakrutka (ustama)": {
+  "ru": "Накрутки",
+  "en": "Markups"
+ },
+ "Narx dalili (Обоснование цен)": {
+  "ru": "Обоснование цен",
+  "en": "Price justification"
+ },
+ "Narx manbalari (katalog, faktura, КП)": {
+  "ru": "Источники цен (каталог, счета-фактуры, КП)",
+  "en": "Price sources (catalog, invoices, quotes)"
+ },
+ "Narx tekshiruvi (usta narxi)": {
+  "ru": "Проверка цены (цена мастера)",
+  "en": "Price check (foreman's price)"
+ },
+ "Narxlar nazorati": {
+  "ru": "Контроль цен",
+  "en": "Price control"
+ },
+ "Narxlash": {
+  "ru": "Ценообразование",
+  "en": "Pricing"
+ },
+ "Naryad (brigada topshirig‘i)": {
+  "ru": "Наряд (задание бригаде)",
+  "en": "Work order (crew assignment)"
+ },
+ "Naryad (brigada)": {
+  "ru": "Наряд (бригада)",
+  "en": "Work order (crew)"
+ },
+ "Obyektlar": {
+  "ru": "Объекты",
+  "en": "Sites"
+ },
+ "Obyektlar va loyihalar": {
+  "ru": "Объекты и проекты",
+  "en": "Sites and projects"
+ },
+ "Ochiq tender (lot, taqqos, bayonnoma)": {
+  "ru": "Открытый тендер (лот, сравнение, протокол)",
+  "en": "Open tender (lot, comparison, protocol)"
+ },
+ "Platforma": {
+  "ru": "Платформа",
+  "en": "Platform"
+ },
+ "Platforma boshqaruvi": {
+  "ru": "Управление платформой",
+  "en": "Platform administration"
+ },
+ "Qarzdorlik (postavshik, subpudrat)": {
+  "ru": "Задолженность (поставщики, субподряд)",
+  "en": "Payables (suppliers, subcontractors)"
+ },
+ "Rahbar paneli": {
+  "ru": "Панель руководителя",
+  "en": "Executive dashboard"
+ },
+ "Ruxsatlar jadvali": {
+  "ru": "Таблица прав доступа",
+  "en": "Permissions matrix"
+ },
+ "Shartnomalar va tomonlar": {
+  "ru": "Договоры и стороны",
+  "en": "Contracts & parties"
+ },
+ "Shaxsiy": {
+  "ru": "Личное",
+  "en": "Personal"
+ },
+ "Smeta": {
+  "ru": "Смета",
+  "en": "Estimate"
+ },
+ "Smeta studiyasi": {
+  "ru": "Сметная студия",
+  "en": "Estimate studio"
+ },
+ "Smeta va Fakt / LRV": {
+  "ru": "Смета и факт / ЛРВ",
+  "en": "Estimate & actuals / LRV"
+ },
+ "Smetani narxlash (RES)": {
+  "ru": "Расценка сметы (РЕС)",
+  "en": "Estimate pricing (RES)"
+ },
+ "Solishtiruv (farqlar)": {
+  "ru": "Сверка (расхождения)",
+  "en": "Reconciliation (mismatches)"
+ },
+ "Solishtiruv (qayerda farq bor)": {
+  "ru": "Сверка (где расхождение)",
+  "en": "Reconciliation (where is the mismatch)"
+ },
+ "Sozlamalar": {
+  "ru": "Настройки",
+  "en": "Settings"
+ },
+ "Sozlamalar markazi": {
+  "ru": "Центр настроек",
+  "en": "Settings center"
+ },
+ "Subpudrat": {
+  "ru": "Субподряд",
+  "en": "Subcontract"
+ },
+ "Subpudrat boshqaruvi": {
+  "ru": "Управление субподрядом",
+  "en": "Subcontract management"
+ },
+ "Subpudratchi: bugun": {
+  "ru": "Субподрядчик: сегодня",
+  "en": "Subcontractor: today"
+ },
+ "Ta‘minot va resurslar": {
+  "ru": "Снабжение и ресурсы",
+  "en": "Supply and resources"
+ },
+ "Ta‘minot va sklad": {
+  "ru": "Снабжение и склад",
+  "en": "Supply & warehouse"
+ },
+ "Tekshiruvlar jurnali": {
+  "ru": "Журнал проверок",
+  "en": "Inspection log"
+ },
+ "Tender (xarid)": {
+  "ru": "Тендеры (закупки)",
+  "en": "Tenders (procurement)"
+ },
+ "Tender / xarid": {
+  "ru": "Тендеры / закупки",
+  "en": "Tenders / procurement"
+ },
+ "Tender oferta": {
+  "ru": "Тендерная оферта",
+  "en": "Tender offer"
+ },
+ "Texnik nazorat": {
+  "ru": "Технадзор",
+  "en": "Technical supervision"
+ },
+ "Tizim o‘rganishi": {
+  "ru": "Обучение системы",
+  "en": "System learning"
+ },
+ "Tizim xaritasi": {
+  "ru": "Карта системы",
+  "en": "System map"
+ },
+ "Tokenlar va obuna": {
+  "ru": "Токены и подписка",
+  "en": "Tokens & subscription"
+ },
+ "Tomonlar hujjatlari": {
+  "ru": "Документы сторон",
+  "en": "Party documents"
+ },
+ "Uy sotish": {
+  "ru": "Продажа жилья",
+  "en": "Home sales"
+ },
+ "Yangi tekshiruv (sayt)": {
+  "ru": "Новая проверка (на объекте)",
+  "en": "New site inspection"
+ },
+ "Yashirin ishlar akti (АОСР)": {
+  "ru": "Акты скрытых работ (АОСР)",
+  "en": "Hidden works acts (AOSR)"
+ },
+ "Yetkazuvchi: bugun": {
+  "ru": "Поставщик: сегодня",
+  "en": "Supplier: today"
+ },
+ "Yuk birjasi": {
+  "ru": "Биржа грузов",
+  "en": "Freight exchange"
+ },
+ "Yuk chaqirish": {
+  "ru": "Вызвать груз",
+  "en": "Request a load"
+ },
+ "Zayavkalar": {
+  "ru": "Заявки",
+  "en": "Requests"
+ },
+ "⚙ Kompaniya": {
+  "ru": "⚙ Компания",
+  "en": "⚙ Company"
+ }
+}

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="upd_title">Новая версия</string>
+    <string name="upd_body">Доступна версия %1$s. Скачайте её, чтобы обновиться.</string>
+    <string name="upd_later">Позже</string>
+    <string name="upd_get">Скачать</string>
+</resources>

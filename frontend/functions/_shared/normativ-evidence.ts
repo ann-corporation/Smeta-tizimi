@@ -1,6 +1,28 @@
 export const SHA256 = /^[0-9a-f]{64}$/;
 export const DOCUMENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_CHUNK_BYTES = 2 * 1024 * 1024;
+const MAX_UNPACKED_BYTES = 4 * 1024 * 1024;
+
+// Chunks are stored gzip-compressed (Phase 1 packaging); plain JSON stays readable. The sha256/bayt
+// checks above always apply to the stored bytes, so decompression runs only after integrity passes.
+export async function unpackChunk(bytes: ArrayBuffer): Promise<ArrayBuffer> {
+  const head = new Uint8Array(bytes, 0, Math.min(2, bytes.byteLength));
+  if (head.length < 2 || head[0] !== 0x1f || head[1] !== 0x8b) return bytes;
+  const reader = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip')).getReader();
+  const parts: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_UNPACKED_BYTES) { await reader.cancel(); throw new Error('CHUNK_UNPACKED_TOO_LARGE'); }
+    parts.push(value);
+  }
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const part of parts) { out.set(part, offset); offset += part.byteLength; }
+  return out.buffer;
+}
 
 export type NormativCandidate = {
   hujjat_id: string;
@@ -32,7 +54,7 @@ export async function normativEvidence(bucket: Pick<R2Bucket, 'get'>, row: Norma
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
   const sha = Array.from(digest, b => b.toString(16).padStart(2, '0')).join('');
   if (sha !== row.sha256) throw new Error('CHUNK_SHA_INVALID');
-  const unit = JSON.parse(new TextDecoder('utf-8', { fatal: true, ignoreBOM: false }).decode(bytes)) as
+  const unit = JSON.parse(new TextDecoder('utf-8', { fatal: true, ignoreBOM: false }).decode(await unpackChunk(bytes))) as
     { source_sha?: unknown; matn?: unknown; iqtibos_anchor?: unknown } | null;
   if (unit?.source_sha !== row.source_sha || typeof unit.matn !== 'string' || !unit.matn.trim()) {
     throw new Error('CHUNK_TEXT_UNAVAILABLE');

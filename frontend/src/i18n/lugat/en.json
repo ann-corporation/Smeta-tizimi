@@ -2692,7 +2692,7 @@
   "Saqlandi. Profilingiz yopiq — faqat siz taklif yuborgan kompaniya ko‘radi.": "Saved. Your profile is closed — only companies you send an offer to can see it.",
   "Siz": "You",
   "Siz bu yerda ishlaysiz": "You work here",
-  "Smeta tizimi tasdiqlagan tajriba": "Experience verified by Smeta tizimi",
+  "QURAI tasdiqlagan tajriba": "Experience verified by QURAI",
   "ta F2": "F2s",
   "Tajriba (yil)": "Experience (years)",
   "yil tajriba": "years of experience",
@@ -3207,5 +3207,6 @@
   "To‘liq rahbar paneli": "Full executive dashboard",
   "To‘lov yozuvlari kiritilmagan": "No payment records entered",
   "Topshiriq ochiq": "Tasks open",
-  "Xavfli obyekt yo‘q": "No risky objects"
+  "Xavfli obyekt yo‘q": "No risky objects",
+  "Kabinetni almashtirish": "Switch cabinet"
 }

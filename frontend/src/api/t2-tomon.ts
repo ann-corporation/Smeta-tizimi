@@ -66,13 +66,13 @@ async function chaqir(url: string, init?: RequestInit): Promise<Xom> {
 export async function tomonOqi<T>(bolim: string, kompaniyaId: number, params: Record<string, string | number | null | undefined> = {}): Promise<TomonJavob<T>> {
   const q = new URLSearchParams({ bolim, kompaniya_id: String(kompaniyaId) });
   for (const [k, v] of Object.entries(params)) if (v != null && v !== '') q.set(k, String(v));
-  const d = await chaqir('/api/tomon?' + q.toString(), { credentials: 'same-origin' });
+  const d = await chaqir('/api/tomon?' + q.toString(), { credentials: 'same-origin' } as RequestInit);
   if (d.ok === false) return { ok: false, error: d.error || 'Xato', code: d.code };
   return { ok: true, natija: ('natija' in d ? d.natija : d) as T };
 }
 
 export async function tomonYoz<T = Record<string, unknown>>(amal: string, kompaniyaId: number, yuk: Record<string, unknown> = {}): Promise<TomonJavob<T>> {
-  const d = await chaqir('/api/tomon', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amal, kompaniya_id: kompaniyaId, ...yuk }) });
+  const d = await chaqir('/api/tomon', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amal, kompaniya_id: kompaniyaId, ...yuk }) } as RequestInit);
   if (d.ok === false) return { ok: false, error: d.error || 'Xato', code: d.code };
   return { ok: true, natija: d as unknown as T };
 }

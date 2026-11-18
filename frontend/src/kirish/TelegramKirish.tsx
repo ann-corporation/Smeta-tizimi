@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Loader2, Send } from 'lucide-react';
 import { t } from '../i18n/til';
 import { telegramBoshla, telegramHolat } from '../api/kirish-taklif';
+import { ilovaWebViewmi } from './IlovaKirish';
 
 export type TelegramNatija = { yangi: boolean };
 type Holat = { nonce: string; sir: string; belgi: string; havola: string; tugaydi: number };
@@ -63,7 +64,7 @@ export function TelegramKirish({ onKirdi, ismKerak = false }: { onKirdi: (n: Tel
       <div className="entry-auth-form" role="status" aria-live="polite">
         <p className="entry-auth-note">{t('1) Telegramni oching. 2) Botda ko‘rsatilgan raqam saytdagi bilan bir xil ekanini tekshiring. 3) «Raqamimni yuborish» tugmasini bosing.')}</p>
         <p className="entry-auth-note" style={{ textAlign: 'center' }}>{t('Moslik raqami')}: <strong style={{ fontSize: 28, letterSpacing: 6 }} data-testid="tg-belgi">{h.belgi}</strong></p>
-        <a className="entry-auth-submit" href={h.havola} target="_blank" rel="noreferrer noopener" style={{ textAlign: 'center', textDecoration: 'none' }}>
+        <a className="entry-auth-submit" href={h.havola} target={ilovaWebViewmi() ? undefined : '_blank'} rel="noreferrer noopener" style={{ textAlign: 'center', textDecoration: 'none' }}>
           <Send size={16} aria-hidden="true" /> {t('Telegramni ochish')}
         </a>
         <p className="entry-auth-note"><Loader2 size={13} className="animate-spin" aria-hidden="true" style={{ display: 'inline' }} /> {t('Tasdiq kutilmoqda… (5 daqiqa)')}</p>

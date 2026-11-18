@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { tekshir } from '../_shared/auth';
 import { kodXesh, onRequestGet, onRequestPost, PAROLLI_HISOB_KOD, PAROLLI_HISOB_XABAR, STANDART_FROM, xatTanasi, yangiKod } from './kirish-email';
 
-const ENV = { SESSIYA_KALIT: 'k'.repeat(32), SUPABASE_URL: 'https://proj.supabase.co', SUPABASE_KEY: 'service', RESEND_API_KEY: 're_x', EMAIL_FROM: 'Smeta OS <kod@smeta.uz>' };
+const ENV = { SESSIYA_KALIT: 'k'.repeat(32), SUPABASE_URL: 'https://proj.supabase.co', SUPABASE_KEY: 'service', RESEND_API_KEY: 're_x', EMAIL_FROM: 'QURAI <kod@smeta.uz>' };
 const TID = '11111111-1111-4111-8111-111111111111';
 const post = (body: unknown, env: Record<string, unknown> = ENV, headers: Record<string, string> = {}) =>
   onRequestPost({ request: new Request('https://t.example/api/kirish-email', { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) }), env, data: {} } as never);
@@ -123,5 +123,14 @@ describe('yordamchilar', () => {
     const x = xatTanasi('123456');
     expect(x.text).toContain('123456');
     expect(x.html).toContain('123456');
+  });
+});
+
+describe('Turnstile (TURNSTILE_SECRET bilan yoqiladi)', () => {
+  it('token yo\'q -> 403 TURNSTILE_KERAK, kod yaratilmaydi', async () => {
+    const f = mockFetch({});
+    const r = await post({ amal: 'kod', email: 'a@b.uz' }, { ...ENV, TURNSTILE_SECRET: 's' }, { Origin: 'https://t.example' });
+    expect(r.status).toBe(403); expect(await r.json()).toMatchObject({ code: 'TURNSTILE_KERAK' });
+    expect(f).not.toHaveBeenCalled();
   });
 });

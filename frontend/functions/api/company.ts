@@ -35,11 +35,17 @@ const RPC = {
   /* 2026-11-13 (L0): oddiy foydalanuvchi o'z (birinchi) kompaniyasini DARHOL ochadi va unda boss bo'ladi (tasdiqsiz, 1 ta; STIR ixtiyoriy,
      band STIR rad). Qo'shimcha kompaniyalar — eski royxat_soraw oqimi (superadmin tasdig'i). Cheklovlar RPC ichida (20261217210000). */
   ozi_och: 't2_kompaniya_ozi_och_v1',
+  /* 2026-11-17 (egasi): yangi foydalanuvchi 1000 token bilan sinov ish joyini bir tugmada boshlaydi (20270102000000); demo namuna - faqat so'ralganda. */
+  sinov_boshlash: 't2_sinov_boshlash_v1',
+  sinov_demo: 't2_sinov_demo_v1',
   royxat_soraw: 't2_kompaniya_royxat_soraw_v1',
   royxat_royxat: 't2_kompaniya_royxat_royxat_v1',
   royxat_tasdiqla: 't2_kompaniya_royxat_tasdiqla_v1',
   royxat_rad_et: 't2_kompaniya_royxat_rad_et_v1',
   member_add: 't2_azolik_qosh_v1',
+  /* USERNAME-V1: @username / telefon / email (aniq) bo'yicha KUTILADIGAN taklif — maqsad foydalanuvchi qabul qilmaguncha a'zo emas
+     (qabul: /api/profil taklif_javob). `member_` prefiksi -> company.member.manage; direktor tekshiruvi RPC ichida. */
+  member_invite: 't2_kompaniya_taklif_yubor_v1',
   member_role: 't2_azolik_rol_ozgartir_v1',
   member_remove: 't2_azolik_ochir_v1',
   /* T2-AUTH-PASSWORD-MIGRATION-001: director issues/resets a bcrypt password
@@ -81,8 +87,12 @@ function statusFor(code: string, raw: string): number {
   if (code === 'AUTHORIZATION_DENIED' || code === 'SUPERADMIN_REQUIRED' || code === 'MANAGE_ROLE_REQUIRED' || /42501|direktor|a'zo|azo|membership|PERMISSION/i.test(code + raw)) return 403;
   if (['PROTECTED_AUTHORITY','MANAGEMENT_ROLE_REQUIRED','ACCOUNT_OWNER_REQUIRED'].includes(code)) return 403;
   if (code === 'OPERATION_ID_REQUIRED' || code === 'PAROL_QISQA' || code === 'RUXSAT_NOTOGRI' || /INVALID|REQUIRED/.test(code)) return 400;
-  if (code === 'OZI_OCHILGAN' || code === 'INN_BAND') return 409;
+  if (code === 'OZI_OCHILGAN' || code === 'INN_BAND' || code === 'SINOV_KERAKMAS') return 409;
+  if (code === 'SINOV_YOQ' || code === 'DEMO_YOQ') return 404;
   if (code === 'ALREADY_MEMBER' || code === 'LAST_DIRECTOR' || code === 'STALE_VERSION') return 409;
+  if (code === 'TOPILMADI') return 404;
+  if (code === 'LIMIT') return 429;
+  if (code === 'RUXSAT_YOQ') return 403;
   if(code==='OPERATION_CONFLICT') return 409;
   if(code==='LAST_SUPERADMIN') return 409;
   // T2-COMPANY-CREATE-GATE-001: so'rov allaqachon ko'rib chiqilgan (qayta tasdiqlash/rad etish).
@@ -124,6 +134,16 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       });
       if (!r.ok || !j) {
         console.error('[company authorize] t2_effective_authorization_v1', r.status, text.slice(0, 300));
+        return Response.json({ ok: false, code: 'CONFIG' }, { status: 502 });
+      }
+      return Response.json(j);
+    }
+
+    // ── Sinov holati (balans, demo, boshlash mumkinmi) — faqat o'qish, actor sessiyadan ──
+    if (url.searchParams.get('sinov') === '1') {
+      const { r, j, text } = await callRpc(ctx.env, 't2_sinov_holat_v1', { p_actor_id: a.id });
+      if (!r.ok || !j || j.ok !== true) {
+        console.error('[company sinov] t2_sinov_holat_v1', r.status, text.slice(0, 300));
         return Response.json({ ok: false, code: 'CONFIG' }, { status: 502 });
       }
       return Response.json(j);
@@ -218,12 +238,16 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       body={p_actor_id:a.id,p_kompaniya_id:Number(b.kompaniya_id),p_azolik_id:Number(b.azolik_id),p_permissions:b.permissions,p_expected_version:b.expected_version,p_operation_id:opId};
     } else if (action === 'create' || action === 'royxat_soraw' || action === 'ozi_och') {
       body = { p_actor_id: a.id, p_nom: String(b.nom ?? ''), p_inn: b.inn == null ? null : String(b.inn), p_telefon: b.telefon == null ? null : String(b.telefon), p_operation_id: opId };
+    } else if (action === 'sinov_boshlash' || action === 'sinov_demo') {
+      body = { p_actor_id: a.id, p_operation_id: opId };
     } else if (action === 'royxat_tasdiqla') {
       body = { p_actor_id: a.id, p_royxat_id: Number(b.royxat_id), p_operation_id: opId };
     } else if (action === 'royxat_rad_et') {
       body = { p_actor_id: a.id, p_royxat_id: Number(b.royxat_id), p_sabab: b.sabab == null ? null : String(b.sabab), p_operation_id: opId };
     } else if (action === 'member_add') {
       body = { p_actor_id: a.id, p_kompaniya_id: Number(b.kompaniya_id), p_login: String(b.login ?? ''), p_rol: String(b.rol ?? ''), p_email: b.email == null ? null : String(b.email), p_ism: b.ism == null ? null : String(b.ism), p_operation_id: opId };
+    } else if (action === 'member_invite') {
+      body = { p_actor_id: a.id, p_kompaniya_id: Number(b.kompaniya_id), p_qiymat: String(b.qiymat ?? '').slice(0, 254), p_rol: String(b.rol ?? ''), p_operation_id: opId };
     } else if (action === 'member_role') {
       body = { p_actor_id: a.id, p_azolik_id: Number(b.azolik_id), p_yangi_rol: String(b.rol ?? ''), p_operation_id: opId };
     } else if (action === 'azolik_ruxsat_ber' || action === 'azolik_ruxsat_olib_tashla') {
@@ -247,12 +271,14 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const code = (j && j.code) || 'COMPANY_COMMAND_FAILED';
       // Domen xato kodlari (LAST_DIRECTOR, ALREADY_MEMBER, ROLE_INVALID, ...) frontendga kerak — ular xavfsiz.
       const known = code && code !== 'COMPANY_COMMAND_FAILED';
-      if (known) return Response.json({ ok: false, code, reason: j?.reason, versiya: j?.versiya, xato: j?.xato }, { status: statusFor(code, text) });
+      if (known) return Response.json({ ok: false, code, reason: j?.reason, versiya: j?.versiya, xato: j?.xato,
+        ...(code === 'TOPILMADI' ? { tur: j?.tur, telefon_taklif: j?.telefon_taklif === true, telefon: typeof j?.telefon === 'string' ? j.telefon : null } : {}) }, { status: statusFor(code, text) });
       return xavfsizXato('UPSTREAM', statusFor(code, text), text);
     }
-    if (action === 'ozi_och') vakolatKeshTozala(a.id); // yangi a'zolik darhol ko'rinsin
+    if (action === 'ozi_och' || action === 'sinov_boshlash') vakolatKeshTozala(a.id); // yangi a'zolik darhol ko'rinsin
     return Response.json({ ...j, operation_id: opId });
   } catch (err: any) {
     return xavfsizXato('UPSTREAM', 500, err?.message || String(err));
   }
 };
+

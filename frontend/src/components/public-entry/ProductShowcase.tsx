@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const BRAND = 'TIZIM_02';
+const BRAND = 'QURAI';
 
 export type ProductScreenshot = { src: string; alt: string; caption: string };
 export function ProductShowcase({ screens, title, note, expand, close, start, onStart }: {

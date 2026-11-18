@@ -288,7 +288,7 @@ describe('ChatGPT moslik', () => {
     expect(OB_ID.test('obyekt:12')).toBe(true);
     expect(OB_ID.test('obyekt:12; drop')).toBe(false);
     expect((await qidir('x', mockMuhit(() => { throw new Error('baza'); }).mu, PTO17)).isError).toBe(true);
-    expect(obyektUrl(undefined, 5)).toBe('https://smeta-tizimi.pages.dev/?obyekt=5');
+    expect(obyektUrl(undefined, 5)).toBe('https://qurai.uz/?obyekt=5');
   });
 });
 

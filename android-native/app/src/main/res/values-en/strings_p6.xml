@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- P6: documents -->
+    <string name="docs_title">Documents</string>
+    <string name="docs_button">Documents</string>
+    <string name="docs_f2_button">F-2 documents (PDF / Excel)</string>
+    <string name="docs_filter_all">All</string>
+    <string name="docs_filter_f2">F-2</string>
+    <string name="docs_dismiss">Dismiss</string>
+    <string name="docs_empty">No documents</string>
+    <string name="docs_empty_hint">Documents saved for this object appear here.</string>
+    <string name="docs_empty_f2">No F-2 documents</string>
+    <string name="docs_type_f2">F-2</string>
+    <string name="docs_type_f3">F-3</string>
+    <string name="docs_type_pack">Monthly pack</string>
+    <string name="docs_type_other">Document</string>
+    <string name="docs_cached">Downloaded</string>
+    <string name="docs_pending">Being prepared on the server</string>
+    <string name="docs_downloading">Downloading the document…</string>
+    <string name="docs_share">Share</string>
+    <string name="docs_save">Save</string>
+    <string name="docs_saved">Document saved</string>
+    <string name="docs_open_with">Open in another app</string>
+    <string name="docs_no_preview">This file type cannot be shown in the app. Open it in another app or share it.</string>
+    <string name="docs_no_app">No app found to open this file.</string>
+    <string name="docs_page_of">%1$d / %2$d</string>
+    <string name="docs_err_offline">You are offline and this document has not been downloaded yet.</string>
+    <string name="docs_err_pay">This is a paid document: open it on the website with tokens first.</string>
+    <string name="docs_err_forbidden">You do not have access to this document.</string>
+    <string name="docs_err_big">The file is too large (over 25 MB).</string>
+    <string name="docs_err_missing">The file was not found on the server.</string>
+    <string name="docs_err_generic">Could not open the document. Try again.</string>
+    <!-- P6: Jarvis from an object -->
+    <string name="ja_from_object">Jarvis: this object</string>
+    <string name="ja_object_scope">Questions about this object</string>
+    <string name="ja_q_money_obj_text">What is this object\'s estimate value with markup and VAT?</string>
+    <!-- P6: notifications centre -->
+    <string name="nt_title">Notifications</string>
+    <string name="nt_open">Open notifications</string>
+    <string name="nt_filter_all">All</string>
+    <string name="nt_filter_unread">Unread</string>
+    <string name="nt_waiting">Waiting for approval</string>
+    <string name="nt_waiting_none">No documents in your queue</string>
+    <string name="nt_unread_n">Unread: %1$d</string>
+    <string name="nt_empty">No notifications</string>
+    <string name="nt_mark_all">Mark all as read</string>
+    <string name="nt_other">New message</string>
+</resources>

@@ -33,6 +33,15 @@
 
   /* Tegish maydoni 44px (jadval ichidagi zich boshqaruvlar bundan mustasno). */
   .os-workspace :is(button, [role="button"], select, .tugma, .fz-btn, a.fz-btn, input:not([type="checkbox"]):not([type="radio"]):not([type="range"])):not(:is(table, [role="grid"], [role="table"], .studio-desk) *) { min-height: 44px; }
+  /* Kichik tugmalar (20x44, 29x44, 34x44, 36x44, 28x44): ko'rinish o'zgarmaydi, tegish maydoni kamida 44x44 —
+   * ko'rinmas ::after qoplama (jadval ichidagi zich boshqaruvlar va absolyut/yopishqoq elementlar bundan mustasno). */
+  :is(.os-context-bar, .os-workspace) :is(.fz-btn--sm, .fz-btn--icon, button.h-7, button.h-8, button.h-9, button.h-10, button.h-11, button.rounded.border, [role="tab"], a.fz-tab):not(:is(table, [role="grid"], [role="table"], .studio-desk) *):not(.absolute):not(.fixed):not(.sticky) {
+    position: relative;
+  }
+  :is(.os-context-bar, .os-workspace) :is(.fz-btn--sm, .fz-btn--icon, button.h-7, button.h-8, button.h-9, button.h-10, button.h-11, button.rounded.border, [role="tab"], a.fz-tab):not(:is(table, [role="grid"], [role="table"], .studio-desk) *):not(.absolute):not(.fixed):not(.sticky)::after {
+    content: ''; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: max(100%, 44px); height: max(100%, 44px); min-width: 44px; min-height: 44px;
+  }
   .os-workspace :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) { font-size: 16px; } /* iOS fokusda yaqinlashtirmasin */
   .fz-sidebar .fz-nav__item, .fz-sidebar .fz-nav__group { min-height: 44px; }
   .fz-sidebar { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
@@ -73,7 +82,12 @@ html[data-jarvis-ochiq] .mobil-tab { display: none !important; }
   }
   .mobil-tab__item > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mobil-tab__item--faol { color: var(--accent); }
-  .mobil-tab__item--ai { color: var(--accent); }
   .mobil-tab__item:focus-visible { outline: 2px solid var(--focus, var(--accent)); outline-offset: -3px; }
 }
 @media print { .mobil-tab { display: none !important; } }
+/* Android ilova ichidagi veb konteyner (lib/app-embed.ts): ilovaning o'z yuqori paneli/pastki navigatsiyasi bor — veb yon menyu va
+ * yuqori panelning takrori yashiriladi, faqat «QURAI · Android» belgisi bir marta qoladi. */
+.os-app-shell[data-embed] :is(.fz-shell-rail, .os-sidebar-backdrop, .mobil-tab, .os-menu-button) { display: none !important; }
+.os-app-shell[data-embed] .os-context-bar > :not([data-yuza]) { display: none !important; }
+.os-app-shell[data-embed] .os-context-bar { min-height: 0; padding-block: 4px; }
+.os-app-shell[data-embed] .os-workspace { padding-bottom: env(safe-area-inset-bottom, 0); }

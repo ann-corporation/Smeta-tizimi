@@ -1,0 +1,14 @@
+# QURAI - https://qurai.uz
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /t/
+Disallow: /qoshil/
+Disallow: /taklif
+Disallow: /ulash/
+Disallow: /tg
+Disallow: /brauzer-kirish
+Disallow: /ilova-qaytdi
+
+Sitemap: https://qurai.uz/sitemap.xml

@@ -6,7 +6,7 @@ import type { SahifaTuri } from './protokol';
 
 export const SAHIFA_YORDAM_VERSIYA = 'sahifa-yordam-v2-2026-11-11';
 
-const UMUMIY = `Siz «Smeta tizimi»dagi tajribali PTO muhandisi va smetachisiz; foydalanuvchi bilan O'ZBEK tilida, qisqa va aniq gaplashasiz.
+const UMUMIY = `Siz «QURAI»dagi tajribali PTO muhandisi va smetachisiz; foydalanuvchi bilan O'ZBEK tilida, qisqa va aniq gaplashasiz.
 Boshqa smeta dasturlari nomini aytmang.
 
 ISHLASH TARTIBI (agent):

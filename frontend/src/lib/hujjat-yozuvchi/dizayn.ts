@@ -55,6 +55,8 @@ export type HujjatDizayn = {
    * 0 — cheklovsiz (to'liq o'raladi); N — qator balandligi ko'pi bilan N matn qatori (matn o'ralgan qoladi).
    */
   qatorMaks: number;
+  /** «Logo va kolontitul»: QURAI belgisi QR markazida va chop ko'rinishi sarlavhasi/pastki qismida (sukut yoqilgan). Katak qiymatlariga ta'sir qilmaydi. */
+  logoKolontitul: boolean;
   daraja: Record<DarajaKalit, DarajaUslubi>;
 };
 
@@ -77,6 +79,7 @@ const BAZA: Omit<HujjatDizayn, 'preset' | 'daraja'> = {
   chekka: { chap: 0.4, ong: 0.4, yuqori: 0.5, past: 0.6 },
   yonalish: 'auto',
   qatorMaks: 3,
+  logoKolontitul: true,
 };
 
 export const DIZAYN_PRESETLAR: Record<DizaynPreset, HujjatDizayn> = {
@@ -169,6 +172,7 @@ export function dizaynTozala(xom: unknown): HujjatDizayn {
     },
     yonalish: r.yonalish === 'portrait' || r.yonalish === 'landscape' ? r.yonalish : 'auto',
     qatorMaks: Math.round(son(r.qatorMaks, 0, 20, p.qatorMaks)),
+    logoKolontitul: typeof r.logoKolontitul === 'boolean' ? r.logoKolontitul : p.logoKolontitul,
     daraja,
   };
 }

@@ -8,7 +8,8 @@ import { vaqtliOqish } from './vaqtli-fetch';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { capabilityOverrideSet } from './t2-control';
 
-export type Modul = { kod: string; nom: string; izoh: string | null; holat: 'on' | 'off'; manba: string; versiya: number };
+import type { Modul } from '../lib/modul-tur';
+export type { Modul };
 
 export async function modulHolatOl(kompaniyaId: number): Promise<Modul[]> {
   const r = await vaqtliOqish('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soro: 'modul_holat_v1', kompaniya_id: kompaniyaId }) });

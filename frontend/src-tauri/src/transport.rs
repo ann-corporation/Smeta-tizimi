@@ -8,7 +8,7 @@ use zeroize::Zeroizing;
 // Compile-time only: IPC, config files and runtime environment cannot choose a server.
 const BFF: &str = match option_env!("SMETA_DESKTOP_BFF_ORIGIN") {
     Some(origin) => origin,
-    None => "https://smeta-tizimi.pages.dev",
+    None => "https://qurai.uz",
 };
 fn validated_origin(origin: &str, allow_loopback: bool) -> NativeResult<bool> {
     let url = tauri::Url::parse(origin).map_err(|_| "DESKTOP_BFF_ORIGIN_INVALID")?;
@@ -120,6 +120,7 @@ fn gateway_request(
                     | "/api/sb-yoz"
                     | "/api/gas"
                     | "/api/obyekt-paket"
+                    | "/api/qulf"
             )
         )
     {
@@ -176,6 +177,7 @@ fn request_path(
             | "/api/sb-yoz"
             | "/api/gas"
             | "/api/obyekt-paket"
+            | "/api/qulf"
             | "/api/desktop/lease"
     ) {
         return Err("DESKTOP_PATH_DENIED");
@@ -567,6 +569,7 @@ mod tests {
     };
     #[test]
     fn build_pinned_origin_is_canonical_https_or_explicit_e2e_loopback() {
+        assert!(validated_origin("https://qurai.uz", false).unwrap());
         assert!(validated_origin("https://smeta-tizimi.pages.dev", false).unwrap());
         assert!(validated_origin("https://synthetic-preview.pages.dev", false).unwrap());
         for origin in [

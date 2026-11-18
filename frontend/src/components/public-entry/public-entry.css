@@ -41,9 +41,10 @@
 .entry-header { position: sticky; top: 0; z-index: 50; height: var(--pe-header); display: flex; align-items: center; gap: 24px;
   padding: 0 max(var(--pe-gutter), calc((100vw - var(--pe-max)) / 2)); background: color-mix(in srgb, var(--bg) 94%, transparent); border-bottom: 1px solid var(--border); }
 .entry-brand { display: flex; align-items: center; gap: 10px; font: 700 17px/1 var(--font-display); letter-spacing: .08em; }
-.entry-brand-mark { display: grid; place-items: center; width: 30px; height: 30px; border: 1.5px solid var(--accent); transform: rotate(45deg); border-radius: 4px; }
-.entry-brand-mark i { width: 10px; height: 10px; background: var(--accent); }
-.entry-brand-number { font: 600 11px/1 var(--font-mono); color: var(--accent-text); align-self: flex-start; margin-top: 2px; }
+.entry-brand-mark { width: 34px; height: 34px; flex: none; color: var(--text); overflow: visible; }
+.entry-brand-ring { stroke: var(--accent); }
+.entry-brand-word { display: inline-flex; align-items: baseline; letter-spacing: .14em; }
+.entry-brand-number { color: var(--accent-text); font: inherit; font-weight: 500; letter-spacing: .14em; }
 .entry-header nav { display: flex; gap: 22px; font-size: 13px; color: var(--text-dim); margin-left: 12px; }
 .entry-header nav a { padding: 6px 0; transition: color .15s; }
 .entry-header nav a:hover { color: var(--text); }
@@ -635,3 +636,5 @@
 .entry-dl-cta { align-self: flex-start; max-width: 100%; white-space: normal; text-align: center; }
 .entry-dl-web-link { padding-inline: 0; }
 .entry-dl-ios-art { max-width: 100%; height: auto; color: var(--accent-text); }
+
+.entry-yuza { margin-left: 2px; font: 500 12px/1 var(--font-display); letter-spacing: .06em; color: var(--text-dim, currentColor); opacity: .8; }

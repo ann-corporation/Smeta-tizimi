@@ -1,4 +1,5 @@
-export const DESKTOP_API_ORIGIN = 'https://smeta-tizimi.pages.dev';
+import { webPublicOrigin } from '../lib/sayt-manzil';
+export const DESKTOP_API_ORIGIN = webPublicOrigin(); // lib/sayt-manzil.ts: VITE_PUBLIC_ORIGIN yoki https://qurai.uz
 export type NativeInvoke = <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
 export type NativeHttpResponse = { status: number; body: string; etag: string | null };
 

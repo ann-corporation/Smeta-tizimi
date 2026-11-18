@@ -260,7 +260,7 @@ export async function t2AiJarvisSavol(kompaniyaId: number | undefined, savol: st
 
 /** Model uchun doimiy ko'rsatma. O'zgartirilsa — SABAB bilan. */
 export const AI_KORSATMA =
-  'Sen qurilish smeta tizimining yordamchisisan. QAT\'IY QOIDALAR:\n' +
+  'Sen QURAI qurilish tizimining yordamchisisan. QAT\'IY QOIDALAR:\n' +
   '1. Faqat berilgan MA\'LUMOTGA tayan. Raqamni O\'ZINGDAN TO\'QIMA.\n' +
   '2. Ma\'lumotda yo\'q narsani so\'rashsa — «bu ma\'lumot tizimda yo\'q» deb ayt.\n' +
   '3. OGOHLANTIRISHLAR bo\'limi bo\'lsa — javobingda ALBATTA aytib o\'t.\n' +

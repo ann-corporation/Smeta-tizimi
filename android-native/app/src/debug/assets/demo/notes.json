@@ -1,0 +1,7 @@
+{"ok":true,"qatorlar":[
+ {"id":31,"kompaniya_id":1,"mavzu":"hujjat.tasdiq_kutmoqda","sarlavha_kalit":"bildirishnoma.hujjat.tasdiq_kutmoqda","parametrlar":{},"havola":null,"oqildi":null,"yaratildi":"2026-11-14T08:10:00Z"},
+ {"id":30,"kompaniya_id":1,"mavzu":"hujjat.muddat_otdi","sarlavha_kalit":"bildirishnoma.hujjat.muddat_otdi","parametrlar":{},"havola":null,"oqildi":null,"yaratildi":"2026-11-13T16:45:00Z"},
+ {"id":29,"kompaniya_id":1,"mavzu":"hujjat.tasdiqlandi","sarlavha_kalit":"bildirishnoma.hujjat.tasdiqlandi","parametrlar":{},"havola":null,"oqildi":"2026-11-13T10:00:00Z","yaratildi":"2026-11-12T14:20:00Z"},
+ {"id":28,"kompaniya_id":1,"mavzu":"hujjat.xat_keldi","sarlavha_kalit":"bildirishnoma.hujjat.xat_keldi","parametrlar":{"xat_id":9},"havola":null,"oqildi":null,"yaratildi":"2026-11-11T12:00:00Z"},
+ {"id":27,"kompaniya_id":1,"mavzu":"chizma.chiqdi","sarlavha_kalit":"bildirishnoma.chizma.chiqdi","parametrlar":{},"havola":null,"oqildi":"2026-11-10T09:00:00Z","yaratildi":"2026-11-09T09:00:00Z"}
+],"oqilmagan":3}

@@ -35,7 +35,7 @@ import { balandlik, qatorBalandligi } from './qator-balandlik';
 import { DARAJALAR, darajaAniqla, joriyHujjatDizayni, sonUzunligi, type DarajaKalit, type HujjatDizayn } from './dizayn';
 
 /** Barcha rasmiy hujjatlar kolontituli — tizim nomi (egasi: hujjatlarda tizim reklamasi bo'lsin). */
-export const HUJJAT_KOLONTITUL = 'Сформировано в системе «Smeta tizimi» — smeta-tizimi.pages.dev';
+export const HUJJAT_KOLONTITUL = 'Сформировано в системе «QURAI» — qurai.uz';
 
 export type UstunTuri = 'tartib' | 'kod' | 'matn' | 'birlik' | 'hajm' | 'narx' | 'pul' | 'foiz' | 'norma' | 'texnik';
 

@@ -30,7 +30,7 @@ export interface Env {
   /** Ixtiyoriy sirlar: «Google bilan kirish» (OAuth 2.0 code + PKCE). Ikkalasi ham bo'lsagina tugma ko'rinadi. Faqat nomlar — qiymat repoda yo'q. */
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
-  /** Ixtiyoriy var: veb-ilova manzili (ChatGPT search/fetch natijalaridagi `url` uchun; standart https://smeta-tizimi.pages.dev). */
+  /** Ixtiyoriy var: veb-ilova manzili (ChatGPT search/fetch natijalaridagi `url` uchun; standart https://qurai.uz). */
   SAYT_URL?: string;
   /** Ixtiyoriy var: tranzaksiya vaqt chegarasi (ms). */
   SMETA_MCP_TIMEOUT_MS?: string;

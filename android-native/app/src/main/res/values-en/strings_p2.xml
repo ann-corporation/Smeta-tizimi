@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- P2 strings, English. -->
+<resources>
+    <string name="m_vat_incl">Incl. VAT</string>
+    <string name="m_markup">With markup (excl. VAT)</string>
+    <string name="m_plain">Without markup (excl. VAT)</string>
+    <string name="m_markup_unknown">The marked-up total is not loaded yet, or you have no right to see it.</string>
+    <string name="m_object_value">Object value</string>
+    <string name="m_estimate">Estimate</string>
+
+    <string name="p2_section_all">All sections</string>
+    <string name="p2_section_label">Section</string>
+
+    <string name="p2_signout_title">There are unsent records</string>
+    <string name="p2_signout_send">Send now</string>
+    <string name="p2_signout_keep">Keep and sign out</string>
+    <string name="p2_signout_delete">Delete and sign out</string>
+    <string name="p2_signout_keep_hint">Kept records stay on this device and are sent after the next sign-in.</string>
+    <string name="p2_signout_delete_hint">Deleting removes the records and photos for good.</string>
+    <string name="p2_signout_sending">Sending…</string>
+
+    <string name="p2_photo_title">Photo evidence</string>
+    <string name="p2_photo_cam_perm_title">Camera access needed</string>
+    <string name="p2_photo_cam_perm_body">Allow camera access to take a photo, or pick one from the gallery.</string>
+    <string name="p2_photo_grant">Allow</string>
+    <string name="p2_photo_gallery">Gallery</string>
+    <string name="p2_photo_capture">Take photo</string>
+    <string name="p2_photo_retake">Retake</string>
+    <string name="p2_photo_note">Note (optional)</string>
+    <string name="p2_photo_row">Estimate row</string>
+    <string name="p2_photo_row_none">Not linked (general evidence)</string>
+    <string name="p2_photo_row_pick">Pick a row</string>
+    <string name="p2_photo_row_change">Change</string>
+    <string name="p2_photo_gps">Add the location stored in the photo</string>
+    <string name="p2_photo_gps_hint">Used only if the photo itself carries it. Off by default; the app never asks for location access.</string>
+    <string name="p2_photo_queue">Add to queue</string>
+    <string name="p2_photo_processing">Preparing the photo…</string>
+    <string name="p2_photo_failed">The photo could not be read. Try again.</string>
+    <string name="p2_photo_info">%1$d × %2$d · %3$s</string>
+    <string name="p2_photo_entry">Photo evidence</string>
+    <string name="p2_photo_pick_title">Pick an estimate row</string>
+    <string name="p2_card_photo">Photo evidence</string>
+
+    <string name="p2_appr_title">Approvals</string>
+    <string name="p2_appr_empty">No documents waiting for approval</string>
+    <string name="p2_appr_empty_hint">New documents will appear here.</string>
+    <string name="p2_appr_overdue">Overdue</string>
+    <string name="p2_appr_from">From: %1$s</string>
+    <string name="p2_appr_due">Due: %1$s</string>
+    <string name="p2_appr_detail">Document</string>
+    <string name="p2_appr_type">Type</string>
+    <string name="p2_appr_number">Number</string>
+    <string name="p2_appr_object">Object</string>
+    <string name="p2_appr_date">Date</string>
+    <string name="p2_appr_total">Document total</string>
+    <string name="p2_appr_total_note">The total stored in the document. The markup / no-markup split is on the object card.</string>
+    <string name="p2_appr_steps">Approval steps</string>
+    <string name="p2_step_kutilmoqda">Waiting</string>
+    <string name="p2_step_navbat">Current</string>
+    <string name="p2_step_tasdiqlandi">Approved</string>
+    <string name="p2_step_rad">Rejected</string>
+    <string name="p2_step_qaytarildi">Returned</string>
+    <string name="p2_appr_approve">Approve</string>
+    <string name="p2_appr_return">Return</string>
+    <string name="p2_appr_reject">Reject</string>
+    <string name="p2_appr_comment">Comment</string>
+    <string name="p2_appr_comment_required">Write the reason</string>
+    <string name="p2_appr_confirm_approve">Approve this document?</string>
+    <string name="p2_appr_confirm_return">Return this document for rework?</string>
+    <string name="p2_appr_confirm_reject">Reject this document?</string>
+    <string name="p2_appr_confirm_yes">Yes, continue</string>
+    <string name="p2_appr_done_approve">Document approved</string>
+    <string name="p2_appr_done_return">Document returned</string>
+    <string name="p2_appr_done_reject">Document rejected</string>
+    <string name="p2_appr_not_my_turn">It is not your turn right now.</string>
+    <string name="p2_appr_err_turn">Your decision is not expected right now — the document may already be handled.</string>
+    <string name="p2_appr_err_changed">The document changed. Refresh the list and open it again.</string>
+    <string name="p2_appr_err_role">Your role is not sufficient for this action.</string>
+    <string name="p2_appr_err_forbidden">You have no access to this document.</string>
+    <string name="p2_appr_err_offline">An internet connection is required to decide.</string>
+    <string name="p2_appr_online_only">Approving works online only.</string>
+    <string name="p2_appr_err_generic">Could not complete (%1$s).</string>
+    <string name="p2_appr_err_load">Could not load the data.</string>
+    <string name="p2_doc_f2">F-2 (completed work act)</string>
+    <string name="p2_doc_fakt">Actual work act</string>
+    <string name="p2_doc_aosr">AOSR (hidden works act)</string>
+    <string name="p2_doc_forma3">Form No. 3 (invoice)</string>
+
+    <string name="p2_today_title">Today</string>
+    <string name="p2_today_approvals">Documents awaiting approval</string>
+    <string name="p2_today_f2">F-2 drafts</string>
+    <string name="p2_today_fakt">Actual-work drafts</string>
+    <string name="p2_today_outbox">Unsent records</string>
+    <string name="p2_today_notes">Latest notifications</string>
+    <string name="p2_today_notes_empty">No notifications</string>
+    <string name="p2_today_mark_read">Mark as read</string>
+    <string name="p2_n_approval_waiting">A document is waiting for your approval</string>
+    <string name="p2_n_approved">Document approved</string>
+    <string name="p2_n_rejected">Document rejected</string>
+    <string name="p2_n_returned">Document returned for rework</string>
+    <string name="p2_n_letter">You received a new letter</string>
+    <string name="p2_n_deadline_near">A document deadline is approaching</string>
+    <string name="p2_n_deadline_passed">A document deadline has passed</string>
+    <string name="p2_n_drawing">A new drawing revision was issued</string>
+    <string name="p2_n_drawing_decision">A decision on a drawing revision arrived</string>
+</resources>

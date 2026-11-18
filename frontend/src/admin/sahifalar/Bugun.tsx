@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
@@ -13,6 +13,8 @@ import { amalRoyxati } from '../../lib/reestr/amal-motor';
 import { amalIshga } from '../../lib/reestr/amal-mavzu';
 import { IJROCHILAR } from '../../lib/reestr/amal-ijro';
 import { t } from '../../i18n/til';
+import { useIshStoli } from '../../api/t2-ish-stoli';
+import IshStoli from '../components/IshStoli';
 
 /* Usta/brigadir: telefon ekrani (bitta «Bugun»: /admin/bugun) — alohida yo'l emas, shu qobiq ichida. */
 const UstaBugun = lazy(() => import('./UstaBugun'));
@@ -52,12 +54,17 @@ function BugunTugmalar() {
   /* Tezkor amallar: AMAL REESTRIDAN (Jarvis bilan bir xil), faqat ijrochisi bor va foydalanuvchi bajara oladiganlar. */
   const tezkor = amalRoyxati({ permissions: k.joriy?.permissions ?? null, superadmin: !!k.superadmin }).filter((a) => IJROCHILAR[a.kalit]).slice(0, 4);
   const ishJoylari = ishJoyiMenyu(navK).filter((b) => b.id !== 'bugun');
+  /* Server-driven ish stoli: javob kelsa rol bo'limlari shundan chiziladi; kelmasa (offline/eski server) — yuqoridagi lokal ko'rinish. */
+  const [kabinet, setKabinet] = useState<string | null>(null);
+  const ish = useIshStoli(k.joriy?.id ?? null, kabinet);
 
   return (
     <div className="mx-auto w-full max-w-4xl p-4 sm:p-6" data-testid="bugun">
       <h1 className="text-[20px] font-semibold text-text">{t('Bugun')}</h1>
       <p className="mt-1 text-sm text-text-dim">{t('Kunlik ishlaringiz — bir bosishda.')}</p>
 
+      {ish ? <IshStoli d={ish} onKabinet={setKabinet} /> : (
+      <>
       <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" role="list" aria-label={t('Asosiy ishlar')}>
         {tugmalar.map((s) => (
           <NavLink key={s.kalit} to={s.yol} role="listitem" className="karta flex min-h-[88px] flex-col justify-between p-4 transition-colors hover:border-accent">
@@ -73,6 +80,8 @@ function BugunTugmalar() {
           <div className="mb-2 text-[11px] font-semibold uppercase tracking-[.06em] text-text-mute">{t('Amallar')}</div>
           <div className="flex flex-wrap gap-2">{tezkor.map((a) => <button key={a.kalit} type="button" onClick={() => amalIshga(a)} className="rounded-md border border-border px-3 py-2 text-sm text-text hover:border-accent">{t(a.nom ?? a.kalit)}</button>)}</div>
         </div>
+      )}
+      </>
       )}
 
       <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('palitra:och'))}

@@ -1,4 +1,5 @@
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { reportMoneyValidity } from '../../lib/money-input';
 /**
  * NarxManbalari.tsx — narx manbalari reestri (egasi Q4/Q5, 2026-10-01): kataloglar (kvartal),
@@ -19,12 +20,16 @@ import type { XlsxWorkbook } from '../../lib/f2-import-parse';
 import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
 import { katalogniOqi, type KatalogUstunlar } from '../../lib/narx-dalil/katalog-oqish';
 import { toast } from '../../umumiy/ui/Toast';
+import { SaqlashPaneli } from '../../umumiy/ui/SaqlashPaneli';
+import { ozgarishSoni } from '../../umumiy/ui/ozgarish-soni';
+
 import { KatalogQidiruv } from './KatalogQidiruv';
 import { t } from '../../i18n/til';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { ManbaChip } from '../../components/narx/NarxKorinish';
 
+const BOSH_FORMA: NarxManbaMalumot = { tur: 'katalog', nds_holati: 'nomalum' };
 const inp = 'mt-1 h-8 w-full px-2 text-[13px]';
 const harf = (i: number) => (i < 0 ? '—' : String.fromCharCode(65 + (i % 26)) + (i >= 26 ? String(Math.floor(i / 26)) : ''));
 
@@ -51,6 +56,7 @@ export default function NarxManbalari() {
 
   const faylTanla = async (f: File | undefined) => {
     if (!f) return;
+    void aslFaylSaqla(f, { kompaniyaId, turi: 'asl_narx' });
     try {
       const wb = await readXlsxFonda(await f.arrayBuffer());
       setKitob(wb); setVaraq(wb.sheets[0]?.name ?? ''); setQolda(null);
@@ -61,19 +67,24 @@ export default function NarxManbalari() {
   };
 
   const saqla = async () => {
-    if (!reportMoneyValidity(moneyScope.current)) return;
-    if (!kompaniyaId || !forma) return;
-    if (!forma.nom?.trim() || !forma.tur) { toast('Manba turi va nomi majburiy', 'warn'); return; }
-    if (!pozitsiyalar.length) { toast('Pozitsiyalar yo‘q — Excel yuklang yoki qo‘lda kiriting', 'warn'); return; }
+    if (!reportMoneyValidity(moneyScope.current)) return false;
+    if (!kompaniyaId || !forma) return false;
+    if (!forma.nom?.trim() || !forma.tur) { toast('Manba turi va nomi majburiy', 'warn'); return false; }
+    if (!pozitsiyalar.length) { toast('Pozitsiyalar yo‘q — Excel yuklang yoki qo‘lda kiriting', 'warn'); return false; }
     setJarayon('Yuklanmoqda…');
     const r = await narxManbaniYukla(kompaniyaId, forma, pozitsiyalar, yangiOperationId(), 5000,
       (y, j) => setJarayon(`Yuklanmoqda: ${y.toLocaleString('ru-RU')} / ${j.toLocaleString('ru-RU')}`));
     setJarayon(null);
-    if (!r.ok) { toast(r.error || 'Saqlanmadi', 'danger'); return; }
+    if (!r.ok) { toast(r.error || 'Saqlanmadi', 'danger'); return false; }
     toast(`✓ Manba saqlandi: ${pozitsiyalar.length.toLocaleString('ru-RU')} pozitsiya`, 'ok');
     setForma(null); setKitob(null); setVaraq(''); setQolda(null); setQoldaQatorlar([]);
     yukla();
+    return true;
   };
+
+  const bekorForma = () => { setForma(null); setKitob(null); setVaraq(''); setQolda(null); setQoldaQatorlar([]); };
+  /** Saqlanmagan o'zgarish: to'ldirilgan rekvizit maydonlari + yuklangan Excel + qo'lda kiritilgan pozitsiyalar. */
+  const ozgarish = forma ? ozgarishSoni(forma, BOSH_FORMA, Object.keys(forma) as Array<keyof NarxManbaMalumot>) + (kitob ? 1 : 0) + qoldaQatorlar.filter((q) => q.nom.trim()).length : 0;
 
   const bekor = async (m: NarxManba) => {
     if (!kompaniyaId) return;
@@ -180,9 +191,9 @@ export default function NarxManbalari() {
 
           <div className="flex items-center justify-end gap-2">
             {jarayon && <span className="text-[12px] text-text-dim" role="status">{jarayon}</span>}
-            <button type="button" className="fz-btn fz-btn--ghost" onClick={() => { setForma(null); setKitob(null); setQoldaQatorlar([]); }}>{t('Bekor')}</button>
-            <button type="button" disabled={!!jarayon} className="fz-btn fz-btn--primary" onClick={() => void saqla()}>{t('Saqlash')}</button>
+            {ozgarish === 0 && <button type="button" className="fz-btn fz-btn--ghost" onClick={bekorForma}>{t('Bekor')}</button>}
           </div>
+          <SaqlashPaneli kalit="narx-manba-forma" soni={ozgarish} band={!!jarayon} saqla={saqla} bekor={bekorForma} />
           </div>
         </section>
       )}

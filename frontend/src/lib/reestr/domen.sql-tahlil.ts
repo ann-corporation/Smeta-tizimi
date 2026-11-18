@@ -148,7 +148,7 @@ export function buzilishlarniTop(ildiz: string, deps: TahlilDeps, katalog: { jad
 
   const sb = readFileSync(join(ildiz, 'frontend', 'functions', 'api', 'sb-yoz.ts'), 'utf8');
   const pol = readFileSync(join(ildiz, 'frontend', 'functions', '_shared', 'write-command-policy.ts'), 'utf8');
-  const polKeys = new Set([...pol.matchAll(/\b([a-z0-9_]+):\s*'([a-z]+[a-z0-9_.]*)'/g)].map((m) => m[1]));
+  const polKeys = new Set([...pol.matchAll(/\b([a-z0-9_]+):\s*'([a-z]+[a-z0-9_.|]*)'/g)].map((m) => m[1]));
   const dinM = /DINAMIK_BUYRUQLAR[^=]*=\s*new Set\(\[([^\]]*)\]/.exec(pol);
   const din = new Set((dinM?.[1].match(/"([a-z0-9_]+)"/g) ?? []).map((x) => x.replace(/"/g, '')));
   const capsiz: string[] = [];

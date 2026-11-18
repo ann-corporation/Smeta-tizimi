@@ -32,7 +32,7 @@ describe('F2 podval qo‘riqchisi', () => {
     const BERISH = /downloadBlob\(|\.download\s*=|\bkorinish\.ochish\(/;
     for (const f of FAYLLAR) expect(BERISH.test(izohsiz(readFileSync(join(ILDIZ, f), 'utf8'))), f).toBe(false);
     for (const f of ['admin/sahifalar/F2TarixNative.tsx', 'admin/sahifalar/F2TayyorlashNative.tsx']) {
-      expect(/\b(hujjatTokenBilan|tokenBilan)\(/.test(izohsiz(readFileSync(join(ILDIZ, f), 'utf8'))), f).toBe(true);
+      expect(/\b(hujjatTokenBilan|tokenBilan|hujjatYaratYuklab)\(/.test(izohsiz(readFileSync(join(ILDIZ, f), 'utf8'))), f).toBe(true);
     }
   });
 

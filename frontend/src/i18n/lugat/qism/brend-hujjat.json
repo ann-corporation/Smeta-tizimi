@@ -1,0 +1,5 @@
+{
+  "QURAI orqali tayyorlangan": { "ru": "Подготовлено в QURAI", "en": "Prepared with QURAI" },
+  "Ф-2 hujjati tuzilmadi: {x}": { "ru": "Документ Ф-2 не сформирован: {x}", "en": "The F-2 document could not be built: {x}" },
+  "Shartnomaga obyekt bog‘lanmagan — Форма № 3 yasalmadi": { "ru": "К договору не привязан объект — Форма № 3 не сформирована", "en": "No object is linked to the contract — Form No. 3 was not built" }
+}

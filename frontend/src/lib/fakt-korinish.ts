@@ -102,7 +102,7 @@ export function obyektUlushi(bolimlar: readonly JurnalBolim[], smetaSumma: (id: 
   return { ulush: top.reduce((a, b, i) => a + vazn(i) * Math.min(b.ulush ?? 0, 1), 0) / w, usul: hammasi ? 'summa' : 'ish' };
 }
 
-/** «F2 ga olish mumkin» (server: max(fakt − F2, 0)); holatda yo'q bo'lsa noma'lum (null), 0 emas. */
+/** «F2 ga olish mumkin» (server: plyus qatorda max(fakt − F2, 0), MINUS qatorda min(fakt − F2, 0) — manfiy); holatda yo'q bo'lsa noma'lum (null), 0 emas. */
 export function f2OlishMumkin(h: { f2_mumkin_hajm?: number | null } | undefined): number | null {
   const v = h?.f2_mumkin_hajm;
   return v == null || !Number.isFinite(Number(v)) ? null : Number(v);

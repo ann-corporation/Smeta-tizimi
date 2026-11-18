@@ -1,4 +1,5 @@
 import { yaxlit2 } from '../../lib/hisob-yadro';
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 import { memo, useEffect, useMemo, useState } from 'react';
@@ -177,6 +178,7 @@ function Sessiya() {
       for (const file of Array.from(list)) {
         if (!/\.(xlsx|xlsm|xls)$/i.test(file.name) || file.name.startsWith('~$')) continue;
         if (file.size > MAX_FILE_BYTES) { xatolar.push(`${file.name}: 80 MB dan katta`); continue; }
+        void aslFaylSaqla(file, { kompaniyaId: joriy?.id, turi: 'asl_oferta' });
         try {
           const bytes = new Uint8Array(await file.arrayBuffer());
           const wb = await readXlsxFonda(bytes);

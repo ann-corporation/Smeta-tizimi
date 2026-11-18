@@ -63,6 +63,7 @@ fn only_packaged_main_origin() {
     assert!(caller_tekshir("main", "child", &local).is_err());
     for url in [
         "https://smeta-tizimi.pages.dev",
+        "https://qurai.uz",
         "http://localhost:5173",
         "https://tauri.localhost",
         "http://tauri.localhost.evil",
@@ -131,6 +132,21 @@ fn command_manifest_and_local_capability_are_explicit() {
     assert!(capability.contains("session-local"));
     assert!(!capability.contains("remote"));
     assert!(!capability.contains('*'));
+}
+
+#[test]
+fn online_shell_default_config_grants_no_remote_ipc() {
+    let conf = include_str!("../tauri.conf.json");
+    let legacy = include_str!("../tauri.local-bff.conf.json");
+    // Default: remote site in a plain webview. No global Tauri object, window built in Rust with the guard.
+    assert!(conf.contains("\"withGlobalTauri\": false"));
+    assert!(conf.contains("\"create\": false"));
+    assert!(conf.contains("\"frontendDist\": \"offline\""));
+    assert!(!conf.contains("remote"));
+    assert!(include_str!("lib.rs").contains("shell::create_main_window"));
+    // Legacy local bundle only through the explicit local-bff feature + config.
+    assert!(legacy.contains("\"frontendDist\": \"../dist\""));
+    assert!(include_str!("../Cargo.toml").contains("local-bff = []"));
 }
 
 #[test]

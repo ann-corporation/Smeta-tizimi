@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sm_ns_smeta">Estimate</string>
+    <string name="sm_ns_no_markup">No markup (podval) found: rows show the markup-free amount only.</string>
+</resources>

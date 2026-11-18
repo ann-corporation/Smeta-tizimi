@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- QULF (app lock + step-up), English. -->
+<resources>
+    <string name="qulf_section">PIN and biometrics</string>
+    <string name="qulf_locked_title">App locked</string>
+    <string name="qulf_locked_hint">Enter your PIN or unlock with biometrics.</string>
+    <string name="qulf_confirm_title">Confirm the action</string>
+    <string name="qulf_confirm_hint">This action involves money or a signature. Confirm with your PIN or biometrics.</string>
+    <string name="qulf_pin_wrong">Wrong PIN</string>
+    <string name="qulf_pin_blocked">Too many attempts. Try again later.</string>
+    <string name="qulf_relogin">For security, please sign in again.</string>
+    <string name="qulf_offline">No connection. Unlock with biometrics.</string>
+    <string name="qulf_bio_failed">Biometric check failed.</string>
+    <string name="qulf_biometric">Unlock with biometrics</string>
+    <string name="qulf_ok">OK</string>
+    <string name="qulf_cancel">Cancel</string>
+    <string name="qulf_prompt_title">Confirm</string>
+    <string name="qulf_prompt_subtitle">With your fingerprint or face</string>
+    <string name="qulf_pin_set">PIN is set</string>
+    <string name="qulf_pin_unset">PIN is not set</string>
+    <string name="qulf_old_pin">Old PIN</string>
+    <string name="qulf_new_pin">New PIN (4–6 digits)</string>
+    <string name="qulf_set_pin">Set PIN</string>
+    <string name="qulf_change_pin">Change PIN</string>
+    <string name="qulf_remove_pin">Remove PIN</string>
+    <string name="qulf_pin_saved">PIN saved.</string>
+    <string name="qulf_pin_removed">PIN removed.</string>
+    <string name="qulf_pin_format">The PIN must be 4–6 digits.</string>
+    <string name="qulf_pin_weak">The PIN is too easy (like 0000 or 1234). Choose another.</string>
+    <string name="qulf_step_needed">Confirm with your PIN or biometrics first.</string>
+    <string name="qulf_failed">The action could not be completed. Please try again.</string>
+    <string name="qulf_saved">Saved.</string>
+    <string name="qulf_timeout">Auto-lock (minutes)</string>
+    <string name="qulf_bio_bound">This phone is linked to biometrics.</string>
+    <string name="qulf_bio_unbound">This phone is not linked to biometrics.</string>
+    <string name="qulf_bio_unavailable">No fingerprint or face is set up on this phone.</string>
+    <string name="qulf_bio_add">Link this phone to biometrics</string>
+    <string name="qulf_bio_added">Biometrics linked.</string>
+    <string name="qulf_bio_remove">Unlink biometrics</string>
+    <string name="qulf_bio_removed">Biometrics unlinked.</string>
+    <string name="qulf_pin_blocked_min">Too many attempts. Try again in %1$d min.</string>
+    <string name="qulf_attempts_left">Attempts left: %1$d</string>
+    <string name="qulf_forgot_pin">Forgot PIN</string>
+    <string name="qulf_sign_out">Sign out</string>
+    <string name="qulf_bio_needs_pin">Biometrics only work together with a PIN. Set a PIN first.</string>
+</resources>

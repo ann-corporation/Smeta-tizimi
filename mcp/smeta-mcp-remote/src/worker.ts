@@ -47,7 +47,7 @@ function provider(env: Env): OAuthProvider<Env> {
     // ChatGPT (Apps/connectors) client_id sifatida HTTPS metadata URL (CIMD) ishlatadi; DCR (/register) ham ochiq qoladi.
     // global_fetch_strictly_public (wrangler.toml) talab qilinadi; metadata hujjati faqat ommaviy HTTPS'dan olinadi.
     clientIdMetadataDocumentEnabled: true,
-    resourceMetadata: { resource: resurs, resource_name: 'Smeta tizimi MCP' },
+    resourceMetadata: { resource: resurs, resource_name: 'QURAI MCP' },
     accessTokenTTL: 3600,
     refreshTokenTTL: 30 * 24 * 3600,
   });

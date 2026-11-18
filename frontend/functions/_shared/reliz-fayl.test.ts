@@ -48,6 +48,13 @@ describe('reliz fayl marshruti', () => {
     expect(md.headers.get('Content-Type')).toContain('text/markdown');
   });
 
+  it('windows msi (native desktop 0.2.0+)', async () => {
+    const r2 = bucket({ [`windows/0.2.0/${sha}/QURAI-0.2.0.msi`]: {} });
+    const msi = await call('windows', `/windows/0.2.0/${sha}/QURAI-0.2.0.msi`, r2);
+    expect(msi.status).toBe(200);
+    expect(msi.headers.get('Content-Type')).toBe('application/x-msi');
+  });
+
   it('HEAD: tanasiz, Content-Length bilan', async () => {
     const r2 = bucket({ [`reliz/android/1.2.3/${sha}/a.apk`]: {} });
     const res = await call('android', `/android/1.2.3/${sha}/a.apk`, r2, { method: 'HEAD' });

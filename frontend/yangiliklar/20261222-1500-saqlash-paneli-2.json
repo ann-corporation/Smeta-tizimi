@@ -1,0 +1,9 @@
+{
+  "sana": "2026-11-15",
+  "sarlavha": "Saqlash paneli ko‘proq sahifalarda",
+  "bandlar": [
+    "Kompaniya profili, Narx tekshiruvi (karta), Narx manbalari, Mutaxassis profili, AI sozlamalari, Boshqaruv sozlamalari, Sotuv va Buxgalteriya sozlamalari hamda Kadrlar (xodim, tabel, kalendar) sahifalarida ham o‘zgartirish kiritilgach ekran pastida ‘O‘zgarishlar saqlanmagan (N)’ paneli chiqadi: Saqlash (Ctrl+S) va Bekor qilish.",
+    "Fakt jurnalida Esc endi kiritilgan hajmlarni tozalamaydi: faqat katak tahririni bekor qiladi. Hammasini bekor qilish uchun panel tugmasi yoki Ctrl+Z.",
+    "Uzun jadvallarda (F2 portfeli, oylik paket, davom ro‘yxati, qarzdorlik) ustun sarlavhasi skroll paytida tepada qoladi."
+  ]
+}

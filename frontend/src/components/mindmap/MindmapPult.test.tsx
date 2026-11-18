@@ -91,7 +91,7 @@ describe('Boshqaruv pulti ko‘rinishi', () => {
     const m = screen.getByTestId('pult-muammolar');
     expect(within(m).getAllByRole('listitem')).toHaveLength(1);
     expect(m.textContent).toMatch(/Smeta qatori metadata tekshiruvdan o‘tmadi ×3/);
-    expect(screen.getByRole('button', { name: 'АОСР' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'AOSR' })).toBeTruthy();
   });
 
   it('«Keyingi qadam» holatga qarab; ruxsat yo‘q sahifa — tugma yopiq', () => {

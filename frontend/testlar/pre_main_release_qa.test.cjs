@@ -17,7 +17,7 @@ must('Drive and Sheets remain secondary replicas, not canonical identity', /\/ap
 must('Workbench frontend uses its typed API port, not direct Supabase', /fetch\('\/api\/hujjat-nazorat\?/.test(workbenchAdapter) && !/supabase\.|createClient\(|\/rest\/v1\//.test(workbenchAdapter));
 must('Workbench gateway has no Drive, Sheets, or GAS interaction', !/DriveApp|SpreadsheetApp|\/api\/gas|googleapis/.test(workbenchGateway));
 must('canonical download has authenticated metadata authorization then private R2', /tekshir\(/.test(download) && /R2_CANONICAL\.get/.test(download) && !/drive|sheets|gas/i.test(download));
-must('canonical upload is reserve -> private R2 -> finalize, not synchronous Drive', /t2_document_canonical_reserve_v1/.test(upload) && /R2_CANONICAL\.put/.test(upload) && /t2_document_canonical_finalize_v1/.test(upload) && !/DriveApp|SpreadsheetApp|\/api\/gas/.test(upload));
+must('canonical upload is reserve -> private R2 -> finalize, not synchronous Drive', /t2_document_canonical_reserve_v1/.test(upload) && /(R2_CANONICAL\.put|r2Yoz\(ctx\.env\.R2_CANONICAL)/.test(upload) && /t2_document_canonical_finalize_v1/.test(upload) && !/DriveApp|SpreadsheetApp|\/api\/gas/.test(upload));
 must('canonical key is not filename identity', !/r2Key\s*=\s*.*file\.name/.test(upload) && /r2_key/.test(upload));
 
 console.log('\n── Tenant, auth, idempotency and optimistic-lock source contracts ──');
@@ -57,6 +57,13 @@ for (const id of ['20260902120000','20260906120000','20260907120000','2026090812
 must('file truth precedes document registry and replica-dependent layers', ids.indexOf('20260902120000') < ids.indexOf('20260906120000') && ids.indexOf('20260906120000') < ids.indexOf('20260907120000') && ids.indexOf('20260907120000') < ids.indexOf('20260908120000'));
 must('F2 baseline precedes change control and Forma-3, with an explicit forward hotfix', ids.indexOf('20260910120000') < ids.indexOf('20260911120000') && ids.indexOf('20260911120000') < ids.indexOf('20260912120000') && migrations.some(name => /smeta_ozgarish_royxat_fix/.test(name)));
 
+console.log('\n-- Every upload path stores the ORIGINAL in R2 via r2Yoz (Drive removed) --');
+const fnSrc = (...p) => source('frontend', 'functions', ...p);
+const mustUseR2Yoz = ['api/hujjat-yukla.ts', 'api/bozor-rasm.ts', 'api/yuk-dalil.ts', 'api/loyiha-ekstraksiya.ts', 'api/catalog-release.ts', 'api/narx-katalog-nashr.ts'];
+for (const f of mustUseR2Yoz) must(`${f} writes R2 through r2Yoz`, /\br2Yoz\(/.test(fnSrc(...f.split('/'))));
+must('mobil/yukla and telegram photo reuse the canonical hujjat-yukla (no private upload path)', /hujjat-yukla/.test(fnSrc('api', 'mobil', 'yukla.ts')) && /hujjat-yukla/.test(fnSrc('_shared', 'telegram-bot.ts')));
+must('no functions file writes R2 directly outside r2-saqlash.ts', (function walk(d) { return fs.readdirSync(d, { withFileTypes: true }).every(e => e.isDirectory() ? walk(path.join(d, e.name)) : (/\.ts$/.test(e.name) && !/\.test\.ts$/.test(e.name) && e.name !== 'r2-saqlash.ts' ? !/(R2_[A-Z_]+|NORMATIV_R2|\bbucket)!?\.put\(/.test(fs.readFileSync(path.join(d, e.name), 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')) : true)); })(path.join(root, 'frontend', 'functions')));
+must('Google Drive code paths are gone (GAS replica worker + internal mirror endpoint)', !exists('Smeta tizimi', '98_T2ReplicaSync.js') && !exists('frontend', 'functions', 'api', 'hujjat-r2.ts'));
 console.log('\n── Read-only deployment smoke harness ──');
 const smoke = R('frontend','scripts','release-smoke.mjs');
 must('smoke harness uses environment-only base URL and optional external session', /RELEASE_SMOKE_BASE_URL/.test(smoke) && /RELEASE_SMOKE_COOKIE/.test(smoke) && !/Bearer\s+[A-Za-z0-9._-]{20,}|password|login\(/i.test(smoke));

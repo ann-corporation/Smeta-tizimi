@@ -14,10 +14,10 @@
  * (soha bo'yicha guruhlangan qatorlar × lavozim ustunlari), window.confirm → tasdiqSora.
  * EGALIK: Claude (integration lane).
  */
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import {
   Building2, Crown, ShieldCheck, Loader2, AlertTriangle, Trash2, Users, LogOut,
-  User, KeyRound, Layers, FolderKanban, Plug, History, Save, RefreshCw,
+  User, KeyRound, Layers, FolderKanban, Plug, History, RefreshCw,
   Send, Clock, CheckCircle2, XCircle, Check, Info, Settings2, Laptop,
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
@@ -37,9 +37,16 @@ import { MemberPermissionEditor } from '../components/MemberPermissionEditor';
 import { TaklifHavolalari } from '../components/TaklifHavolalari';
 import { OdamTakliflari } from '../components/OdamTakliflari';
 import { KompaniyaOching } from '../components/KompaniyaOching';
+import { SinovBoshlash } from '../components/SinovBoshlash';
+import { KompaniyasizBosh } from '../../components/akkaunt/KompaniyasizBosh';
+import { OdamTaklifForma } from '../../components/username/OdamTaklifForma';
+import { UsernameTaklifBanner } from '../../components/username/UsernameTaklifBanner';
+import { usernameOmmaviy } from '../../api/username';
 import { XizmatTakliflari } from '../components/XizmatTakliflari';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { SaqlashPaneli } from '../../umumiy/ui/SaqlashPaneli';
+import { ozgarishSoni } from '../../umumiy/ui/ozgarish-soni';
 
 const AZO_ROLLAR = ['boss', 'admin', 'rahbar', 'bugalter', 'pto', 'prorab', 'buyurtmachi', 'pudratchi', 'kuzatuvchi'] as const;
 const MAVQE_VARIANTLAR = ['zakazchik', 'pudratchi', 'loyihachi'] as const;
@@ -104,6 +111,15 @@ function AzolarBoshqaruv({ kompaniyaId, kompaniyaNom, isDirector }: { kompaniyaI
      xeshlangan — ochiq matnli qiymat bundan tashqari qayerda ham yo'q). */
   const [korsatilganParol, setKorsatilganParol] = useState<{ login: string; parol: string } | null>(null);
   const faollar = (q.data ?? []).filter((a) => a.holat === 'faol');
+  const [unXarita, setUnXarita] = useState<Record<string, string>>({});
+  const faolIdlar = faollar.map((a) => a.foydalanuvchi_id).join(',');
+  useEffect(() => {
+    const idlar = faolIdlar ? faolIdlar.split(',').map(Number) : [];
+    if (!idlar.length) return;
+    let tirik = true;
+    void usernameOmmaviy(idlar).then((r) => { if (tirik && r.ok) setUnXarita(r.username); });
+    return () => { tirik = false; };
+  }, [faolIdlar]);
 
   const parolBelgila = async (a: { ism?: string | null; login: string; foydalanuvchi_id: number }) => {
     if (!(await tasdiqSora({ sarlavha: t('Vaqtinchalik parol'), matn: t('«{n}» uchun YANGI vaqtinchalik parol o‘rnatilsinmi? Eski parol (agar bo‘lsa) ishlamay qoladi.', { n: a.ism || a.login }) }))) return;
@@ -133,7 +149,7 @@ function AzolarBoshqaruv({ kompaniyaId, kompaniyaNom, isDirector }: { kompaniyaI
             <tbody>
               {faollar.map((a) => (
                 <tr key={a.azolik_id}>
-                  <td><div className="font-medium text-text">{a.ism || a.login}</div><div className="fz-c-shifr">@{a.login}</div></td>
+                  <td><div className="font-medium text-text">{a.ism || a.login}</div><div className="fz-c-shifr">{unXarita[String(a.foydalanuvchi_id)] ? '@' + unXarita[String(a.foydalanuvchi_id)] : '@' + a.login}</div></td>
                   <td className="text-text-dim">{a.email || '—'}</td>
                   <td>{tahrirId === a.azolik_id ? (
                     <span className="flex items-center gap-1.5">
@@ -190,6 +206,7 @@ function AzolarBoshqaruv({ kompaniyaId, kompaniyaNom, isDirector }: { kompaniyaI
             </button>
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {cmd.azoQosh.isError && <div className="sm:col-span-3"><Xato matn={xatoMatn((cmd.azoQosh.error as any)?.code)} /></div>}
+            <div className="sm:col-span-3"><OdamTaklifForma kompaniyaId={kompaniyaId} /></div>
             <p className="flex items-center gap-1 text-[12px] text-text-mute sm:col-span-3"><ShieldCheck size={12} /> {t('superadmin roli bu yerdan berilmaydi — platforma darajasida.')}</p>
           </div>
         )}
@@ -197,6 +214,8 @@ function AzolarBoshqaruv({ kompaniyaId, kompaniyaNom, isDirector }: { kompaniyaI
     </section>
   );
 }
+
+const PROFIL_KALITLAR: ReadonlyArray<keyof KompaniyaProfil> = ['toliq_nom', 'inn', 'manzil', 'rahbar', 'telefon', 'bank', 'hisob_raqam', 'mfo', 'mavqe'];
 
 function ProfilTab({ kompaniyaId, isDirector }: { kompaniyaId: number; isDirector: boolean }) {
   const q = useKompaniyaProfil(kompaniyaId);
@@ -212,7 +231,6 @@ function ProfilTab({ kompaniyaId, isDirector }: { kompaniyaId: number; isDirecto
   if (q.isError) return <Xato matn={xatoMatn((q.error as any)?.code)} />;
   if (!q.data || !p) return null;
 
-  const ozgardi = draft != null;
   const maydon = (k: keyof KompaniyaProfil, nom: string, keng = false) => (
     <label className={`text-[12px] font-medium text-text-dim ${keng ? 'sm:col-span-2' : ''}`}>{nom}
       <input className="input mt-1 w-full" disabled={!isDirector} value={(p[k] as string | null | undefined) ?? ''} onChange={set(k)} />
@@ -244,19 +262,19 @@ function ProfilTab({ kompaniyaId, isDirector }: { kompaniyaId: number; isDirecto
           </label>
         </div>
         {isDirector && (
-          <div className="flex items-center gap-2">
-            <button type="button" className="fz-btn fz-btn--primary" disabled={!ozgardi || mut.isPending}
-              onClick={() => mut.mutate({
-                kompaniya_id: kompaniyaId, expected_version: q.data!.versiya,
-                toliq_nom: p.toliq_nom ?? undefined, inn: p.inn ?? undefined, manzil: p.manzil ?? undefined,
-                rahbar: p.rahbar ?? undefined, telefon: p.telefon ?? undefined, bank: p.bank ?? undefined,
-                hisob_raqam: p.hisob_raqam ?? undefined, mfo: p.mfo ?? undefined, mavqe: p.mavqe ?? undefined,
-              }, { onSuccess: () => setDraft(null) })}>
-              {mut.isPending ? <Loader2 className="animate-spin" size={14} /> : <><Save size={14} /> {t('Saqlash')}</>}
-            </button>
-            {ozgardi && <button type="button" className="fz-btn fz-btn--ghost" onClick={() => setDraft(null)}>{t('bekor qilish')}</button>}
-            {ozgardi && <span className="fz-chip fz-chip--warn">{t('saqlanmagan o‘zgarish')}</span>}
-          </div>
+          <SaqlashPaneli kalit="kompaniya-profil" soni={ozgarishSoni(p, q.data, PROFIL_KALITLAR)} band={mut.isPending}
+            bekor={() => setDraft(null)}
+            saqla={async () => {
+              try {
+                await mut.mutateAsync({
+                  kompaniya_id: kompaniyaId, expected_version: q.data!.versiya,
+                  toliq_nom: p.toliq_nom ?? undefined, inn: p.inn ?? undefined, manzil: p.manzil ?? undefined,
+                  rahbar: p.rahbar ?? undefined, telefon: p.telefon ?? undefined, bank: p.bank ?? undefined,
+                  hisob_raqam: p.hisob_raqam ?? undefined, mfo: p.mfo ?? undefined, mavqe: p.mavqe ?? undefined,
+                });
+                setDraft(null);
+              } catch { return false; /* xato pastda (mut.isError) ko'rsatiladi */ }
+            }} />
         )}
         {mut.isError && (
           <div className="flex flex-wrap items-center gap-2">
@@ -673,7 +691,11 @@ export default function KompaniyaPage() {
           </div>
         </section>
 
+        <UsernameTaklifBanner />
+
+        {men.onboarding_kerak && !menSuperadmin && <SinovBoshlash />}
         {men.onboarding_kerak && !menSuperadmin && <KompaniyaOching />}
+        {men.onboarding_kerak && !menSuperadmin && <KompaniyasizBosh />}
 
         <section className="fz-card" aria-label={t('A‘zoliklarim')}>
           <div className="fz-card__head"><h2 className="fz-card__title">{t('A‘zoliklarim')}</h2></div>

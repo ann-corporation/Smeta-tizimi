@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Negative volumes (normaga keltirish) -->
+    <string name="p5_minus_tip_t">Minus hajm</string>
+    <string name="p5_minus_tip_b">Ishni qayta hisoblash (normaga keltirish) yoki xatoni tuzatish uchun hajmni minus bilan kiritish mumkin. ± tugmasi ishorani almashtiradi. Qatorning jami fakti noldan pastga tushsa, ilova ogohlantiradi.</string>
+    <string name="p5_minus_row">Minus hajm: qatorning faktidan ayriladi.</string>
+    <string name="p5_minus_below_zero">Jami fakt noldan past bo\'ladi (%1$s). Baribir saqlash mumkin.</string>
+    <string name="p5_minus_below_zero_short">Jami fakt noldan past bo\'ladi</string>
+    <plurals name="p5_below_zero_n">
+        <item quantity="one">%1$d qatorda jami fakt noldan past bo\'ladi</item>
+        <item quantity="other">%1$d qatorda jami fakt noldan past bo\'ladi</item>
+    </plurals>
+
+    <!-- Shared -->
+    <string name="p5_info_cd">«%1$s» haqida tushuntirish</string>
+    <string name="p5_got_it">Tushunarli</string>
+    <string name="p5_clear">Tozalash</string>
+    <string name="p1_card_f2_short">F-2</string>
+
+    <!-- Plain-language terms -->
+    <string name="tip_fakt_t">Fakt</string>
+    <string name="tip_fakt_b">Fakt — haqiqatda bajarilgan ish. Uni maydondagi xodim (usta, prorab) hajm bilan kiritadi. Fakt hali buyurtmachiga topshirilgan degani emas.</string>
+    <string name="tip_f2_t">F-2</string>
+    <string name="tip_f2_b">F-2 — buyurtmachiga topshirilgan va qabul qilingan ishlar akti. Pul hisob-kitobi shu hujjat bo\'yicha bo\'ladi. Fakt — F-2 ga tayyorlanayotgan ish.</string>
+    <string name="tip_smeta_t">Smeta</string>
+    <string name="tip_smeta_b">Smeta — obyekt uchun rejalashtirilgan ishlar, ularning hajmi va narxi. Obyekt qiymati shu smetadan olinadi.</string>
+    <string name="tip_qqs_t">QQS va ustama</string>
+    <string name="tip_qqs_b">Obyekt qiymati avval QQS bilan (QQS — 12 % qo\'shilgan qiymat solig\'i) ko\'rsatiladi. Quyida ikki summa — QQS siz: «ustamali» to\'g\'ridan-to\'g\'ri xarajatga ustama (umumqurilish va boshqa xarajatlar, rejalashtirilgan foyda) qo\'shilgan summa; «ustamasiz» — faqat ish, material va mehnat (to\'g\'ri) xarajati. Hamma summalar serverdan olinadi, telefon o\'zi hisoblamaydi.</string>
+    <string name="tip_progress_t">Bajarilish</string>
+    <string name="tip_progress_b">Tashqi halqa — fakt (bajarilgan ish) smetaning necha foizi. Ichki halqa — F-2 (qabul qilingan) necha foiz. Foiz 100 dan oshsa — smetadan ko\'p ish bajarilgan.</string>
+
+    <!-- Object card -->
+    <string name="p5_btn_photo">Foto</string>
+    <string name="p5_btn_smeta">Smeta</string>
+    <string name="p5_btn_f2">F-2</string>
+    <string name="p5_ring_hint">Tashqi — fakt, ichki — F-2</string>
+    <string name="p5_sections">Bo\'limlar bo\'yicha bajarilish</string>
+    <string name="p5_sections_tip">Har bo\'limning smeta summasiga nisbatan fakt va F-2 foizi. Summalar bo\'lim darajasida ko\'rsatilmaydi: faqat foiz.</string>
+    <string name="p5_section_other">Bo\'limsiz qatorlar</string>
+    <string name="p5_show_all">Hammasi (%1$d)</string>
+    <string name="p5_show_less">Kamroq ko\'rsatish</string>
+    <string name="p5_f2_timeline">So\'nggi F-2 lar</string>
+    <string name="p5_all_f2">Hammasi</string>
+
+    <!-- Smeta browser -->
+    <string name="mod_smeta_native">Smeta</string>
+    <string name="p5_smeta_readonly">Faqat ko\'rish. Smetani tahrirlash saytda.</string>
+    <string name="p5_smeta_search_hint">Kod yoki nom bo\'yicha qidiring.</string>
+    <string name="p5_row_unpriced">Narxsiz qator</string>
+    <string name="p5_leg_done_not_accepted">Bajarilgan, qabul qilinmagan</string>
+    <string name="p5_leg_open">Qolgan</string>
+
+    <!-- F-2 -->
+    <string name="f2_title">F-2 hujjatlar</string>
+    <string name="f2_forbidden">F-2 larni ko\'rishga ruxsat yo\'q</string>
+    <string name="f2_forbidden_body">Bu obyekt uchun F-2 ko\'rish huquqingiz yo\'q. Rahbaringizdan so\'rang.</string>
+    <string name="f2_empty">Hali F-2 yo\'q</string>
+    <string name="f2_empty_hint">Qabul qilingan ishlar bo\'yicha F-2 tayyorlanganda shu yerda ko\'rinadi.</string>
+    <string name="f2_open_web">F-2 reestrini saytda ochish</string>
+    <string name="f2_pdf_hint">F-2 PDF va Excel fayllari «F-2 hujjatlari» tugmasi orqali ilovaning o\'zida ochiladi. Summalar to\'liq ko\'rinishda saytdagi reestrda.</string>
+    <string name="f2_summary">F-2 holati</string>
+    <string name="f2_act_title">F-2 № %1$s</string>
+    <string name="f2_flag_unpriced">%1$d narxsiz</string>
+    <string name="f2_flag_minus">%1$d minusli</string>
+    <string name="f2_flag_diff">reestr bilan farq</string>
+    <string name="f2_flag_diff_long">Hujjat summasi tizimdagi qatorlar yig\'indisidan farq qiladi. Saytda tekshiring.</string>
+    <string name="f2_month">Oy</string>
+    <string name="f2_rows">Qatorlar soni</string>
+    <string name="f2_unpriced">Narxsiz qatorlar</string>
+    <string name="f2_minus_rows">Minusli qatorlar</string>
+    <string name="f2_sums_on_web">Aktning summalari (QQS bilan, ustamali va ustamasiz) saytdagi F-2 reestrida ko\'rsatiladi.</string>
+    <string name="f2_st_draft">Qoralama</string>
+    <string name="f2_st_submitted">Yuborilgan</string>
+    <string name="f2_st_checked">Tekshirilgan</string>
+    <string name="f2_st_approved">Qabul qilingan</string>
+    <string name="f2_st_rejected">Rad etilgan</string>
+    <string name="f2_st_cancelled">Bekor qilingan</string>
+    <string name="f2_st_superseded">Almashtirilgan</string>
+    <string name="f2_st_unknown">Noma\'lum</string>
+    <string name="f2_ex_draft">Qoralama: hujjat hali tayyorlanmoqda, buyurtmachiga yuborilmagan.</string>
+    <string name="f2_ex_submitted">Yuborilgan: hujjat tekshiruvga yuborilgan, javob kutilmoqda.</string>
+    <string name="f2_ex_checked">Tekshirilgan: ichki tekshiruvdan o\'tgan, tasdiqlash kutilmoqda.</string>
+    <string name="f2_ex_approved">Qabul qilingan: hujjat tasdiqlangan, summasi obyektning F-2 yig\'indisiga kiradi.</string>
+    <string name="f2_ex_rejected">Rad etilgan: hujjat qaytarilgan, tuzatib qayta yuborish kerak.</string>
+    <string name="f2_ex_cancelled">Bekor qilingan: hujjat endi hisobga kirmaydi.</string>
+    <string name="f2_ex_superseded">Almashtirilgan: uning o\'rniga yangi versiya tuzilgan.</string>
+    <string name="f2_ex_unknown">Holati aniqlanmadi. Saytdagi reestrda tekshiring.</string>
+
+    <!-- Rahbar paneli -->
+    <string name="mod_rahbar">Rahbar paneli</string>
+    <string name="mod_rahbar_d">Kompaniya va obyektlar holati, ogohlantirishlar</string>
+    <string name="rb_forbidden">Rahbar paneliga ruxsat yo\'q</string>
+    <string name="rb_forbidden_body">Panel kompaniya rahbariyati va moliya huquqi bor foydalanuvchilar uchun.</string>
+    <string name="rb_offline_empty">Oflayn — panel hali saqlanmagan</string>
+    <plurals name="rb_objects_n">
+        <item quantity="one">%1$d obyekt</item>
+        <item quantity="other">%1$d obyekt</item>
+    </plurals>
+    <string name="rb_company_totals">Kompaniya bo\'yicha jami</string>
+    <string name="rb_ring_hint">Tashqi halqa — fakt, ichki — F-2 (smetaga nisbatan)</string>
+    <string name="rb_contracts">Shartnomalar (QQS bilan) · soni</string>
+    <plurals name="rb_f2_count">
+        <item quantity="one">Qabul qilingan F-2: %1$d</item>
+        <item quantity="other">Qabul qilingan F-2: %1$d</item>
+    </plurals>
+    <string name="rb_cash">Pul oqimi va qarzdorlik</string>
+    <string name="rb_paid">To\'langan (jami)</string>
+    <string name="rb_receivable">Debitor (bizdan qarz)</string>
+    <string name="rb_payable">Kreditor (biz qarzdormiz)</string>
+    <string name="rb_months">Oylar bo\'yicha</string>
+    <string name="rb_months_tip">Har oy uchun uchta ustun: bajarilgan ish (F-2), tushgan to\'lov va xarajat. Kulrang qisqa ustun — ma\'lumot kiritilmagan.</string>
+    <string name="rb_leg_done">Bajarildi</string>
+    <string name="rb_leg_paid">To\'lov</string>
+    <string name="rb_leg_cost">Xarajat</string>
+    <string name="rb_forecast">Keyingi %1$d kun prognozi</string>
+    <string name="rb_fc_unpaid">To\'lanmagan F-2</string>
+    <string name="rb_fc_expected">Kutilayotgan tushum</string>
+    <string name="rb_not_entered">kiritilmagan</string>
+    <string name="rb_approvals">Tasdiq kutmoqda</string>
+    <string name="rb_approvals_hint">Rahbar qarorini kutayotgan hujjatlar</string>
+    <string name="rb_attention">Diqqat talab qiladi</string>
+    <string name="rb_attention_tip">Tizim o\'zi topgan muammolar: eng muhimlari yuqorida. Obyekt nomi bor qatorni bossangiz, obyekt kartasi ochiladi.</string>
+    <string name="rb_attention_none">Hozircha muammo topilmadi.</string>
+    <string name="rb_att_unhanded">Bajarilgan, lekin F-2 topshirilmagan</string>
+    <string name="rb_att_f2_over">F-2 fakt dan oshgan</string>
+    <string name="rb_att_over_est">Smetadan oshgan hajm</string>
+    <string name="rb_att_no_f3">F-2 tasdiqlangan, F-3 chiqarilmagan</string>
+    <string name="rb_att_limit">Shartnoma limitiga yaqin</string>
+    <string name="rb_att_late">To\'lov 60 kundan ortiq kechikkan</string>
+    <string name="rb_att_registry">Tizim va reestr summasi farq qiladi</string>
+    <string name="rb_att_unpriced">Narxsiz qatorlar</string>
+    <string name="rb_att_stock">Omborda manfiy qoldiq</string>
+    <string name="rb_att_other">Tekshirish kerak</string>
+    <string name="rb_objects">Obyektlar</string>
+    <string name="rb_debt">Qarz</string>
+    <plurals name="rb_f2_drafts">
+        <item quantity="one">%1$d F-2 qoralama</item>
+        <item quantity="other">%1$d F-2 qoralama</item>
+    </plurals>
+    <string name="sm_expand_all">Hammasini ochish</string>
+    <string name="sm_collapse_all">Hammasini yopish</string>
+    <string name="sm_tree_tip_t">Smeta daraxti</string>
+    <string name="sm_tree_tip_b">Smeta saytdagi kabi: bo\'lim (RZ) → ish (BL) → resurslar (RS mehnat/mexanizm, MAT material, OB jihoz). Bo\'limni bosib oching. Qidiruv mos qatorni ota-bo\'limi bilan ko\'rsatadi. Qator summalari QQS siz va ustamasiz; QQS bilan va ustamali summa — yuqoridagi obyekt qiymatida.</string>
+    <string name="sm_counts">Ko\'rsatilgan: %1$d · jami tugun: %2$d · ishlar: %3$d</string>
+    <plurals name="sm_works">
+        <item quantity="one">%1$d ish</item>
+        <item quantity="other">%1$d ish</item>
+    </plurals>
+    <string name="sm_sum_plain">Summa (ustamasiz)</string>
+    <string name="sm_norm">Norma</string>
+    <string name="sm_qty">Miqdor</string>
+    <string name="sm_price">Narx</string>
+    <string name="p5_enter_fakt_short">Fakt</string>    <string name="sm_amount">Summa</string>
+</resources>

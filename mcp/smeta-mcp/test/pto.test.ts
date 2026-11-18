@@ -1,7 +1,8 @@
 /** PTO qamrovi v1: sof yordamchilar + mock pg integratsiyasi. Ma'lumotlar SUN'IY (real obyekt/summa/id emas). */
 import { describe, expect, it } from 'vitest';
-import type { MavjudAktQator, MumkinQator } from '../src/ish-oqimi';
-import { avlodlar, bolimXarita, birlikNorm, f2CertYuki, f2YangilaYuki, moslash, narxTanla, tarixTahlil } from '../src/pto';
+import { hajmOshganmi, mumkinBor, qoldiqIshorali, yukJami, type MavjudAktQator, type MumkinQator } from '../src/ish-oqimi';
+import { avlodlar, bolimXarita, birlikNorm, f2CertYuki, f2YangilaYuki, moslash, narxTanla, qoldiqHolati, tarixTahlil } from '../src/pto';
+import { f2QoralamaTahrir } from '../src/tools/ish-oqimi';
 import { TOOLLAR } from '../src/server';
 import { toolChaqir } from '../src/tool';
 import { aktBekor, f2QoralamaYangila, f2Yarat, ishOchir, ostatka, zamenaQosh } from '../src/tools/pto';
@@ -209,7 +210,7 @@ describe('f2_qoralama_yangila (mock)', () => {
       ?? (sql.includes('from public.t2_akt where id') ? [{ id: 30, obyekt_id: 900, kompaniya_id: 1, tur: 'f2', holat: 'qoralama', lifecycle_status: 'draft', versiya: 5, raqam: '3', oy: '2026-10-01' }]
         : sql.includes("holat = 'qoralama' and id <> $2") ? []
           : sql.includes('from public.t2_akt_qator where akt_id') ? [{ qator_id: 12, hajm: 1, certified_quantity: 1, certified_unit_price: 10, certified_amount: 10, provenance_status: null, certified_source_hash: null, raw_snapshot: {}, izoh: null }]
-            : sql.includes('f2_mumkin_hajm > 0.000001') ? [{ qator_id: 12, ota_id: 11, tur: 'rs', kod: null, nom: 'M', birlik: 'kg', kat: 'МАТ', mumkin: 2, smeta_narx: 10 }]
+            : sql.includes('abs(h.f2_mumkin_hajm) > 0.000001') ? [{ qator_id: 12, ota_id: 11, tur: 'rs', kod: null, nom: 'M', birlik: 'kg', kat: 'МАТ', mumkin: 2, smeta_narx: 10 }]
               : sql.includes('select id, kat, tur from public.t2_qator') ? [{ id: 12, kat: 'МАТ', tur: 'rs' }]
                 : sql.includes('"t2_f2_qoralama_yangila_v1"(') ? [{ x: { ok: true, versiya: 6 } }] : []));
     const j = await toolChaqir(f2QoralamaYangila, mu, { akt_idlar: [30], narxlar: { 12: 15 } });
@@ -219,6 +220,51 @@ describe('f2_qoralama_yangila (mock)', () => {
     const c = chaqiruv(h, 't2_f2_qoralama_yangila_v1')!;
     expect(c.params[3]).toBe(5);
     expect(JSON.parse(String(c.params[4]))[0]).toMatchObject({ qator_id: 12, certified_quantity: 2, certified_unit_price: 15, certified_amount: 30 });
+  });
+});
+
+describe('MINUS qatorlar («normaga keltirish») — F2 ga ishora bilan kiradi', () => {
+  // Sun'iy: 1 — plyus asos qator (to'liq F2 da), 2 — uning MINUS juftligi (fakt = to'liq manfiy hajm, F2 da yo'q).
+  it('f2YangilaYuki: manfiy mumkin qator qo\'shiladi (qosh_yangi), summa manfiy; storno saqlanadi', () => {
+    const rows = [M({ qator_id: 1, tur: 'rs', mumkin: 0, smeta_narx: 10 }), M({ qator_id: 2, tur: 'rs', mumkin: -2.5, smeta_narx: 10 })];
+    const mavjud = [MAV({ qator_id: 1, certified_quantity: 2.5, certified_unit_price: 10, certified_amount: 25 })];
+    const y = f2YangilaYuki(mavjud, rows, { manba: 'x', faqatMavjud: false });
+    const by = new Map(y.yuk.map((q) => [q.qator_id, q]));
+    expect(by.get(2)).toMatchObject({ certified_quantity: -2.5, certified_unit_price: 10, certified_amount: -25 });
+    expect(y.qoshildi).toBe(1);
+    expect(y.olindi).toEqual([1]);
+    expect(yukJami([...y.yuk])).toMatchObject({ summa: -25 });
+  });
+  it('mumkinBor / qoldiqIshorali / hajmOshganmi: ishora saqlanadi', () => {
+    expect(mumkinBor(-0.4)).toBe(true); expect(mumkinBor(0.4)).toBe(true); expect(mumkinBor(0)).toBe(false); expect(mumkinBor(1e-8)).toBe(false); expect(mumkinBor(null)).toBe(false);
+    expect(qoldiqIshorali(-2.5, -1)).toBe(-1.5);
+    expect(qoldiqIshorali(-2.5, -3)).toBe(0);   // minus qator 0 dan oshib musbatga o'tmaydi
+    expect(qoldiqIshorali(2.5, 1)).toBe(1.5);
+    expect(qoldiqIshorali(2.5, 3)).toBe(0);
+    expect(hajmOshganmi(-2.5, -2.5)).toBe(false);
+    expect(hajmOshganmi(-3, -2.5)).toBe(true);
+    expect(hajmOshganmi(-1, 0)).toBe(true);
+    expect(hajmOshganmi(2, 2)).toBe(false);
+    expect(hajmOshganmi(2, -1)).toBe(true);
+  });
+  it('qoldiqHolati: minus qatorda manfiy qoldiq NORMAL; smeta ishorasiga teskari — ortiqcha', () => {
+    expect(qoldiqHolati(10, 4)).toBe('qoldiq'); expect(qoldiqHolati(10, -1)).toBe('ortiqcha');
+    expect(qoldiqHolati(-10, -4)).toBe('qoldiq'); expect(qoldiqHolati(-10, 1)).toBe('ortiqcha');
+    expect(qoldiqHolati(10, 0)).toBe('nol');
+  });
+  it('f2_qoralama_tahrir qosh_mumkindan: minus qator qo\'shiladi, jami kamayadi (mock)', async () => {
+    const { mu, h } = mockMuhit((sql, p) => umumiy(sql, p)
+      ?? (sql.includes('from public.t2_akt where id') ? [{ id: 821, obyekt_id: 900, kompaniya_id: 1, tur: 'f2', holat: 'qoralama', lifecycle_status: 'draft', versiya: 2, raqam: '5', oy: '2026-10-01' }]
+        : sql.includes('from public.t2_akt_qator where akt_id') ? [{ qator_id: 11, hajm: 2.5, certified_quantity: 2.5, certified_unit_price: 10, certified_amount: 25, provenance_status: 'source_certified', certified_source_hash: null, raw_snapshot: {}, izoh: null }]
+          : sql.includes('abs(h.f2_mumkin_hajm) > 0.000001') ? [{ qator_id: 12, ota_id: null, tur: 'rs', kod: null, nom: 'Chegirma', birlik: 'm3', kat: 'МАТ', mumkin: -2.5, smeta_narx: 10 }]
+            : sql.includes('select id, kat, tur from public.t2_qator') ? [{ id: 11, kat: 'МАТ', tur: 'rs' }, { id: 12, kat: 'МАТ', tur: 'rs' }]
+              : sql.includes('"t2_f2_qoralama_yangila_v1"(') ? [{ x: { ok: true, versiya: 3 } }] : []));
+    const j = await toolChaqir(f2QoralamaTahrir, mu, { akt_id: 821, qosh_mumkindan: [12] });
+    expect(j.isError, j.content[0].text).toBeFalsy();
+    const r = JSON.parse(j.content[0].text);
+    expect(r.natija).toMatchObject({ qoshildi: 1, oldin: { qatorlar: 1, summa: { ustamasiz: 25 } }, keyin: { qatorlar: 2, summa: { ustamasiz: 0 } } });
+    const yuk = JSON.parse(String(chaqiruv(h, 't2_f2_qoralama_yangila_v1')!.params[4]));
+    expect(yuk.find((q: { qator_id: number }) => q.qator_id === 12)).toMatchObject({ certified_quantity: -2.5, certified_unit_price: 10, certified_amount: -25 });
   });
 });
 

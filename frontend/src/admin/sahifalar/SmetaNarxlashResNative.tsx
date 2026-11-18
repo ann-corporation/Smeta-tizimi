@@ -1,4 +1,5 @@
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { useEffect, useRef, useState } from 'react';
 import { type SheetGrid, type XlsxWorkbook } from '../../lib/f2-import-parse';
 import { resNarxlashPreview, resQatorlariniOl, resVaraqlariniTop, type ResNarx, type ResPreview, type ResUstunlar } from '../../lib/res-narxlash';
@@ -160,6 +161,7 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
   }
 
   async function faylYukla(file: File) {
+    void aslFaylSaqla(file, { kompaniyaId: companyId, obyektId: fixedObjectId ?? null, turi: 'asl_narx' });
     setError(''); setNatija(''); setPreview(null); setBook(null); setReslar([]);
     if (file.size > MAX_FILE_BYTES) { setError('RES fayli 50 MB dan katta.'); return; }
     if (!objectId || qatorlar.length === 0) { setError('Avval smetasi bor obyektni tanlang.'); return; }

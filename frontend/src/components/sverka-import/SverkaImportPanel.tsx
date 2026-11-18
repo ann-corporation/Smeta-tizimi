@@ -6,6 +6,7 @@
  * Hisob — lib/sverka-1c/* (sof funksiyalar); yozish — api/t2-sverka-import.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { AlertTriangle, FileSpreadsheet, RefreshCw, Upload, Save, Trash2, CalendarClock } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
@@ -86,6 +87,7 @@ export function SverkaImportPanel({ companyId }: { companyId: number }) {
   }, [reja, fayllar]);
 
   async function fayllarniTanla(list: FileList | null) {
+    if (list) for (const f of Array.from(list)) void aslFaylSaqla(f, { kompaniyaId: companyId, turi: 'asl_boshqa' });
     if (!list?.length) return;
     const yangi: YuklanganFayl[] = [];
     for (const f of Array.from(list)) {

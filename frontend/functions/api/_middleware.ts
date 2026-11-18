@@ -2,16 +2,24 @@ import { tekshir } from '../_shared/auth';
 import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shared/role-authority';
 import { SCOPED_APIS, requestPermission, yopiqModul } from '../_shared/permission-policy';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
+import { webGate } from '../_shared/mobil-bilet';
+import { qulfDarvoza } from '../_shared/qulf-darvoza';
 
 type Env = { SUPABASE_URL:string; SUPABASE_KEY:string; SESSIYA_KALIT:string };
 const positive = (v:unknown) => Number.isSafeInteger(Number(v)) && Number(v)>0 ? Number(v) : null;
 const fail = (code:string, status=403) => Response.json({ok:false,code,error:code==='AUTH_REQUIRED'?'Tizimga qayta kiring.':'Bu amal uchun ruxsatingiz yo‘q yoki ruxsatlar yangilangan.'},{status});
 
 /** Mandatory tenant feature gate; underlying endpoints retain ownership/version/business validation. */
-export const onRequest: PagesFunction<Env> = async ctx => {
+const inner: PagesFunction<Env> = async ctx => {
   const url = new URL(ctx.request.url);
   let api:string;
   try { api=decodeURIComponent(url.pathname.split('/').filter(Boolean).at(-1)||''); } catch { return fail('PATH_INVALID',400); }
+  /* QULF/TASDIQ (step-up): imzo / hujjat zanjiri qarori ham shu yerda (SCOPED emas); sb-yoz pul buyruqlari ham. Tanani bir marta o'qiydi. */
+  if (ctx.request.method==='POST' && (api==='sb-yoz'||api==='imzo'||api==='hujjat-aylanish'||api==='tomon') && /application\/json/i.test(ctx.request.headers.get('Content-Type')||'')) {
+    let sb:Record<string,unknown>|null=null;
+    try { const parsed=await ctx.request.clone().json(); if (parsed && typeof parsed==='object' && !Array.isArray(parsed)) sb=parsed as Record<string,unknown>; } catch { sb=null; }
+    if (sb) { const g=await qulfDarvoza(ctx.request,ctx.env,api,sb); if (g) return g; }
+  }
   if (!SCOPED_APIS.has(api)) return ctx.next();
   if (api==='agent-ish' && ctx.request.headers.has('X-Kuzatuv-Kalit')) return ctx.next(); // Existing key auth + action whitelist remains mandatory inside that endpoint.
   const verified = await tekshir(ctx.request.headers.get('Cookie'),ctx.env.SESSIYA_KALIT);
@@ -75,4 +83,15 @@ export const onRequest: PagesFunction<Env> = async ctx => {
     if (companyRole) ctx.data.roleAuthority={...authority,rol:companyRole};
   }
   return ctx.next();
+};
+
+/** WebView cookie (api/mobil/web-kirish) is bound to the enrolled device: re-verified on EVERY request, so revoking the device
+ *  revokes the web session; 2 h sliding refresh. Normal cookies / Bearer requests pass straight through. */
+export const onRequest: PagesFunction<Env> = async ctx => {
+  const gate = await webGate(ctx.request, ctx.env).catch(() => ({ deny: true as const }));
+  if (gate?.deny) return Response.json({ ok: false, code: 'AUTH_REQUIRED', error: 'Tizimga qayta kiring.' }, { status: 401, headers: { 'Cache-Control': 'no-store' } });
+  const res = await inner(ctx);
+  if (!gate || !gate.refresh) return res;
+  const h = new Headers(res.headers); h.append('Set-Cookie', gate.refresh);
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h });
 };

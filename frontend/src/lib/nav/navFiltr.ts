@@ -11,7 +11,7 @@
  *   5) reestr ruxsati (menyuRuxsati; reestrda yo'q → yo'q) joriy kompaniya capability lariga mosmi.
  * Kompaniya capability lari kelmagan (eski DB javobi) bo'lsa — rolning frontend ko'zgusi (ROLE_PERMISSIONS).
  */
-import type { Modul } from '../../api/t2-modul';
+import type { Modul } from '../modul-tur';
 import { ROLE_PERMISSIONS, type CompanyMembershipRole } from '../company-authorization/effective-authorization';
 import { menyuRuxsati } from '../company-authorization/route-permission';
 import { menyuModulYoqilgan } from '../modullar';
@@ -30,6 +30,9 @@ export type NavKontekst = {
   tizimXaritasi?: boolean;
   /** Ilova menyusi (ekotizim P1): berilsa — faqat shu ilova sahifalari; yo'q yoki 'hammasi' — «Barcha bo'limlar» (hammasi). */
   ilova?: IlovaKod | 'hammasi';
+  /** «Modullarim» (foydalanuvchi o'zi tanlagan ilovalar, lib/modullarim): yo'l ko'rinadimi. Faqat TORAYTIRADI — ruxsat bermaydi;
+   *  berilmasa (tanlov yo'q) filtr yo'q. */
+  modulTanlov?: ((yol: string) => boolean) | null;
   /** Qo'shimcha (hali ishlatilmaydigan) bo'limlar: 'hammasi' (sukut, o'zgarishsiz) | 'yashir' (asosiy menyu) | 'faqat' (`Qo'shimcha bo'limlar` guruhi). */
   qoshimcha?: 'hammasi' | 'yashir' | 'faqat';
 };
@@ -50,6 +53,7 @@ function ruxsatlar(k: NavKontekst): readonly string[] {
 /** Bitta sahifa (yo'l) shu kontekstda menyuda ko'rinadimi. */
 export function sahifaKorinadi(guruh: Pick<NavGuruh, 'qatlam'>, yol: string, k: NavKontekst): boolean {
   if (!menyuModulYoqilgan(yol, k.modullar)) return false;
+  if (k.modulTanlov && !k.modulTanlov(yol)) return false;
   // Tizim xaritasi: faqat server ruxsati (superadmin ham server javobi orqali) — rol/qatlamdan qat'i nazar.
   if (yol === TIZIM_XARITASI_YOL) return k.tizimXaritasi === true;
   if (guruh.qatlam === 'platforma' || faqatSuperadminYolmi(yol)) return k.superadmin;

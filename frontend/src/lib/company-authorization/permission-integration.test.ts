@@ -7,11 +7,19 @@ const root=resolve(process.cwd(),'..');
 const read=(p:string)=>readFileSync(resolve(root,p),'utf8');
 describe('role integration architecture',()=>{
   it('every API is scoped or has an explicit independently secured exception',()=>{
-    const exceptions=new Set(['didox-webhook','t2-bridge','hujjat-r2','kirish','kirish-google','chiqish','royxat','royxat-ozi','royxat-email-kod','soglik','xato','kontekst-diag','catalog-release','norm-katalog','koef-katalog','hour-price-catalog','mash-katalog','narx-katalog','narx-katalog-nashr',
+    const exceptions=new Set(['didox-webhook','t2-bridge','kirish','kirish-google','chiqish','royxat','royxat-ozi','royxat-email-kod','soglik','xato','kontekst-diag','catalog-release','norm-katalog','koef-katalog','hour-price-catalog','mash-katalog','narx-katalog','narx-katalog-nashr',
       /* superadminActor: har chaqiruvda bazada qayta tekshiriladi (r2-dublikat.test.ts — superadmin bo'lmasa 403, R2 ga tegmaydi). */
       'r2-dublikat',
+      /* qulf: foydalanuvchi darajasidagi PIN/passkey (kompaniya resursi emas): har chaqiruvda sessiya (tekshir) + o'z foydalanuvchi_id si; siyosat_saqla control.company.write ni o'zi tekshiradi (qulf.test.ts, qulf-amal.test.ts). */
+      'qulf',
       /* superadminActor: har chaqiruvda bazada qayta tekshiriladi (db-hajm.test.ts — superadmin bo'lmasa 403). */
       'db-hajm',
+      /* AI salomatligi hisoboti: superadminActor (har chaqiruvda bazada qayta tekshiriladi, ai-salomatlik.test.ts - superadmin bo'lmasa 403); faqat o'qiydi, sonlar/kodlar. */
+      'ai-salomatlik',
+      /* AI baho (yoqdi/yoqmadi): actor FAQAT sessiyadan, kompaniya a'zoligi handlerda + t2_agent_scope_guard_v1 (SQL); matn saqlanmaydi; origin tekshiruvi (ai-baho.test.ts). */
+      'ai-baho',
+      /* Tungi sovuq-arxiv cron (arxiv-tick.test.ts): X-Cron-Kalit (BILDIRISHNOMA_CRON_KALIT, doimiy vaqtli taqqoslash) - sessiya/kompaniya yo'q, faqat tizim ishi. */
+      'arxiv-tick',
       /* Global immutable reference data, not tenant rows: session + pinned file whitelist;
          norm-library.test.ts proves auth fails closed before any R2 access. */
       'norm-library',
@@ -19,6 +27,13 @@ describe('role integration architecture',()=>{
          checks company membership/document.write/explicit deny and never writes stock.
          ombor-ovoz.test.ts proves unauthenticated/foreign/denied requests make no provider call. */
       'ombor-ovoz',
+      /* OMBOR-BUYRUQ: omborchi yagona nuqtasi (web/Android/Telegram). Handler o'zi: roleAuthority + a'zolik + warehouse.write|document.write (yozish) /
+         warehouse.read|write|document.read (o'qish) + modul holati + aniq rad; aktor FAQAT sessiyadan; RPC lar a'zolik/ruxsatni takror tekshiradi;
+         yozish faqat HMAC tasdiq tokeni yoki aniq operation_id bilan. ombor-buyruq.test.ts: anonim/begona/o'qish-faqat/soxta token — hech narsa yozilmaydi. */
+      'ombor-buyruq',
+/* F2-BUYRUQ (Jarvis → smeta MCP vositalari): aktor faqat sessiyadan, a'zolik + write-command-policy capability (fail-closed);
+yozish faqat dry_run preview → HMAC tasdiq tokeni (aktor/kompaniya/obyekt, 15 daqiqa, reja xeshi) bilan. f2-buyruq.test.ts. */
+'f2-buyruq',
       /* «Telegram modeli» (2026-10-22): havola orqali qo'shilayotgan odam hali a'zo emas — middleware ruxsat ro'yxati qo'llanmaydi.
          Actor sessiyadan; a'zolik, company.member.manage, muddat, soni va cheklov — har RPC ichida bazada (ish-joyi.test.ts). */
       'ish-joyi',
@@ -39,6 +54,11 @@ describe('role integration architecture',()=>{
          nonce + brauzer siri xeshi, bot kontakti (contact.user_id == from.id). Ikkalasi KIRISH_*_YOQILGAN sozlamasi bilan o'chiriladi; origin tekshiruvi
          (kirish-taklif.test.ts, kirish-telegram.test.ts; acceptance 20261217200000). */
       'kirish-taklif', 'kirish-telegram',
+      /* Ilova (Android WebView) kirishi (2026-11-15): /api/ilova-kirish. 'bilet' — faqat amaldagi sessiya cookie'si bilan (tekshir, yo'q -> 401),
+         bilet sessiya tokeniga + brauzer siri xeshiga bog'langan (HMAC, qisqa muddat); 'almash' — bir martalik bilet + ilova siri (xesh mos bo'lsa)
+         bilan sessiya o'rnatadi. Origin tekshiruvi; actor/tenant ma'lumoti o'qilmaydi (ilova-bilet.test.ts). */
+      'ilova-kirish',
+ /* Foydalanuvchi o'z ilova tanlovi (pin/tartib; 2026-11-15): actor FAQAT sessiyadan, a'zolik SQL da (t2_modul_tanlov_*_v1 AZO_EMAS), faqat o'z qatori; ruxsat/modul holatini o'zgartirmaydi (modullarim.test.ts). */ 'modullarim',
       /* Sozlamalar markazi (2026-10-26): kompaniya sozlamalari (imzo tomonlari, hujjat dizayni, F2 tasdiq rejimi). Actor sessiyadan;
          o'qish company.read, yozish company.profile.update — har RPC ichida t2_effective_authorization_v1 (kompaniya-sozlama.test.ts). */
       'kompaniya-sozlama',
@@ -60,7 +80,12 @@ describe('role integration architecture',()=>{
       'bildirishnoma-yetkaz',
       /* AI ishchilar fon bajaruvchisi (2026-11-13): sessiyasiz FON ISHI (GitHub Actions). Kirish faqat X-Kuzatuv-Kalit == KUZATUV_KALIT (>=24 belgi; sozlanmagan -> 503, noto'g'ri -> 401);
          javobda faqat sonlar; model chaqiruvi aiHisobli orqali (limit/hamyon), ish aktori — ishchini yoqqan odam, ruxsat har qadamda bazada qayta tekshiriladi (ai-ishchi.test.ts). */
-      'ai-ishchi-bajar']);
+      'ai-ishchi-bajar',
+      /* Tajriba indeksi (2026-11-16): /api/tajriba-indeks - GET, sessiya majburiy (tekshir, yo'q -> 401). Global qatlam faqat k-anonim sonlar (R2 oq ro'yxat nomlari);
+         kompaniya qatlami (kompaniya_id) faqat shu kompaniya a'zosi yoki superadmin uchun (aks holda 403); holat/kursor fayllari hech qachon berilmaydi (src/lib/smeta-ai/tajriba-indeks.test.ts).
+         /api/tajriba-tick - sessiyasiz tungi FON ISHI (GitHub Actions): faqat X-Cron-Kalit == BILDIRISHNOMA_CRON_KALIT (sozlanmagan -> 503, noto'g'ri -> 403);
+         javobda faqat sonlar, bazadan faqat o'qiydi (_shared/tajriba-tick.test.ts). */
+      'tajriba-indeks', 'tajriba-tick']);
     const routes=readdirSync(resolve(root,'frontend/functions/api')).filter(n=>n.endsWith('.ts')&&!n.endsWith('.test.ts')&&!n.startsWith('_')).map(n=>n.slice(0,-3));
     expect(routes.filter(n=>!SCOPED_APIS.has(n)&&!exceptions.has(n))).toEqual([]);
   });

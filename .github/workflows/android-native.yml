@@ -1,0 +1,177 @@
+# Native Android (Kotlin/Compose) shell of QURAI. Public repo: no secrets are created here; signing is optional.
+# Security posture mirrors mobile.yml: contents:read, no pull_request_target, no persisted checkout credentials,
+# release signing material never reaches pull_request runs, secrets only enter the single step that needs them (via env, never echoed).
+name: Android native
+
+on:
+  pull_request:
+    paths:
+      - 'android-native/**'
+      - '.github/workflows/android-native.yml'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-native-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ANDROID_BUILD_TOOLS: '36.0.0'
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      # Release signing only outside pull_request; otherwise the APK stays unsigned (CI proof only, never published).
+      RELEASE_SIGNING: ${{ github.event_name != 'pull_request' && secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != '' }}
+    defaults:
+      run:
+        working-directory: android-native
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+          cache-dependency-path: |
+            android-native/**/*.gradle*
+            android-native/gradle/libs.versions.toml
+            android-native/gradle/wrapper/gradle-wrapper.properties
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: ''
+      - name: Android SDK (pinned build-tools)
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;${ANDROID_BUILD_TOOLS}" "platform-tools"
+      - name: Unit tests, lint, release build
+        run: ./gradlew --no-daemon :shared:test testDebugUnitTest lintDebug assembleRelease
+      - name: Upload test and lint reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-native-reports
+          path: |
+            android-native/app/build/reports/
+            android-native/app/build/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+      - name: Align and sign APK
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set +x
+          BT="${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS}"
+          UNSIGNED="app/build/outputs/apk/release/app-release-unsigned.apk"
+          test -f "$UNSIGNED" || { echo "unsigned release APK not found"; exit 1; }
+          VERSION=$("$BT/aapt2" dump badging "$UNSIGNED" | sed -n "s/^package:.* versionName='\([^']*\)'.*/\1/p" | head -n1)
+          MINSDK=$("$BT/aapt2" dump badging "$UNSIGNED" | sed -n "s/^minSdkVersion:'\([0-9]*\)'.*/\1/p" | head -n1)
+          [[ "$VERSION" =~ ^[0-9]{1,4}\.[0-9]{1,4}\.[0-9]{1,6}$ ]] || { echo "versionName '$VERSION' does not match d.d.d"; exit 1; }
+          [[ "$MINSDK" =~ ^[0-9]+$ ]] || { echo "minSdk not found"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/out"
+          OUT="$RUNNER_TEMP/out/qurai-${VERSION}-native-release.apk"
+          "$BT/zipalign" -f -p 4 "$UNSIGNED" "$RUNNER_TEMP/aligned.apk"
+          if [ "$RELEASE_SIGNING" = "true" ]; then
+            KS="$RUNNER_TEMP/release.keystore"
+            printf '%s' "$KS_B64" | base64 -d > "$KS"
+            "$BT/apksigner" sign --ks "$KS" --ks-key-alias "$ANDROID_KEY_ALIAS" \
+              --ks-pass env:ANDROID_KEYSTORE_PASSWORD --key-pass env:ANDROID_KEY_PASSWORD \
+              --out "$OUT" "$RUNNER_TEMP/aligned.apk"
+            rm -f "$KS"
+            # Only the certificate SHA-256 digest is printed (public); no key material.
+            "$BT/apksigner" verify --print-certs "$OUT" | grep -i 'SHA-256 digest' || { echo "signature verify failed"; exit 1; }
+            SIGNED=true
+          else
+            cp "$RUNNER_TEMP/aligned.apk" "$OUT"
+            SIGNED=false
+          fi
+          echo "APK_PATH=$OUT" >> "$GITHUB_ENV"
+          echo "APK_VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "APK_MINSDK=$MINSDK" >> "$GITHUB_ENV"
+          echo "APK_SIGNED=$SIGNED" >> "$GITHUB_ENV"
+      - name: Manifest permission policy
+        run: |
+          BT="${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS}"
+          "$BT/aapt2" dump permissions "$APK_PATH" | tee "$RUNNER_TEMP/perms.txt"
+          # Allowed: app needs (INTERNET, CAMERA, ACCESS_NETWORK_STATE, POST_NOTIFICATIONS, USE_BIOMETRIC/USE_FINGERPRINT for the PIN/biometric lock, RECORD_AUDIO for ombor voice commands), WorkManager (WAKE_LOCK,
+          # RECEIVE_BOOT_COMPLETED, FOREGROUND_SERVICE) and the AndroidX dynamic-receiver permission of this app id.
+          ALLOWED='^(android\.permission\.(INTERNET|CAMERA|RECORD_AUDIO|ACCESS_NETWORK_STATE|POST_NOTIFICATIONS|USE_BIOMETRIC|USE_FINGERPRINT|WAKE_LOCK|RECEIVE_BOOT_COMPLETED|FOREGROUND_SERVICE)|uz\.anncorp\.smeta\.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION)$'
+          BAD=$(sed -n "s/^uses-permission[^:]*: name='\([^']*\)'.*/\1/p" "$RUNNER_TEMP/perms.txt" | grep -Ev "$ALLOWED" || true)
+          if [ -n "$BAD" ]; then echo "Disallowed permissions:"; echo "$BAD"; exit 1; fi
+      - name: Release manifest JSON
+        run: |
+          set +x
+          FILE=$(basename "$APK_PATH")
+          BYTES=$(stat -c %s "$APK_PATH")
+          SHA=$(sha256sum "$APK_PATH" | cut -d' ' -f1)
+          jq -n --arg version "$APK_VERSION" --arg generatedAtUtc "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg file "$FILE" \
+            --argjson bytes "$BYTES" --arg sha256 "$SHA" --argjson signed "$APK_SIGNED" --argjson minSdk "$APK_MINSDK" \
+            '{version:$version,generatedAtUtc:$generatedAtUtc,file:$file,bytes:$bytes,sha256:$sha256,signed:$signed,minSdk:$minSdk}' \
+            > "$(dirname "$APK_PATH")/android-native-manifest.json"
+          cat "$(dirname "$APK_PATH")/android-native-manifest.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-native-apk
+          path: |
+            ${{ env.APK_PATH }}
+            ${{ runner.temp }}/out/android-native-manifest.json
+          if-no-files-found: error
+          retention-days: 30
+
+  instrumented:
+    # Main only. Skips gracefully while the project has no androidTest sources.
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: android-native
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Detect androidTest sources
+        id: detect
+        run: |
+          if find app/src -type d -name androidTest | grep -q . && find app/src -path '*androidTest*' -type f | grep -q .; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "No androidTest sources: instrumented job skipped."
+          fi
+      - if: steps.detect.outputs.present == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+          cache-dependency-path: |
+            android-native/**/*.gradle*
+            android-native/gradle/libs.versions.toml
+            android-native/gradle/wrapper/gradle-wrapper.properties
+      - if: steps.detect.outputs.present == 'true'
+        name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - if: steps.detect.outputs.present == 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          working-directory: android-native
+          script: ./gradlew --no-daemon connectedDebugAndroidTest

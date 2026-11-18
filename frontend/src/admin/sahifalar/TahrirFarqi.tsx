@@ -78,8 +78,8 @@ export function TahrirFarqi({ kompaniyaId, obyektId, tahrirlar, yangila }: { kom
             <div className="mb-2 text-[13px]"><b>{t('Eskirgan smeta bo‘limlari')}</b>
               {bolimlar.slice(0, 12).map((b) => <div key={b.bolimId} className="text-xs">{(b.bolimNom ?? `#${b.bolimId}`).slice(0, 90)} · {b.soni} · {b.varaqlar.join(', ')} · {fmt(b.pulQQSbilan)} {t('so‘m')} ({t('QQS bilan')}) · {t('qarori bor')}: {b.hal}</div>)}</div>)}
           <div className="mb-2 text-xs">{d.varaqlar.filter((v) => v.holat !== 'ayni').map((v) => <span key={v.varaq} className="mr-2 inline-block rounded border px-1">{v.varaq}: {t(HOLAT_NOMI[v.holat])}</span>)}</div>
-          <div className="overflow-x-auto"><table className="w-full text-[13px]">
-            <thead><tr className="text-left"><th>{t('Varaq')}</th><th>{t('Element')}</th><th>{t('Holat')}</th><th className="num">{t('Eski')}</th><th className="num">{t('Yangi')}</th><th className="num">%</th><th className="num">{t('Pul (QQS bilan / siz)')}</th><th>{t('Qaror')}</th></tr></thead>
+          <div className="max-h-[70vh] overflow-auto"><table className="w-full text-[13px]">
+            <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left"><th>{t('Varaq')}</th><th>{t('Element')}</th><th>{t('Holat')}</th><th className="num">{t('Eski')}</th><th className="num">{t('Yangi')}</th><th className="num">%</th><th className="num">{t('Pul (QQS bilan / siz)')}</th><th>{t('Qaror')}</th></tr></thead>
             <tbody>{qatorlar.map((x) => (
               <tr key={`${x.item.varaq}|${x.item.kalit}`} className="border-t align-top">
                 <td>{x.item.varaq}</td><td>{x.item.nom}{x.qator && <div className="text-xs">{x.qator.nom.slice(0, 50)}</div>}</td><td>{t(HOLAT_NOMI[x.item.holat])}</td>

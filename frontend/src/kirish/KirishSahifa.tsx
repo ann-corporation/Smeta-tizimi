@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Lock, User, ArrowRight, Phone, Send, Mail } from 'lucide-react';
 import { toast } from '../umumiy/ui/Toast';
 import GoogleKirish, { type GoogleNatija } from './GoogleKirish';
 import { EmailKodKirish, type EmailKirishNatija } from './EmailKodKirish';
 import { TelegramKirish, type TelegramNatija } from './TelegramKirish';
+import { IlovaTugmalari } from '../components/public-entry/IlovaTugmalari';
+import { ilovaWebViewmi, brauzerdaKirishBoshla } from './IlovaKirish';
 import { telefonNiqob } from '../lib/telefon-niqob';
 import { t } from '../i18n/til';
 import { PublicEntry } from '../components/public-entry/PublicEntry';
@@ -165,7 +167,14 @@ export default function KirishSahifa() {
                   ))}
                 </div>
                 <div id="entry-usul-email" hidden={usul !== 'email'}>
-                  <div className="entry-auth-google"><GoogleKirish matn="signin_with" onNatija={googleNatija} onBoshlandi={googleBoshlandi} /></div>
+                  {ilovaWebViewmi()
+                    ? <div className="entry-auth-google">
+                        <button type="button" className="entry-auth-submit" data-testid="brauzer-kirish" onClick={() => void brauzerdaKirishBoshla()}>
+                          {t('Brauzer orqali kirish (Google)')} <ArrowRight size={16} aria-hidden="true" />
+                        </button>
+                        <div className="text-center text-[11px] text-text-mute">{t('Google ilova ichida ishlamaydi: brauzerda kirib, ilovaga qaytasiz')}</div>
+                      </div>
+                    : <div className="entry-auth-google"><GoogleKirish matn="signin_with" onNatija={googleNatija} onBoshlandi={googleBoshlandi} /></div>}
                   <EmailKodKirish onKirdi={emailNatija} onXizmatYoq={() => setUsul('parol')} />
                 </div>
                 <div id="entry-usul-telegram" hidden={usul !== 'telegram'}>
@@ -222,6 +231,7 @@ export default function KirishSahifa() {
                   </button>
                 </form>
                 </div>
+                <IlovaTugmalari />
 
               </motion.div>
             ) : (
@@ -241,6 +251,9 @@ export default function KirishSahifa() {
                   <summary>{t('Emailingiz yo‘qmi? Telegram orqali ro‘yxatdan o‘ting')}</summary>
                   <TelegramKirish ismKerak onKirdi={telegramNatija} />
                 </details>}
+                <p className="entry-auth-foot" data-testid="telefon-royxat">
+                  {t('Telefon raqamingizga taklif kodi kelganmi?')} <Link className="underline" to="/taklif">{t('Telefon va kod bilan ro‘yxatdan o‘ting')}</Link>
+                </p>
 
                 <p className="entry-auth-foot">
                   {t('Bepul tarif: 300 token. Har hujjat narxi «Tokenlar» bo‘limidagi narx jadvalida. Keyin tarifni «Tokenlar va obuna» bo‘limida tanlaysiz.')}

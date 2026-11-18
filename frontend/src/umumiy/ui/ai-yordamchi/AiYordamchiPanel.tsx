@@ -12,6 +12,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Mic, MicOff, Sparkles, X } from 'lucide-react';
 import { t, tilOl } from '../../../i18n/til';
 import { ModelChip } from '../ModelChip';
+import { useMobilEkran } from '../../../lib/mobil/useMobilEkran';
 import { AgentAmallar, AgentPulTasdiq, AgentQadamlar, AgentXabarlar, type AgentQadam } from './AgentQismlar';
 import { agentSikli, type SahifaVositalar } from '../../../lib/ai-yordamchi/sikl';
 import type { SahifaAmal, SahifaXabar } from '../../../lib/ai-yordamchi/protokol';
@@ -49,6 +50,7 @@ function AiYordamchiPanelContent({ kompaniyaId, vositalar, saqlashKalit, sarlavh
   /** Bir xil mazmun kaliti: berilsa, shu kalit bilan natija qayta ishlatiladi (token takror yechilmaydi). */
   keshKalit?: { (matn: string): Promise<string> };
 }) {
+  const mobil = useMobilEkran();   // telefonda buyruq satri ochilganda klaviatura o'zi chiqmasin
   const [ichkiOchiq, setIchkiOchiq] = useState(false);
   const ochiq = ochiqProp ?? ichkiOchiq;
   const setOchiq = (v: boolean) => { setIchkiOchiq(v); onOchiq?.(v); };
@@ -156,7 +158,7 @@ function AiYordamchiPanelContent({ kompaniyaId, vositalar, saqlashKalit, sarlavh
       onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setOchiq(false); } }}>
       <form className="flex items-center gap-2" onSubmit={e => { e.preventDefault(); void yubor(); }}>
         <Sparkles size={16} className="shrink-0 text-accent" />
-        <input autoFocus type="text" aria-label={t('AI buyruq')} data-testid="ai-buyruq-kirish" className="input h-9 min-w-0 flex-1 text-[13px]" value={matn} disabled={band}
+        <input autoFocus={!mobil} type="text" aria-label={t('AI buyruq')} data-testid="ai-buyruq-kirish" className="input h-9 min-w-0 flex-1 text-[13px]" value={matn} disabled={band}
           placeholder={t('Buyruq: masalan «narxsiz qatorlarni ko‘rsat»')} onChange={e => setMatn(e.target.value)} />
         {ovozBor && <>
           <select aria-label={t('Ovoz tili')} data-testid="ai-ovoz-til" className="input h-9 w-[4.2rem] px-1 text-[12px]" value={ovozTil} onChange={e => setOvozTil(e.target.value as OvozTil)} disabled={tinglayapti}>

@@ -16,7 +16,7 @@ export const MAKS_XATO = 5;
 /** Cron CPU/vaqt chegarasidan oldin to'xtash (ms, devor soati). */
 export const STANDART_BYUDJET_MS = 20_000;
 /** Baza hajmi ogohlantirish chegarasi (MB): Supabase Free = 500 MB. */
-export const HAJM_OGOHLANTIRISH_MB = 450;
+export const HAJM_OGOHLANTIRISH_MB = 380;
 /** Shu hajmdan (MB) boshlab har obyektning so'nggi snapshoti ham (N kundan keyin) R2 ga sovutiladi (SNAPSHOT_SOVUT_SONGGI=auto). */
 export const HAJM_SONGGI_MB = 450;
 

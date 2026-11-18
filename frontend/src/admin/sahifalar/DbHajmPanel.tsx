@@ -7,7 +7,7 @@ import { hajmMatni } from '../../lib/fayl-daraxt';
  * (server har chaqiruvda bazada tekshiradi). 80% — ogohlantirish, 90% — xavf. Faqat o'qiydi.
  */
 type Top = { sxema: string; jadval: string; bytes: number; qator: number };
-type Hajm = { db_bytes: number; limit_bytes: number; foiz: number; daraja: 'ok' | 'ogoh' | 'xavf'; top: Top[]; snapshot_sovuq: { sovuq_blok?: number; sovuq_bayt?: number; issiq_bayt?: number } | null };
+type Hajm = { db_bytes: number; limit_bytes: number; foiz: number; daraja: 'ok' | 'ogoh' | 'xavf'; top: Top[]; snapshot_sovuq: { sovuq_blok?: number; sovuq_bayt?: number; issiq_bayt?: number } | null; arxiv?: { songgi_ish: string | null; sutka_qator: number; sutka_r2_bayt: number; hafta_xato: number; bolaklar: number } | null };
 
 export function DbHajmPanel() {
   const [h, setH] = useState<Hajm | null>(null);
@@ -57,6 +57,7 @@ export function DbHajmPanel() {
         </ul>
       </details>
       {h.snapshot_sovuq && <p className="text-[11px] text-text-mute">{t('Zaxira nusxalar: bazada {i} · arxivda {s} blok',{ i: hajmMatni(Number(h.snapshot_sovuq.issiq_bayt ?? 0)), s: Number(h.snapshot_sovuq.sovuq_blok ?? 0) })}</p>}
+      {h.arxiv && <p className={h.arxiv.hafta_xato > 0 ? 'text-[11px] text-warning' : 'text-[11px] text-text-mute'}>{t('Tungi arxiv: oxirgi ish {s} · sutkada {q} qator, {b} R2 ga · xatolar (7 kun): {x}', { s: h.arxiv.songgi_ish ? new Date(h.arxiv.songgi_ish).toLocaleString() : '—', q: String(h.arxiv.sutka_qator), b: hajmMatni(h.arxiv.sutka_r2_bayt), x: String(h.arxiv.hafta_xato) })}</p>}
     </section>
   );
 }

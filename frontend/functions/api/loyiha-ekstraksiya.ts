@@ -4,6 +4,7 @@
  * Format: gzip(JSON) — klient siqadi; server baytlarni o'zgartirmaydi, faqat hajm va kalitni tekshiradi.
  */
 import { cachedAuthority } from '../_shared/permission-policy';
+import { r2Yoz } from '../_shared/r2-saqlash';
 import { tekshir } from '../_shared/auth';
 import { sessiyaKompaniya } from '../_shared/ai-kompaniya';
 
@@ -40,6 +41,6 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
   if (bayt.byteLength > MAX_BAYT) return xato('Hajm 12 MB dan oshmasin', 413);
   const b = new Uint8Array(bayt);
   if (b[0] !== 0x1f || b[1] !== 0x8b) return xato('gzip kutilgan', 400);
-  await ctx.env.R2_CANONICAL!.put(ekstraksiyaKaliti(k.id, k.sha), bayt, { httpMetadata: { contentType: 'application/gzip' }, customMetadata: { kompaniya_id: String(k.id) } });
+  await r2Yoz(ctx.env.R2_CANONICAL!, ekstraksiyaKaliti(k.id, k.sha), bayt, { httpMetadata: { contentType: 'application/gzip' }, customMetadata: { kompaniya_id: String(k.id) } });
   return Response.json({ ok: true, bayt: bayt.byteLength }, { headers: { 'Cache-Control': 'no-store' } });
 };

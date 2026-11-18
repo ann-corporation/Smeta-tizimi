@@ -51,6 +51,7 @@ describe('f2YozishXatoMatni — RPC kodi → tushunarli matn', () => {
       expect(f2YozishXatoMatni({ code, error: 'UMUMIY' }, 'Z')).not.toMatch(/UMUMIY|^Z$/);
     expect(f2YozishXatoMatni({ code: 'STALE_VERSION' }, 'Z')).toContain('qayta yuklang');
     expect(f2YozishXatoMatni({ code: 'NARXSIZ_QATOR_BOR', soni: 3 }, 'Z')).toContain('3 ta');
+    expect(f2YozishXatoMatni({ code: 'F2_RESURS_TUSHGAN', soni: 12 }, 'Z')).toContain('12 ta resurs');
     expect(f2YozishXatoMatni({ code: 'DEPENDENTS_EXIST', bogliq: [{ raqam: 'A-1' }, { id: 9 }] }, 'Z')).toContain('A-1, 9');
   });
   it('noma’lum kod — server xabari, u ham yo‘q — zaxira', () => {

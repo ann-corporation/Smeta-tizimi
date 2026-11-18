@@ -3,6 +3,7 @@
  * Loyiha | Smeta | Fakt uch ustunli solishtirma, pul ta'siri (lib/hisob-yadro) va har farq uchun qaror (mavjud zamena / qo'shimcha ish RPC lari).
  * Asl smeta o'zgarmaydi. AI bilan o'qish (rasm) alohida PR #266 (`/api/ai-loyiha`) ga tayanadi: bu yerda faqat taklif ro'yxati.
  */
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { matnSora } from '../../umumiy/ui/Tasdiq';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
@@ -150,6 +151,7 @@ export default function LoyihaSmetaFakt() {
     try {
       const out: Yuklangan[] = [];
       for (const f of Array.from(files)) {
+        void aslFaylSaqla(f, { kompaniyaId, obyektId: typeof obyektId === 'number' ? obyektId : null, turi: 'asl_boshqa' });
         const buf = await f.arrayBuffer();
         const sha = await sha256Hex(buf);
         let items = await keshdanOl(kompaniyaId!, sha);   // R2 keshi: shu PDF qayta tahlil qilinmaydi
@@ -423,8 +425,8 @@ export default function LoyihaSmetaFakt() {
               <select className={inp} aria-label={t('Varaq')} value={filtrVaraq} onChange={(e) => setFiltrVaraq(e.target.value)}><option value="">{t('Barcha varaqlar')}</option>{varaqlar.map((v) => <option key={v} value={v}>{v}</option>)}</select>
               <label className="text-xs">{t('Kamida (so‘m, QQS bilan)')} <MoneyInput className={inp + ' w-32'} value={minPul} numericValue onValueChange={(r) => setMinPul(Number(r) || 0)} /></label>
             </div>
-            <div className="overflow-x-auto"><table className="w-full text-[13px]">
-              <thead><tr className="text-left"><th>{t('Varaq')}</th><th>{t('Ish')}</th><th className="num">{t('Loyiha')}</th><th className="num">{t('Smeta')}</th><th className="num">{t('Fakt')}</th><th className="num">{t('Farq')}</th><th className="num">{t('Pul (QQS bilan / siz)')}</th><th>{t('Qaror')}</th></tr></thead>
+            <div className="max-h-[70vh] overflow-auto"><table className="w-full text-[13px]">
+              <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left"><th>{t('Varaq')}</th><th>{t('Ish')}</th><th className="num">{t('Loyiha')}</th><th className="num">{t('Smeta')}</th><th className="num">{t('Fakt')}</th><th className="num">{t('Farq')}</th><th className="num">{t('Pul (QQS bilan / siz)')}</th><th>{t('Qaror')}</th></tr></thead>
               <tbody>{korinadigan.map((f, i) => {
                 const m = miqdorOf(f.miqdorId); const nz = m ? nomzodlar.get(m.id) : null;
                 return (
@@ -496,7 +498,7 @@ function QarorOyna(p: { f: FarqQator; tur: 'zamena' | 'qoshimcha'; kompaniyaId: 
   };
   return (
     <div role="dialog" aria-label={p.tur === 'zamena' ? t('Zamena') : t('Qo‘shimcha ish')} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="fz-card w-full max-w-md space-y-2 p-4 text-[13px]">
+      <div className="fz-card max-h-[92vh] w-full max-w-md space-y-2 overflow-y-auto p-4 text-[13px]">
         <h3 className="fz-card__title">{p.tur === 'zamena' ? t('Zamena') : t('Qo‘shimcha ish')}</h3>
         <p className="text-xs">{aloqa ? `${t('Bog‘liq smeta qatori')}: ${aloqa.nom.slice(0, 80)}` : t('Bog‘liq qator yo‘q: qo‘shimcha ish bo‘limga qo‘shiladi')}</p>
         {p.tur === 'zamena' && !aloqa && <p className="text-xs text-danger">{t('Zamena uchun avval almashtiriladigan smeta qatorini tanlang')}</p>}

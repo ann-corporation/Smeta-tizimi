@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 0.1.12: sinov bilan boshlash (1000 token) va "Birinchi qadamlar" -->
+    <string name="sn_title">Tizimni bepul sinab ko\'ring</string>
+    <string name="sn_hint">Bir bosishda shaxsiy sinov joyingiz ochiladi va hisobingizga %1$d token tushadi. Kompaniya nomi yoki STIR kerak emas.</string>
+    <string name="sn_start">Sinovni boshlash — %1$d token</string>
+    <string name="sn_once">Token bir marta beriladi. Keyin haqiqiy kompaniyangizni shu joyning o\'zida ochasiz — tokenlaringiz saqlanadi.</string>
+    <string name="sn_err_limit">Bugungi sinov joylari tugadi. Ertaga urinib ko\'ring yoki kompaniya ochish orqali davom eting.</string>
+    <string name="sn_err_already">Sizda allaqachon ish joyi bor.</string>
+    <string name="sn_err_no_demo">Namuna obyekt hozircha yo\'q.</string>
+    <string name="sn_err_auth">Avval tizimga kiring.</string>
+    <string name="fs_title">Birinchi qadamlar</string>
+    <string name="fs_balance">Sinov balansi: %1$d token</string>
+    <string name="fs_demo">Namuna obyektni oching — tayyor kichik smeta</string>
+    <string name="fs_upload">O\'z smetangizni yuklang (Excel)</string>
+    <string name="fs_f2">F-2 tayyorlang</string>
+    <string name="fs_ai">AI yordamchiga savol bering</string>
+    <string name="fs_real">Haqiqiy kompaniya ish joyini oching (tokenlar saqlanadi)</string>
+    <string name="fs_open_demo">Ochish</string>
+    <string name="fs_open">Ochish</string>
+    <string name="fs_go">Boshlash</string>
+    <string name="fs_soon">tez orada</string>
+    <string name="fs_note">Ko\'rish va tahrirlash bepul. Hujjat tayyorlash, eksport va AI natijalari token yechadi.</string>
+    <string name="fs_upload_title">Smeta yuklash</string>
+</resources>

@@ -36,7 +36,7 @@ describe('AgentKompaniyaSozlama', () => {
     await screen.findByText('5 000');
     fireEvent.click(screen.getByLabelText(/A’zolar AI kuzatuvini/));
     fireEvent.change(screen.getByLabelText(/Oylik token limiti/), { target: { value: '3000' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Saqlash' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Saqlash/ }));
     await waitFor(() => expect(m.kompaniyaSozlamaSaqla).toHaveBeenCalledWith(5, { aiYoqilgan: true, tokenLimit: 3000, kuzatuvRuxsat: false }));
   });
 
@@ -45,10 +45,11 @@ describe('AgentKompaniyaSozlama', () => {
     render(<AgentKompaniyaSozlama kompaniyaId={5} />);
     await screen.findByText('5 000');
     fireEvent.change(screen.getByLabelText(/Oylik token limiti/), { target: { value: '-1' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Saqlash' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Saqlash/ }));
     expect(m.kompaniyaSozlamaSaqla).not.toHaveBeenCalled();
+    await screen.findByRole('button', { name: /^Saqlash/ }); // panel qayta bo‘sh holatga qaytguncha (Saqlanmoqda… tugaydi)
     fireEvent.change(screen.getByLabelText(/Oylik token limiti/), { target: { value: '' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Saqlash' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Saqlash/ }));
     await waitFor(() => expect(m.kompaniyaSozlamaSaqla).toHaveBeenCalledWith(5, { aiYoqilgan: true, tokenLimit: null, kuzatuvRuxsat: true }));
   });
 

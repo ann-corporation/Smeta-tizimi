@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, Lock, LockOpen, Plus, Save } from 'lucide-react';
+import { AlertTriangle, Lock, LockOpen, Plus } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
+import { SaqlashPaneli } from '../../umumiy/ui/SaqlashPaneli';
 import { yangiOperationId } from '../../api/supabase';
 import { buxDavr, buxDavrBlok, buxHisobSaqla, buxHisobTasdiq, buxMoslikSaqla, buxShablonTanla, buxSozlamaOl, buxXato, type BuxHolat, type BuxHisob, type BuxSozlama } from '../../api/t2-bux-hisob';
 import { Izoh, XatoQator } from './umumiy';
@@ -112,12 +113,18 @@ function Qoidalar({ kid, holat, onOzgardi, tasdiqlaydi, setXato, soz }: { kid: n
   };
   const [tahrir, setTahrir] = useState<Record<string, { dt: string; kt: string; q: string }>>({});
   const op = useRef<Record<string, string>>({});
-  const saqla = async (kalit: string) => {
-    const x = tahrir[kalit]; if (!x) return;
+  const saqla = async (kalit: string): Promise<boolean> => {
+    const x = tahrir[kalit]; if (!x) return true;
     const r = await buxMoslikSaqla({ kompaniyaId: kid, kalit, dtKod: x.dt || null, ktKod: x.kt || null, qiymat: x.q === '' ? null : Number(x.q), operationId: op.current[kalit] ?? (op.current[kalit] = yangiOperationId()) });
-    if (!r.ok) { setXato(buxXato(r)); return; }
+    if (!r.ok) { setXato(buxXato(r)); return false; }
     delete op.current[kalit]; setXato(null); setTahrir((a) => { const b = { ...a }; delete b[kalit]; return b; });
     toast(t('Qoida saqlandi. Keyingi «Hujjatlardan yangilash» eski provodkalarni storno qilib yangisini yozadi.'), 'ok'); onOzgardi();
+    return true;
+  };
+  /** Pastki panel: o'zgartirilgan barcha qoidalarni ketma-ket saqlaydi (har biri o'zining mavjud saqlash mantiqi bilan). */
+  const hammasiniSaqla = async () => {
+    for (const kalit of Object.keys(tahrir)) if (!(await saqla(kalit))) return false;
+    return true;
   };
   return (
     <section className="space-y-2" aria-label={t('Provodka qoidalari')}>
@@ -131,9 +138,9 @@ function Qoidalar({ kid, holat, onOzgardi, tasdiqlaydi, setXato, soz }: { kid: n
           <Izoh matn={t('Shablon tanlansa, uning qoidalari qo‘shiladi (mavjud qoidalar o‘zgarmaydi). Keyin hammasini tahrirlash mumkin.')} />
         </div>
       )}
-      <div className="overflow-x-auto">
+      <div className="max-h-[70vh] overflow-auto">
         <table className="w-full min-w-[720px] text-[12.5px]" aria-label={t('Provodka qoidalari')}>
-          <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th className={th}>{t('Hujjat')}</th><th className={th}>{t('Debet')}</th><th className={th}>{t('Kredit')}</th><th className={th} /></tr></thead>
+          <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left text-[11px] uppercase text-text-mute"><th className={th}>{t('Hujjat')}</th><th className={th}>{t('Debet')}</th><th className={th}>{t('Kredit')}</th><th className={th} /></tr></thead>
           <tbody>{holat.moslik.map((m) => {
             const par = m.kalit.startsWith('param.'); const x = tahrir[m.kalit];
             const nom = QOIDA_NOM[m.kalit]?.() ?? m.izoh ?? m.kalit;
@@ -146,12 +153,13 @@ function Qoidalar({ kid, holat, onOzgardi, tasdiqlaydi, setXato, soz }: { kid: n
                   <td className={td}>{tasdiqlaydi ? <HisobTanla nom={`${nom} — ${t('Debet')}`} faol={faol} v={x?.dt ?? m.dt_kod ?? ''} on={(v) => setTahrir((a) => ({ ...a, [m.kalit]: { dt: v, kt: a[m.kalit]?.kt ?? m.kt_kod ?? '', q: '' } }))} /> : (m.dt_kod ?? '—')}</td>
                   <td className={td}>{tasdiqlaydi ? <HisobTanla nom={`${nom} — ${t('Kredit')}`} faol={faol} v={x?.kt ?? m.kt_kod ?? ''} on={(v) => setTahrir((a) => ({ ...a, [m.kalit]: { dt: a[m.kalit]?.dt ?? m.dt_kod ?? '', kt: v, q: '' } }))} /> : (m.kt_kod ?? '—')}</td>
                 </>)}
-                <td className={td}>{x && <button type="button" className="fz-btn" onClick={() => void saqla(m.kalit)}><Save size={12} /> {t('Saqlash')}</button>}</td>
+                <td className={td}>{x && <span className="fz-chip fz-chip--warn">{t('o‘zgargan')}</span>}</td>
               </tr>
             );
           })}</tbody>
         </table>
       </div>
+      <SaqlashPaneli kalit="bux-qoidalar" soni={Object.keys(tahrir).length} saqla={hammasiniSaqla} bekor={() => setTahrir({})} />
     </section>
   );
 }
@@ -189,9 +197,9 @@ function Reja({ kid, holat, onOzgardi, yozadi, tasdiqlaydi, setXato }: { kid: nu
           {tasdiqlaydi && <button type="button" className="fz-btn" onClick={() => void tasdiq(tekshirilmagan)}>{t('Hammasini tasdiqlash')}</button>}
         </p>
       )}
-      <div className="overflow-x-auto">
+      <div className="max-h-[70vh] overflow-auto">
         <table className="w-full min-w-[760px] text-[12.5px]" aria-label={t('Hisoblar ro‘yxati')}>
-          <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th className={th}>{t('Kod')}</th><th className={th}>{t('Nomi')}</th><th className={th}>{t('Turi')}</th><th className={th}>{t('Kontragent bo‘yicha')}<Izoh matn={t('Belgilangan hisob kontragentlar kesimida yuritiladi (xaridor, yetkazuvchi).')} /></th><th className={th}>{t('Faol')}</th></tr></thead>
+          <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left text-[11px] uppercase text-text-mute"><th className={th}>{t('Kod')}</th><th className={th}>{t('Nomi')}</th><th className={th}>{t('Turi')}</th><th className={th}>{t('Kontragent bo‘yicha')}<Izoh matn={t('Belgilangan hisob kontragentlar kesimida yuritiladi (xaridor, yetkazuvchi).')} /></th><th className={th}>{t('Faol')}</th></tr></thead>
           <tbody>
             {holat.hisoblar.map((h) => (
               <tr key={h.kod} className={`border-t border-border/50 ${h.faol ? '' : 'text-text-mute'}`}>

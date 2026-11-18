@@ -1,5 +1,23 @@
 {
+  "android": {
+    "version": "0.1.15",
+    "generatedAtUtc": "2026-11-17T23:52:55Z",
+    "file": "qurai-0.1.15-native-release.apk",
+    "bytes": 46582318,
+    "sha256": "0ea9ce53ba86b22f9c459d7582b14b78a7aa47d12c1a98035ba2af3957f2078d",
+    "signed": true,
+    "minSdk": 26
+  },
   "ios": {
     "mode": "pwa"
+  },
+  "macos": {
+    "version": "0.1.1",
+    "generatedAtUtc": "2026-11-15T10:40:30Z",
+    "file": "qurai-0.1.1-macos-universal-unsigned.dmg",
+    "bytes": 4443819,
+    "sha256": "1ecc3ec391ffc6cff0c42650f76223da7af5b2748e324573a3f155d28af07ebe",
+    "signed": false,
+    "notarized": false
   }
 }

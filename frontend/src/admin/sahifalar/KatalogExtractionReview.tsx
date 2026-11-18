@@ -1,8 +1,11 @@
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
+import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { useRef, useState } from 'react';
 import { buildExtractionReview, reviewPage, sourceTablePage, type ExtractionReview } from '../../lib/catalog-extraction';
 import { t } from '../../i18n/til';
 
 export default function KatalogExtractionReview() {
+  const { joriyId } = useKompaniya();
   const [review, setReview] = useState<ExtractionReview | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -14,6 +17,7 @@ export default function KatalogExtractionReview() {
     const token = ++request.current;
     setReview(null); setError(''); setPage(0); setSearch(''); setTable('works'); setBusy(!!file);
     if (!file) return;
+    void aslFaylSaqla(file, { kompaniyaId: joriyId, turi: 'asl_boshqa' });
     try {
       if (file.size > 50 * 1024 * 1024) throw new Error('LARGE_PACKET');
       const parsed = buildExtractionReview(JSON.parse(await file.text()));

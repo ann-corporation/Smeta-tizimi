@@ -5,6 +5,7 @@
  * Permission middleware ro'yxatida emas: SCOPED_APIS faqat kompaniya ma'lumoti uchun (yuk-marshrut/profil kabi). Joy yuborish: 5 s da bittadan.
  */
 import { tekshir } from '../_shared/auth';
+import { r2Yoz } from '../_shared/r2-saqlash';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { quraRpc, xatoHolati } from '../_shared/yuk-tashish';
 
@@ -30,7 +31,7 @@ export async function izniArxivla(env: Env, actorId: number, bronId: number): Pr
   if (!ol?.ok || !Array.isArray(iz) || iz.length === 0) return false;
   const gz = new Response(new Blob([JSON.stringify(iz)]).stream().pipeThrough(new CompressionStream('gzip')));
   const kalit = 'yb/iz/' + bronId + '.json.gz';
-  await env.R2_CANONICAL.put(kalit, await gz.arrayBuffer(), { httpMetadata: { contentType: 'application/gzip' } });
+  await r2Yoz(env.R2_CANONICAL, kalit, await gz.arrayBuffer(), { httpMetadata: { contentType: 'application/gzip' } });
   const a = await rpcChaqir(env, 't2_yb_p2_iz_arxivla_v1', { p_actor_id: actorId, p_bron_id: bronId, p_r2_kalit: kalit });
   return !!a?.ok;
 }

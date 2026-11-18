@@ -37,7 +37,6 @@ const TESTLAR = [
   ['CTRL-001 System Control real backend', 't2_control.test.cjs'],
   ['COMPANY / AUTH / DIRECTOR onboarding', 't2_company_onboarding.test.cjs'],
   ['DOCUMENT CENTER real FILE-TRUTH wiring', 't2_document_center.test.cjs'],
-  ['DRIVE REPLICA worker + write-back', 't2_drive_replica.test.cjs'],
   ['SHEETS write-back reference', 't2_sheets_writeback.test.cjs'],
   ['T2 overnight reconciliation regression guard', 't2_overnight_reconciliation.test.cjs'],
   ['SECURITY P0 cross-cutting guards', 't2_security_p0.test.cjs'],

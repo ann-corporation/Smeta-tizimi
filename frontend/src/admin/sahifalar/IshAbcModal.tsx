@@ -278,9 +278,9 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
             {bolimlar.map((b) => <option key={b.id} value={b.id}>{b.nom}</option>)}
           </select></label>}
 
-        <div className="overflow-x-auto rounded-lg border border-border">
+        <div className="max-h-[70vh] overflow-auto rounded-lg border border-border">
           <table className="w-full min-w-[1080px] text-[12px]">
-            <thead className="bg-surface-2 text-[11px] text-text-dim"><tr>
+            <thead className="sticky top-0 z-10 bg-surface-2 text-[11px] text-text-dim"><tr>
               <th className="w-16 p-2 text-left">Kat.</th><th className="w-36 p-2 text-left">Shifr / kod</th><th className="p-2 text-left">Ish turi / resurs nomi</th>
               <th className="w-20 p-2 text-left">Birlik</th><th className="w-24 p-2 text-right">Norma</th><th className="w-28 p-2 text-right">Hajm</th>
               <th className="w-44 p-2 text-right">Birlik narxi</th><th className="w-32 p-2 text-right">Summa</th><th className="w-8" />

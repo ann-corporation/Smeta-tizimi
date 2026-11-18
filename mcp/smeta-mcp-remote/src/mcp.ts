@@ -22,7 +22,7 @@ export const KORSATMA_MASOFAVIY = `${KORSATMA.replace(/ RPC aktori:.*$/, '')} Ak
 
 export function masofaviyServer(mu: Muhit, v: Vakolat, sayt?: string): McpServer {
   const s = new McpServer({ name: 'smeta-remote', version: VERSIYA }, { instructions: KORSATMA_MASOFAVIY });
-  s.registerResource('qoidalar', 'smeta://qoidalar', { title: 'Smeta tizimi domen qoidalari', description: 'NDS siz narx, ustamasiz/ustamali, asl smeta const, F2 narxi = max(smeta, xarid), dry_run/tasdiq.', mimeType: 'text/markdown' },
+  s.registerResource('qoidalar', 'smeta://qoidalar', { title: 'QURAI domen qoidalari', description: 'NDS siz narx, ustamasiz/ustamali, asl smeta const, F2 narxi = max(smeta, xarid), dry_run/tasdiq.', mimeType: 'text/markdown' },
     async (uri) => ({ contents: [{ uri: uri.href, mimeType: 'text/markdown', text: QOIDALAR }] }));
   for (const t of MASOFAVIY_TOOLLAR) {
     s.registerTool(t.nom, {
@@ -43,7 +43,7 @@ export function masofaviyServer(mu: Muhit, v: Vakolat, sayt?: string): McpServer
   s.registerTool('fetch', {
     title: 'Olish', description: 'Obyekt holati (smeta / fakt / F2 / qoldiq bo\'limlar bo\'yicha, NDS siz): `search` natijasidagi id bo\'yicha. [faqat o\'qish]',
     inputSchema: { id: z.string().min(1).max(40).describe('search natijasidagi id («obyekt:<son>»)') },
-    outputSchema: { id: z.string(), title: z.string(), text: z.string(), url: z.string(), metadata: z.record(z.string()).optional() },
+    outputSchema: { id: z.string(), title: z.string(), text: z.string(), url: z.string(), metadata: z.record(z.string(), z.string()).optional() },
     annotations: ro, _meta: SECURITY_META,
   }, async ({ id }) => olish(id, mu, v, sayt));
   return s;

@@ -1,7 +1,9 @@
 import { useMemo, useRef, useState } from 'react';
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { FileUp, Undo2 } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { yangiOperationId } from '../../api/supabase';
 import { buxSaldoBekor, buxSaldoImport, buxTolovOl, buxXato, type SaldoNatija } from '../../api/t2-bux-hisob';
 import { csvGrid } from '../../lib/buxgalteriya/bank';
@@ -30,6 +32,7 @@ export function Saldo({ kid, onOzgardi, tasdiqlaydi }: { kid: number; onOzgardi:
   const parse = useMemo(() => (fayl && map ? saldoQatorlar(fayl.grid, map, boshQator, moslik) : null), [fayl, map, boshQator, moslik]);
 
   const faylTanla = async (f: File | undefined) => {
+    if (f) void aslFaylSaqla(f, { kompaniyaId: kid, turi: 'asl_bank' });
     if (!f) return;
     try {
       const grid = /\.csv$|\.txt$/i.test(f.name) ? csvGrid(await f.text()) : ((await readWorkbookGrids(await f.arrayBuffer()))[0]?.grid ?? []);
@@ -55,6 +58,7 @@ export function Saldo({ kid, onOzgardi, tasdiqlaydi }: { kid: number; onOzgardi:
     toast(t('Boshlang‘ich qoldiq yozildi: {n} ta provodka', { n: r.yozildi ?? 0 }), 'ok'); onOzgardi();
   };
   const bekor = async () => {
+    if (!(await tasdiqSora({ matn: t('Hamma boshlang‘ich qoldiq provodkalari storno qilinadi. Davom etasizmi?'), tasdiqMatni: t('Bekor qilish'), xavfli: true }))) return;
     setBand(true);
     const r = await buxSaldoBekor(kid, yangiOperationId());
     setBand(false);

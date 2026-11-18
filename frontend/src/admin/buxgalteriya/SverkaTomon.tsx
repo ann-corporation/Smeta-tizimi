@@ -61,9 +61,9 @@ export function SverkaTomon({ kid, davr, versiya }: { kid: number; davr: Davr; v
             <div><span className="mb-1 block text-[11px] uppercase text-text-mute">{t('Farq')}</span><Son v={d.farq} qalin /></div>
             <div className="flex items-end">{d.farqli_soni === 0 ? <span className="flex items-center gap-1 text-ok"><CheckCircle2 size={14} /> {t('Farq yo‘q')}</span> : <span className="text-danger">{t('Farqli qator: {n}', { n: d.farqli_soni })}</span>}</div>
           </div>
-          <div className="overflow-x-auto">
+          <div className="max-h-[70vh] overflow-auto">
             <table className="w-full min-w-[820px] text-[12.5px]" aria-label={t('Akt sverki')}>
-              <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th className={th}>{t('Holat')}</th><th className={th}>{t('Sana (biz)')}</th><th className={th}>{t('Hujjat')}</th><th className={`${th} text-right`}>{t('Summa (biz)')}</th><th className={th}>{t('Sana (ular)')}</th><th className={`${th} text-right`}>{t('Summa (ular)')}</th><th className={`${th} text-right`}>{t('Farq')}</th></tr></thead>
+              <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left text-[11px] uppercase text-text-mute"><th className={th}>{t('Holat')}</th><th className={th}>{t('Sana (biz)')}</th><th className={th}>{t('Hujjat')}</th><th className={`${th} text-right`}>{t('Summa (biz)')}</th><th className={th}>{t('Sana (ular)')}</th><th className={`${th} text-right`}>{t('Summa (ular)')}</th><th className={`${th} text-right`}>{t('Farq')}</th></tr></thead>
               <tbody>
                 {d.qatorlar.length === 0 && <tr><td colSpan={7} className="px-2 py-6 text-center text-text-mute">{t('Bu davrda hujjat yo‘q.')}</td></tr>}
                 {d.qatorlar.map((q, i) => (

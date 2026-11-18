@@ -42,3 +42,12 @@ Play Store AAB (`--aab`) bu bosqichda yo'q: faqat APK. Do'kon uchun keyingi qada
 
 ## CI isbotlashi kerak (lokal tekshirilmagan)
 Android Gradle + Kotlin plugin kompilyatsiyasi (`KeystorePlugin.kt`, Tauri Kotlin API), `mobile_entry_point`, manifest overlay; iOS `aarch64-apple-ios-sim` build va `tauri.ios.conf`/`Info.ios.plist` qo'llanishi; macOS universal DMG va `cargo test`; qurilmada: login → oflayn lease → qayta ishga tushirish, kamera/foto tanlash.
+## Onlayn qobiq (standart)
+
+2026-11-15 qaror: o'rnatilgan ilovalar (Android, iOS, Windows, macOS) endi **saytning o'zi**: oyna https://smeta-tizimi.pages.dev ni jonli yuklaydi. Hamma /api/* yo'llari, sessiya cookie va hamma rollar (PTO, prorab, buxgalter, kadr, texnadzor, direktor) saytdagidek ishlaydi va har doim yangi versiya.
+
+- Ishga tushganda `src-tauri/offline/index.html` (uz/ru/en) tarmoqni tekshiradi; bor bo'lsa saytga o'tadi, yo'q bo'lsa «Qayta urinish» tugmasi chiqadi.
+- Masofaviy origin'ga Tauri IPC berilmaydi: `capabilities/default.json` faqat `local: true`, `remote.urls` yo'q, `withGlobalTauri: false`. Sayt oddiy veb-sahifa.
+- Navigatsiya qo'riqchisi (`src/shell.rs`): ilovada faqat `smeta-tizimi.pages.dev` va Google kirish (`accounts.google.com`) qoladi; boshqa havolalar tizim brauzerida (`tauri-plugin-opener`) ochiladi.
+- Android: fayl/kamera tanlash wry'ning `onShowFileChooser` orqali ishlaydi (`capture` bo'lsa CAMERA ruxsati so'raladi), orqaga tugmasi WebView tarixi bo'ylab yuradi.
+- Eski rejim (mahalliy bundle + native BFF/oflayn lease) o'chirilmagan: `--features local-bff --config src-tauri/tauri.local-bff.conf.json` (Windows: `desktop-build.ps1 -LocalBff`). Standart holatda o'chiq.

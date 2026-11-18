@@ -9,7 +9,6 @@ import { useMen, useKompaniyaRoyxatlar } from '../../api/t2-men';
 import { useSessiya } from '../../api/hooks';
 import { ishJoylarim, takliflar } from '../../api/t2-ish-joyi';
 import { tokenHolatOl } from '../../api/t2-token';
-import { companyStorageOl } from '../../api/t2-storage';
 import { TilTanlagich } from '../../i18n/TilTanlagich';
 import { MavzuTanlagich } from '../../umumiy/ui/Mavzu';
 import { t } from '../../i18n/til';
@@ -17,6 +16,9 @@ import { PERMISSION_LABELS } from '../../lib/company-authorization/permission-la
 import { topshiriqlarOl } from '../../api/t2-topshiriq';
 import { SERVER_YANGILANMAGAN, ProfilXatosi, useProfil, xatoMatn } from '../../api/profil';
 import { ProfilForma } from './ProfilForma';
+import { UsernameKarta } from '../username/UsernameKarta';
+import { KelganTakliflar } from '../username/KelganTakliflar';
+import { ModullarimTanlagich } from '../modullarim/ModullarimTanlagich';
 import { TelegramKarta } from '../../telegram/TelegramKarta';
 import { BirlashtirKarta } from './BirlashtirKarta';
 import { KirishUsullariKarta } from './KirishUsullariKarta';
@@ -78,7 +80,7 @@ export function ProfilBolimi() {
   return (
     <div className="flex flex-col gap-4">
       {q.isError && <ProfilXatoNota q={q} />}
-      <ProfilKutish q={q}>{(d) => <ProfilForma key={d.profil.id} profil={d.profil} />}</ProfilKutish>
+      <ProfilKutish q={q}>{(d) => <><ProfilForma key={d.profil.id} profil={d.profil} /><UsernameKarta ism={d.profil.ism} login={d.profil.login} /></>}</ProfilKutish>
       {q.isError && (
         <Karta sarlavha="Profil" tavsif="Hozirgi ma‘lumotlar (faqat o‘qiladi).">
           <div className="flex items-center gap-3">
@@ -142,6 +144,7 @@ export function KompaniyalarBolimi() {
 
   return (
     <div className="flex flex-col gap-4">
+      <KelganTakliflar />
       <Karta sarlavha="Kompaniyalar va rollar" tavsif="Bir odam bir kompaniyada bir nechta rol tutishi mumkin. Ruxsatlar serverdagi samarali ruxsatlardan olinadi.">
         {rollar.length === 0 && <p className="text-[13px] text-text-dim m-0">{t('Hali ish joyingiz yo‘q')}</p>}
         <ul className="m-0 p-0 list-none flex flex-col gap-2">
@@ -314,15 +317,9 @@ export function TarifBolimi() {
     queryFn: async () => { const r = await tokenHolatOl(id as number); if (!r.ok) throw new Error(r.error); return r.natija; },
     enabled: !!id, staleTime: 60_000,
   });
-  const saqlash = useQuery({
-    queryKey: ['akkaunt-storage', id],
-    queryFn: async () => { const r = await companyStorageOl(id as number); if (!r.ok) throw new Error('storage'); return r.data; },
-    enabled: !!id, staleTime: 60_000,
-  });
   const karta = (joylar.data?.ishJoylari ?? []).find((x) => x.kompaniya_id === id);
   const jami = joylar.data ? joylar.data.ishJoylari.length : null;
   const obuna = token.data?.obuna;
-  const holat = saqlash.data?.status;
   return (
     <div className="flex flex-col gap-4">
       <div className="fz-kpis">
@@ -337,7 +334,6 @@ export function TarifBolimi() {
             <Qator yorliq="Tarif" qiymat={token.isLoading ? '…' : obuna ? obuna.nom : '—'} />
             <Qator yorliq="Oylik token" qiymat={sonYoki(obuna?.oylik_token)} />
             <Qator yorliq="Obuna tugashi" qiymat={obuna?.tugaydi ?? '—'} />
-            <Qator yorliq="Fayl saqlash holati" qiymat={saqlash.isLoading ? '…' : (holat ?? '—')} />
             <Qator yorliq="Saqlash hajmi (GB)" qiymat="—" />
           </>
         )}
@@ -378,6 +374,21 @@ export function HubBolimi() {
       </div>
       <Link to="/admin/sozlamalar" className="fz-btn fz-btn--sm self-start">{t('Sozlamalar markazini ochish')}</Link>
       <p className="text-[11px] text-text-mute flex items-center gap-1 m-0"><Info size={12} aria-hidden="true" />{t('Ko‘rinadigan sahifalar rolingiz ruxsatlariga bog‘liq; yakuniy tekshiruv serverda.')}</p>
+    </div>
+  );
+}
+
+/* ───────── Modullarim (Telegram modeli: o‘zim tanlagan ilovalar) ───────── */
+export function ModullarimBolimi() {
+  const k = useKompaniya();
+  const kid = k.globalRejim ? null : k.joriy?.id ?? null;
+  return (
+    <div className="flex flex-col gap-4">
+      <Karta sarlavha="Modullarim" tavsif="Yon menyuda faqat o‘zingiz ishlatadigan modullar ko‘rinsin. Bu tanlov Android, Windows va Telegram bilan bir xil.">
+        {kid
+          ? <ModullarimTanlagich kompaniyaId={kid} />
+          : <Nota tur="info">{t('Modullarni tanlash uchun avval kompaniya tanlang yoki oching.')} <Link className="underline" to="/admin/kompaniya">{t('Kompaniya sahifasiga o‘tish')}</Link></Nota>}
+      </Karta>
     </div>
   );
 }

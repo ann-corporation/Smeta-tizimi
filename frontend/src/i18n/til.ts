@@ -81,7 +81,7 @@ function yangila(til: Til, saqla: boolean): void {
 function xabarBer(): void { tinglovchilar.forEach((f) => f()); }
 
 /** Bitta foydalanuvchi bir necha tabda ishlasa, ko‘rinish tili ham bir xil qoladi. */
-if (typeof window !== 'undefined') window.addEventListener('storage', (event) => {
+if (typeof window !== 'undefined') window.addEventListener('storage', (event: { key: string | null; newValue: string | null }) => {
   if (event.key !== KALIT || !event.newValue) return;
   if (TILLAR.some((x) => x.kod === event.newValue)) yangila(event.newValue as Til, false);
 });
@@ -109,14 +109,26 @@ export function useTilHolati(): { tayyor: boolean; kutilayotgan: Til | null } {
   return { tayyor, kutilayotgan: kut };
 }
 
+/* «Yashirin ishlar dalolatnomasi» qisqartmasi YAGONA imloda (QA 2026-11-15): rus tilida rasmiy kirill «АОСР»,
+ * o'zbek lotin (va ingliz) interfeysida lotin «AOSR». Kirill harflarli «АОСР» lotin matn ichida (yoki lotin «AOCP»
+ * yozilishi) — aralash imlo. Manba matnlar kirillda yozilgan bo'lishi mumkin — shu yerda til bo'yicha bir xillanadi. */
+const AOSR_KIR = 'АОСР';
+const AOSR_LOT = /(?<![A-Za-z])AOSR(?![A-Za-z])/g;
+
 /** Tarjima: `manba` — o'zbek lotin matn (kalit). `{nom}` o'rinbosarlari `p` dan to'ldiriladi. */
 export function t(manba: string, p?: Record<string, string | number>): string {
   let s: string;
-  if (joriy === 'uz') s = manba;
+  if (joriy === 'uz') s = manba.includes(AOSR_KIR) ? manba.replaceAll(AOSR_KIR, 'AOSR') : manba;
   else if (joriy === 'uz-Cyrl') {
     s = kirillKesh.get(manba) ?? '';
     if (!s) { s = ISTISNO.matnlar?.[manba] ?? lotinKirill(manba); kirillKesh.set(manba, s); }
-  } else s = lugatHolat.lugat?.[joriy][manba] ?? manba;
+  } else {
+    const tarjima = lugatHolat.lugat?.[joriy][manba];
+    if (tarjima !== undefined) s = tarjima;
+    else if (joriy === 'ru') s = manba.includes('AOSR') ? manba.replace(AOSR_LOT, AOSR_KIR) : manba;
+    else s = manba.includes(AOSR_KIR) ? manba.replaceAll(AOSR_KIR, 'AOSR') : manba;
+    if (joriy === 'en' && s.includes(AOSR_KIR)) s = s.replaceAll(AOSR_KIR, 'AOSR');   // ingliz lug'ati qiymatlari ham lotin imloda
+  }
   return p ? s.replace(/\{(\w+)\}/g, (m, k: string) => (k in p ? String(p[k]) : m)) : s;
 }
 

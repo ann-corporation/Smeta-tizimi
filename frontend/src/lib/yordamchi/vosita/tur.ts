@@ -54,6 +54,8 @@ export type VositaApi = {
   /** Obyekt smeta qatorlaridan qidirish (kod/nom bo'laklari bo'yicha, ≤ 6). */
   qatorTop?: (obyektId: number, matn: string) => Promise<QatorQisqa[] | null>;
   /** Zamena / qo'shimcha ISH saqlash (mavjud sb-yoz: zamena_ish_yarat_v1 / qoshimcha_ish_yarat_v1). Asl smeta qatori o'zgarmaydi. */
+  /** F2/fakt MCP vositalari (`/api/f2-buyruq`): o'qish yoki yozuv PREVIEW (server dry_run) va `f2_tasdiq` (token bilan yozish). Aktor/ruxsat serverda. */
+  f2Mcp?: (nom: string, args: Record<string, unknown>) => Promise<import('../../jarvis/f2-javob').F2Javob>;
   zamenaSaqla?: (p: { obyektId: number; rejim: 'zamena' | 'qoshimcha'; qator: QatorQisqa; nom: string; birlik: string; hajm: number; sabab: string; operationId: string }) => Promise<{ ok: boolean; error?: string }>;
 };
 

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Bot, Building2, Calculator, ClipboardCheck, FileText, HardHat, Home, Menu, ShieldCheck, Truck, Users } from 'lucide-react';
 import { t } from '../../i18n/til';
@@ -19,8 +20,24 @@ type Props = {
  * Telefon (<768px) pastki tab-paneli: Bosh sahifa · Obyektlar · rol ishi · Jarvis · Menyu (drawer).
  * Keng ekranda HECH NIMA chizmaydi — desktop DOM o'zgarmaydi. Jarvis — `ai:ochish` hodisasi (AiHelper to'liq ekran sheet).
  */
+/** Jarvis to'liq ekran ochiqmi (AiHelper `html[data-jarvis-ochiq]` qo'yadi/olib tashlaydi). */
+function useJarvisOchiq(): boolean {
+  const [ochiq, setOchiq] = useState(() => typeof document !== 'undefined' && document.documentElement.hasAttribute('data-jarvis-ochiq'));
+  useEffect(() => {
+    if (typeof MutationObserver === 'undefined') return;
+    const el = document.documentElement;
+    const f = () => setOchiq(el.hasAttribute('data-jarvis-ochiq'));
+    f();
+    const mo = new MutationObserver(f);
+    mo.observe(el, { attributes: true, attributeFilter: ['data-jarvis-ochiq'] });
+    return () => mo.disconnect();
+  }, []);
+  return ochiq;
+}
+
 export function MobilTabPanel({ rol, korinadi, menyuOchiq, onMenyu }: Props) {
   const mobil = useMobilEkran();
+  const jarvisOchiq = useJarvisOchiq();
   const { pathname } = useLocation();
   if (!mobil) return null;
   const tablar = mobilTablar(rol, korinadi);
@@ -36,8 +53,10 @@ export function MobilTabPanel({ rol, korinadi, menyuOchiq, onMenyu }: Props) {
           return <Link key={tab.id} to={tab.yol} className={`mobil-tab__item ${faol ? 'mobil-tab__item--faol' : ''}`} aria-current={faol ? 'page' : undefined} data-testid={`mobil-tab-${tab.id}`}>{kont(tab)}</Link>;
         }
         if (tab.tur === 'jarvis') {
-          return <button key={tab.id} type="button" className="mobil-tab__item mobil-tab__item--ai" data-testid="mobil-tab-jarvis" aria-label={t('Jarvis AI ni ochish')}
-            onClick={() => window.dispatchEvent(new CustomEvent('ai:ochish', { detail: {} }))}>{kont(tab)}</button>;
+          // Faol belgi faqat Jarvis ochiq turganda (yopilgach joriy sahifa tabi yagona faol bo'lib qoladi).
+          return <button key={tab.id} type="button" className={`mobil-tab__item ${jarvisOchiq ? 'mobil-tab__item--faol' : ''}`} data-testid="mobil-tab-jarvis" aria-label={t('Jarvis AI ni ochish')}
+            aria-pressed={jarvisOchiq}
+            onClick={(e) => { e.currentTarget.blur(); window.dispatchEvent(new CustomEvent('ai:ochish', { detail: {} })); }}>{kont(tab)}</button>;
         }
         return <button key={tab.id} type="button" className={`mobil-tab__item ${menyuOchiq ? 'mobil-tab__item--faol' : ''}`} data-testid="mobil-tab-menyu" aria-expanded={menyuOchiq}
           aria-label={t('Menyuni ochish')} onClick={onMenyu}>{kont(tab)}</button>;

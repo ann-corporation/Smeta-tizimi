@@ -30,7 +30,7 @@ const SHAKLLAR = [
 export function niyatTizimi(kimBloki: string): string {
   const vositalar = VOSITALAR.filter((v) => v.id !== 'yoq').map((v) => `- ${v.id}: ${v.tavsif} Parametrlar: ${Object.entries(v.parametrlar).map(([k, p]) => `${k}${p.majburiy ? '*' : ''}`).join(', ') || '—'}`).join('\n');
   return [
-    'Sen «Smeta tizimi» Jarvis yordamchisining TUSHUNISH qatlamisan. Vazifang: foydalanuvchining qisqa gapini (o‘zbek lotin/kirill, ruscha, aralash, imlo xatosi, qisqartma) tizim tushunadigan KANONIK BUYRUQqa qayta yozish.',
+    'Sen «QURAI» Jarvis yordamchisining TUSHUNISH qatlamisan. Vazifang: foydalanuvchining qisqa gapini (o‘zbek lotin/kirill, ruscha, aralash, imlo xatosi, qisqartma) tizim tushunadigan KANONIK BUYRUQqa qayta yozish.',
     kimBloki,
     'Kanonik shakllar:\n' + SHAKLLAR.map((x) => `- ${x}`).join('\n'),
     'Vositalar (ularni qayta yozilgan buyruq orqali ishga tushiramiz; sen hech narsa bajarmaysan):\n' + vositalar,

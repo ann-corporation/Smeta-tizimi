@@ -1,5 +1,5 @@
 /**
- * OAuth /authorize sahifasi: foydalanuvchi Smeta tizimi login/paroli bilan kiradi. Parol web ilova bilan AYNAN bir xil
+ * OAuth /authorize sahifasi: foydalanuvchi QURAI login/paroli bilan kiradi. Parol web ilova bilan AYNAN bir xil
  * tekshiriladi (`t2_parol_tekshir_v1`, service kaliti faqat Worker sirida); hisob holati va kompaniyalar — `t2_men_v1`
  * (roleAuthority). Parol hech qayerga yozilmaydi/loglanmaydi. GAS-faqat (Supabase xeshi hali yo'q) hisoblar — avval saytga bir
  * marta kirish kerak (sayt parolni Supabase'ga ko'chiradi).
@@ -17,11 +17,11 @@ export const googleSozlangan = (env: { GOOGLE_CLIENT_ID?: string; GOOGLE_CLIENT_
 
 export function sahifa(o: { klient: string; redirectHost: string; holat: string; xato?: string; login?: string; google?: boolean }): string {
   return `<!doctype html><html lang="uz"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Smeta tizimi — AI ulanish</title><style>body{font-family:system-ui,sans-serif;background:#f5f6f8;margin:0;padding:24px;color:#1b1f24}
+<title>QURAI — AI ulanish</title><style>body{font-family:system-ui,sans-serif;background:#f5f6f8;margin:0;padding:24px;color:#1b1f24}
 main{max-width:380px;margin:40px auto;background:#fff;border-radius:12px;padding:24px;box-shadow:0 1px 4px #0002}h1{font-size:20px;margin:0 0 8px}
 p{font-size:14px;line-height:1.45}label{display:block;font-size:13px;margin:12px 0 4px}input{width:100%;box-sizing:border-box;padding:10px;border:1px solid #c8ccd2;border-radius:8px;font-size:15px}
 button{margin-top:16px;width:100%;padding:11px;border:0;border-radius:8px;background:#1d4ed8;color:#fff;font-size:15px;cursor:pointer}a.g{display:block;margin-top:10px;text-align:center;padding:10px;border:1px solid #c8ccd2;border-radius:8px;color:#1b1f24;text-decoration:none;font-size:15px}.y{text-align:center;color:#5b6370;font-size:13px;margin:16px 0 0}.x{color:#b42318;font-size:14px}.k{font-size:12px;color:#5b6370}</style></head>
-<body><main><h1>Smeta tizimi</h1><p><b>${esc(o.klient)}</b> (${esc(o.redirectHost)}) sizning nomingizdan Smeta tizimi ma'lumotlarini o'qish va
+<body><main><h1>QURAI</h1><p><b>${esc(o.klient)}</b> (${esc(o.redirectHost)}) sizning nomingizdan QURAI ma'lumotlarini o'qish va
 (sizning tasdig'ingiz bilan) yozish uchun ruxsat so'ramoqda. Faqat siz a'zo bo'lgan kompaniyalar ko'rinadi.</p>
 ${o.xato ? `<p class="x">${esc(o.xato)}</p>` : ''}
 <form method="post" action="/authorize"><input type="hidden" name="holat" value="${esc(o.holat)}">

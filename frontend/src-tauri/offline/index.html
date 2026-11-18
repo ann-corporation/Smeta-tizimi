@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>QURAI</title>
+<link rel="stylesheet" href="loader.css">
+</head>
+<body>
+<main>
+  <div id="busy" class="card" role="status">
+    <div class="spin" aria-hidden="true"></div>
+    <p data-l="uz">Ulanmoqda&hellip;</p>
+    <p data-l="ru">&#1055;&#1086;&#1076;&#1082;&#1083;&#1102;&#1095;&#1077;&#1085;&#1080;&#1077;&hellip;</p>
+    <p data-l="en">Connecting&hellip;</p>
+  </div>
+  <div id="off" class="card" role="alert" hidden>
+    <h1 data-l="uz">Internet yo&#8216;q</h1>
+    <h1 data-l="ru">&#1053;&#1077;&#1090; &#1087;&#1086;&#1076;&#1082;&#1083;&#1102;&#1095;&#1077;&#1085;&#1080;&#1103; &#1082; &#1080;&#1085;&#1090;&#1077;&#1088;&#1085;&#1077;&#1090;&#1091;</h1>
+    <h1 data-l="en">No internet connection</h1>
+    <p data-l="uz">QURAI bilan ishlash uchun internet kerak. Ulanishni tekshiring.</p>
+    <p data-l="ru">&#1044;&#1083;&#1103; &#1088;&#1072;&#1073;&#1086;&#1090;&#1099; &#1089; QURAI &#1085;&#1091;&#1078;&#1077;&#1085; &#1080;&#1085;&#1090;&#1077;&#1088;&#1085;&#1077;&#1090;. &#1055;&#1088;&#1086;&#1074;&#1077;&#1088;&#1100;&#1090;&#1077; &#1087;&#1086;&#1076;&#1082;&#1083;&#1102;&#1095;&#1077;&#1085;&#1080;&#1077;.</p>
+    <p data-l="en">QURAI needs the internet. Check your connection.</p>
+    <button id="retry" type="button">
+      <span data-l="uz">Qayta urinish</span>
+      <span data-l="ru">&#1055;&#1086;&#1074;&#1090;&#1086;&#1088;&#1080;&#1090;&#1100;</span>
+      <span data-l="en">Retry</span>
+    </button>
+  </div>
+</main>
+<script src="loader.js"></script>
+</body>
+</html>

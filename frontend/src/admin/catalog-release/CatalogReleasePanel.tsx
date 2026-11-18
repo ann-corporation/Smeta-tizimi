@@ -1,3 +1,4 @@
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
@@ -7,7 +8,7 @@ import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { t } from '../../i18n/til';
 
 export default function CatalogReleasePanel() {
-  const { superadmin } = useKompaniya();
+  const { superadmin, joriyId } = useKompaniya();
   const [file, setFile] = useState<File | null>(null);
   const [analysis, setAnalysis] = useState<CatalogTahlil | null>(null);
   const [meta, setMeta] = useState<ReleaseMeta | null>(null);
@@ -38,7 +39,8 @@ export default function CatalogReleasePanel() {
     if (!superadmin || !file || !analysis?.importgaTayyor || !meta || !approved) return;
     setBusy(true); setError(''); setMessage('');
     try {
-      const done = await uploadCatalogRelease(file, meta, catalogQatorlariniApiFormatga(analysis.qatorlar), (n, total) => setProgress(Math.floor(n / total * 100)));
+      void aslFaylSaqla(file, { kompaniyaId: joriyId, turi: 'asl_narx' });
+    const done = await uploadCatalogRelease(file, meta, catalogQatorlariniApiFormatga(analysis.qatorlar), (n, total) => setProgress(Math.floor(n / total * 100)));
       setMessage(t('Umumiy katalog saqlandi') + `: ${done.rows.toLocaleString()} · ${done.revision.slice(0, 16)}`); setApproved(false); await refresh();
     } catch (e) { setError((e instanceof Error ? e.message : String(e)) + '. ' + t('Qayta yuklash yozilgan bo‘laklarni takrorlamaydi')); }
     finally { setBusy(false); setProgress(null); }
@@ -62,7 +64,7 @@ export default function CatalogReleasePanel() {
         <p>{analysis.qatorlar.length.toLocaleString()} {t('qator')} · {analysis.davr.yorliq}</p>
         {analysis.varaqlar.flatMap(v => v.warnings).map((w, i) => <p key={i} className="text-warn text-sm">{w}</p>)}
         {!!analysis.periodNizolari?.length && <p className="text-warn">{t('Fayl va varaq davri farq qiladi — davrni tekshiring')}</p>}
-        <div className="overflow-auto"><table className="w-full text-sm"><thead><tr><th>{t('Nomi')}</th><th>{t('Birlik')}</th><th>{t('Narx')}</th></tr></thead><tbody>{analysis.qatorlar.slice(0, 10).map((r, i) => <tr key={i}><td>{String((r as unknown as Record<string, unknown>).nom ?? '')}</td><td>{String((r as unknown as Record<string, unknown>).birlik ?? '')}</td><td>{String((r as unknown as Record<string, unknown>).narx ?? '—')}</td></tr>)}</tbody></table></div>
+        <div className="max-h-[70vh] overflow-auto"><table className="w-full text-sm"><thead className="sticky top-0 z-10 bg-surface"><tr><th>{t('Nomi')}</th><th>{t('Birlik')}</th><th>{t('Narx')}</th></tr></thead><tbody>{analysis.qatorlar.slice(0, 10).map((r, i) => <tr key={i}><td>{String((r as unknown as Record<string, unknown>).nom ?? '')}</td><td>{String((r as unknown as Record<string, unknown>).birlik ?? '')}</td><td>{String((r as unknown as Record<string, unknown>).narx ?? '—')}</td></tr>)}</tbody></table></div>
         {!analysis.importgaTayyor && <p className="text-danger">{t('Fayl tahlili tugallanmagan — yuklash bloklandi')}</p>}
         <label className="flex gap-2 text-sm"><input type="checkbox" checked={approved} disabled={busy} onChange={e => setApproved(e.target.checked)} />{t('Manba, davr va qatorlarni tekshirdim; umumiy katalogga yuklayman')}</label>
         <button type="button" className="tugma" disabled={busy || !approved || !analysis.importgaTayyor} onClick={() => void save()}>{t('Umumiy katalogni saqlash')}</button>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- QULF (app lock + step-up), Uzbek (default). -->
+<resources>
+    <string name="qulf_section">PIN va biometrik</string>
+    <string name="qulf_locked_title">Ilova qulflangan</string>
+    <string name="qulf_locked_hint">PIN kodni kiriting yoki biometrik bilan oching.</string>
+    <string name="qulf_confirm_title">Amalni tasdiqlang</string>
+    <string name="qulf_confirm_hint">Bu amal pul yoki imzoga tegishli. PIN yoki biometrik bilan tasdiqlang.</string>
+    <string name="qulf_pin_wrong">PIN noto\'g\'ri</string>
+    <string name="qulf_pin_blocked">Juda ko\'p urinish. Birozdan keyin urinib ko\'ring.</string>
+    <string name="qulf_relogin">Xavfsizlik uchun tizimga qayta kiring.</string>
+    <string name="qulf_offline">Aloqa yo\'q. Biometrik bilan oching.</string>
+    <string name="qulf_bio_failed">Biometrik tasdiq o\'tmadi.</string>
+    <string name="qulf_biometric">Biometrik bilan ochish</string>
+    <string name="qulf_ok">OK</string>
+    <string name="qulf_cancel">Bekor qilish</string>
+    <string name="qulf_prompt_title">Tasdiqlang</string>
+    <string name="qulf_prompt_subtitle">Barmoq izi yoki yuz bilan</string>
+    <string name="qulf_pin_set">PIN o\'rnatilgan</string>
+    <string name="qulf_pin_unset">PIN o\'rnatilmagan</string>
+    <string name="qulf_old_pin">Eski PIN</string>
+    <string name="qulf_new_pin">Yangi PIN (4–6 raqam)</string>
+    <string name="qulf_set_pin">PIN o\'rnatish</string>
+    <string name="qulf_change_pin">PIN ni almashtirish</string>
+    <string name="qulf_remove_pin">PIN ni o\'chirish</string>
+    <string name="qulf_pin_saved">PIN saqlandi.</string>
+    <string name="qulf_pin_removed">PIN o\'chirildi.</string>
+    <string name="qulf_pin_format">PIN 4–6 raqamdan iborat bo\'lishi kerak.</string>
+    <string name="qulf_pin_weak">PIN juda oson (0000, 1234 kabi). Boshqasini tanlang.</string>
+    <string name="qulf_step_needed">Avval PIN yoki biometrik bilan tasdiqlang.</string>
+    <string name="qulf_failed">Amalni bajarib bo\'lmadi. Qayta urinib ko\'ring.</string>
+    <string name="qulf_saved">Saqlandi.</string>
+    <string name="qulf_timeout">Avtomatik qulf (daqiqa)</string>
+    <string name="qulf_bio_bound">Bu telefon biometrik bilan bog\'langan.</string>
+    <string name="qulf_bio_unbound">Bu telefon biometrikka bog\'lanmagan.</string>
+    <string name="qulf_bio_unavailable">Telefonda barmoq izi yoki yuz sozlanmagan.</string>
+    <string name="qulf_bio_add">Bu telefonni biometrik bilan bog\'lash</string>
+    <string name="qulf_bio_added">Biometrik bog\'landi.</string>
+    <string name="qulf_bio_remove">Biometrikni o\'chirish</string>
+    <string name="qulf_bio_removed">Biometrik o\'chirildi.</string>
+    <string name="qulf_pin_blocked_min">Juda ko\'p urinish. %1$d daqiqadan keyin urinib ko\'ring.</string>
+    <string name="qulf_attempts_left">Qolgan urinishlar: %1$d</string>
+    <string name="qulf_forgot_pin">PIN esdan chiqdi</string>
+    <string name="qulf_sign_out">Chiqish</string>
+    <string name="qulf_bio_needs_pin">Biometrik faqat PIN bilan birga ishlaydi. Avval PIN o\'rnating.</string>
+</resources>

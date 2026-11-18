@@ -1,17 +1,16 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Smeta Tizimi",
-  "version": "0.1.0",
+  "productName": "QURAI",
+  "version": "0.1.1",
   "identifier": "uz.anncorp.smeta",
   "build": {
-    "beforeBuildCommand": "npx tsc -b && npx tsc -p tsconfig.functions.json --noEmit && npx vite build --config src-tauri/vite.desktop.config.ts",
-    "frontendDist": "../dist"
+    "frontendDist": "offline"
   },
   "app": {
-    "withGlobalTauri": true,
-    "windows": [{ "label": "main", "title": "Smeta Tizimi", "width": 1440, "height": 900, "minWidth": 960, "minHeight": 640 }],
+    "withGlobalTauri": false,
+    "windows": [{ "label": "main", "title": "QURAI", "url": "index.html", "create": false, "width": 1440, "height": 900, "minWidth": 960, "minHeight": 640 }],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://smeta-tizimi.pages.dev; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost https://smeta-tizimi.pages.dev; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-src 'none'"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src https://qurai.uz https://smeta-tizimi.pages.dev; object-src 'none'; base-uri 'self'; frame-src 'none'"
     }
   },
   "bundle": {

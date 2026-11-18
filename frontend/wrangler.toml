@@ -26,3 +26,19 @@ bucket_name = "smeta-tizimi-canonical"
 [[r2_buckets]]
 binding = "NORMATIV_R2"
 bucket_name = "smeta-tizimi-canonical"
+
+[vars]
+# D2 kompozit muhr/304 (obyekt-paket): muhr funksiyalari prodda; 304 ~50 ms vs 2-5 s
+OBYEKT_PAKET_ETAG = "1"
+PUBLIC_ORIGIN = "https://qurai.uz"
+BREND_URL = "https://qurai.uz"
+# Eski hostdan 301: Google OAuth origin va BotFather /setdomain qilingach '1' ga o'zgartiriladi.
+ESKI_HOST_YONLANTIRISH = "0"
+# Telegram brend kanali/guruhi (sir emas): /api/telegram/kanal faqat shu chatlar bilan ishlaydi. TG_GURUH: id (-100…) yoki @username — guruh ulanganda to'ldiriladi.
+TG_KANAL = "@qurai_uz"
+TG_GURUH = "-1004432615700"
+# Meta Graph (sir emas; META_TOKEN — Pages secret): Facebook sahifa + Instagram nashri (/api/telegram/kanal, _shared/meta-graph.ts).
+# META_PAGE_ID bo'sh — ish vaqtida /me/accounts dan META_IG_ID ga mos sahifa topiladi.
+META_PAGE_ID = ""
+META_IG_ID = "17841473771174115"
+META_GRAPH_VERSION = "v21.0"

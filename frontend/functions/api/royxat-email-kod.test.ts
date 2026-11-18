@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { onRequestPost } from './royxat-email-kod';
 
-const ENV = { SUPABASE_URL: 'https://proj.supabase.co', SUPABASE_KEY: 'service-key', SESSIYA_KALIT: 'a'.repeat(32), RESEND_API_KEY: 're_test', EMAIL_FROM: 'Smeta OS <noreply@example.com>' };
+const ENV = { SUPABASE_URL: 'https://proj.supabase.co', SUPABASE_KEY: 'service-key', SESSIYA_KALIT: 'a'.repeat(32), RESEND_API_KEY: 're_test', EMAIL_FROM: 'QURAI <noreply@example.com>' };
 const ctx = (body: unknown, env = ENV) => ({ request: new Request('https://x/api/royxat-email-kod', { method: 'POST', headers: { 'CF-Connecting-IP': '192.0.2.1' }, body: JSON.stringify(body) }), env }) as any;
 
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });

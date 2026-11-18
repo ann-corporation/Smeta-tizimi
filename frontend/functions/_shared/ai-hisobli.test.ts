@@ -24,3 +24,24 @@ describe('Metered task routing',()=>{
  });
  it('budget denial blocks utility too',async()=>{setup(true);await expect(aiHisobli(env,7,17,'smeta_ai','smeta_narx_tanlash',{text:'x',workload:'utility'})).rejects.toMatchObject({kod:'BYUDJET_TUGADI'});expect(m.call).not.toHaveBeenCalled();});
 });
+
+describe('AI telemetriyasi (aiHisobli)',()=>{
+ it('muvaffaqiyat va xato: kechikish/yuza/xato kodi yoziladi, matn yo\'q',async()=>{
+  const fetch=setup();
+  await aiHisobli(env,7,17,'smeta_ai','smeta_suhbat',{text:'maxfiy savol matni',tier:'fast'});
+  m.call.mockRejectedValueOnce(Object.assign(new Error('x'),{code:'timeout'}));
+  await expect(aiHisobli(env,7,17,'company_access','jarvis_eski',{text:'x'})).rejects.toBeTruthy();
+  const tel=fetch.mock.calls.filter(x=>x[0].endsWith('t2_ai_telemetriya_yoz_v1')).map(x=>JSON.parse((x as unknown as [string,{body:string}])[1].body));
+  expect(tel).toHaveLength(2);
+  expect(tel[0]).toMatchObject({p_yuza:'smeta_ai',p_ok:true,p_niyat:'smeta_suhbat',p_kirish:20,p_chiqish:10,p_actor_id:7,p_kompaniya_id:17});
+  expect(typeof tel[0].p_kechikish_ms).toBe('number');
+  expect(tel[1]).toMatchObject({p_yuza:'jarvis',p_ok:false,p_xato_kod:'timeout'});
+  expect(JSON.stringify(tel)).not.toContain('maxfiy');
+ });
+ it('byudjet rad etilsa ham telemetriya (ok=false, kod) yoziladi',async()=>{
+  const fetch=setup(true);
+  await expect(aiHisobli(env,7,17,'smeta_ai','smeta_suhbat',{text:'x'})).rejects.toMatchObject({kod:'BYUDJET_TUGADI'});
+  const tel=fetch.mock.calls.filter(x=>x[0].endsWith('t2_ai_telemetriya_yoz_v1')).map(x=>JSON.parse((x as unknown as [string,{body:string}])[1].body));
+  expect(tel).toEqual([expect.objectContaining({p_ok:false,p_xato_kod:'BYUDJET_TUGADI'})]);
+ });
+});

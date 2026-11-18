@@ -62,9 +62,9 @@ export function dataPermission(name: string, write: boolean, body: Record<string
 
 /** Public/auth/webhook/catalog endpoints retain their own guards. All tenant business APIs are covered here. */
 export const SCOPED_APIS = new Set(['object-financials','contract-scope','sb','sb-yoz','company','sessiya','smeta-studio','smeta-yukla','smeta-ai','smeta-narx-agent','f2-moslash',
-  'hujjat-nazorat','hujjat-ol','hujjat-royxat','hujjat-yukla','boss-dashboard','boss-documents','system-control','tomon','loyihachi','loyiha-smeta','loyiha-ai-oqish','loyiha-ekstraksiya','foto-dalil','foto-ai','hujjat-aylanish','laboratoriya','agent-ish','ai-ishchi','ai-savol','ai-parse','gas','boshqaruv','agent-control',
+  'hujjat-nazorat','hujjat-ol','hujjat-royxat','hujjat-yarat','hujjat-yukla','boss-dashboard','boss-documents','system-control','tomon','loyihachi','loyiha-smeta','loyiha-ai-oqish','loyiha-ekstraksiya','foto-dalil','foto-ai','hujjat-aylanish','laboratoriya','agent-ish','ai-ishchi','ai-savol','ai-parse','gas','boshqaruv','agent-control',
   /* Obyekt paketi (ADR OBYEKT_PAKET §1.4): smeta + holat + F2 ro'yxati + nakrutka — faqat o'qish. */
-  'obyekt-paket','normativ-qidir',
+  'obyekt-paket','obyekt-tugun-summa','normativ-qidir',
   /* P6/P7 Grafik + cashflow: o'qish — hujjat o'qish (buyurtmachi ham grant bilan); yozish (override) — loyiha yozuvi, rol bazada ham tekshiriladi. */
   'grafik',
   /* SMETA CONST sovuq muhrni isitish (ADR_MUHR_R2 §4): obyekt_id -> t2_obyekt.kompaniya_id middleware'da; begona obyekt = 403, R2/bazaga tegilmaydi. */
@@ -75,6 +75,7 @@ export function requestPermission(api: string, method: string, b: Record<string,
   if (api === 'normativ-qidir' && method === 'GET') return 'company.read';
   if (api === 'object-financials') return 'object.read';
   if (api === 'muhr-isit') return 'smeta.read'; // asl qiymatni R2 dan qaytaradi (xesh bilan tekshirilgan); biznes qiymatini o'zgartirmaydi, javobda qaytarmaydi
+  if (api === 'obyekt-tugun-summa') return 'smeta.read'; // obyekt-paket bilan bir xil darvoza (handler f2.read + narx.read ni ham talab qiladi)
   if (api === 'obyekt-paket') return 'smeta.read'; // shlyuz qo'shimcha f2.read + narx.read ni ham talab qiladi
 
   if (api === 'contract-scope') return method === 'GET' ? 'smeta.read' : 'smeta.write';
@@ -103,6 +104,8 @@ export function requestPermission(api: string, method: string, b: Record<string,
   if (api === 'boss-documents') return 'document.read';
   if (api === 'gas') return 'control.global.read'; // T1 emergency adapter is not a tenant permission bypass.
   if (api === 'hujjat-yukla') return 'document.write';
+  /* Yagona hujjat yasash (royxat + yarat): sayt F-2/F-3 Excel ini yuklab olish bilan bir xil darajada — document.read; obyekt egaligi obyekt_id bo'yicha. */
+  if (api === 'hujjat-yarat') return 'document.read';
   /* Laboratoriya: so'rov yuborish — pudratchi (document.write); protokol natijasi laboratoriya a'zosi (inspektor) tomonidan — rol va aloqa bazada tekshiriladi. */
   if (api === 'laboratoriya') return method === 'POST' && b.amal === 'sorov_yarat' ? 'document.write' : 'document.read';
   /* Hujjat aylanishi: qaror/qabul/o'qildi belgisi qatnashchi tomonda ham bo'ladi (inspektor, texnadzor) — rol bazada tekshiriladi. */

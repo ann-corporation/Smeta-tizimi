@@ -5,6 +5,7 @@
  * (the model only chooses among found candidates), the CODE computes quantities from the formula, and the
  * user adds the ready works to the estimate in one undoable step.
  */
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../../i18n/til';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
@@ -39,7 +40,9 @@ async function ilovaTayyorla(f: File): Promise<Ilova> {
   return { nom: f.name, mimeType, data: btoa(s) };
 }
 import { manbaMaterialiniTekshir, suhbatJavobiniTekshir, type SuhbatXabari, type TanlovNomzodi, type TanlovSorovi } from '../../lib/smeta-ai/protokol';
-import { birlashtir, katalogSahifasi, nomzodlarTop, smetagaQoshish, tanlovSorovi, tanlovDalili, tanlovZidmi, tasdiqKerak, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
+import { xotiraOl, xotiraSaqla, xotiraYoz } from '../../lib/smeta-ai/norm-xotira';
+import { tajribaYukla } from '../../lib/smeta-ai/tajriba-yukla';
+import { avtoTanlov, birlashtir, katalogSahifasi, kichikNomzodlar, nomzodlarTop, smetagaQoshish, xotiraMatni, tanlovSorovi, tanlovDalili, tanlovZidmi, tasdiqKerak, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
 import { ifodaHisobla } from '../../lib/smeta-ai/ifoda';
 import { foundationReference } from '../../lib/smeta-ai/normative-reference';
 import { includedWorkReviews } from '../../lib/smeta-ai/included-work';
@@ -101,6 +104,8 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
   const [xotiraOchiq, setXotiraOchiq] = useState(false);
   const xotiraYangila = useCallback((kid: number) => smetaXotirasi(kid).then(x => { if (tirik.current) { setXotira(x.yozuvlar); setSuperadmin(x.superadmin); } }), []);
   useEffect(() => { if (kompaniyaId != null) void xotiraYangila(kompaniyaId); }, [kompaniyaId, xotiraYangila]);
+  // Experience index (exemplars of approved smetas, R2): a first-stage candidate source for norm matching; silent when not published yet.
+  useEffect(() => { if (kompaniyaId != null) void tajribaYukla(kompaniyaId); }, [kompaniyaId]);
   const [amallar, setAmallar] = useState<Array<AgentAmal & { tanlangan: boolean; ogoh: string | null }>>([]);
   const sourceScope = katalog?.manifest.revision === COEFFICIENT_SOURCE_REVISION ? `:norm-library:${COEFFICIENT_SOURCE_REVISION}` : '';
   const kalit = saqlashKalit(`${kompaniyaId}:${doc.draftId}${sourceScope}`);
@@ -141,26 +146,39 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
   /** Ground intents in the catalogue: candidates by search, then the cheap model picks among them. */
   async function asosla(list: AiIsh[]): Promise<AiIsh[]> {
     if (!katalog || kompaniyaId == null) return list;
-    let next = list.map(i => (i.nomzodlar.length ? i : { ...i, nomzodlar: nomzodlarTop(katalog, i) }));
+    // 1) Local matching pipeline (BM25 + strict unit filter + evidence + calibrated confidence): a confident line is marked at once,
+    //    the model only reranks the shortlist of lines the pipeline is unsure about.
+    const xotira = xotiraOl(kompaniyaId);   // company memory: codes confirmed here before for similar text come first
+    const kodTekshirish = new Set<string>();
+    let next = list.map(i => {
+      if (i.tanlangan) return i;
+      const r = avtoTanlov(katalog, i, list, 20, xotira);
+      if (r?.kodTekshirish) kodTekshirish.add(i.id);
+      if (i.nomzodlar.length && !r?.kodTekshirish && r?.holat !== 'KOD') return i;
+      if (!r) return { ...i, nomzodlar: nomzodlarTop(katalog, i) };
+      return { ...i, nomzodlar: r.nomzodlar, tanlangan: !i.tanlangan && r.avto ? r.avto : i.tanlangan };
+    });
     for (const i of next.filter(x => !x.tanlangan)) qadam(t('Katalogdan qidiryapman «{q}» — {n} ta nomzod', { q: i.qidiruv[0] ?? i.tavsif, n: i.nomzodlar.length }));
+    for (const i of next.filter(x => x.tanlangan && !x.tanlangan.qolda && !list.find(o => o.id === x.id)?.tanlangan)) qadam(t('«{i}» → {k} {n} — tizim tanlovi', { i: i.tavsif, k: i.tanlangan!.kod, n: i.tanlangan!.nom.slice(0, 70) }), 'ok');
     next = next.map(i => i.tanlangan && !i.tanlangan.qolda && tanlovZidmi(i, { ...i.tanlangan, id: i.tanlangan.workId }, next) ? { ...i, tanlangan: null } : i);
     if (tirik.current) setIshlar(next);
     // Up to two rounds: when no candidate fits, the model rephrases in normative wording and the catalogue is searched again.
     let qaytaIds: Set<string> | null = null;
     for (let round = 0; round < 2; round++) {
-      const sor = next.filter(i => !i.tanlangan && (i.nomzodlar.length || round === 0) && (!qaytaIds || qaytaIds.has(i.id))).map(i => tanlovSorovi(i, next));
+      const sor = next.filter(i => !i.tanlangan && !kodTekshirish.has(i.id) && (i.nomzodlar.length || round === 0) && (!qaytaIds || qaytaIds.has(i.id))).map(i => tanlovSorovi(i, next));
       if (!sor.length) break;
       setBand('tanlash');
-      // Small batches: a bill of quantities easily has dozens of works × 15 long norm names (one request hit the size limit).
+      // Only the lines the pipeline could not settle reach the model (it reranks ≤ 20 candidates each). Batches of 8 sent eight at a time:
+      // a 100-line smeta is ≈ 60 unsure lines = ONE wave of model calls (it was 34 batches of 3 in 9 sequential waves, capped at 40 lines).
+      // A failed batch does not stop the others.
       const tanlovlar: Array<{ id: string; ishId: string | null; sabab: string; qidiruv?: string[] }> = [];
       let xatoBor = false;
-      // Batches of 3 sent four at a time: 8 works × 15 long norms ran past the 20 s model limit (production 2026-10-16),
-      // one work answers in ≈ 9 s. A failed batch does not stop the others.
+      const SOROV_CHEGARA = 120, TOP_HAJMI = 8, PARALLEL = 8;
       const toplar: TanlovSorovi[][] = [];
-      for (let b = 0; b < Math.min(sor.length, 40); b += 3) toplar.push(sor.slice(b, Math.min(b + 3, 40)));
+      for (let b = 0; b < Math.min(sor.length, SOROV_CHEGARA); b += TOP_HAJMI) toplar.push(sor.slice(b, Math.min(b + TOP_HAJMI, SOROV_CHEGARA)));
       qadam(t('AI {n} ta ish uchun nomzodlarni solishtirmoqda (tizim tajribasi va yuklangan smetalar amaliyoti bilan)…', { n: sor.length }));
-      for (let b = 0; b < toplar.length; b += 4) {
-        const javoblar = await Promise.all(toplar.slice(b, b + 4).map(t => smetachiTanla(kompaniyaId, t)));
+      for (let b = 0; b < toplar.length; b += PARALLEL) {
+        const javoblar = await Promise.all(toplar.slice(b, b + PARALLEL).map(t => smetachiTanla(kompaniyaId, t)));
         if (!tirik.current) return list;
         for (const r of javoblar) { if (r.ok) tanlovlar.push(...r.tanlovlar); else { setHolat(xato(r.code, r.message)); xatoBor = true; } }
       }
@@ -176,9 +194,11 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
         }
         if (c && !c.ishId) qadam(t('«{i}»: mos norma topilmadi{q}', { i: i.tavsif, q: c.qidiruv?.length ? t(' — qayta qidiraman: {q}', { q: c.qidiruv.join('; ') }) : '' }), c.qidiruv?.length ? 'ishda' : 'savol');
         if (round === 0 && c?.qidiruv?.length) {
-          const extra = nomzodlarTop(katalog, { ...i, qidiruv: c.qidiruv });
+          const r = avtoTanlov(katalog, { ...i, qidiruv: c.qidiruv }, next);
+          if (r?.kodTekshirish) return { ...i, nomzodlar: r.nomzodlar };
+          const extra = r?.nomzodlar ?? nomzodlarTop(katalog, { ...i, qidiruv: c.qidiruv });
           const fresh = extra.filter(x => !i.nomzodlar.some(o => o.id === x.id));
-          if (fresh.length) { qayta.add(i.id); return { ...i, nomzodlar: [...fresh, ...i.nomzodlar].slice(0, 15) }; }
+          if (fresh.length) { qayta.add(i.id); return { ...i, nomzodlar: [...fresh, ...i.nomzodlar].slice(0, 20) }; }
         }
         return i;
       });
@@ -186,8 +206,9 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
       if (!qayta.size) break;
       qaytaIds = qayta;
     }
-    // A declined or ambiguous choice stays unresolved until the user clarifies it.
-    return next;
+    // A declined or ambiguous choice stays unresolved until the user clarifies it. The user sees at most 3 candidates (the chosen one
+    // first, each with its confidence); «katalogda topilmadi» when nothing fits — the manual search still reaches the whole catalogue.
+    return next.map(i => ({ ...i, nomzodlar: kichikNomzodlar(i) }));
   }
 
   async function yubor(txt?: string) {
@@ -252,6 +273,10 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
         if (kompaniyaId != null) {
           const tanlovlar = ishlar.filter(i => r.qoshildi.includes(i.id) && i.tanlangan).map(i => ({ kod: i.tanlangan!.kod, tavsif: i.tavsif.slice(0, 400), birlik: i.birlik, manba: i.tanlangan!.qolda ? 'qolda' as const : 'ai' as const }));
           if (tanlovlar.length) void smetaTajribaYoz(kompaniyaId, tanlovlar);
+          // Company memory: the confirmed line teaches the matcher (counters only, no raw text).
+          const xotira = xotiraOl(kompaniyaId);
+          for (const i of ishlar) if (r.qoshildi.includes(i.id) && i.tanlangan) xotiraYoz(xotira, xotiraMatni(i), i.tanlangan.kod);
+          xotiraSaqla(kompaniyaId, xotira);
         }
         setXabarlar(x => [...x, { rol: 'assistant', matn: t('{n} ta ish smetaga qo‘shildi (bitta “Bekor qilish” bilan qaytariladi).', { n: r.qoshildi.length }) }]);
         const minuslar = r.commands.filter(c => c.type === 'ADD_OCCURRENCE' && c.minus).length;
@@ -341,7 +366,8 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
       <button type="button" aria-label={tinglash ? t('Ovozni to‘xtatish') : t('Ovoz bilan aytish')} className={`fz-btn ${tinglash ? 'fz-btn--primary' : ''}`} onClick={ovoz}>🎤</button>
       <label className="fz-btn fz-btn--sm cursor-pointer" title={t('Loyiha, spetsifikatsiya yoki hajmlar jadvali (rasm, PDF, Excel, Word)')}>📎
         <input aria-label={t('Loyiha hujjati')} type="file" className="hidden" accept=".png,.jpg,.jpeg,.webp,.pdf,.xlsx,.xls,.xlsm,.docx"
-          onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void ilovaTayyorla(f).then(setIlova).catch(err => setHolat(err instanceof Error && err.message === 'FAYL_KATTA' ? t('Fayl juda katta (7 MB gacha).') : t('Bu fayl turini o‘qib bo‘lmaydi (rasm, PDF, Excel, Word).'))); }} /></label>
+          onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void aslFaylSaqla(f, { kompaniyaId, turi: 'asl_boshqa' });
+          if (f) void ilovaTayyorla(f).then(setIlova).catch(err => setHolat(err instanceof Error && err.message === 'FAYL_KATTA' ? t('Fayl juda katta (7 MB gacha).') : t('Bu fayl turini o‘qib bo‘lmaydi (rasm, PDF, Excel, Word).'))); }} /></label>
       <button type="submit" className="fz-btn fz-btn--sm fz-btn--primary ml-auto" disabled={!!band || (!matn.trim() && !ilova)}>{t('Yuborish')}</button>
     </form>
     {holat && <p role="status" className="text-xs text-warn">{holat}</p>}
@@ -405,7 +431,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
             <select className="input mt-0.5 h-7 w-full text-[11.5px]" value={i.tanlangan?.workId ?? ''}
               onChange={e => { const n = i.nomzodlar.find(x => x.id === e.target.value); ishniYangila(i.id, { tanlangan: n ? { workId: n.id, kod: n.kod, nom: n.nom, birlik: n.birlik, sabab: t('qo‘lda tanlandi'), qolda: true } : null }); }}>
               <option value="">{i.nomzodlar.length ? t('— tanlang ({n} nomzod) —', { n: i.nomzodlar.length }) : t('— katalogda topilmadi —')}</option>
-              {i.nomzodlar.map(n => <option key={n.id} value={n.id}>{n.kod} · {n.nom}{n.birlik ? ` (${n.birlik})` : ''}{n.toplam ? ` — ${n.toplam}` : ''}</option>)}
+              {i.nomzodlar.map(n => <option key={n.id} value={n.id}>{n.kod} · {n.nom}{n.birlik ? ` (${n.birlik})` : ''}{n.toplam ? ` — ${n.toplam}` : ''}{n.ishonch != null ? ` · ${Math.round(n.ishonch * 100)}%` : ''}</option>)}
             </select></label>
           {katalog && <KatalogQidiruv katalog={katalog} onPick={n => ishniYangila(i.id, {
             nomzodlar: [...i.nomzodlar.filter(x => x.id !== n.id), n],

@@ -5,7 +5,7 @@ import type { EntryCopy } from '../product-scope';
 import { introCopy as c } from './copy';
 
 type Local = (s: EntryCopy) => string;
-const AI_WORK = 'Устройство бетонной подготовки', BRAND = 'TIZIM_02';
+const AI_WORK = 'Устройство бетонной подготовки', BRAND = 'QURAI';
 const u = {
   objects: ['Obyektlar', 'Объекты', 'Objects'],
   approvedF2: ['Tasdiqlangan F2', 'Утверждённые Ф2', 'Approved F2'],

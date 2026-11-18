@@ -40,8 +40,6 @@ export const onRequestPost: PagesFunction<{
       'ZayavkaQosh', 'ZayavkaHolatYangila',
       'PostavshikQosh', 'PostavshikTahrir',
       'NuqsonQosh', 'NuqsonHolatYangila',
-      // Obyekt hujjatlari (Drive dual-storage nusxasi)
-      'ObyektHujjatDriveSaqla',
     ].join('|') + ')$');
     if ((sess.rol === 'boss' || sess.rol === 'rahbar') && YOZUVCHI.test(fn)) {
       return Response.json({ ok: false, error: 'Раҳбар режимида ёзиш мумкин эмас' }, { status: 403 });

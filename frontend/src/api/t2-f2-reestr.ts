@@ -2,7 +2,7 @@
  * F2 reestri uchun faqat o'qish (lib/f2-reestr): kompaniyaning obyektlari, F2 aktlari (t2_akt_reestr), shartnoma bog'lanishlari,
  * loyihalar va har aktning manbasi (import ishi / manba hujjati / tizimda yasalgan). Hech narsa yozilmaydi.
  */
-import { sbOqi, sbT2ObyektlarOlKomp, type T2AktReestr } from './supabase';
+import { sbOqi, sbT2AktReestrKompaniyaOl, sbT2ObyektlarOlKomp } from './supabase';
 import { sbT2ShartnomaBogOl, sbT2ShartnomalarOl, type ShartnomaBog } from './t2-shartnoma';
 import { sbT2LoyihalarOl } from './t2-loyiha';
 import { hujjatRoyxatOl, type CenterDocument } from './t2-hujjat-canonical';
@@ -28,16 +28,16 @@ export type ReestrMalumot = {
 };
 
 export async function f2ReestrOl(kompaniyaId: number): Promise<ReestrMalumot> {
-  const [ob, ak, sh, ly, hj, bk] = await Promise.all([
+  const [ob, ak, sh, ly, bk] = await Promise.all([
     sbT2ObyektlarOlKomp(kompaniyaId),
-    sbOqi<T2AktReestr>({ jadval: 't2_akt_reestr', filtr: `kompaniya_id=eq.${kompaniyaId}&tur=eq.f2`, tartib: 'oy.desc', limit: 5000 }),
+    sbT2AktReestrKompaniyaOl(kompaniyaId, 'f2'),
     sbT2ShartnomalarOl(kompaniyaId, false),
     sbT2LoyihalarOl(kompaniyaId),
-    hujjatRoyxatOl({ kompaniyaId, limit: 1000 }).catch(() => null),
     // Obyekt → faol bog'lanishlar: kompaniya bo'yicha BITTA o'qish (t2_shartnoma_bog_kompaniya, kompaniya_id bilan). Yo'q/xato bo'lsa — eski yo'l.
     sbOqi<ShartnomaBog & { kompaniya_id: number }>({ jadval: 't2_shartnoma_bog_kompaniya', filtr: `kompaniya_id=eq.${kompaniyaId}&holat=eq.faol`, limit: 5000 }),
   ]);
-  const faylNomlari = new Map((hj?.documents ?? []).filter(d => d.type === 'f2_akt').map(d => [Number(d.id), d.filename]));
+  // Fayl nomlari yuklashda O'QILMAYDI (avval kompaniya bo'yicha 1000 hujjatlik ro'yxat sahifani kutdirardi): qator ochilganda obyektF2Fayllari o'qiydi.
+  const faylNomlari = new Map<number, string>();
   if (!ob.ok || ('toliq' in ob && ob.toliq === false)) throw new Error(ob.error || 'OBYEKTLAR_OQILMADI');
   if (!ak.ok || ak.toliq === false || (ak.jamiServerda != null && ak.jamiServerda > (ak.qatorlar?.length ?? 0))) throw new Error(ak.error || 'F2_OQILMADI');
   if (!sh.ok || sh.toliq === false) throw new Error(sh.error || 'SHARTNOMALAR_OQILMADI');

@@ -5,12 +5,12 @@
  * commit so a failed registry write never leaves an orphan R2 object:
  *
  *   1. RPC t2_document_canonical_reserve_v1  -> document_id + deterministic r2_key
- *   2. stream bytes -> R2_CANONICAL.put(r2_key)
- *   3. RPC t2_document_canonical_finalize_v1 -> 'stored', enqueue Drive mirror job
+ *   2. stream bytes -> r2Yoz(R2_CANONICAL, r2_key)
+ *   3. RPC t2_document_canonical_finalize_v1 -> 'stored'
  *
  * On interruption between 2 and 3 the row stays 'reserved' and the reconcile
- * worker (`apiT2ReplicaSyncTick` / a scheduled function) HEADs R2 and calls
- * t2_document_canonical_reconcile_v1. Drive/GAS are never on this path.
+ * worker (scheduled function) HEADs R2 and calls
+ * t2_document_canonical_reconcile_v1. Google Drive is removed from the system: R2 is the only file store.
  *
  * multipart/form-data:
  *   fayl          File (required)
@@ -27,6 +27,7 @@
  *                   not revisions of one another.
  */
 import { cachedAuthority } from '../_shared/permission-policy';
+import { r2Yoz, yuklashTekshir } from '../_shared/r2-saqlash';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { pullikTurmi, tolovDalili, tolovRad } from '../_shared/hujjat-tolov';
@@ -106,6 +107,9 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     if (!HEX64.test(clientSha)) return Response.json({ ok: false, code: 'DOCUMENT_CONTRACT_INVALID', xato: 'Brauzer tomonidan hisoblangan sha256 (64 hex) majburiy' }, { status: 400 });
     if (declaredSize <= 0) return Response.json({ ok: false, code: 'DOCUMENT_CONTRACT_INVALID', xato: 'Fayl hajmi majburiy' }, { status: 400 });
     if (declaredSize > maxBytes) return Response.json({ ok: false, code: 'FILE_TOO_LARGE', xato: 'Fayl chegaradan katta (' + maxBytes + ' bayt)', max_bytes: maxBytes }, { status: 413 });
+    /* Yagona R2 xizmati: MIME/kengaytma taqiqi (bajariladigan fayllar). Hajm chegarasi yuqorida (maxBytes). */
+    const yt = yuklashTekshir({ nom: file.name, mime: file.type, bayt: declaredSize, maxBayt: maxBytes });
+    if (!yt.ok) return Response.json({ ok: false, code: yt.code, xato: 'Fayl turi yoki hajmi ruxsat etilmagan' }, { status: yt.code === 'FILE_TOO_LARGE' ? 413 : 415 });
     if (sourceSlotKey && !SOURCE_SLOT_KEY.test(sourceSlotKey)) return Response.json({ ok: false, code: 'SOURCE_SLOT_INVALID', xato: 'Manba bo‘lagi kaliti noto‘g‘ri' }, { status: 400 });
     if (sourceSlotKey && !['smeta_lrv', 'smeta_res'].includes(turi)) return Response.json({ ok: false, code: 'SOURCE_DOCUMENT_TYPE_INVALID', xato: 'Paket manbasi faqat LRV yoki RES bo‘lishi mumkin' }, { status: 400 });
 
@@ -164,7 +168,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     // Already stored (retry) — nothing more to do.
     if (reserve.body.canonical_storage_status === 'stored') {
       return Response.json({ ok: true, document_id: documentId, r2_key: r2Key, sha256: reserve.body.sha256,
-        versiya: reserve.body.versiya, drive_sync: 'pending', retry: true, dedup: reserve.body.dedup === true });
+        versiya: reserve.body.versiya, retry: true, dedup: reserve.body.dedup === true });
     }
 
     // ── PHASE 2: bytes -> PRIVATE R2 ─────────────────────────────────────
@@ -200,15 +204,15 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         return Response.json({
           ok: true, document_id: documentId, revision_seq: share.body.revision_seq,
           r2_key: r2Key, sha256: share.body.sha256, sha256_verified: true,
-          size_bytes: declaredSize, versiya: share.body.versiya, drive_sync: 'pending', shared_from: share.body.shared_from,
+          size_bytes: declaredSize, versiya: share.body.versiya, shared_from: share.body.shared_from,
         });
       }
-      await ctx.env.R2_CANONICAL.put(r2Key, buf, meta);
+      await r2Yoz(ctx.env.R2_CANONICAL, r2Key, buf, meta);
       verified = true; hashSource = 'server';
     } else {
       // large file: true streaming to R2, no whole-file RAM buffering.
       // The hash is the client's (documented limit); reconcile can re-verify later.
-      await ctx.env.R2_CANONICAL.put(r2Key, file.stream(), meta);
+      await r2Yoz(ctx.env.R2_CANONICAL, r2Key, file.stream(), meta);
       verified = false; hashSource = 'client';
     }
 
@@ -232,7 +236,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     return Response.json({
       ok: true, document_id: documentId, revision_seq: fin.body.revision_seq,
       r2_key: r2Key, sha256: fin.body.sha256, sha256_verified: fin.body.sha256_verified,
-      size_bytes: declaredSize, versiya: fin.body.versiya, drive_sync: 'pending',
+      size_bytes: declaredSize, versiya: fin.body.versiya,
     });
   } catch {
     await tolovQaytar?.();

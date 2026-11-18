@@ -1,5 +1,5 @@
 /** f2_import: aktual (faol) smetaga moslash, voris zanjiri, fakt rejimi (delta), dry run preview xatoda ham — sun'iy fixture, mock pg. */
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import * as XLSX from 'xlsx';
@@ -24,7 +24,7 @@ function faylYoz(): string {
   const p = path.join(dir, 'eski-lrv.xlsx');
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ROWS), 'F2');
-  XLSX.writeFile(wb, p);
+  writeFileSync(p, XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })); // 0.20: ESM'da writeFile uchun set_fs kerak, shuning uchun buffer
   return p;
 }
 

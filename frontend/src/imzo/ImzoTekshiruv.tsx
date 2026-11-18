@@ -106,6 +106,7 @@ export default function ImzoTekshiruv() {
     <Qobiq>
       <Karta>
         <h1 className="text-[18px] font-semibold m-0">{nashr ? t('Tizimdan chiqqan hujjat') : t('Imzolangan hujjat')}</h1>
+{nashr && <p className="m-0 text-[12px] text-text-dim">{t('QURAI orqali tayyorlangan')}</p>}
         <dl className="m-0 grid grid-cols-[auto,1fr] gap-x-3 gap-y-1 text-[13px]">
           <dt className="text-text-dim">{t('Hujjat turi')}</dt><dd className="m-0">{(nashr?.turi ?? hujjat?.turi) || '—'}</dd>
           {hujjat?.tahrir && <><dt className="text-text-dim">{t('Tahrir')}</dt><dd className="m-0">{hujjat.tahrir}</dd></>}

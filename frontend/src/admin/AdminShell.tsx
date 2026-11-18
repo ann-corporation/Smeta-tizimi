@@ -37,8 +37,14 @@ import { ISH_JOYI_NAV, ishJoyiMenyu } from '../lib/nav/ishJoyiMenyu';
 import { useYangiMenyu } from '../lib/nav/yangiMenyu';
 import { ILOVA_MAP, type IlovaKod } from '../lib/ilova/ilovalar';
 import { IlovaIshgaTushirgich } from '../components/ilova/IlovaIshgaTushirgich';
+import { YuzaBelgisi } from '../components/brend/YuzaBelgisi';
+import { appEmbedMi } from '../lib/app-embed';
 import { useTizimRuxsat } from '../api/t2-tizim-xaritasi';
 import { useModullar } from '../api/t2-modul';
+import { useModulTanlov } from '../api/modullarim';
+import { tanlovFiltr } from '../lib/modullarim/modullarim';
+import { ModullarimBirinchi } from '../components/modullarim/ModullarimBirinchi';
+import { IsmQadam } from '../components/akkaunt/IsmQadam';
 import { menyuModulYoqilgan } from '../lib/modullar';
 
 /* 2026-10-26 (egasi; tizim xaritasi S1/P2): menyu tuzilmasi va rol filtri — YAGONA navigatsiya reestrida
@@ -83,6 +89,8 @@ function AdminShellInner() {
   const sess = useSessiya();
   const k = useKompaniya();
   const modulQuery = useModullar(k.globalRejim ? null : k.joriy?.id);
+  /* «Modullarim»: foydalanuvchi o'zi tanlagan ilovalar (faqat ko'rinish; ruxsatni kengaytirmaydi). */
+  const tanlovQuery = useModulTanlov(k.globalRejim ? null : k.joriy?.id);
   /* Tizim xaritasi menyusi — faqat server ruxsat bersa (superadmin yoki berilgan grant); 5 daqiqa kesh. */
   const tizimRuxsat = useTizimRuxsat(!!sess.data);
   const joy = useLocation();
@@ -227,10 +235,12 @@ function AdminShellInner() {
   const moduleOpen = menyuModulYoqilgan(joy.pathname, modullar);
   /* Rol/ruxsat/modul/qatlam filtri — sof funksiya (lib/nav/navFiltr.ts, rol snapshot testlari bilan). */
   const navK: NavKontekst = { superadmin: !!k.superadmin, rol: effektivRol, permissions: k.joriy?.permissions, modullar, tizimXaritasi: tizimRuxsat.data?.ruxsat === true };
-  const guruhQator = (ilova: IlovaKod | 'hammasi', qoshimcha: 'hammasi' | 'yashir' | 'faqat' = 'hammasi') => menyuQur({ ...navK, ilova, qoshimcha })
+  /* Yon menyu va ilova ishga tushirgich — foydalanuvchi tanlovi bilan toraytirilgan (navKT); Ctrl+K va tablar — to'liq (navK). */
+  const navKT: NavKontekst = { ...navK, modulTanlov: tanlovFiltr(tanlovQuery.data?.tanlangan) };
+  const guruhQator = (ilova: IlovaKod | 'hammasi', qoshimcha: 'hammasi' | 'yashir' | 'faqat' = 'hammasi', tanlov = false) => menyuQur({ ...(tanlov ? navKT : navK), ilova, qoshimcha })
     .map(g => ({ nom: g.nom, id: g.id, Ikonka: IKONKALAR[g.ikonka], menyular: g.bandlar.map((b): MenyuQator => ({ yol: b.yol, nom: b.nom, Ikonka: IKONKALAR[b.ikonka], tablar: b.tablar })) }));
   /* Ilova ishga tushirgich + joriy ilova (yo'l ilovasi, bo'lmasa oxirgi tanlangan, bo'lmasa birinchi). */
-  const ilovalar = ilovalarRoyxati(navK);
+  const ilovalar = ilovalarRoyxati(navKT);
   const ilovaKodlari = ilovalar.map(i => i.kod);
   const joriyIlova: IlovaKod | null = yolIlovasi && ilovaKodlari.includes(yolIlovasi) ? yolIlovasi
     : oxirgiIlova && ilovaKodlari.includes(oxirgiIlova) ? oxirgiIlova : (ilovaKodlari[0] ?? null);
@@ -239,11 +249,11 @@ function AdminShellInner() {
   const hammasiGuruhlar = guruhQator('hammasi');
   /* Yon menyu: tepada «Kundalik ishlar», keyin bo'limlar, pastda yig'ilgan «Qo'shimcha bo'limlar» (hali ma'lumoti yo'q modullar —
    * o'chirilmaydi, faqat asosiy ro'yxatdan olinadi; Ctrl+K va tablar hammasini ko'radi). */
-  const asosiyGuruhlar = guruhQator(menyuIlova, 'yashir');
-  const qoshimchaBandlar = guruhQator('hammasi', 'faqat').flatMap(g => g.menyular);
-  const kundalikBandlar: MenyuQator[] = kundalikIshlar({ ...navK, ilova: 'hammasi' }).map(b => ({ yol: b.yol, nom: b.nom, Ikonka: IKONKALAR[b.ikonka] }));
+  const asosiyGuruhlar = guruhQator(menyuIlova, 'yashir', true);
+  const qoshimchaBandlar = guruhQator('hammasi', 'faqat', true).flatMap(g => g.menyular);
+  const kundalikBandlar: MenyuQator[] = kundalikIshlar({ ...navKT, ilova: 'hammasi' }).map(b => ({ yol: b.yol, nom: b.nom, Ikonka: IKONKALAR[b.ikonka] }));
   const bandQator = (b: { yol: string; nom: string; ikonka: NavIkonka; tablar?: MenyuTab[] }): MenyuQator => ({ yol: b.yol, nom: b.nom, Ikonka: IKONKALAR[b.ikonka], tablar: b.tablar });
-  const ishBolimlar = yangiMenyu ? ishJoyiMenyu({ ...navK, ilova: 'hammasi' }) : [];
+  const ishBolimlar = yangiMenyu ? ishJoyiMenyu({ ...navKT, ilova: 'hammasi' }) : [];
   const ishGuruhlar: MenyuGuruhQator[] = ishBolimlar.map(b => ({ nom: b.nom, id: 'ij:' + b.id, Ikonka: IKONKALAR[b.ikonka], menyular: b.bandlar.map(bandQator), yana: b.yana.map(bandQator) }));
   const eskiGuruhlar: MenyuGuruhQator[] = [
     ...(kundalikBandlar.length ? [{ nom: 'Kundalik ishlar', id: 'kundalik', Ikonka: IKONKALAR.HardHat, menyular: kundalikBandlar }] : []),
@@ -266,8 +276,10 @@ function AdminShellInner() {
   const bandFaol = (m: MenyuQator, isActive: boolean) => isActive || !!m.tablar?.some(tb => joy.pathname === tb.yol || joy.pathname.startsWith(tb.yol + '/'));
 
   return (
-    <div className="os-app-shell flex h-screen overflow-hidden text-text relative font-sans">
+    <div className="os-app-shell flex h-screen overflow-hidden text-text relative font-sans" data-embed={appEmbedMi() ? "1" : undefined}>
       <HotkeyYordam />
+      {!k.globalRejim && k.joriy && <ModullarimBirinchi kompaniyaId={k.joriy.id} />}
+      <IsmQadam />
       <CommandPalette bandlar={palitraBandlari} permissions={k.joriy?.permissions} />
       <YordamchiSahifaYozuvchi bandlar={palitraBandlari} />
 
@@ -285,11 +297,11 @@ function AdminShellInner() {
           <KompaniyaLogoRasm
             kompaniyaId={k.globalRejim ? null : k.joriy?.id}
             className="w-8 h-8 rounded-md object-contain bg-white flex-shrink-0"
-            zaxira={<span className="fz-sidebar__mark" aria-hidden="true">{(!k.globalRejim && k.joriy?.nom ? k.joriy.nom : 'S').trim().charAt(0).toUpperCase()}</span>}
+            zaxira={<img src="/brand/favicon.svg" alt="" className="fz-sidebar__mark" aria-hidden="true" width={32} height={32} />}
           />
           {sidebarKengaygan && (
             <div className="min-w-0 flex-1">
-              <span className="fz-sidebar__name" title={k.joriy?.nom}>{!k.globalRejim && k.joriy?.nom ? k.joriy.nom : 'Smeta tizimi'}</span>
+              <span className="fz-sidebar__name" title={k.joriy?.nom}>{!k.globalRejim && k.joriy?.nom ? k.joriy.nom : 'QURAI'}</span>
               <span className="fz-sidebar__role">
                 {k.superadmin ? 'Superadmin · platforma' : (k.joriy?.rol === 'boss' ? 'Kompaniya rahbari' : (k.joriy?.rol || (k.yuklanmoqda ? '…' : 'Kompaniya tanlanmagan')))}
                 {k.superadmin && k.joriy?.membershipRole && <> · {k.joriy.membershipRole}</>}
@@ -377,6 +389,7 @@ function AdminShellInner() {
           <button type="button" className="os-mobile-only os-menu-button" aria-label={mobilMenyuOchiq ? 'Navigatsiyani yopish' : 'Navigatsiyani ochish'} aria-expanded={mobilMenyuOchiq} onClick={() => setMobilMenyuOchiq((open) => !open)}>
             {mobilMenyuOchiq ? <X size={17} /> : <Menu size={17} />}
           </button>
+          <YuzaBelgisi modul={ilovalar.find((i) => i.kod === joriyIlova)?.nom ?? null} />
           <span className="os-mobil-yashir"><IlovaIshgaTushirgich ilovalar={ilovalar} joriy={joriyIlova} onTanla={(kod) => { setOxirgiIlova(kod); setHammasiRejim(false); try { localStorage.setItem('fz-ilova', kod); } catch { /* xotira yopiq */ } }} /></span>
           <span className="os-mobil-yashir"><OrqaOldinga /></span>
           <span data-kurs="kompaniya-tanlagich" className="contents"><KompaniyaTanlagich /></span>

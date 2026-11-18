@@ -30,11 +30,19 @@ function qollash(m: Mavzu): void {
   const a = hisobla(m);
   if (a === 'ganch') document.documentElement.dataset.mavzu = 'ganch';
   else delete document.documentElement.dataset.mavzu;
-  const meta = document.querySelector('meta[name="theme-color"]');
+  // Android WebView/PWA holat paneli joriy mavzu fonida bo'lsin (meta yo'q bo'lsa yaratamiz).
+  let meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta && document.head) {
+    meta = document.createElement('meta');
+    meta.setAttribute('name', 'theme-color');
+    document.head.appendChild(meta);
+  }
   if (meta) meta.setAttribute('content', THEME_COLOR[a]);
 }
 
 let joriy: Mavzu = oqi();
+// Hech qanday komponent hali ulanmagan bo'lsa ham (jamoat sahifalari, boshlang'ich yuklash) meta mavzuga mos bo'lsin.
+if (typeof document !== 'undefined') qollash(joriy);
 let osTomosha = 0;
 const tinglovchilar = new Set<() => void>();
 const xabar = () => tinglovchilar.forEach((f) => f());

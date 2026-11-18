@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  ArrowRight, BookOpen, Briefcase, Building2, ClipboardList, FileSpreadsheet, FileText, HelpCircle, History, Layers, Palette, Percent, Settings, Sparkles,
+  ArrowRight, BookOpen, Briefcase, Building2, ClipboardList, FileSpreadsheet, FileText, HelpCircle, History, Layers, Palette, Percent, Settings, Sparkles, X,
 } from 'lucide-react';
+import { useMobilEkran } from '../../lib/mobil/useMobilEkran';
 import { ModalOyna } from '../pto-workspace/ModalOyna';
 import { t } from '../../i18n/til';
 import { kartaTop, keyingiYol, urlObyekti, type QollanmaIkon, type QollanmaKarta as Karta } from '../../lib/qollanma/reestr';
@@ -62,7 +63,9 @@ export function QollanmaBoshqaruv({ foydalanuvchi }: { foydalanuvchi: string | n
   const karta = kartaTop(joy.pathname, joy.search);
   const obyektId = urlObyekti(joy.pathname, joy.search);
   const foyd = foydalanuvchiKaliti(foydalanuvchi);
-  const [ochiq, setOchiq] = useState<{ kalit: string; avto: boolean } | null>(null);
+  const mobil = useMobilEkran();
+  // chip: telefonda avtomatik karta to'sib turuvchi modal o'rniga kichik yopiladigan maslahat chipi bo'lib chiqadi.
+  const [ochiq, setOchiq] = useState<{ kalit: string; avto: boolean; chip?: boolean } | null>(null);
   const oxirgi = useRef<string | null>(null);
 
   useEffect(() => {
@@ -71,11 +74,13 @@ export function QollanmaBoshqaruv({ foydalanuvchi }: { foydalanuvchi: string | n
     const belgi = foyd + '|' + karta.kalit;
     if (oxirgi.current === belgi) return;                // shu karta sahifasida qolyapmiz (boshqa obyekt) — qayta chiqmaydi
     oxirgi.current = belgi;
-    setOchiq(avtoKorsatilsinmi(foyd, karta.kalit) ? { kalit: karta.kalit, avto: true } : null);
+    setOchiq(avtoKorsatilsinmi(foyd, karta.kalit) ? { kalit: karta.kalit, avto: true, chip: mobil } : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mobil faqat birinchi ochilishda hal qiladi (o'lcham o'zgarsa qayta chiqarmaymiz)
   }, [karta, foyd]);
 
   if (!karta) return null;
   const korinadi = ochiq?.kalit === karta.kalit;
+  const chipKorinadi = korinadi && !!ochiq?.chip;
   const yop = () => setOchiq(null);
   return (
     <>
@@ -83,7 +88,22 @@ export function QollanmaBoshqaruv({ foydalanuvchi }: { foydalanuvchi: string | n
         aria-label={t('Bu sahifa nima beradi')} title={t('Bu sahifa nima beradi')} onClick={() => setOchiq({ kalit: karta.kalit, avto: false })}>
         <HelpCircle aria-hidden="true" />
       </button>
-      {korinadi && (
+      {chipKorinadi && (
+        <div data-testid="qollanma-chip" role="status"
+          className="fixed left-3 z-40 flex items-center rounded-full border border-border bg-surface shadow-lg"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 76px)' }}>
+          <button type="button" className="flex min-h-[44px] items-center gap-1.5 pl-3 pr-2 text-[13px] text-text"
+            onClick={() => setOchiq({ kalit: karta.kalit, avto: true })}>
+            <HelpCircle size={15} className="text-accent" aria-hidden="true" />{t('Bu sahifa nima beradi')}
+          </button>
+          <button type="button" data-testid="qollanma-chip-yop" className="flex min-h-[44px] min-w-[44px] items-center justify-center text-text-mute"
+            aria-label={t('Keyinroq')} title={t('Keyinroq')}
+            onClick={() => { if (foyd) keyinroqDeb(foyd, karta.kalit); yop(); }}>
+            <X size={15} aria-hidden="true" />
+          </button>
+        </div>
+      )}
+      {korinadi && !chipKorinadi && (
         <QollanmaOyna karta={karta} obyektId={obyektId}
           tushunarli={() => { if (foyd) korildiDeb(foyd, karta.kalit); yop(); }}
           keyinroq={() => { if (foyd && ochiq?.avto) keyinroqDeb(foyd, karta.kalit); yop(); }}

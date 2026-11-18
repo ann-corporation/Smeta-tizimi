@@ -1,3 +1,4 @@
+import { saytOriginlar } from '../../src/lib/sayt-manzil';
 /**
  * Google ID token tekshiruvi — /api/kirish-google (kirish) va /api/profil (hisobga ulash) UCHUN YAGONA kod.
  * Imzo (Google JWKS), aud = GOOGLE_CLIENT_ID, iss = accounts.google.com, exp, email_verified.
@@ -49,9 +50,9 @@ export async function googleTokenTekshir(token: string, clientId: string, kalitl
  * origin'lar ro'yxati sahifaga beriladi: boshqa manzilda Google tugmasi chizilmaydi, foydalanuvchi asosiy manzilga
  * yo'naltiriladi. Ro'yxat Google Cloud Console dagi "Authorized JavaScript origins" bilan AYNAN bir xil bo'lishi kerak
  * (env GOOGLE_ORIGINS, vergul bilan; sukut — asosiy prod manzil). */
-const STANDART_ORIGINLAR = ['https://smeta-tizimi.pages.dev'];
-export function googleOriginlar(env: { GOOGLE_ORIGINS?: string }): string[] {
+// Sukut: kanonik (PUBLIC_ORIGIN yoki qurai.uz) + o'tish davrida eski host (lib/sayt-manzil.ts).
+export function googleOriginlar(env: { GOOGLE_ORIGINS?: string; PUBLIC_ORIGIN?: string }): string[] {
   const r = String(env.GOOGLE_ORIGINS || '').split(',').map((s) => s.trim().replace(/\/+$/, '')).filter((s) => /^https?:\/\/[^/\s]+$/.test(s));
-  return r.length ? r : STANDART_ORIGINLAR;
+  return r.length ? r : saytOriginlar(env);
 }
 

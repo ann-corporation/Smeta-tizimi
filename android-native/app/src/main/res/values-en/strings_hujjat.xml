@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="docs_mode_gen">Generate document</string>
+    <string name="docs_mode_orig">Uploaded originals</string>
+    <string name="gen_hint">The document is generated on the server with the same templates and calculations as the website. Downloading it again is free.</string>
+    <string name="gen_empty">Nothing to generate</string>
+    <string name="gen_empty_hint">This object has no F-2 or Form 3 yet.</string>
+    <string name="gen_pdf">PDF</string>
+    <string name="gen_xlsx">Excel</string>
+    <string name="gen_working">Generating the document on the server…</string>
+    <string name="gen_err_tokens">Not enough tokens. Top up under "Tokens and subscription" on the website.</string>
+    <string name="gen_err_data">Document not generated: the object data is incomplete (for example a row is missing in the estimate).</string>
+    <string name="gen_err_server">Could not generate the document. Please try again.</string>
+</resources>

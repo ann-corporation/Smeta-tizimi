@@ -1,4 +1,4 @@
-# Mobile + macOS shells of Smeta Tizimi (Tauri 2). Public repo: no secrets are created here; signing is optional.
+# Mobile + macOS shells of QURAI (Tauri 2). Public repo: no secrets are created here; signing is optional.
 # Security posture: contents:read by default, no pull_request_target, no persisted checkout credentials,
 # release signing material is never exposed to pull_request runs, secrets only reach the single step that needs them
 # (via env, never echoed). The ONLY job with contents:write is `release`, scoped to v* tags; it never checks out code.
@@ -118,7 +118,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/out"
           "$BT/zipalign" -f -p 4 "$UNSIGNED" "$RUNNER_TEMP/aligned.apk"
           if [ "$RELEASE_SIGNING" = "true" ]; then
-            OUT="$RUNNER_TEMP/out/smeta-tizimi-${VERSION}-release.apk"
+            OUT="$RUNNER_TEMP/out/qurai-${VERSION}-release.apk"
             KS="$RUNNER_TEMP/release.keystore"
             printf '%s' "$KS_B64" | base64 -d > "$KS"
             "$BT/apksigner" sign --ks "$KS" --ks-key-alias "$ANDROID_KEY_ALIAS" \
@@ -127,7 +127,7 @@ jobs:
             rm -f "$KS"
           else
             # Throwaway debug key, generated per run with the public Android debug convention. NOT a release key.
-            OUT="$RUNNER_TEMP/out/smeta-tizimi-${VERSION}-debug.apk"
+            OUT="$RUNNER_TEMP/out/qurai-${VERSION}-debug.apk"
             KS="$RUNNER_TEMP/debug.keystore"
             keytool -genkeypair -keystore "$KS" -storepass android -keypass android -alias androiddebugkey \
               -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" >/dev/null 2>&1
@@ -210,8 +210,8 @@ jobs:
           test -n "$IPA" || { echo "IPA not found"; exit 1; }
           VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
           mkdir -p "$RUNNER_TEMP/out"
-          cp "$IPA" "$RUNNER_TEMP/out/smeta-tizimi-${VERSION}.ipa"
-          echo "IPA_PATH=$RUNNER_TEMP/out/smeta-tizimi-${VERSION}.ipa" >> "$GITHUB_ENV"
+          cp "$IPA" "$RUNNER_TEMP/out/qurai-${VERSION}.ipa"
+          echo "IPA_PATH=$RUNNER_TEMP/out/qurai-${VERSION}.ipa" >> "$GITHUB_ENV"
       - name: Upload to TestFlight
         if: env.IOS_SIGNING == 'true'
         env:
@@ -292,8 +292,8 @@ jobs:
           test -n "$DMG" || { echo "DMG not found"; exit 1; }
           SUFFIX=unsigned; [ "$MAC_SIGNING" = "true" ] && SUFFIX=signed
           mkdir -p "$RUNNER_TEMP/out"
-          cp "$DMG" "$RUNNER_TEMP/out/smeta-tizimi-${VERSION}-macos-universal-${SUFFIX}.dmg"
-          echo "DMG_PATH=$RUNNER_TEMP/out/smeta-tizimi-${VERSION}-macos-universal-${SUFFIX}.dmg" >> "$GITHUB_ENV"
+          cp "$DMG" "$RUNNER_TEMP/out/qurai-${VERSION}-macos-universal-${SUFFIX}.dmg"
+          echo "DMG_PATH=$RUNNER_TEMP/out/qurai-${VERSION}-macos-universal-${SUFFIX}.dmg" >> "$GITHUB_ENV"
       - uses: actions/upload-artifact@v4
         with:
           name: macos-dmg
@@ -303,8 +303,7 @@ jobs:
 
   # Production Windows installer (NSIS, NOT code-signed: Windows has no signing certificate yet).
   # Separate from desktop-windows.yml (synthetic e2e installer). Skipped with a notice (never a failure)
-  # until the owner sets the repository variables SMETA_DESKTOP_LEASE_PK / SMETA_DESKTOP_LEASE_KID.
-  # The BFF origin is intentionally not set: the app defaults to the production origin (transport.rs).
+  # Default build is the "Onlayn qobiq" shell (loads the live site): no lease key required any more.
   windows:
     runs-on: windows-latest
     timeout-minutes: 60
@@ -315,11 +314,12 @@ jobs:
       - name: Lease key gate
         id: gate
         run: |
-          if ($env:VITE_DESKTOP_LEASE_PK -and $env:VITE_DESKTOP_LEASE_KID) {
+          # Onlayn qobiq (default) needs no lease key; the lease pin is only for the legacy -LocalBff build.
+          if ($true) {
             'ready=true' >> $env:GITHUB_OUTPUT
           } else {
             'ready=false' >> $env:GITHUB_OUTPUT
-            '::notice title=Windows installer skipped::Repository variables SMETA_DESKTOP_LEASE_PK and SMETA_DESKTOP_LEASE_KID are not set; the production Windows build is skipped.'
+            '::notice title=Windows installer skipped::unreachable'
           }
       - uses: actions/checkout@v4
         if: steps.gate.outputs.ready == 'true'

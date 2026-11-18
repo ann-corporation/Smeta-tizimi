@@ -1,0 +1,15 @@
+{
+  "sana": "2026-11-15",
+  "sarlavha": "Telefon va Windows ilovasida qulaylik tuzatishlari",
+  "bandlar": [
+    "Telefon: sahifa ochilganda «Ruxsat tekshirilmoqda…» yozuvi bilan bo‘sh ekran turmaydi — sahifa darhol chiziladi, ruxsat parallel tekshiriladi.",
+    "Telefon: «Bu sahifa nima beradi» oynasi ekranni to‘smaydi — kichik yopiladigan maslahat bo‘lib chiqadi; «Keyinroq» bosilsa, shu sessiyada qayta chiqmaydi.",
+    "Telefon: kichik tugmalar bosish uchun qulay (kamida 44 px maydon).",
+    "Obyekt holati: telefonda 8 qadamli zanjir bitta qatorda suriladi, yo‘l (breadcrumb) bir qatorga ixchamlandi, qo‘shimcha amallar «…» menyusida; zanjir qadamlarining to‘liq matni ko‘rinadi.",
+    "Narxlar nazorati va AOSR ro‘yxatida uzun nomlar kesilmaydi; Narxlar sahifasidagi tanlagichlar telefonda to‘liq kenglikda.",
+    "Obyektlar: moliyaviy kartalar bir xil tekislangan, «kesim va hisob» yonidagi ikkilangan belgi olib tashlandi.",
+    "AOSR qisqartmasi tilga qarab bir xil yoziladi (o‘zbekcha/inglizcha — AOSR, ruscha — АОСР).",
+    "Texnik kalitlar (masalan, company.context.read) o‘rniga tushunarli nomlar ko‘rsatiladi.",
+    "Pastki panel: Jarvis tugmasi faqat ochiq bo‘lganda faol; Android holat paneli rangi ilova mavzusiga mos."
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "sana": "2026-11-17",
+  "sarlavha": "Ombor: buyruq yozish va ovoz ishlaydi, material nomlari eslab qolinadi",
+  "bandlar": [
+    "Android: omborchi matn yozib yoki mikrofon bilan aytgan buyruq endi serverga yetib boradi va tasdiqlangach omborga yoziladi (avval bu so'rov ilovadan o'tmay qolgan edi).",
+    "Material nomi: bir marta kiritilgan nom, birlik va oxirgi yetkazuvchi keyingi safar o'zi taklif qilinadi (eng yangi va eng ko'p ishlatilgani birinchi). Variantlarni tanlash va tasdiqlash endi yo'q.",
+    "Yangi nom o'zi qabul qilinadi va keyingi safar taklif bo'ladi; chiqimda ham ro'yxatdan tanlash majburiy emas."
+  ]
+}

@@ -13,7 +13,7 @@ import type { Muhit } from '../../smeta-mcp/src/muhit';
 import { masofaviyChaqir } from './siyosat';
 import type { Vakolat } from './vakolat';
 
-export const SAYT_STANDART = 'https://smeta-tizimi.pages.dev';
+export const SAYT_STANDART = 'https://qurai.uz';
 export const OB_ID = /^obyekt:(\d{1,12})$/;
 export const obyektUrl = (sayt: string | undefined, id: number) => `${(sayt || SAYT_STANDART).trim().replace(/\/+$/, '')}/?obyekt=${id}`;
 

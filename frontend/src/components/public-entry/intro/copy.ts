@@ -6,7 +6,7 @@ import type { EntryCopy } from '../product-scope';
  */
 export const introCopy = {
   accent: ['Smetadan to‘lovgacha — bitta tirik zanjir.', 'От сметы до оплаты — одна живая цепочка.', 'From estimate to payment — one living chain.'],
-  lead: ['Excel’dagi smetangizni yuklang yoki ishni so‘z bilan yozing. TIZIM_02 uni tuzilgan, tekshiriladigan hujjatga aylantiradi: fakt, F2, nakopitelniy, F3 va to‘lov bir-biriga bog‘lanadi — har raqamning manbasi ko‘rinib turadi.', 'Загрузите смету из Excel или опишите работу словами. TIZIM_02 превратит её в структурированный проверяемый документ: факт, Ф2, накопительная, Ф3 и оплата связаны между собой — у каждого числа виден источник.', 'Upload your Excel estimate or describe the work in words. TIZIM_02 turns it into a structured, verifiable document: progress, F2, cumulative, F3 and payment stay linked — every number shows its source.'],
+  lead: ['Excel’dagi smetangizni yuklang yoki ishni so‘z bilan yozing. QURAI uni tuzilgan, tekshiriladigan hujjatga aylantiradi: fakt, F2, nakopitelniy, F3 va to‘lov bir-biriga bog‘lanadi — har raqamning manbasi ko‘rinib turadi.', 'Загрузите смету из Excel или опишите работу словами. QURAI превратит её в структурированный проверяемый документ: факт, Ф2, накопительная, Ф3 и оплата связаны между собой — у каждого числа виден источник.', 'Upload your Excel estimate or describe the work in words. QURAI turns it into a structured, verifiable document: progress, F2, cumulative, F3 and payment stay linked — every number shows its source.'],
   free: ['Bepul: 300 token', 'Бесплатно: 300 токенов', 'Free: 300 tokens'],
   scrollHint: ['Pastga aylantiring — Excel jonlanadi', 'Прокрутите — Excel оживёт', 'Scroll — watch the Excel come alive'],
   sample: ['namuna', 'пример', 'sample'],

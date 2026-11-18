@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- P6: documents -->
+    <string name="docs_title">Документы</string>
+    <string name="docs_button">Документы</string>
+    <string name="docs_f2_button">Документы Ф-2 (PDF / Excel)</string>
+    <string name="docs_filter_all">Все</string>
+    <string name="docs_filter_f2">Ф-2</string>
+    <string name="docs_dismiss">Закрыть</string>
+    <string name="docs_empty">Документов нет</string>
+    <string name="docs_empty_hint">Сохранённые документы этого объекта появятся здесь.</string>
+    <string name="docs_empty_f2">Документов Ф-2 нет</string>
+    <string name="docs_type_f2">Ф-2</string>
+    <string name="docs_type_f3">Ф-3</string>
+    <string name="docs_type_pack">Месячный пакет</string>
+    <string name="docs_type_other">Документ</string>
+    <string name="docs_cached">Скачан</string>
+    <string name="docs_pending">Готовится на сервере</string>
+    <string name="docs_downloading">Загрузка документа…</string>
+    <string name="docs_share">Поделиться</string>
+    <string name="docs_save">Сохранить</string>
+    <string name="docs_saved">Документ сохранён</string>
+    <string name="docs_open_with">Открыть в другом приложении</string>
+    <string name="docs_no_preview">Этот тип файла нельзя показать в приложении. Откройте его в другом приложении или поделитесь.</string>
+    <string name="docs_no_app">Не найдено приложение для открытия этого файла.</string>
+    <string name="docs_page_of">%1$d / %2$d</string>
+    <string name="docs_err_offline">Нет сети, а этот документ ещё не скачан.</string>
+    <string name="docs_err_pay">Это платный документ: сначала его нужно открыть на сайте за токены.</string>
+    <string name="docs_err_forbidden">У вас нет доступа к этому документу.</string>
+    <string name="docs_err_big">Файл слишком большой (больше 25 МБ).</string>
+    <string name="docs_err_missing">Файл не найден на сервере.</string>
+    <string name="docs_err_generic">Не удалось открыть документ. Попробуйте ещё раз.</string>
+    <!-- P6: Jarvis from an object -->
+    <string name="ja_from_object">Jarvis: этот объект</string>
+    <string name="ja_object_scope">Вопросы об этом объекте</string>
+    <string name="ja_q_money_obj_text">Какова сметная стоимость этого объекта с наценкой и НДС?</string>
+    <!-- P6: notifications centre -->
+    <string name="nt_title">Уведомления</string>
+    <string name="nt_open">Открыть уведомления</string>
+    <string name="nt_filter_all">Все</string>
+    <string name="nt_filter_unread">Непрочитанные</string>
+    <string name="nt_waiting">Ждут согласования</string>
+    <string name="nt_waiting_none">В вашей очереди документов нет</string>
+    <string name="nt_unread_n">Непрочитано: %1$d</string>
+    <string name="nt_empty">Уведомлений нет</string>
+    <string name="nt_mark_all">Отметить все прочитанными</string>
+    <string name="nt_other">Новое сообщение</string>
+</resources>

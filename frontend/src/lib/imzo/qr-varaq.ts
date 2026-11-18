@@ -14,6 +14,7 @@ import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
 import { qisqaKod, type ImzoTomon, type ImzoUsul } from './yadro';
 import { IMZO_VARAQ_NOMI } from './mazmun';
 import { qrPng } from './qr';
+import { joriyHujjatDizayni } from '../hujjat-yozuvchi/dizayn';
 
 export const TOMON_NOMI: Readonly<Record<ImzoTomon, { uz: string; ru: string; zakazchikNomidan?: string }>> = {
   pudratchi: { uz: 'Pudratchi', ru: 'Подрядчик' },
@@ -177,7 +178,7 @@ function birinchiVaraqQR(f: Record<string, Uint8Array>, url: string): void {
   }
   if (!/Extension="png"/i.test(ct)) ct = ct.replace(/(<Types\b[^>]*>)/, '$1<Default Extension="png" ContentType="image/png"/>');
   f['[Content_Types].xml'] = strToU8(ct);
-  f[mediaYol] = qrPng(url, 6).png;
+  f[mediaYol] = qrPng(url, 6, joriyHujjatDizayni().logoKolontitul).png;
 }
 /** xlsx ga «IMZO» varag'ini qo'shadi (yoki yangilaydi). xlsx bo'lmasa - null. */
 export function imzoVaraqQosh(bytes: Uint8Array, t: ImzoBlokTalab): Uint8Array | null {
@@ -191,14 +192,14 @@ export function imzoVaraqQosh(bytes: Uint8Array, t: ImzoBlokTalab): Uint8Array |
   const [S, B] = uslublarQosh(f);
 
   const rows: string[] = []; const pics: { r0: number; rid: string; id: number; url: string }[] = []; const media: Record<string, Uint8Array> = {};
-  rows.push(`<row r="1" ht="22" customHeight="1">${kat('A1', 'ЭЛЕКТРОННЫЕ ПОДПИСИ И ИСТОЧНИК · ELEKTRON IMZOLAR VA MANBA (Smeta tizimi)', B)}</row>`);
+  rows.push(`<row r="1" ht="22" customHeight="1">${kat('A1', 'ЭЛЕКТРОННЫЕ ПОДПИСИ И ИСТОЧНИК · ELEKTRON IMZOLAR VA MANBA (QURAI)', B)}</row>`);
   rows.push(`<row r="2" ht="44" customHeight="1">${kat('A2', `Hujjat mazmuni kodi / Код содержимого: ${qisqaKod(t.mazmunXesh)}. Imzo tizimdagi hujjat yozuvini himoya qiladi; haqiqiyligi QR orqali tekshiriladi, asl nusxa tizimda saqlanadi. / Подпись защищает запись документа в системе; подлинность проверяется по QR, оригинал хранится в системе.`, S)}</row>`);
   rows.push(`<row r="3" ht="32" customHeight="1">${['Tomon / lavozim · Сторона', 'Kompaniya · Компания', 'F.I.Sh. · Ф.И.О.', 'Holat · Статус', 'Sana-vaqt · Дата-время', 'Imzo kodi · Код подписи', 'QR']
     .map((h, i) => kat(`${'ABCDEFG'[i]}3`, h, B)).join('')}</row>`);
   let r = 4; let id = 2;
   const qrQosh = (url: string, qator: number) => {
     const k = pics.length + 1;
-    media[`xl/media/imzoqr${k}.png`] = qrPng(url, 5).png;
+    media[`xl/media/imzoqr${k}.png`] = qrPng(url, 5, joriyHujjatDizayni().logoKolontitul).png;
     pics.push({ r0: qator - 1, rid: `rIdImzoQr${k}`, id: id++, url });
   };
   if (t.manbaToken) {   // MANBA QR: qog'oz ustidagi QR skaner qilinsa - shu hujjatning Excel nusxasi (tizimga kirgan va ruxsati bor odamga)

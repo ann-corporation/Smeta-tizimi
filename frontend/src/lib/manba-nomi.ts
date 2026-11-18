@@ -1,13 +1,13 @@
 /**
  * Manba nomi — foydalanuvchiga ko'rinadigan shakl (egasi 2026-10-22: «smeta studioda manbalarda ABC, TNQ, Construct kabi
- * boshqa nomlar bo'lmaydi — bu shaxsiy baza, faqat o'zimizning nomimiz: masalan "Smeta tizimi · ШНҚ … asosida" yoki
- * "Smeta tizimi katalogi 2026"»).
+ * boshqa nomlar bo'lmaydi — bu shaxsiy baza, faqat o'zimizning nomimiz: masalan "QURAI · ШНҚ … asosida" yoki
+ * "QURAI katalogi 2026"»).
  *
  * Ma'lumot (R2 katalog, dalil, versiya xeshlari) o'zgarmaydi — faqat EKRANGA, eksportga va AI matniga chiqishdan oldin
  * shu yerdan o'tadi. Tashqi dastur nomi bo'lmagan matn (masalan foydalanuvchining o'z КП fayli nomi) tegilmaydi.
  */
 
-export const BREND = 'Smeta tizimi';
+export const BREND = 'QURAI';
 export const BREND_KATALOG_YILI = '2026';
 
 /** Tashqi dastur / manba nomlari (lotin va kirill yozuvlari). «ТН» (tonna birligi) ataylab kirmaydi. */
@@ -24,8 +24,8 @@ export function tashqiNomBormi(matn: string | null | undefined): boolean {
 
 /**
  * Bitta manba nomi (katalog, normativ yozuv, nashr) → ko'rinadigan nom.
- * ШНҚ raqami bo'lsa — «Smeta tizimi · ШНҚ 4.02.15-04 asosida»; aks holda tashqi nom → «Smeta tizimi katalogi 2026»
- * (matndagi yil bo'lsa o'sha yil). Bo'sh → «Smeta tizimi katalogi». Tashqi nomsiz matn o'zgarmaydi.
+ * ШНҚ raqami bo'lsa — «QURAI · ШНҚ 4.02.15-04 asosida»; aks holda tashqi nom → «QURAI katalogi 2026»
+ * (matndagi yil bo'lsa o'sha yil). Bo'sh → «QURAI katalogi». Tashqi nomsiz matn o'zgarmaydi.
  */
 export function manbaKorinishi(raw: string | null | undefined): string {
   const s = (raw ?? '').trim();

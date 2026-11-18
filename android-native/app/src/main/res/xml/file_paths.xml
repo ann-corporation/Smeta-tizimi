@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Staged copies of opened documents (DocFiles.stage); removed when the viewer closes and on app start. -->
+    <cache-path name="shared" path="shared/" />
+    <!-- Camera photos taken for a website file input inside the web container (removed when the container closes). -->
+    <cache-path name="webup" path="webup/" />
+</paths>

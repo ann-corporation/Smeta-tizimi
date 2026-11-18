@@ -1,9 +1,11 @@
+import './lib/app-embed-init'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import './dizayn/firuza.css'
 import { TilChegarasi } from './i18n/TilTanlagich'
+import { QulfProvider } from './qulf/QulfProvider'
 import { t, tilTayyorla } from './i18n/til'
 
 import { kuzatuvniBoshlash } from './_shared/kuzatuv';
@@ -61,7 +63,7 @@ void tilTayyorla().then(() => import('./App.tsx')).then(({ default: App }) => {
     <StrictMode>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <TilChegarasi><App /></TilChegarasi>
+          <TilChegarasi><QulfProvider><App /></QulfProvider></TilChegarasi>
         </QueryClientProvider>
       </ErrorBoundary>
     </StrictMode>,
