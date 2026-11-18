@@ -365,3 +365,35 @@ describe('mobil BFF: sinov (bepul sinov, 1000 token) /api/company', () => {
     expect(rpcs.find(x => x.nom === rpc)?.body).toMatchObject({ p_actor_id: 7 });
   });
 });
+describe('mobil BFF: yuk-tashish (Logistika yuk birjasi)', () => {
+  let rpcs: { nom: string; body: Record<string, unknown> }[];
+  beforeEach(() => {
+    rpcs = [];
+    const base = globalThis.fetch as typeof fetch;
+    vi.stubGlobal('fetch', vi.fn(async (raw: string, init?: RequestInit) => {
+      const u = new URL(String(raw));
+      const nom = /\/rpc\/([a-z0-9_]+)/.exec(u.pathname)?.[1];
+      if (nom && nom.startsWith('t2_yb_')) { rpcs.push({ nom, body: JSON.parse(String(init?.body ?? '{}')) }); return Response.json({ ok: true, reyslar: [] }); }
+      return base(raw, init);
+    }));
+  });
+  it('MOBIL_PATH yuk-tashish ni o\'tkazadi, qo\'shnilarini emas', () => {
+    expect(MOBIL_PATH.test('/api/yuk-tashish')).toBe(true);
+    expect(MOBIL_PATH.test('/api/yuk-tashish-x')).toBe(false);
+    expect(MOBIL_PATH.test('/api/yuk-marshrut')).toBe(false);
+  });
+  it('oq ro\'yxatdagi amal web handleriga yetadi: aktor qurilma sessiyasidan (tanadagi aktor e\'tiborga olinmaydi)', async () => {
+    const r = await bff('/api/yuk-tashish', 'POST', { amal: 'reys', p_actor_id: 999, actor_id: 999 });
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ ok: true });
+    expect(rpcs.map(x => x.nom)).toEqual(['t2_yb_p2_reys_v1']);
+    expect(rpcs[0].body.p_actor_id).toBe(7);
+  });
+  it('noma\'lum amal, amalsiz tana va GET serverga yetmasdan rad etiladi', async () => {
+    for (const body of [{ amal: 'admin_hammasi' }, { amal: 'constructor' }, {}, { amal: 5 }]) {
+      expect((await bff('/api/yuk-tashish', 'POST', body)).status).toBe(400);
+    }
+    expect((await bff('/api/yuk-tashish', 'GET')).status).toBe(400);
+    expect(rpcs).toHaveLength(0);
+  });
+});

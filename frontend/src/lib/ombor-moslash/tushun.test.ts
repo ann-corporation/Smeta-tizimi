@@ -175,3 +175,17 @@ describe('savolYasa: «tushunmadim» o\'rniga bitta qisqa savol', () => {
     expect(savolYasa(null)?.savol).toMatch(/Masalan/);
   });
 });
+
+describe('savolYasa: ru tili', () => {
+  it('ru matn + bir xil tanlov (tugma mantiqi tilga bog\'liq emas)', () => {
+    const uz = savolYasa({ yonalish: null, taxmin: null, nomi: 'Sement', miqdor: 5, kontragent: null })!;
+    const ru = savolYasa({ yonalish: null, taxmin: null, nomi: 'Sement', miqdor: 5, kontragent: null }, { til: 'ru' })!;
+    expect(ru.savol).toContain('приход или расход');
+    expect(ru.variantlar.map((v) => v.yorliq)).toEqual(['Приход', 'Расход']);
+    expect(ru.variantlar.map((v) => v.tanlov)).toEqual(uz.variantlar.map((v) => v.tanlov));
+    expect(savolYasa(null, { til: 'ru' })!.savol).toMatch(/^Что нужно сделать/);
+    expect(savolYasa(null, { til: 'uz' })!.savol).toMatch(/^Nima qilish kerak/);
+    expect(savolYasa({ yonalish: 'prixod', taxmin: null, nomi: 'Sement', miqdor: null, kontragent: null }, { til: 'ru', odatiyMiqdor: 10 })!.savol).toContain('обычно 10');
+    expect(savolYasa({ yonalish: 'prixod', taxmin: null, nomi: 'S', miqdor: 1, kontragent: 'А' }, { til: 'ru', kontragent: { holat: 'noaniq', nomzodlar: ['Alfa', 'Beta'] } as never })!.savol).toBe('Какой поставщик: «Alfa» или «Beta»?');
+  });
+});

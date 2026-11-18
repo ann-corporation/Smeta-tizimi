@@ -2,6 +2,8 @@
  * Omborchi gateway mijozi — YAGONA server nuqtasi `/api/ombor-buyruq` (web, Android va Telegram bir xil mantiqdan foydalanadi).
  * Shartnoma: frontend/functions/api/ombor-buyruq.ts. Aktor sessiyadan olinadi; mijoz hech qachon actor_id yubormaydi.
  */
+import { tilOl } from '../i18n/til';
+
 export type OmborGuruh = {
   kalit: string; nomi: string; birligi: string; tur: string | null; kirim: number; chiqim: number; qoldiq: number;
   variantlar_soni: number; harakatlar: number; oxirgi_sana: string | null; ball: number;
@@ -92,10 +94,10 @@ export const omborTuzat = (k: number, s: number, p: { harakat_id: number; yangi:
 export const omborAlias = (k: number, s: number, kanonik: string, variantlar: string[], operationId: string) =>
   chaqir<{ ok: true; variantlar: number }>({ amal: 'alias', ...asos(k, s), kanonik, variantlar, operation_id: operationId });
 export const omborTahlilMatn = (k: number, s: number, matn: string, tanlov?: OmborTanlov, narxRejim?: 'bilan' | 'siz') =>
-  chaqir<OmborBuyruqNatija>({ amal: 'tahlil', ...asos(k, s), matn, ...(tanlov ? { tanlov } : {}), ...(narxRejim ? { narx_rejim: narxRejim } : {}) });
+  chaqir<OmborBuyruqNatija>({ amal: 'tahlil', ...asos(k, s), matn, ...(tanlov ? { tanlov } : {}), ...(narxRejim ? { narx_rejim: narxRejim } : {}), ...(tilOl() === 'ru' ? { javob_til: 'ru' } : {}) });
 export function omborTahlilOvoz(k: number, s: number, audio: Blob, til = 'auto') {
   const f = new FormData();
-  f.set('amal', 'tahlil'); f.set('kompaniya_id', String(k)); f.set('sklad_id', String(s)); f.set('til', til); f.set('audio', audio, 'ombor-audio');
+  f.set('amal', 'tahlil'); f.set('kompaniya_id', String(k)); f.set('sklad_id', String(s)); f.set('til', til); if (tilOl() === 'ru') f.set('javob_til', 'ru'); f.set('audio', audio, 'ombor-audio');
   return chaqir<OmborBuyruqNatija>(f, 90_000);
 }
 export const omborTasdiq = (k: number, s: number, token: string) =>

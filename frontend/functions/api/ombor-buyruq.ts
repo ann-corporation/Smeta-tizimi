@@ -306,6 +306,7 @@ async function tahlil(ctx: Context, s: Sess, kid: number, sid: number, b: Record
   let buyruq: Buyruq | null = null; let llmIshlatildi = false; let aiXabar: string | null = null;
   let qisman: Qisman | null = null;
   const bugun = new Date(Date.now() + 5 * 3600_000).toISOString().slice(0, 10);
+  const javobTil = b.javob_til === 'ru' ? 'ru' : null; // aniqlovchi savol matni tili (mijoz yuboradi; sukut — o'zbek lotin)
   const tanlov = b.tanlov && typeof b.tanlov === 'object' ? b.tanlov as { nomi?: unknown; birligi?: unknown; amal?: unknown; kontragent?: unknown } : null;
   // Aniqlovchi savolga javob (mijoz tugma bosdi): yo'nalish yoki yetkazuvchi tanlovi shu so'rovda qo'llanadi.
   const tanlovAmal = tanlov?.amal === 'prixod' || tanlov?.amal === 'chiqim' ? tanlov.amal : null;
@@ -335,7 +336,7 @@ async function tahlil(ctx: Context, s: Sess, kid: number, sid: number, b: Record
   if (!buyruq) {
     // «Tushunmadim» o'rniga: tushunilgan qismni ko'rsatib, BITTA qisqa savol (+ takliflar).
     const tn = qisman && !qisman.nomi ? await tarixOl(env, kid, sid, qisman.yonalish === 'chiqim' ? 'chiqim' : 'prixod') : null;
-    const sv = savolYasa(qisman, { materiallar: tn?.materiallar });
+    const sv = savolYasa(qisman, { materiallar: tn?.materiallar, til: javobTil });
     await audit(env, kid, sid, 'ombor_buyruq_tahlil', aid, `manba=${manba}; amal=savol; llm=${llmIshlatildi}; kod=${sv?.kod ?? '-'}; uzunlik=${matn.length}; xesh=${matn ? await xesh(matn) : '-'}`);
     return json({ ok: true, holat: qisman ? 'savol' : 'tushunilmadi', matn, llm: llmIshlatildi, savol: sv?.savol ?? null, variantlar: sv?.variantlar ?? [], ...(aiXabar ? { ai_xabar: aiXabar } : {}) });
   }
@@ -390,7 +391,7 @@ async function tahlil(ctx: Context, s: Sess, kid: number, sid: number, b: Record
   if (tanlovKontragent) buyruq = { ...buyruq, kontragent: tanlovKontragent };
   const tn = await tarixOl(env, kid, sid, tur);
   if (!buyruq.nomi || !buyruq.miqdor) {
-    const sv = savolYasa({ yonalish: tur, taxmin: null, nomi: buyruq.nomi, miqdor: buyruq.miqdor, kontragent: buyruq.kontragent }, { materiallar: tn?.materiallar });
+    const sv = savolYasa({ yonalish: tur, taxmin: null, nomi: buyruq.nomi, miqdor: buyruq.miqdor, kontragent: buyruq.kontragent }, { materiallar: tn?.materiallar, til: javobTil });
     return json({ ...javob, holat: 'toldirish_kerak', yetishmaydi: [!buyruq.nomi && 'nomi', !buyruq.miqdor && 'miqdor'].filter(Boolean), savol: sv?.savol ?? null, variantlar: sv?.variantlar ?? [] });
   }
   let nomiB: string = buyruq.nomi; const miqdorB: number = buyruq.miqdor;
@@ -401,7 +402,7 @@ async function tahlil(ctx: Context, s: Sess, kid: number, sid: number, b: Record
     const km = tarixdanMosla(buyruq.kontragent, tn.kontragentlar);
     if (km.holat === 'aniq' && km.tanlangan) buyruq = { ...buyruq, kontragent: km.tanlangan };
     else if (km.holat === 'noaniq') {
-      const sv = savolYasa({ yonalish: tur, taxmin: null, nomi: buyruq.nomi, miqdor: buyruq.miqdor, kontragent: buyruq.kontragent }, { kontragent: km });
+      const sv = savolYasa({ yonalish: tur, taxmin: null, nomi: buyruq.nomi, miqdor: buyruq.miqdor, kontragent: buyruq.kontragent }, { kontragent: km, til: javobTil });
       if (sv) return json({ ...javob, holat: 'savol', savol: sv.savol, variantlar: sv.variantlar });
     }
   }

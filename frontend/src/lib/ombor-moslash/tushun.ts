@@ -311,10 +311,27 @@ export function tarixNomlari(yoz: readonly TaklifYozuv[], tur: Yonalish): TarixN
 export type SavolVariant = { yorliq: string; tanlov: { amal?: Yonalish; kontragent?: string; nomi?: string; birligi?: string } };
 export type Savol = { kod: 'yonalish' | 'miqdor' | 'nomi' | 'kontragent' | 'bosh'; savol: string; variantlar: SavolVariant[] };
 
-const MISOL = 'Masalan: «10 qop sement keldi» yoki «5 ta lampa 3-blokka chiqdi».';
+const MISOL_RU = 'Например: «10 мешков цемента пришло» или «5 ламп выдано в 3-й блок».';
+/** Savol matni rus tilida (foydalanuvchi tili ru bo'lganda); mantiq `savolYasa` bilan bir xil, `variantlar.tanlov` o'zgarmaydi. */
+function savolYasaRu(q: SavolKirish | null, ctx: { materiallar?: string[]; kontragent?: Mosla | null; odatiyMiqdor?: number | null }): Savol | null {
+  if (!q || (!q.nomi && q.miqdor == null && !q.kontragent && !q.yonalish)) return { kod: 'bosh', savol: `Что нужно сделать? ${MISOL_RU}`, variantlar: [] };
+  if (!q.yonalish) {
+    const tartib: Yonalish[] = q.taxmin === 'chiqim' ? ['chiqim', 'prixod'] : ['prixod', 'chiqim'];
+    return { kod: 'yonalish', savol: `${q.nomi ? `«${q.nomi}»` : 'Это'} — приход или расход? (напишите «пришло» или «выдано»)`, variantlar: tartib.map((a) => ({ yorliq: a === 'prixod' ? 'Приход' : 'Расход', tanlov: { amal: a } })) };
+  }
+  if (!q.nomi) return { kod: 'nomi', savol: 'Какой материал? Напишите название.', variantlar: (ctx.materiallar ?? []).slice(0, 4).map((n) => ({ yorliq: n, tanlov: { nomi: n } })) };
+  if (q.miqdor == null) return { kod: 'miqdor', savol: `«${q.nomi}» — сколько${ctx.odatiyMiqdor ? ` (обычно ${ctx.odatiyMiqdor})` : ''}? Например: «10 мешков».`, variantlar: [] };
+  if (ctx.kontragent?.holat === 'noaniq' && ctx.kontragent.nomzodlar.length > 1) {
+    const [a, b, c] = ctx.kontragent.nomzodlar;
+    return { kod: 'kontragent', savol: `Какой ${q.yonalish === 'prixod' ? 'поставщик' : 'получатель'}: ${[a, b, c].filter(Boolean).map((x) => `«${x}»`).join(' или ')}?`, variantlar: ctx.kontragent.nomzodlar.map((n) => ({ yorliq: n, tanlov: { kontragent: n } })) };
+  }
+  return null;
+}
+const MISOL ='Masalan: «10 qop sement keldi» yoki «5 ta lampa 3-blokka chiqdi».';
 /** Eng muhim yetishmayotgan/noaniq narsa bo'yicha BITTA qisqa savol; hammasi aniq bo'lsa null. */
 export type SavolKirish = Pick<Qisman, 'yonalish' | 'taxmin' | 'nomi' | 'miqdor' | 'kontragent'>;
-export function savolYasa(q: SavolKirish | null, ctx: { materiallar?: string[]; kontragent?: Mosla | null; odatiyMiqdor?: number | null } = {}): Savol | null {
+export function savolYasa(q: SavolKirish | null, ctx: { materiallar?: string[]; kontragent?: Mosla | null; odatiyMiqdor?: number | null; til?: string | null } = {}): Savol | null {
+  if (ctx.til === 'ru') return savolYasaRu(q, ctx);
   if (!q || (!q.nomi && q.miqdor == null && !q.kontragent && !q.yonalish)) return { kod: 'bosh', savol: `Nima qilish kerak? ${MISOL}`, variantlar: [] };
   if (!q.yonalish) {
     const t = q.taxmin;
