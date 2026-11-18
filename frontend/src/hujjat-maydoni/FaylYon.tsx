@@ -2,7 +2,7 @@
  * FaylYon.tsx - tanlangan fayl paneli: versiyalar (qaytarish, yangi versiya), izohlar (@eslatma), ulashish, faoliyat, qulf, nomlash, ko'chirish.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { Lock, Unlock, X } from 'lucide-react';
+import { Lock, Send, Unlock, X } from 'lucide-react';
 import { toast } from '../umumiy/ui/Toast';
 import { matnSora } from '../umumiy/ui/Tasdiq';
 import { t, tilLocale } from '../i18n/til';
@@ -10,6 +10,7 @@ import {
   hmDarajaNomi, hmFaoliyat, type FaylOp, hmFaylAmal, hmHajm, hmIzohlar, hmIzohYoz, hmOdamlar, hmOlUrl, hmUlash, hmUlashBekor, hmUlashRoyxat, hmVersiyalar,
   type HmFaoliyat, type HmFayl, type HmIzoh, type HmYuklaFn, type HmOdam, type HmPapka, type HmUlash, type HmVersiya,
 } from '../api/t2-hujjat-maydoni';
+import { TaqdimDialog } from './TaqdimPanel';
 
 type Tab = 'versiya' | 'izoh' | 'ulashish' | 'faoliyat';
 const xm = (x: { code: string; xato?: string }) => x.xato || x.code;
@@ -31,6 +32,7 @@ export function FaylYon(p: {
   const [qid, setQid] = useState('');
   const [daraja2, setDaraja2] = useState('korish');
   const [yangiHavola, setYangiHavola] = useState<string | null>(null);
+  const [taqdimOchiq, setTaqdimOchiq] = useState(false);
 
   const yukla = useCallback(async () => {
     if (tab === 'versiya') { const r = await hmVersiyalar(fayl.id); if (r.ok) setVersiyalar(r.versiyalar); }
@@ -67,6 +69,7 @@ export function FaylYon(p: {
       {yozaOladi && (
         <div className="mt-2 flex flex-wrap gap-1.5">
           <button type="button" className="fz-btn" onClick={() => void nomla()}>{t('Nomlash')}</button>
+          {p.kompaniyaId && <button type="button" className="fz-btn" title={t('Aloqadagi tomonga o‘zgarmas nusxa sifatida yuborish')} onClick={() => setTaqdimOchiq(true)}><Send size={13} /> {t('Taqdim qilish')}</button>}
           {fayl.qulf_ism
             ? <button type="button" className="fz-btn" onClick={() => void amal('qulf_och')}><Unlock size={13} /> {t('Qulfni ochish')}</button>
             : <button type="button" className="fz-btn" title={t('Faylni yuklab olib o‘z kompyuteringizda tahrirlash uchun qulflang; yangi versiyani yuklaganingizda qulf ochiladi.')} onClick={() => void amal('qulf')}><Lock size={13} /> {t('Tahrir uchun qulflash')}</button>}
@@ -115,6 +118,7 @@ export function FaylYon(p: {
         </div>))}
 
       {tab === 'faoliyat' && <ul className="mt-2 space-y-1">{faol.map((a) => <li key={a.id}><span className="text-text-mute">{new Date(a.vaqt).toLocaleString(tilLocale())}</span> <b>{a.ism ?? '—'}</b> {a.amal}{a.tafsilot ? `: ${a.tafsilot}` : ''}</li>)}{!faol.length && <li className="text-text-mute">{t('Faoliyat yo‘q.')}</li>}</ul>}
+      {taqdimOchiq && p.kompaniyaId && <TaqdimDialog kompaniyaId={p.kompaniyaId} nishonTuri="fayl" nishonId={fayl.id} nom={fayl.nom} onYop={() => setTaqdimOchiq(false)} />}
     </aside>
   );
 }

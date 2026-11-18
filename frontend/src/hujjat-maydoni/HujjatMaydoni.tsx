@@ -4,7 +4,7 @@
  * Mavjud qatlamlar ustida (t2_fayl_papka, R2, t2_outbox); API: /api/hujjat-maydoni*. Jonli birgalikda tahrir - keyingi faza.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Download, Eye, FileText, Folder, FolderPlus, Lock, Search, Trash2, Upload, X } from 'lucide-react';
 import { Sahifa } from '../umumiy/ui/Sahifa';
 import { toast } from '../umumiy/ui/Toast';
@@ -13,13 +13,15 @@ import { useKompaniya } from '../umumiy/kontekst/KompaniyaKontekst';
 import { HujjatKorinish } from '../umumiy/hujjat/HujjatKorinish';
 import { t, tilLocale } from '../i18n/til';
 import {
-  hmAbadiy, hmBaytlar, hmBosh, hmFaoliyat, hmFaylAmal, hmHajm, hmDarajaNomi, hmKvotaHolat, hmOlUrl, hmPapka, hmQidir, hmRoyxat, hmTizim, hmUlashilgan, hmYukla,
-  type HmFayl, type HmRoyxat, type HmTizimHujjat, type HmUlashilgan, type HmFaoliyat, type Kvota,
+  hmAbadiy, hmBaytlar, hmBosh, hmFaoliyat, hmFaylAmal, hmHajm, hmDarajaNomi, hmKvotaHolat, hmOlUrl, hmPapka, hmQidir, hmRoyxat, hmUlashilgan, hmYukla,
+  type HmFayl, type HmRoyxat, type HmUlashilgan, type HmFaoliyat, type Kvota,
 } from '../api/t2-hujjat-maydoni';
+import { FaylMenejer } from '../admin/sahifalar/FaylMenejer';
 import { FaylYon } from './FaylYon';
 import { AdminPanel } from './AdminPanel';
+import { TaqdimPanel } from './TaqdimPanel';
 
-type Joy = 'shaxsiy' | 'kompaniya' | 'ulashilgan' | 'tizim' | 'savat' | 'faoliyat' | 'admin';
+type Joy = 'shaxsiy' | 'kompaniya' | 'ulashilgan' | 'taqdim' | 'tizim' | 'savat' | 'faoliyat' | 'admin';
 const FAAL_NOMI: Record<string, string> = {
   yuklandi: 'Yuklandi', yangi_versiya: 'Yangi versiya', nomlandi: 'Nomi o‘zgardi', kochirildi: 'Ko‘chirildi', savatga: 'Savatga olindi', tiklandi: 'Tiklandi',
   qulflandi: 'Qulflandi', qulf_ochildi: 'Qulf ochildi', versiya_qaytarildi: 'Versiyaga qaytarildi', izoh: 'Izoh', ulashildi: 'Ulashildi', ulashish_bekor: 'Ulashish bekor qilindi',
@@ -56,15 +58,18 @@ function KvotaBar({ k, kompaniya }: { k: Kvota; kompaniya: boolean }) {
 export default function HujjatMaydoni() {
   const { joriy } = useKompaniya();
   const kompId = joriy?.id ?? null;
-  const [joy, setJoy] = useState<Joy>('shaxsiy');
+  const [sp] = useSearchParams();
+  const docId = Number(sp.get('document_id')) > 0 ? Number(sp.get('document_id')) : null;
+  const [joy, setJoy] = useState<Joy>(docId ? 'tizim' : 'shaxsiy');
   const [papkaId, setPapkaId] = useState<number | null>(null);
   const [data, setData] = useState<HmRoyxat | null>(null);
   const [yuk, setYuk] = useState(false);
   const [xato, setXato] = useState<string | null>(null);
   const [tanlangan, setTanlangan] = useState<HmFayl | null>(null);
   const [qidiruv, setQidiruv] = useState('');
-  const [natija, setNatija] = useState<Array<{ id: number; nom: string; papka_id: number | null }> | null>(null);
-  const [tizim, setTizim] = useState<HmTizimHujjat[]>([]);
+  const [natija, setNatija] = useState<Array<{ id: number; nom: string; papka_id: number | null; mos?: 'nom' | 'matn'; parcha?: string | null }> | null>(null);
+  const [tortish, setTortish] = useState(false);
+  const [jarayon, setJarayon] = useState<string | null>(null);
   const [ulashilgan, setUlashilgan] = useState<HmUlashilgan[]>([]);
   const [faoliyat, setFaoliyat] = useState<HmFaoliyat[]>([]);
   const [korinish, setKorinish] = useState<{ bytes: Uint8Array; nom: string } | null>(null);
@@ -80,8 +85,6 @@ export default function HujjatMaydoni() {
       if (joy === 'shaxsiy' || joy === 'kompaniya' || joy === 'savat') {
         const r = await hmRoyxat({ kompaniyaId: joy === 'kompaniya' ? kompId : null, papkaId: joy === 'savat' ? null : papkaId, savat: joy === 'savat' });
         if (r.ok) setData(r); else { setData(null); setXato(xatoMatni(r)); }
-      } else if (joy === 'tizim' && kompId) {
-        const r = await hmTizim(kompId); if (r.ok) setTizim(r.royxat); else setXato(xatoMatni(r));
       } else if (joy === 'ulashilgan') {
         const r = await hmUlashilgan(); if (r.ok) setUlashilgan(r.royxat); else setXato(xatoMatni(r));
       } else if (joy === 'faoliyat') {
@@ -94,11 +97,14 @@ export default function HujjatMaydoni() {
 
   const yuklash = async (fayllar: FileList | null) => {
     if (!fayllar?.length) return;
+    let i = 0;
     for (const f of Array.from(fayllar)) {
+      setJarayon(t('Yuklanmoqda: {nom} ({i}/{n})', { nom: f.name, i: ++i, n: fayllar.length }));
       const r = await hmYukla({ file: f, kompaniyaId: joy === 'kompaniya' ? kompId : null, papkaId });
       if (r.ok) toast(r.ozgarmadi ? t('Mazmun o‘zgarmagan: {nom}', { nom: f.name }) : (r.raqam > 1 ? t('Yangi versiya yuklandi: {nom}', { nom: f.name }) : t('Yuklandi: {nom}', { nom: f.name })), 'ok');
       else toast(xatoMatni(r), 'danger');
     }
+    setJarayon(null);
     if (fayl.current) fayl.current.value = '';
     await yangila();
   };
@@ -126,12 +132,12 @@ export default function HujjatMaydoni() {
   const kvota = data?.kvota;
   const yozaOladi = (data?.daraja ?? 0) >= 3;
   const joylar: Array<[Joy, string]> = useMemo(() => [
-    ['shaxsiy', 'Hujjatlarim'], ...(kompId ? [['kompaniya', 'Kompaniya diski'] as [Joy, string]] : []), ['ulashilgan', 'Menga ulashilgan'],
-    ...(kompId ? [['tizim', 'Tizim hujjatlari'] as [Joy, string]] : []), ['savat', 'Savat'], ['faoliyat', 'Faoliyat'], ...(kompId ? [['admin', 'Disk boshqaruvi'] as [Joy, string]] : []),
+    ['shaxsiy', 'Mening diskim'], ...(kompId ? [['kompaniya', 'Kompaniya diski'] as [Joy, string]] : []), ['ulashilgan', 'Menga ulashilgan'],
+    ...(kompId ? [['taqdim', 'Taqdimlar'] as [Joy, string], ['tizim', 'Tizim hujjatlari'] as [Joy, string]] : []), ['savat', 'Savat'], ['faoliyat', 'Faoliyat'], ...(kompId ? [['admin', 'Disk boshqaruvi'] as [Joy, string]] : []),
   ], [kompId]);
 
   return (
-    <Sahifa sarlavha={t('Hujjatlarim')} tavsif={t('Shaxsiy va kompaniya fayllari: papkalar, versiyalar, izohlar, ulashish. Fayllar xavfsiz saqlanadi; versiyalar va savat disk hajmiga kiradi.')}>
+    <Sahifa sarlavha={t('Disk')} tavsif={t('Hamma narsa shu yerda saqlanadi: hujjat, rasm, chizma, video. Shaxsiy disk, kompaniya diski va tizim hujjatlari (F-2, АОСР, eksportlar).')}>
       <div className="flex flex-wrap gap-1 border-b border-border pb-2" role="tablist" aria-label={t('Bo‘limlar')}>
         {joylar.map(([k, nom]) => (
           <button key={k} type="button" role="tab" aria-selected={joy === k} onClick={() => setJoy(k)}
@@ -146,12 +152,12 @@ export default function HujjatMaydoni() {
           <div>
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <nav className="flex flex-wrap items-center gap-1 text-[13px]" aria-label={t('Papka yo‘li')}>
-                <button type="button" className="text-accent hover:underline" onClick={() => setPapkaId(null)}>{joy === 'kompaniya' ? t('Kompaniya diski') : t('Hujjatlarim')}</button>
+                <button type="button" className="text-accent hover:underline" onClick={() => setPapkaId(null)}>{joy === 'kompaniya' ? t('Kompaniya diski') : t('Mening diskim')}</button>
                 {data.yol.map((p) => (<span key={p.id}>/ <button type="button" className="hover:underline" onClick={() => setPapkaId(p.id)}>{p.nom}</button></span>))}
               </nav>
               <div className="ml-auto flex flex-wrap items-center gap-2">
                 <label className="relative"><Search size={13} className="absolute left-2 top-2 text-text-mute" />
-                  <input value={qidiruv} onChange={(e) => void qidir(e.target.value)} placeholder={t('Fayl nomi bo‘yicha qidirish')} aria-label={t('Qidirish')} className="input h-8 pl-7 text-[12px]" /></label>
+                  <input value={qidiruv} onChange={(e) => void qidir(e.target.value)} placeholder={t('Nom yoki fayl ichidagi matn bo‘yicha qidirish')} aria-label={t('Qidirish')} className="input h-8 pl-7 text-[12px]" /></label>
                 {yozaOladi && <>
                   <button type="button" className="fz-btn" onClick={() => void yangiPapka()}><FolderPlus size={14} /> {t('Yangi papka')}</button>
                   <button type="button" className="fz-btn fz-btn--primary" onClick={() => fayl.current?.click()}><Upload size={14} /> {t('Yuklash')}</button>
@@ -161,11 +167,13 @@ export default function HujjatMaydoni() {
             </div>
             {natija && (
               <div className="mb-2 rounded border border-border p-2 text-[13px]" aria-label={t('Qidiruv natijasi')}>
-                {natija.length ? natija.map((n) => <button key={n.id} type="button" className="block w-full truncate py-0.5 text-left hover:underline" onClick={() => void korish(n)}>{n.nom}</button>) : <span className="text-text-mute">{t('Hech narsa topilmadi')}</span>}
+                {natija.length ? natija.map((n) => <button key={n.id} type="button" className="block w-full py-0.5 text-left hover:underline" onClick={() => void korish(n)}><span className="block truncate">{n.nom}{n.mos === 'matn' && <span className="fz-stamp ml-2">{t('matn ichida')}</span>}</span>{n.parcha && <span className="block truncate text-[11px] text-text-mute">{n.parcha}</span>}</button>) : <span className="text-text-mute">{t('Hech narsa topilmadi')}</span>}
               </div>
             )}
+            {jarayon && <p className="mb-2 text-[12px] text-text-mute" role="status">{jarayon}</p>}
             <div className="flex flex-col gap-3 lg:flex-row">
-              <div className="fz-table-wrap min-w-0 flex-1">
+              <div className="fz-table-wrap relative min-w-0 flex-1" onDragOver={(e) => { if (yozaOladi && e.dataTransfer.types.includes('Files')) { e.preventDefault(); setTortish(true); } }} onDragLeave={() => setTortish(false)} onDrop={(e) => { if (!yozaOladi) return; e.preventDefault(); setTortish(false); void yuklash(e.dataTransfer.files); }}>
+                {tortish && <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded border-2 border-dashed border-accent bg-accent/10 text-[14px] font-semibold text-text">{t('Yuklash uchun fayllarni shu yerga tashlang')}</div>}
                 <table className="fz-table">
                   <thead><tr><th>{t('Nomi')}</th><th className="fz-c-num">{t('Hajmi')}</th><th>{t('Versiya')}</th><th>{t('O‘zgargan')}</th><th /></tr></thead>
                   <tbody>
@@ -188,7 +196,7 @@ export default function HujjatMaydoni() {
                         </td>
                       </tr>
                     ))}
-                    {!data.papkalar.length && !data.fayllar.length && <tr><td colSpan={5} className="py-6 text-center text-text-mute">{t('Bu papka bo‘sh. Fayl yuklang yoki papka yarating.')}</td></tr>}
+                    {!data.papkalar.length && !data.fayllar.length && <tr><td colSpan={5} className="py-8 text-center text-text-mute">{yozaOladi ? <button type="button" className="fz-btn fz-btn--primary" onClick={() => fayl.current?.click()}><Upload size={14} /> {t('Fayl tanlang yoki shu yerga tashlang')}</button> : t('Bu papka bo‘sh.')}</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -223,19 +231,8 @@ export default function HujjatMaydoni() {
           </tbody></table>
         )}
 
-        {joy === 'tizim' && (
-          <div>
-            <p className="mb-2 text-[12px] text-text-mute">{t('F-2, АОСР, smeta eksportlari: faqat o‘qish. Har hujjat chiqarilgan paytdagi nusxa; «oxirgi» belgisi eng yangi versiyani bildiradi.')}</p>
-            <table className="fz-table"><thead><tr><th>{t('Nomi')}</th><th>{t('Turi')}</th><th>{t('Versiya')}</th><th className="fz-c-num">{t('Hajmi')}</th><th>{t('Sana')}</th><th /></tr></thead><tbody>
-              {tizim.map((d) => (
-                <tr key={d.document_id}><td>{d.nom}{d.oxirgi && <span className="fz-stamp fz-stamp--ok ml-2">{t('oxirgi')}</span>}</td><td>{d.tur}</td><td>{d.versiya ?? 1}</td><td className="fz-c-num">{hmHajm(d.bayt)}</td>
-                  <td className="text-[12px] text-text-mute">{new Date(d.sana).toLocaleDateString(tilLocale())}</td>
-                  <td className="text-right"><a className="fz-btn" href={`/api/hujjat-ol?id=${d.document_id}`} aria-label={t('Yuklab olish')}><Download size={13} /></a></td></tr>
-              ))}
-              {!tizim.length && !yuk && <tr><td className="py-6 text-center text-text-mute" colSpan={6}>{t('Tizim hujjatlari hali yo‘q.')}</td></tr>}
-            </tbody></table>
-          </div>
-        )}
+        {joy === 'taqdim' && kompId && <TaqdimPanel kompaniyaId={kompId} />}
+        {joy === 'tizim' && kompId && <FaylMenejer kompaniyaId={kompId} faqatTizim documentId={docId} />}
 
         {joy === 'faoliyat' && (
           <ul className="space-y-1 text-[13px]">

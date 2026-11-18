@@ -61,7 +61,6 @@ const TestAosr      = lazy(() => import('./test02/TestAosr'));
 const TestDaraxt    = lazy(() => import('./test02/TestDaraxt'));
 const BossDashboard = lazy(() => import('./admin/sahifalar/BossDashboard'));
 const DirektorPult = lazy(() => import('./admin/sahifalar/DirektorPult'));
-const DocumentsPage = lazy(() => import('./admin/pages/DocumentsPage'));
 const HujjatMaydoni = lazy(() => import('./hujjat-maydoni/HujjatMaydoni'));
 const HujjatNazoratPage = lazy(() => import('./admin/pages/HujjatNazoratPage'));
 const ParticipantsPage = lazy(() => import('./admin/pages/ParticipantsPage'));
@@ -137,6 +136,12 @@ const ErpSifat = lazy(() => import('./erp/sahifalar/ErpSifat'));
 function GlobalAiHelper() {
   const { pathname } = useLocation();
   return pathname === '/admin' || pathname.startsWith('/admin/') ? null : <AiHelper />;
+}
+
+/** Eski /admin/hujjat-maydoni havolalari buzilmasin: yagona «Hujjatlar» sahifasiga (?document_id= saqlanadi). */
+function HujjatMaydoniYonaltir() {
+  const l = useLocation();
+  return <Navigate to={{ pathname: '/admin/documents', search: l.search }} replace />;
 }
 
 export default function App() {
@@ -235,8 +240,8 @@ export default function App() {
             <Route path="oferta" element={<OfertaNative />} />
             <Route path="narxlar" element={<Narxlar />} />
             <Route path="mindmap" element={<TestXarita />} />
-            <Route path="documents" element={<Suspense fallback={<SahifaYuklanmoqda />}><DocumentsPage /></Suspense>} />
-        <Route path="hujjat-maydoni" element={<Suspense fallback={<SahifaYuklanmoqda />}><HujjatMaydoni /></Suspense>} />
+            <Route path="documents" element={<Suspense fallback={<SahifaYuklanmoqda />}><HujjatMaydoni /></Suspense>} />
+        <Route path="hujjat-maydoni" element={<HujjatMaydoniYonaltir />} />
             <Route path="hujjat-nazorat" element={<Suspense fallback={<SahifaYuklanmoqda />}><HujjatNazoratPage /></Suspense>} />
             <Route path="participants" element={<Suspense fallback={<SahifaYuklanmoqda />}><ParticipantsPage /></Suspense>} />
             <Route path="zakazchik" element={<Suspense fallback={<SahifaYuklanmoqda />}><ZakazchikKabinet /></Suspense>} />

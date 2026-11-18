@@ -3,6 +3,7 @@
  * Aktor serverda sessiyadan; mijoz hech qachon actor_id yubormaydi. Baytlar - R2 (yuklash: /api/hujjat-maydoni-yukla, olish: /api/hujjat-maydoni-ol).
  */
 import { vaqtliOqish } from './vaqtli-fetch';
+import { HM_KATTA_CHEGARA, hmYuklaKatta } from './t2-hujjat-maydoni-2';
 
 export type Kvota = { ishlatilgan: number; limit: number; chegara: number; ortiqcha: boolean; foiz: number | null };
 export type HmPapka = { id: number; nom: string };
@@ -46,7 +47,7 @@ export const hmVersiyalar = (faylId: number) => oqi<{ ok: true; versiyalar: HmVe
 export const hmIzohlar = (faylId: number) => oqi<{ ok: true; izohlar: HmIzoh[] }>('izoh', { fayl_id: faylId });
 export const hmUlashRoyxat = (turi: 'fayl' | 'papka', id: number) => oqi<{ ok: true; havola_ruxsat: boolean; royxat: HmUlash[] }>('ulashish', { nishon_turi: turi, nishon_id: id });
 export const hmFaoliyat = (p: { kompaniyaId?: number | null; faylId?: number | null }) => oqi<{ ok: true; royxat: HmFaoliyat[] }>('faoliyat', { kompaniya_id: p.kompaniyaId, fayl_id: p.faylId });
-export const hmQidir = (q: string, kompaniyaId?: number | null) => oqi<{ ok: true; royxat: Array<{ id: number; nom: string; mime: string; yangilandi: string; papka_id: number | null }> }>('qidir', { q, kompaniya_id: kompaniyaId });
+export const hmQidir = (q: string, kompaniyaId?: number | null) => oqi<{ ok: true; royxat: Array<{ id: number; nom: string; mime: string; yangilandi: string; papka_id: number | null; mos?: 'nom' | 'matn'; parcha?: string | null }> }>('qidir', { q, kompaniya_id: kompaniyaId });
 export const hmTizim = (kompaniyaId: number) => oqi<{ ok: true; royxat: HmTizimHujjat[] }>('tizim', { kompaniya_id: kompaniyaId });
 export const hmOdamlar = (kompaniyaId: number | null, q: string) => oqi<{ ok: true; royxat: HmOdam[] }>('odamlar', { kompaniya_id: kompaniyaId, q });
 export const hmAdmin = (kompaniyaId: number | null) => oqi<HmAdmin>('admin', { kompaniya_id: kompaniyaId });
@@ -67,6 +68,7 @@ export const hmBosh = (kompaniyaId: number | null, tur: 'savat' | 'eski_versiyal
 export const hmRejaOl = (kompaniyaId: number, tarifKod: string, oylar: number) => yoz<{ ok: true; token: number; tugaydi: string }>({ amal: 'reja', kompaniya_id: kompaniyaId, tarif_kod: tarifKod, oylar, operation_id: crypto.randomUUID() });
 
 export async function hmYukla(p: { file: File; kompaniyaId?: number | null; papkaId?: number | null; faylId?: number | null }): Promise<HmNatija<{ ok: true; fayl_id: number; raqam: number; ozgarmadi?: boolean }>> {
+  if (p.file.size > HM_KATTA_CHEGARA) return hmYuklaKatta(p); // > 90 MB: bo'lakli yuklash
   const f = new FormData();
   f.set('fayl', p.file); f.set('operation_id', crypto.randomUUID());
   if (p.kompaniyaId) f.set('kompaniya_id', String(p.kompaniyaId));

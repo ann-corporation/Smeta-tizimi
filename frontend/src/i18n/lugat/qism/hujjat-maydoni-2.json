@@ -1,0 +1,90 @@
+{
+  "Disk": {
+    "ru": "Диск",
+    "en": "Disk"
+  },
+  "Mening diskim": {
+    "ru": "Мой диск",
+    "en": "My drive"
+  },
+  "Hamma narsa shu yerda saqlanadi: hujjat, rasm, chizma, video. Shaxsiy disk, kompaniya diski va tizim hujjatlari (F-2, АОСР, eksportlar).": {
+    "ru": "Здесь хранится всё: документы, фото, чертежи, видео. Личный диск, диск компании и системные документы (Ф-2, АОСР, экспорты).",
+    "en": "Everything is stored here: documents, photos, drawings, video. Personal drive, company drive and system documents (F-2, AOSR, exports)."
+  },
+  "Aloqadagi tomonga o‘zgarmas nusxa sifatida yuborish": {
+    "ru": "Отправить стороне по связи как неизменяемую копию",
+    "en": "Send to a connected party as an immutable copy"
+  },
+  "Taqdim qilish": {
+    "ru": "Передать",
+    "en": "Submit"
+  },
+  "Yuklanmoqda: {nom} ({i}/{n})": {
+    "ru": "Загрузка: {nom} ({i}/{n})",
+    "en": "Uploading: {nom} ({i}/{n})"
+  },
+  "Nom yoki fayl ichidagi matn bo‘yicha qidirish": {
+    "ru": "Поиск по названию или тексту внутри файла",
+    "en": "Search by name or text inside files"
+  },
+  "matn ichida": {
+    "ru": "в тексте",
+    "en": "in text"
+  },
+  "Yuklash uchun fayllarni shu yerga tashlang": {
+    "ru": "Перетащите файлы сюда для загрузки",
+    "en": "Drop files here to upload"
+  },
+  "Fayl tanlang yoki shu yerga tashlang": {
+    "ru": "Выберите файл или перетащите сюда",
+    "en": "Choose a file or drop it here"
+  },
+  "Bu papka bo‘sh.": {
+    "ru": "Эта папка пуста.",
+    "en": "This folder is empty."
+  },
+  "Taqdim yuborildi: {n} fayl": {
+    "ru": "Передано: файлов — {n}",
+    "en": "Submitted: {n} file(s)"
+  },
+  "Oluvchi shu paytdagi nusxani faqat ko‘ra oladi va yuklab oladi. Keyin faylni o‘zgartirsangiz ham, taqdim qilingan nusxa o‘zgarmaydi. Qaytarib olish mumkin.": {
+    "ru": "Получатель увидит и скачает только текущую копию. Если вы потом измените файл, переданная копия не изменится. Передачу можно отозвать.",
+    "en": "The recipient can only view and download the current copy. Later changes to the file do not alter the submitted copy. You can withdraw it."
+  },
+  "Faol aloqa yo‘q: avval pudratchi / sub / buyurtmachi bilan aloqa o‘rnating.": {
+    "ru": "Нет активной связи: сначала установите связь с подрядчиком / субподрядчиком / заказчиком.",
+    "en": "No active connection: first connect with a contractor / subcontractor / client."
+  },
+  "Qaytarish sababi (ixtiyoriy)": {
+    "ru": "Причина отзыва (необязательно)",
+    "en": "Reason for withdrawal (optional)"
+  },
+  "Taqdim qaytarib olindi": {
+    "ru": "Передача отозвана",
+    "en": "Submission withdrawn"
+  },
+  "Taqdim yo‘nalishi": {
+    "ru": "Направление передачи",
+    "en": "Submission direction"
+  },
+  "Hali hech kim fayl taqdim qilmagan.": {
+    "ru": "Пока никто не передал файлы.",
+    "en": "Nobody has submitted files yet."
+  },
+  "Siz hali fayl taqdim qilmagansiz. Faylni tanlab «Taqdim qilish» ni bosing.": {
+    "ru": "Вы ещё не передавали файлы. Выберите файл и нажмите «Передать».",
+    "en": "You have not submitted any files yet. Select a file and click “Submit”."
+  },
+  "Taqdim tafsiloti": {
+    "ru": "Сведения о передаче",
+    "en": "Submission details"
+  },
+  "O‘zgarmas nusxa: faqat ko‘rish va yuklab olish.": {
+    "ru": "Неизменяемая копия: только просмотр и скачивание.",
+    "en": "Immutable copy: view and download only."
+  },
+  "Taqdim qaytarib olingan yoki aloqa yopilgan: fayllar ko‘rinmaydi.": {
+    "ru": "Передача отозвана или связь закрыта: файлы недоступны.",
+    "en": "Submission withdrawn or connection closed: files are hidden."
+  }
+}

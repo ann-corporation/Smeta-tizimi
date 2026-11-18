@@ -28,15 +28,7 @@ export const onRequestPost: PagesFunction<HmEnv> = async (ctx) => {
         const res = await hmYukla(ctx.env, { actorId: id, kompaniyaId: komp, papkaId: A.papka_id, faylId: null, nom: String(A.nom), mime: /\.md$/i.test(String(A.nom)) ? 'text/markdown' : 'text/plain', bayt, operationId: crypto.randomUUID() });
         return res;
       }
-      case 'fayl_taqdim_nishon': return javob(await hmRpc(ctx.env, 't2_hm_taqdim_nishon_v1', { p_actor: id, p_kompaniya: komp }));
-      case 'fayl_taqdim': {
-        const nishon = A.fayl_id ? `Fayl #${A.fayl_id}` : `Papka #${A.papka_id}`;
-        const tavsif = `${nishon} aloqa #${A.aloqa_id} tomoniga o‘zgarmas surat sifatida taqdim qilinadi (oluvchi faqat o‘qiydi; qaytarib olish mumkin).`;
-        if (A.tasdiqlayman !== true) return Response.json({ ok: true, holat: 'taklif', tasdiqKerak: true, tavsif });
-        if (b.ovoz === true) return Response.json({ ok: false, code: 'OVOZ_BILAN_TASDIQLANMAYDI', xato: 'Taqdimni ovoz bilan tasdiqlab bo‘lmaydi.' }, { status: 403 });
-        const r = await hmRpc(ctx.env, 't2_hm_taqdim_yarat_v1', { p_actor: id, p_nishon_turi: A.fayl_id ? 'fayl' : 'papka', p_nishon_id: A.fayl_id ?? A.papka_id, p_aloqa_id: A.aloqa_id, p_izoh: A.izoh || null, p_operation_id: crypto.randomUUID() });
-        return rpcOk(r) ? Response.json({ ok: true, holat: 'bajarildi', tavsif, taqdim_id: r.body.id }) : rpcXato(r);
-      }      case 'fayl_ulash':
+      case 'fayl_ulash':
       case 'fayl_savat': {
         const ulash = q.vosita.nom === 'fayl_ulash';
         const tavsif = ulash ? `Fayl #${A.fayl_id} foydalanuvchi #${A.foydalanuvchi_id} bilan ulashiladi (${A.daraja}).` : `Fayl #${A.fayl_id} savatga olinadi (30 kun ichida tiklanadi).`;
