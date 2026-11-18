@@ -53,7 +53,7 @@ const handlers: Record<string, Record<string, PagesFunction<Env>>> = {
   // P6 documents: canonical registry list + binary download (F-2 PDF/Excel, drawings). GET only; same authorization as the web, bytes stream through unchanged.
   '/api/hujjat-royxat': { GET: hujjatRoyxatGet },
   '/api/hujjat-ol': { GET: hujjatOlGet },
-  // Hujjat maydoni (Disk): ro'yxat/amallar JSON, yuklab olish; yuklash (multipart) ilova uchun keyingi bosqich (mobil/yukla naqshi).
+  // Hujjat maydoni (Disk): ro'yxat/amallar JSON, yuklab olish, Jarvis vositalari; yuklash (multipart) ilova uchun keyingi bosqich.
   '/api/hujjat-maydoni': { GET: hujjatMaydoniGet, POST: hujjatMaydoniPost },
   '/api/hujjat-maydoni-ol': { GET: hujjatMaydoniOlGet },
   '/api/hujjat-buyruq': { POST: hujjatBuyruqPost },
@@ -70,6 +70,7 @@ const handlers: Record<string, Record<string, PagesFunction<Env>>> = {
   '/api/yuk-tashish': { POST: yukTashishPost },
 } as never;
 export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|obyekt-tugun-summa|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol|agent-ish|qulf|hujjat-royxat|hujjat-ol|hujjat-maydoni|hujjat-maydoni-ol|hujjat-buyruq|hujjat-yarat|tomon|telegram|ombor-buyruq|f2-buyruq|yuk-tashish)(?:\?[^#\s]*)?$/;
+/** /api/profil also hosts account-security actions (parol, google/telegram ulash, hisob_birlashtir, usul_uz, birlashtir_*): the native device token may NOT reach them.
  *  Exposed: GET (own profile + session window), the @username / people-search / invite-answer actions (USERNAME_V1), `yangila` (name, phone, language, avatar colour)
  *  and `boshqa_sessiyalar_chiqish` (sign out everywhere; the BFF re-enrols THIS device so it stays signed in, see reissueDevice). */
 export const MOBIL_PROFIL_AMAL: ReadonlySet<string> = new Set(['username_ol','username_tekshir','username_belgila','username_sozlama','qidir','kompaniyadosh_qidir','username_ommaviy','taklif_royxat','taklif_javob','yangila','boshqa_sessiyalar_chiqish']);
