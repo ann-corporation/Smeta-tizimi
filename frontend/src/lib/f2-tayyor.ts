@@ -166,7 +166,7 @@ export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarx
   const faktBaza = (id: number) => {
     const s0 = sq(id);
     const mum = son(h.get(id)?.f2_mumkin_hajm);
-    // CHEGIRMA (egasi 2026-11-05): manfiy fakt (qalinlik/istisno tuzatish) — manfiy F2 qatori; server f2_mumkin (>= 0) uni 0 qiladi.
+    // CHEGIRMA (egasi 2026-11-05): manfiy fakt (qalinlik/istisno tuzatish) — manfiy F2 qatori; eski server f2_mumkin (>= 0) uni 0 qilardi — endi MINUS qatorda manfiy, lekin shu yerda fakt/F2 dan o'zimiz hisoblaymiz (eski/yangi serverda bir xil).
     const faktM = son(h.get(id)?.fakt_hajm);
     if (faktM != null && faktM < 0) return ishoraliQoldiq(faktM, olinganF2(id));
     const orq = ortiqcha(id);

@@ -119,7 +119,8 @@ class ModulesTest {
         val re = Regex("^[a-z0-9_.]{2,40}$")
         assertTrue(ModuleCatalog.all.all { re.matches(it.code) })
         assertEquals(ModuleCatalog.all.size, ModuleCatalog.all.map { it.code }.toSet().size)
-        assertTrue(ModuleCatalog.all.filter { it.kind == ModuleKind.WEB }.all { it.webPath!!.startsWith("/admin") })
+        // No page comes from the website: every module opens a native screen.
+        assertTrue(ModuleCatalog.all.all { it.kind == ModuleKind.NATIVE && it.target != null })
     }
 
     @Test fun pinsOrderAndMoveWork() {

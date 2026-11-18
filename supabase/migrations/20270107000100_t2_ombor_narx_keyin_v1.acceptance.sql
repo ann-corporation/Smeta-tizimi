@@ -1,0 +1,1 @@
+DO $$ BEGIN IF to_regclass('public.t2_ombor_narx_keyin') IS NULL OR to_regprocedure('public.t2_ombor_narx_qoy_v1(bigint,bigint,bigint,bigint,numeric)') IS NULL THEN RAISE EXCEPTION 'ACC1: jadval/funksiya yoq'; END IF; END $$;

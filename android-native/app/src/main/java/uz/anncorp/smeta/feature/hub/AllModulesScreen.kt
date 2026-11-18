@@ -154,17 +154,17 @@ internal fun catalogIcon(key: String): ImageVector = when (key) {
     else -> Icons.Filled.Folder
 }
 
-/** Opens a catalogue item: native screen when there is one, else the authenticated in-app web container. */
-internal fun openItem(item: CatalogItem, lang: String, onNative: (NativeTarget) -> Unit, onWeb: (String, String) -> Unit) {
+/** Opens a catalogue item on its native screen. */
+internal fun openItem(item: CatalogItem, onNative: (NativeTarget) -> Unit) {
     when (val o = item.open()) {
         is CatalogOpen.Native -> onNative(o.target)
-        is CatalogOpen.Web -> onWeb(o.path, item.title.pick(lang))
+        null -> Unit
     }
 }
 
 /** "Barcha modullar": every page this user may open in the selected workplace, grouped like the website menu, searchable. */
 @Composable
-fun AllModulesScreen(onNative: (NativeTarget) -> Unit, onWeb: (path: String, title: String) -> Unit, vm: AllModulesViewModel = hiltViewModel()) {
+fun AllModulesScreen(onNative: (NativeTarget) -> Unit, vm: AllModulesViewModel = hiltViewModel()) {
     val ui by vm.state.collectAsStateWithLifecycle()
     val query by vm.query.collectAsStateWithLifecycle()
     val lang = remember { uiLang() }
@@ -196,7 +196,7 @@ fun AllModulesScreen(onNative: (NativeTarget) -> Unit, onWeb: (path: String, tit
                             Text(s.group.title.pick(lang), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    items(s.items, key = { "i" + it.id }) { CatalogRow(it, lang) { openItem(it, lang, onNative, onWeb) } }
+                    items(s.items, key = { "i" + it.id }) { CatalogRow(it, lang) { openItem(it, onNative) } }
                 }
             }
         }

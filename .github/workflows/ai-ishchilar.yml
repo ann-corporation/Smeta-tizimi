@@ -1,10 +1,14 @@
 name: ai-ishchilar
 
 # Fon AI ishchilari: rejalangan ishlarni navbatga qo'yadi (t2_ai_jadval_v1), AI xulosa va internet kuzatuvchi qadamlarini bajaradi.
-# Har chaqiruv — bitta HTTP so'rov (/api/ai-ishchi-bajar); javobda faqat sonlar. Limit/hamyon tekshiruvi serverda (aiHisobli); hamma ishchi sukut bo'yicha O'CHIQ,
-# shuning uchun yoqilgan ishchi yo'q bo'lsa bu workflow hech narsa sarflamaydi.
-# Yoqish: GitHub sir KUZATUV_KALIT (>= 24 belgi, bilim-kuzatuv bilan BIR XIL) + repo o'zgaruvchisi PROD_URL (masalan https://qurai.uz).
-# Cloudflare Pages sirlari: KUZATUV_KALIT (shu qiymat). Sozlanmasa ish jim o'tkazib yuboriladi.
+# Har chaqiruv - bitta HTTP so'rov (/api/ai-ishchi-bajar); javobda faqat sonlar. Limit/hamyon/fon ulushi tekshiruvi serverda (aiHisobli); ishchi sukut bo'yicha O'CHIQ
+# (t2_ai_sozlama.yoqilgan), shuning uchun yoqilgan ishchi yo'q bo'lsa bu workflow hech narsa sarflamaydi.
+#
+# "HECH QACHON ISHLAMAGAN" JIM O'TMASIN (2026-11-17): sozlanmagan bo'lsa workflow YIQILADI (non-zero exit) - GitHub egasiga xat yuboradi.
+#   * sirlar/o'zgaruvchilar yo'q (KUZATUV_KALIT, PROD_URL) -> har kuni 03:00 UTC tikida (va qo'lda ishga tushirilganda) FAIL; boshqa tiklarda ogohlantirish (spam bo'lmasin);
+#   * server HTTP 200 qaytarmasa -> doim FAIL;
+#   * "yoqilgan ishchi yo'q / 24 soatda ish yo'q" holati - kunlik Telegram hisobotida (monitor.yml -> /api/telegram/monitor {"ai":true}).
+# Yoqish (bir martalik): GitHub sir KUZATUV_KALIT (>= 24 belgi) + Cloudflare Pages sirri KUZATUV_KALIT (BIR XIL qiymat) + repo o'zgaruvchisi PROD_URL.
 on:
   schedule:
     - cron: '7,37 * * * *'
@@ -24,14 +28,21 @@ jobs:
     env:
       KUZATUV_KALIT: ${{ secrets.KUZATUV_KALIT }}
       PROD_URL: ${{ vars.PROD_URL }}
+      EVENT: ${{ github.event_name }}
     steps:
       - name: AI ishchilar navbatini bajarish
         run: |
           if [ -z "$KUZATUV_KALIT" ] || [ -z "$PROD_URL" ]; then
-            echo "KUZATUV_KALIT yoki PROD_URL sozlanmagan - o'tkazib yuborildi."; exit 0
+            soat=$(date -u +%H); daq=$(date -u +%M)
+            msg="AI ishchilar SOZLANMAGAN: KUZATUV_KALIT sirri yoki PROD_URL o'zgaruvchisi yo'q - ishchilar hech qachon ishlamaydi."
+            echo "### AI ishchilar ishlamayapti" >> "$GITHUB_STEP_SUMMARY"; echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$EVENT" = "workflow_dispatch" ] || { [ "$((10#$soat))" -eq 3 ] && [ "$((10#$daq))" -lt 30 ]; }; then
+              echo "::error::$msg"; exit 1
+            fi
+            echo "::warning::$msg"; exit 0
           fi
           code=$(curl -sS -o resp.json -w '%{http_code}' -X POST "$PROD_URL/api/ai-ishchi-bajar" \
             -H 'Content-Type: application/json' -H "X-Kuzatuv-Kalit: $KUZATUV_KALIT" \
             --data '{}' --max-time 120 || echo 000)
           echo "ai-ishchi-bajar -> HTTP $code"; head -c 600 resp.json; echo
-          if [ "$code" != "200" ]; then echo "::warning::ai-ishchi-bajar muvaffaqiyatsiz (HTTP $code)"; fi
+          if [ "$code" != "200" ]; then echo "::error::ai-ishchi-bajar muvaffaqiyatsiz (HTTP $code)"; exit 1; fi

@@ -133,6 +133,9 @@ describe('Uzbek glossary', () => {
 describe('worker entry points (avtoTanlov / kichikNomzodlar)', () => {
   const k = {
     ...manba, manifest: { revision: 'synthetic' }, unit: () => null, load: async () => {}, detail: () => { throw new Error('n/a'); },
+    sourceBasis: (measure: string | null) => measure === '100 м3 бетона'
+      ? { scale: '100', unitLabel: 'м3', origin: 'OPERATOR', evidence: 'Synthetic catalogue measure' }
+      : { scale: null, unitLabel: null, origin: null, evidence: null },
     search: (q: string) => ({ rows: WORKS.filter(w => w.code.toLowerCase() === q.toLowerCase()), total: 0 }),
   } as unknown as AiKatalog;
   const ish = (over: Partial<AiIsh>): AiIsh => ({ id: 'w1', bolim: 'Fundament', tavsif: '', qidiruv: [], birlik: 'м3', hajmIfoda: null, hajmIzoh: null, nomzodlar: [], tanlangan: null, hajm: null, hajmXato: null, ...over } as AiIsh);
@@ -143,6 +146,10 @@ describe('worker entry points (avtoTanlov / kichikNomzodlar)', () => {
     const r = avtoTanlov(k, ish({ qidiruv: ['Е06-01-001-2'] }));
     expect(r?.holat).toBe('KOD');
     expect(r?.avto?.kod).toBe('Е06-01-001-2');
+  });
+  it('offers text matches for review when the requested code is missing', () => {
+    const r = avtoTanlov(k, ish({ qidiruv: ['Е06-99-999-9', 'Устройство бетонной подготовки'], tavsif: 'beton tayyorlov' }));
+    expect(r).toMatchObject({ avto: null, holat: 'TEKSHIRISH', kodTekshirish: true, nomzodlar: expect.arrayContaining([expect.objectContaining({ kod: 'Е06-01-001-1' })]) });
   });
   it('a confident line comes back selected; the others only as ≤ 20 shortlist', () => {
     const a = avtoTanlov(k, ish({ qidiruv: ['Устройство бетонной подготовки'], tavsif: 'beton tayyorlov' }));

@@ -1,0 +1,10 @@
+{
+  "DIQQAT: {n} ta resurs qatori F2 ga tushmagan (ish qatori bor, resurslari yo‘q) — summa to‘liq emas, yuborishdan oldin «F2 tayyorlash»da qo‘shing.": {
+    "ru": "ВНИМАНИЕ: {n} строк ресурсов не попали в Ф-2 (есть строка работы, но нет её ресурсов) — сумма неполная, добавьте их в «Подготовке Ф-2» перед отправкой.",
+    "en": "WARNING: {n} resource lines are missing from the F-2 (the work line is present but its resources are not) — the total is incomplete; add them in “F-2 preparation” before submitting."
+  },
+  "{n} ta resurs qatori F2 ga tushmagan: ish qatori bor, uning resurslari (mehnat, mexanizm, material) yo‘q — summa to‘liq emas. «F2 tayyorlash»da resurslarni qo‘shing.": {
+    "ru": "{n} строк ресурсов не попали в Ф-2: строка работы есть, а её ресурсов (труд, механизмы, материалы) нет — сумма неполная. Добавьте ресурсы в «Подготовке Ф-2».",
+    "en": "{n} resource lines are missing from the F-2: the work line is present but its resources (labour, machinery, materials) are not — the total is incomplete. Add the resources in “F-2 preparation”."
+  }
+}

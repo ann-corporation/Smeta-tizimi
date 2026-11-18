@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { PaketXato, bormi, paketDekod, paketdanHolatlar, paketdanQatorlar, son, type PaketXom } from './paket';
+import { PaketXato, bormi, paketDekod, paketdanF2Holatlar, paketdanHolatlar, paketdanQatorlar, son, type PaketXom } from './paket';
 import { sbT2TreeQur, type T2Qator, type T2QatorHolat } from '../api/supabase';
 import { T2_DARAXT_USTUNLARI, T2_HOLAT_DARAXT_USTUNLARI } from '../api/t2-daraxt-ustunlar';
 import { obyektPaketOl } from '../api/t2-obyekt-paket';
@@ -147,5 +147,21 @@ describe('api/t2-obyekt-paket — mijoz porti', () => {
     expect(await obyektPaketOl(4)).toEqual({ ok: false, status: 403, code: 'PERMISSION_DENIED', error: 'yo‘q' });
     vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('tarmoq'); }));
     expect(await obyektPaketOl(4)).toMatchObject({ ok: false, status: 0 });
+  });
+});
+
+describe('paketdanF2Holatlar — MINUS qator ishorasi', () => {
+  it('f2_mumkin_hajm: plyus qatorda max(0, fakt-f2), MINUS qatorda min(0, fakt-f2) (view bilan bir xil)', () => {
+    const x = nusxa(PAKET);
+    // 13 — plyus (fakt 7, F2 6 -> 1); 14 — MINUS qator: smeta -5, fakt -5, F2 yo'q -> -5; 12 — minus, F2 allaqachon to'liq -> 0.
+    x.q.hajm = [null, 10, -2, 10, -5];
+    x.h.fakt_hajm = [0, 4, -2, 7, -5]; x.h.f2_hajm = [0, 0, -2, 6, 0];
+    x.h.f2_narx = [null, null, 100, 100, null];
+    x.h.smeta_hajm = {};
+    const f = new Map(paketdanF2Holatlar(paketDekod(x))!.map((r) => [r.qator_id, r]));
+    expect(f.get(13)!.f2_mumkin_hajm).toBe(1);
+    expect(f.get(14)!.f2_mumkin_hajm).toBe(-5);
+    expect(f.get(12)!.f2_mumkin_hajm).toBe(0);
+    expect(f.get(11)!.f2_mumkin_hajm).toBe(4);
   });
 });

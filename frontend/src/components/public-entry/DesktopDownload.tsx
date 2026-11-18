@@ -49,7 +49,7 @@ export function DesktopDownloadDetails({ release }: { release: DesktopRelease })
   }
 
   return <div style={{ marginBlockStart: '1rem', minWidth: 0, overflowWrap: 'anywhere' }}>
-    <a className="entry-secondary" href={new URL(links.download, window.location.origin).href} download={release.file}>
+    <a className="entry-primary entry-dl-cta" href={new URL(links.download, window.location.origin).href} download={release.file}>
       {t('Windows uchun yuklab olish')}
     </a>
     <p>{t('Versiya {version} · {size}', { version: release.version, size })}</p>
@@ -57,6 +57,6 @@ export function DesktopDownloadDetails({ release }: { release: DesktopRelease })
     <p>{t('SHA-256 nazorat summasi')} <code>{release.sha256}</code></p>
     <button type="button" className="entry-link-button" onClick={() => void copyHash(release.sha256)}>{t('SHA-256 ni nusxalash')}</button>
     <p role="status">{copyStatus === 'copied' && t('SHA-256 nusxalandi')}{copyStatus === 'failed' && t('SHA-256 ni qoʻlda nusxalang')}</p>
-    <a href={new URL(links.guide, window.location.origin).href} hrefLang="ru" download>{t('Oʻrnatish yoʻriqnomasi (rus tilida)')}</a>
+    <a className="entry-link-button" href={new URL(links.guide, window.location.origin).href} hrefLang="ru" target="_blank" rel="noopener">{t('Oʻrnatish yoʻriqnomasi (rus tilida)')}</a>
   </div>;
 }

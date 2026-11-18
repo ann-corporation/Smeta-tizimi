@@ -44,15 +44,19 @@ class CatalogTest {
         assertNull(parseCatalog(null))
     }
 
-    @Test fun nativeItemOpensNativeScreenWebItemOpensContainer() {
+    @Test fun everyPageOpensANativeScreenNeverTheWebsite() {
         val c = catalog()
         assertEquals(CatalogOpen.Native(NativeTarget.FAKT), c.items[1].open())
-        assertEquals(CatalogOpen.Web("/admin/smeta-studio"), c.items[0].open())
+        // A website page of a module the app has natively opens that module.
+        assertEquals(CatalogOpen.Native(NativeTarget.SMETA), c.items[0].open())
     }
 
-    @Test fun unknownNativeCodeFallsBackToWeb() {
+    @Test fun unknownNativeCodeFallsBackToTheModuleOfThePathElseNull() {
         val i = catalog().items[0].copy(native = "yo'q-ekran")
-        assertEquals(CatalogOpen.Web("/admin/smeta-studio"), i.open())
+        assertEquals(CatalogOpen.Native(NativeTarget.SMETA), i.open())
+        val gone = i.copy(path = "/admin/hech-narsa")
+        assertNull(gone.open())
+        assertTrue(catalog().let { it.copy(items = it.items + gone) }.search("").none { it.path == "/admin/hech-narsa" })
     }
 
     @Test fun everyNativeCodeTheServerCanSendIsARealNativeModule() {
@@ -71,7 +75,7 @@ class CatalogTest {
     }
 
     @Test fun searchIgnoresApostropheVariants() {
-        val c = catalog().let { it.copy(items = it.items + it.items[0].copy(id = "q", title = L3("O‘zbek sahifa", "Страница", "Page"))) }
+        val c = catalog().let { it.copy(items = it.items + it.items[0].copy(id = "q", native = "foto", title = L3("O‘zbek sahifa", "Страница", "Page"))) }
         assertEquals(listOf("q"), c.search("ozbek").map { it.id })
         assertEquals(listOf("q"), c.search("o'zbek").map { it.id })
     }
@@ -86,14 +90,6 @@ class CatalogTest {
         val t = L3("Smeta", "", "")
         assertEquals("Smeta", t.pick("ru")); assertEquals("Smeta", t.pick("en")); assertEquals("Smeta", t.pick("de"))
         assertEquals("Смета", L3("Smeta", "Смета", "Estimate").pick("ru"))
-    }
-
-    @Test fun embedPathAddsHintsAndKeepsQuery() {
-        assertEquals("/admin/fakt?app=android&k=7&tema=dark", embedPath("/admin/fakt", 7, true))
-        assertEquals("/admin/x?id=3&app=android&tema=light", embedPath("/admin/x?id=3", null, false))
-        assertEquals("/admin/x?app=android&tema=light", embedPath("/admin/x", 0, false))
-        // The result must satisfy the server ticket whitelist (functions/_shared/mobil-bilet.ts BILET_YOL).
-        assertTrue(Regex("^/admin(?:/[A-Za-z0-9_.~-]+)*(?:\\?[A-Za-z0-9_=&.%-]*)?$").matches(embedPath("/admin/smeta-studio", 123, true)))
     }
 
     @Test fun twoPagesOpeningTheSameNativeScreenAreShownOnce() {

@@ -73,6 +73,7 @@ private class DemoBff(private val context: Context, private val json: Json, priv
     }
 
     private fun asset(name: String): String = context.assets.open("demo/$name").bufferedReader().use { it.readText() }
+    private fun feedAsset(key: String?): String? = key?.let { runCatching { asset("feed_$it.json") }.getOrNull() }
     private fun ok(text: String, etag: String? = null) = ApiResult(200, json.parseToJsonElement(text), null, etag)
 
     override suspend fun bff(path: String, method: String, body: JsonElement?, etag: String?): ApiResult {
@@ -103,7 +104,24 @@ private class DemoBff(private val context: Context, private val json: Json, priv
                 // A value containing "yoq" or any phone without an account simulates TOPILMADI; the rest simulates a sent invitation.
                 if (v.contains("yoq") || v.startsWith("+")) ApiResult(404, buildJsonObject { put("ok", false); put("code", "TOPILMADI"); put("tur", "telefon"); put("telefon_taklif", true); put("telefon", "+998901234567") }, "TOPILMADI")
                 else ok("""{"ok":true,"taklif_id":55,"holat":"kutmoqda","profil":{"id":31,"ism":"Sardor Karimov","username":"sardor_k","avatar_rang":"#3b82f6"}}""")
-            }            path.startsWith("/api/company") && method == "POST" -> ok("""{"ok":true,"kompaniya_id":1}""")
+            }
+            // Trial start (sinov): files/nowork.flag = account without a workplace; sinov_boshlash swaps it for sinov.flag (trial workplace + 1000 tokens), sinov_demo adds sinov_demo.flag.
+            path.startsWith("/api/company") && path.contains("profile=") -> ok(asset("feed_kompaniya_profil.json"))
+            path.startsWith("/api/company") && path.contains("sinov=1") -> {
+                val noWork = File(context.filesDir, "nowork.flag").exists()
+                val trial = File(context.filesDir, "sinov.flag").exists()
+                val demo = File(context.filesDir, "sinov_demo.flag").exists()
+                ok("""{"ok":true,"boshlangan":$trial,"kompaniya_id":${if (trial) "1" else "null"},"haqiqiy":false,"boshlash_mumkin":$noWork,"demo_obyekt_id":${if (demo) "101" else "null"},"demo_mavjud":$trial,"balans":${if (trial) "1000" else "null"}}""")
+            }
+            path.startsWith("/api/company") && method == "POST" && (body as? JsonObject)?.get("action")?.let { (it as? JsonPrimitive)?.content } == "sinov_boshlash" -> {
+                File(context.filesDir, "nowork.flag").delete(); File(context.filesDir, "sinov.flag").writeText("1")
+                ok("""{"ok":true,"kompaniya_id":1,"bonus_token":1000,"balans":1000}""")
+            }
+            path.startsWith("/api/company") && method == "POST" && (body as? JsonObject)?.get("action")?.let { (it as? JsonPrimitive)?.content } == "sinov_demo" -> {
+                File(context.filesDir, "sinov_demo.flag").writeText("1")
+                ok("""{"ok":true,"kompaniya_id":1,"demo_obyekt_id":101}""")
+            }
+            path.startsWith("/api/company") && method == "POST" -> ok("""{"ok":true,"kompaniya_id":1}""")
             path.startsWith("/api/company") -> ok("""{"ok":true,"context_kompaniyalar":[{"kompaniya_id":1,"effective_role":"pto","permissions":[${if (File(context.filesDir, "boss.flag").exists()) "\"control.company.read\",\"financial.write\"," else ""}"company.read","smeta.read","fakt.read","fakt.write","f2.read","f2.prepare","narx.read","document.write","warehouse.read"]}]}""")
             path.startsWith("/api/modullarim") -> if (method == "POST") ok("""{"ok":true,"versiya":1}""") else ok("""{"ok":true,"tanlangan":["fakt","foto","f2"],"tartib":["fakt","foto","f2"],"versiya":1}""")
             path.startsWith("/api/obyekt-tugun-summa") -> tugunSumma(path)
@@ -125,12 +143,17 @@ private class DemoBff(private val context: Context, private val json: Json, priv
                 when ((o?.get("amal") as? JsonPrimitive)?.content) {
                     "eslatma" -> ok("""{"ok":true,"takliflar":[{"nomi":"Sement M400 (qop 50 kg)","birligi":"qop","soni":4,"oxirgi_sana":"2026-11-10","postavshik":"Demo MChJ","qabul_qiluvchi":null,"narx":null}]}""")
                     "tasdiq" -> ok("""{"ok":true,"takror":false,"harakat_id":1}""")
+                    "hisobot" -> ok(asset("ombor_hisobot.json"))
+                    "qoldiq" -> ok(asset("ombor_qoldiq_sana.json"))
                     else -> {
                         val said = (o?.get("matn") as? JsonPrimitive)?.content ?: "sement qirq qop kirim"
                         val low = said.lowercase()
                         if (Regex("qoldiq|ostatok|остаток|qancha").containsMatchIn(low)) ok("""{"ok":true,"holat":"javob","matn":"${said.replace("\"", "")}","nomzodlar":[{"nomi":"Sement M400 (qop 50 kg)","birligi":"qop","qoldiq":120}]}""")
                         else {
-                            val tur = if (Regex("chiqim|rasxod|расход|berdim").containsMatchIn(low)) "chiqim" else "prixod"
+                            val chosen = ((o?.get("tanlov") as? JsonObject)?.get("amal") as? JsonPrimitive)?.content
+                            val tur = chosen ?: if (Regex("chiqim|rasxod|расход|berdim").containsMatchIn(low)) "chiqim" else "prixod"
+                            // No direction word and no answer yet: the server asks ONE question with buttons (holat "savol").
+                            if (chosen == null && !Regex("kirim|keldi|olindi|chiqim|chiqdi|berdim|rasxod|prixod").containsMatchIn(low)) return ok("""{"ok":true,"holat":"savol","matn":"${said.replace("\"", "")}","llm":false,"savol":"Sement - kirimmi yoki chiqimmi?","variantlar":[{"yorliq":"Kirim","tanlov":{"amal":"prixod"}},{"yorliq":"Chiqim","tanlov":{"amal":"chiqim"}}]}""")
                             ok("""{"ok":true,"holat":"tasdiq_kerak","matn":"${said.replace("\"", "")}","token":"demo-token","preview":{"tur":"$tur","nomi":"Sement M400 (qop 50 kg)","birligi":"qop","miqdor":40,"kontragent":null,"obyekt_id":null,"ogohlantirish":[]},"nomzodlar":[{"nomi":"Sement M500","birligi":"qop","qoldiq":10}]}""")
                         }
                     }
@@ -176,6 +199,8 @@ private class DemoBff(private val context: Context, private val json: Json, priv
                     }
                     jadval == "t2_akt" -> ok(asset("akt501.json"))
                     jadval == "t2_obyekt" -> ok("""{"ok":true,"soni":1,"jamiServerda":1,"toliq":true,"qatorlar":[{"id":101,"nom":"Demo korpus A"}]}""")
+                    // Office modules (narx, moliya, bux, ...): one synthetic answer per table / named read, same shapes as the server.
+                    feedAsset(s("soro") ?: jadval) != null -> ok(feedAsset(s("soro") ?: jadval)!!)
                     else -> ApiResult(403, buildJsonObject { put("ok", false) }, "PERMISSION_DENIED")
                 }
             }

@@ -150,7 +150,7 @@ class NakopViewModel @Inject constructor(
 /** Nakopitelniy of one object: progress numbers (server package), the statement of every F-2 month and the object's other statements; files come from the server engine. */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-fun NakopScreen(onBack: () -> Unit, onResources: (Long) -> Unit, onOpenF2: (Long) -> Unit, onOpenWeb: (String, String) -> Unit, vm: NakopViewModel = hiltViewModel()) {
+fun NakopScreen(onBack: () -> Unit, onResources: (Long) -> Unit, onOpenF2: (Long) -> Unit, vm: NakopViewModel = hiltViewModel()) {
     val ui by vm.state.collectAsStateWithLifecycle()
     val viewing = ui.viewing
     if (viewing != null) {
@@ -158,7 +158,6 @@ fun NakopScreen(onBack: () -> Unit, onResources: (Long) -> Unit, onOpenF2: (Long
         DocViewer(viewing, onBack = vm::closeViewer)
         return
     }
-    val webTitle = stringResource(R.string.mod_accum)
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
         WorkTopBar(stringResource(R.string.p8_nk_title) + if (ui.name.isNotBlank()) " · " + ui.name else "", onBack)
         ui.error?.let { msg ->
@@ -190,7 +189,6 @@ fun NakopScreen(onBack: () -> Unit, onResources: (Long) -> Unit, onOpenF2: (Long
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(onClick = { onResources(vm.id) }, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.p8_rv_title)) }
                             OutlinedButton(onClick = { onOpenF2(vm.id) }, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.p8_reg_open_list)) }
-                            OutlinedButton(onClick = { onOpenWeb("/admin/nakopitelniy", webTitle) }, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.p8_nk_web)) }
                             Text(stringResource(R.string.p8_nk_hint), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             UpdatedLine(ui.updatedAt)
                         }

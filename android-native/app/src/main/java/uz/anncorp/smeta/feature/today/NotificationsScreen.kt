@@ -163,7 +163,7 @@ private fun WaitingCard(waiting: List<ApprovalItem>, onOpen: (Long) -> Unit) {
 private fun NotificationRow(n: NotificationItem, onOpenApproval: (Long) -> Unit, onOpenLetter: (Long) -> Unit, onMarkRead: (List<Long>) -> Unit) {
     WorkCard(modifier = Modifier.heightIn(min = TouchTarget), onClick = {
         onMarkRead(listOf(n.id).filter { !n.oqildi })
-        if (n.zanjirId != null) onOpenApproval(n.zanjirId) else n.xatId?.let(onOpenLetter)
+        n.zanjirId?.let(onOpenApproval) ?: n.xatId?.let(onOpenLetter)
     }) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(8.dp).clip(CircleShape).background(if (n.oqildi) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.primary))

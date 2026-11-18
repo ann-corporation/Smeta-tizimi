@@ -247,13 +247,23 @@ describe('mobil BFF: ombor-buyruq (omborchi matn/ovoz buyrug\'i)', () => {
     expect(q.status).toBe(200);
     expect(rpcs.find(r => r.nom === 't2_ombor_qoldiq_v2')!.body.p_actor_id).toBe(7);
   });
+  it('ideal sikl: taklif, hisobot va Jarvis vositasi (vosita) BFF dan o\'tadi (TARGET_INVALID emas); ombor_tasdiq tasdiqlayman siz yozmaydi', async () => {
+    for (const body of [{ amal: 'taklif', q: 'sem' }, { amal: 'hisobot', filtr: { davr: 'oy' } }, { amal: 'qoldiq', sana: '2026-11-01' }, { amal: 'vosita', nom: 'ombor_qoldiq', args: {} }]) {
+      const r = await bff('/api/ombor-buyruq', 'POST', { kompaniya_id: 8, sklad_id: 3, ...body });
+      expect(((await r.json().catch(() => ({}))) as { code?: string }).code).not.toBe('TARGET_INVALID');
+    }
+    const yozishdan = rpcs.length;
+    const t = await bff('/api/ombor-buyruq', 'POST', { amal: 'vosita', nom: 'ombor_tasdiq', kompaniya_id: 8, sklad_id: 3, args: { token: 'a.b' } });
+    expect(t.status).toBe(400);
+    expect(rpcs.slice(yozishdan).some(r => /^t2_ombor_(prixod|chiqim)/.test(r.nom))).toBe(false);
+  });
   it('ovoz: JSON audio_b64 BFF dan o\'tadi va STT bosqichigacha yetadi (multipart kerak emas)', async () => {
     const r = await bff('/api/ombor-buyruq', 'POST', { amal: 'tahlil', kompaniya_id: 8, sklad_id: 3, til: 'uz', mime: 'audio/mp4', audio_b64: btoa('synthetic-audio') });
     const code = ((await r.json()) as { code?: string }).code;
     expect(code).toBe('VOICE_NOT_CONFIGURED'); // sintetik env da STT kaliti yo'q; TARGET_INVALID / BODY_INVALID / AUDIO_INVALID emas
   });
   it('eksport va alias qurilmaga ochilmaydi; GET rad', async () => {
-    for (const amal of ['eksport', 'alias', '']) expect((await bff('/api/ombor-buyruq', 'POST', { amal, kompaniya_id: 8, sklad_id: 3 })).status).toBe(400);
+    for (const amal of ['eksport', 'eksport_reja', 'alias', '']) expect((await bff('/api/ombor-buyruq', 'POST', { amal, kompaniya_id: 8, sklad_id: 3 })).status).toBe(400);
     expect((await bff('/api/ombor-buyruq')).status).toBe(400);
   });
 });
@@ -335,5 +345,74 @@ describe('MOBIL_PATH allow-list: per-node sums', () => {
     expect(MOBIL_PATH.test('/api/obyekt-tugun-summa?obyekt_id=4')).toBe(true);
     expect(MOBIL_PATH.test('/api/obyekt-tugun-summa-x?obyekt_id=4')).toBe(false);
     expect(MOBIL_PATH.test('/api/obyekt-tugun')).toBe(false);
+  });
+});
+
+describe('mobil BFF: sinov (bepul sinov, 1000 token) /api/company', () => {
+  let rpcs: { nom: string; body: Record<string, unknown> }[];
+  beforeEach(() => {
+    rpcs = [];
+    const base = globalThis.fetch as typeof fetch;
+    vi.stubGlobal('fetch', vi.fn(async (raw: string, init?: RequestInit) => {
+      const u = new URL(String(raw));
+      const nom = /\/rpc\/([a-z0-9_]+)/.exec(u.pathname)?.[1];
+      if (nom && nom.startsWith('t2_sinov_')) {
+        rpcs.push({ nom, body: JSON.parse(String(init?.body ?? '{}')) });
+        if (nom === 't2_sinov_holat_v1') return Response.json({ ok: true, boshlangan: false, kompaniya_id: null, haqiqiy: false, boshlash_mumkin: true, demo_obyekt_id: null, demo_mavjud: false, balans: null });
+        if (nom === 't2_sinov_boshlash_v1') return Response.json({ ok: true, kompaniya_id: 31, bonus_token: 1000, balans: 1000 });
+        return Response.json({ ok: true, kompaniya_id: 31, demo_obyekt_id: 77 });
+      }
+      if (nom === 't2_audit_yoz') return Response.json(null);
+      return base(raw, init);
+    }));
+  });
+  it('MOBIL_PATH keeps the ?sinov=1 query on /api/company', () => {
+    expect(MOBIL_PATH.test('/api/company?sinov=1')).toBe(true);
+    expect(MOBIL_PATH.test('/api/company-x?sinov=1')).toBe(false);
+  });
+  it('GET ?sinov=1 reads the trial state as the device actor', async () => {
+    const r = await bff('/api/company?sinov=1');
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ ok: true, boshlash_mumkin: true });
+    expect(rpcs.map(x => x.nom)).toEqual(['t2_sinov_holat_v1']);
+    expect(rpcs[0].body).toMatchObject({ p_actor_id: 7 });
+  });
+  it.each([['sinov_boshlash', 't2_sinov_boshlash_v1'], ['sinov_demo', 't2_sinov_demo_v1']])('POST %s reaches %s with the device actor', async (action, rpc) => {
+    const r = await bff('/api/company', 'POST', { action, operation_id: '11111111-1111-4111-8111-111111111111' });
+    expect(r.status).toBe(200);
+    expect(rpcs.map(x => x.nom)).toContain(rpc);
+    expect(rpcs.find(x => x.nom === rpc)?.body).toMatchObject({ p_actor_id: 7 });
+  });
+});
+describe('mobil BFF: yuk-tashish (Logistika yuk birjasi)', () => {
+  let rpcs: { nom: string; body: Record<string, unknown> }[];
+  beforeEach(() => {
+    rpcs = [];
+    const base = globalThis.fetch as typeof fetch;
+    vi.stubGlobal('fetch', vi.fn(async (raw: string, init?: RequestInit) => {
+      const u = new URL(String(raw));
+      const nom = /\/rpc\/([a-z0-9_]+)/.exec(u.pathname)?.[1];
+      if (nom && nom.startsWith('t2_yb_')) { rpcs.push({ nom, body: JSON.parse(String(init?.body ?? '{}')) }); return Response.json({ ok: true, reyslar: [] }); }
+      return base(raw, init);
+    }));
+  });
+  it('MOBIL_PATH yuk-tashish ni o\'tkazadi, qo\'shnilarini emas', () => {
+    expect(MOBIL_PATH.test('/api/yuk-tashish')).toBe(true);
+    expect(MOBIL_PATH.test('/api/yuk-tashish-x')).toBe(false);
+    expect(MOBIL_PATH.test('/api/yuk-marshrut')).toBe(false);
+  });
+  it('oq ro\'yxatdagi amal web handleriga yetadi: aktor qurilma sessiyasidan (tanadagi aktor e\'tiborga olinmaydi)', async () => {
+    const r = await bff('/api/yuk-tashish', 'POST', { amal: 'reys', p_actor_id: 999, actor_id: 999 });
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ ok: true });
+    expect(rpcs.map(x => x.nom)).toEqual(['t2_yb_p2_reys_v1']);
+    expect(rpcs[0].body.p_actor_id).toBe(7);
+  });
+  it('noma\'lum amal, amalsiz tana va GET serverga yetmasdan rad etiladi', async () => {
+    for (const body of [{ amal: 'admin_hammasi' }, { amal: 'constructor' }, {}, { amal: 5 }]) {
+      expect((await bff('/api/yuk-tashish', 'POST', body)).status).toBe(400);
+    }
+    expect((await bff('/api/yuk-tashish', 'GET')).status).toBe(400);
+    expect(rpcs).toHaveLength(0);
   });
 });

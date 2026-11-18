@@ -8,6 +8,7 @@ import { jarvisKalitmi, xotiraBuyrugi, xotiraKalit, xotiraTekshir } from '../xot
 import { sozlar } from '../matn';
 import { borMi, katOl, nomMosmi, pulMatn, sanaOl, summaOl, tanlovTop } from './yordam';
 import { PTO_VOSITALARI } from './pto-liniya';
+import { F2_MCP_VOSITALARI } from './f2-mcp-liniya';
 import type { Slot, Variant, Vosita, VositaJavob, VositaKont } from './tur';
 import { AMALLAR, type Amal } from '../../reestr/amal';
 import { amalVositasi } from './amal-vosita';
@@ -319,7 +320,7 @@ const yoqVosita: Vosita = {
 };
 
 /** Qo'lda yozilgan vositalar (aniq nuqta: dialog, maxsus qoidalar). `yoq` — oxirgi zaxira, shuning uchun alohida. */
-const QOLDA: readonly Vosita[] = [...PTO_VOSITALARI, slichitelniyVosita, zamenaVosita, xotiraKorsatVosita, xotiraYozVosita, xotiraUnutVosita, bugunVosita, solishtiruvVosita, f2Amal('tasdiq'), f2Amal('bekor'), xarajatVosita, tolovVosita, murojaatVosita, taqdimVosita];
+const QOLDA: readonly Vosita[] = [...PTO_VOSITALARI, ...F2_MCP_VOSITALARI,slichitelniyVosita, zamenaVosita, xotiraKorsatVosita, xotiraYozVosita, xotiraUnutVosita, bugunVosita, solishtiruvVosita, f2Amal('tasdiq'), f2Amal('bekor'), xarajatVosita, tolovVosita, murojaatVosita, taqdimVosita];
 
 /** Amal reestri (lib/reestr/amal.ts) yozuvidan vosita: parallel ta'rif yo'q. */
 export function reestrdanVosita(yozuv: Amal): Vosita | null { return amalVositasi(yozuv); }

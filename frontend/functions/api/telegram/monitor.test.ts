@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { hajmBaho, onRequestPost } from './monitor';
+import { hajmBaho, onRequestPost, snapBaho } from './monitor';
 
 const KALIT = 'k'.repeat(30);
 const ENV = { BILDIRISHNOMA_CRON_KALIT: KALIT, SUPABASE_URL: 'https://p.supabase.co', SUPABASE_KEY: 's', MONITOR_EGASI_ID: '1', TELEGRAM_BOT_TOKEN: '123456:' + 'a'.repeat(30) };
 const post = (body: unknown, env: Record<string, unknown> = ENV, kalit: string | null = KALIT) =>
   onRequestPost({ request: new Request('https://x/api/telegram/monitor', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(kalit ? { 'X-Cron-Kalit': kalit } : {}) }, body: JSON.stringify(body) }), env } as never);
 afterEach(() => vi.unstubAllGlobals());
-function mock(dbBytes: number) {
+function mock(dbBytes: number, issiqBayt?: number) {
   const f = vi.fn(async (url: string) => {
-    if (url.includes('t2_db_hajm_v1')) return Response.json({ ok: true, db_bytes: dbBytes });
+    if (url.includes('t2_db_hajm_v1')) return Response.json({ ok: true, db_bytes: dbBytes, ...(issiqBayt !== undefined ? { snapshot_sovuq: { issiq_bayt: issiqBayt } } : {}) });
     if (url.includes('t2_telegram_manzil_v1')) return Response.json({ ok: true, yuborish: true, chat_id: 555 });
     return Response.json({ ok: true });
   });
@@ -38,5 +38,42 @@ describe('monitor', () => {
     f.mockClear();
     expect(await (await post({})).json()).toMatchObject({ tekshirildi: false });
     expect(f).not.toHaveBeenCalled();
+  });
+
+  it('issiq snapshot chegaradan oshsa (hajm normal bo\'lsa ham) egasiga xabar ketadi', async () => {
+    expect(snapBaho(71 * 1024 * 1024, undefined)).toEqual({ mb: 71, ogoh: true });
+    expect(snapBaho(10 * 1024 * 1024, '60').ogoh).toBe(false);
+    const f = mock(100 * 1024 * 1024, 71 * 1024 * 1024);
+    const j = await (await post({ db: true })).json() as { ogoh: boolean; snapshot_ogoh: boolean; snapshot_issiq_mb: number; yuborildi: boolean };
+    expect(j).toMatchObject({ ogoh: false, snapshot_ogoh: true, snapshot_issiq_mb: 71, yuborildi: true });
+    expect(f.mock.calls.some((x) => String(x[0]).includes('sendMessage'))).toBe(true);
+  });
+  it('issiq snapshot kichik bo\'lsa va hajm normal - xabar yo\'q', async () => {
+    const f = mock(100 * 1024 * 1024, 5 * 1024 * 1024);
+    expect(await (await post({ db: true })).json()).toMatchObject({ ogoh: false, snapshot_issiq_mb: 5 });
+    expect(f.mock.calls.some((x) => String(x[0]).includes('telegram'))).toBe(false);
+  });
+});
+describe('monitor: AI ishchilar holati', () => {
+  it('aiHolatMatni: yoqilgan yo\'q / ish yo\'q / xato ko\'p / joyida', async () => {
+    const { aiHolatMatni } = await import('./monitor');
+    expect(aiHolatMatni({ yoqilgan: 0, ish_24s: 0, xato_24s: 0 })).toMatch(/YO'Q/);
+    expect(aiHolatMatni({ yoqilgan: 2, ish_24s: 0, xato_24s: 0 })).toMatch(/HECH QANDAY/);
+    expect(aiHolatMatni({ yoqilgan: 2, ish_24s: 6, xato_24s: 4 })).toMatch(/xato/);
+    expect(aiHolatMatni({ yoqilgan: 2, ish_24s: 6, xato_24s: 0 })).toBeNull();
+  });
+  it('ai:true -> ishchi yoqilmagan bo\'lsa egasiga Telegram xabari; db tekshiruvisiz', async () => {
+    const f = vi.fn(async (url: string) => {
+      if (url.includes('t2_ai_ishchi_holat_v1')) return Response.json({ ok: true, yoqilgan: 0, ish_24s: 0, xato_24s: 0 });
+      if (url.includes('t2_telegram_manzil_v1')) return Response.json({ ok: true, yuborish: true, chat_id: 555 });
+      return Response.json({ ok: true });
+    }); vi.stubGlobal('fetch', f);
+    expect(await (await post({ ai: true })).json()).toMatchObject({ ai: 'ogoh', telegram: true });
+    expect(f.mock.calls.some((x) => String(x[0]).includes('t2_db_hajm_v1'))).toBe(false);
+    expect(f.mock.calls.some((x) => String(x[0]).includes('sendMessage'))).toBe(true);
+  });
+  it('ai:true -> migratsiya yo\'q (RPC xato) bo\'lsa jim', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 404 })));
+    expect(await (await post({ ai: true })).json()).toMatchObject({ ok: true, ai: null });
   });
 });
