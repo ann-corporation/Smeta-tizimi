@@ -609,7 +609,7 @@ private fun BubbleView(b: Bubble) {
         is Bubble.Jarvis -> Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
             Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.large, modifier = Modifier.widthIn(max = 340.dp)) {
                 Column(Modifier.padding(12.dp)) {
-                    Text(b.text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                    uz.anncorp.qurai.ui.markdown.QMarkdown(b.text)
                 }
             }
         }

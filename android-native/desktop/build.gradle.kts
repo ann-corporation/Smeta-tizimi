@@ -1,4 +1,4 @@
-﻿import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -16,7 +16,7 @@ kotlin {
     compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) }
 }
 
-val appVersion = "0.2.1"
+val appVersion = "0.2.2"
 val apiBase = (project.findProperty("apiBase") as String?) ?: "https://qurai.uz"
 
 // Build-time constants (no secrets): app version and the canonical API host.
@@ -36,6 +36,7 @@ tasks.named("compileKotlin") { dependsOn(genConfig) }
 
 dependencies {
     implementation(project(":shared"))
+    implementation(project(":ui-common"))
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
     implementation(libs.kotlinx.coroutines.swing)

@@ -1,0 +1,10 @@
+{
+  "sana": "2026-11-18",
+  "sarlavha": "Android 0.1.17 va Windows 0.2.2: sayt bilan bir xil dizayn",
+  "bandlar": [
+    "Android va Windows ilovalari endi bitta umumiy dizayn tizimidan quriladi: tugmalar, maydonlar, jadvallar, kartalar va ikonkalar saytniki bilan bir xil.",
+    "Chap menyu (Windows) va pastki menyu (Android) saytdagi ish joylari bilan bir xil nom va tartibda: Bugun, Obyekt, Hujjatlar, Ta\u0027minot, Moliya, Tomonlar, Kompaniya.",
+    "Jarvis javoblari ikkala ilovada ham to\u0027g\u0027ri ko\u0027rinadi: qalin matn, ro\u0027yxatlar, jadvallar va kod (endi \u00ab**\u00bb belgilari ko\u0027rinmaydi).",
+    "Summalar (QQS bilan, ustamali, ustamasiz) faqat serverdan olinadi, ilovada hisoblanmaydi."
+  ]
+}

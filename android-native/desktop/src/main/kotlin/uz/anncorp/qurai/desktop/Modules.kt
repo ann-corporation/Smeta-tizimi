@@ -1,5 +1,7 @@
 package uz.anncorp.qurai.desktop
 
+import uz.anncorp.qurai.ui.components.*
+
 import uz.anncorp.smeta.core.data.Loaded
 import uz.anncorp.smeta.feature.common.*
 
@@ -73,12 +75,12 @@ fun <T> load(k1: Any?, k2: Any?, f: suspend () -> Loaded<T>): Loaded<T>? {
 @Composable
 private fun NeedObject(c: Ctx, content: @Composable (Obj) -> Unit) {
     val o = c.obj
-    if (o == null) Hint("Yuqoridan obyektni tanlang") else content(o)
+    if (o == null) QHint("Yuqoridan obyektni tanlang") else content(o)
 }
 
 @Composable
 private fun Page(title: String, sub: String? = null, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) { Title(title, sub); content() }
+    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) { QPageHead(title, desc = sub); content() }
 }
 
 private fun statusUz(s: F2Status, raw: String?): String = when (s) {
@@ -86,14 +88,14 @@ private fun statusUz(s: F2Status, raw: String?): String = when (s) {
     F2Status.REJECTED -> "Rad etilgan"; F2Status.CANCELLED -> "Bekor qilingan"; F2Status.SUPERSEDED -> "Almashtirilgan"; F2Status.UNKNOWN -> raw ?: T_DASH
 }
 
-private const val T_DASH = "вЂ”"
+private const val T_DASH = "\u2014"
 
 /** The server sum package in the owner's order: QQS bilan first, then ustamali (ITOGO-4), then ustamasiz (direct). */
 @Composable
 fun PackStrip(label: String, p: SumPack?) {
     Row {
         Column(Modifier.width(150.dp)) { Text(label, fontWeight = FontWeight.SemiBold) }
-        Kv("QQS bilan", money(p?.qqsBilan)); Kv("Ustamali (QQS siz)", money(p?.ustamali)); Kv("Ustamasiz (QQS siz)", money(p?.ustamasiz))
+        QKv("QQS bilan", money(p?.qqsBilan)); QKv("Ustamali (QQS siz)", money(p?.ustamali)); QKv("Ustamasiz (QQS siz)", money(p?.ustamasiz))
     }
 }
 
@@ -106,20 +108,13 @@ fun ObjectsScreen(c: Ctx, onOpen: (Obj) -> Unit) {
     val m = mny.valueOrNull().orEmpty()
     Page("Obyektlar", "${c.objects.size} ta obyekt. Qatorni bosing: obyekt tanlanadi") {
         mny?.Banner()
-        OutlinedTextField(q, { q = it }, label = { Text("Qidirish") }, singleLine = true, modifier = Modifier.width(360.dp))
+        QInput(q, { q = it }, label = "Qidirish", singleLine = true, modifier = Modifier.width(360.dp))
         val rows = c.objects.filter { q.isBlank() || it.nom.contains(q, ignoreCase = true) }
-        SortTable(
-            rows, listOf(
-                Col("Obyekt", 380.dp, sort = { it.nom.lowercase() }) { it.nom },
-                Col("Turi", 110.dp, sort = { it.tur }) { it.tur ?: T_DASH },
-                Col("Qator", 80.dp, true, { it.rows }) { it.rows?.toString() ?: T_DASH },
-                Col("Narxsiz", 80.dp, true, { it.unpriced }) { it.unpriced?.toString() ?: T_DASH },
-                Col("Smeta (QQS bilan)", 170.dp, true, { m[it.id]?.smeta?.qqsBilan }) { money(m[it.id]?.smeta?.qqsBilan) },
-                Col("Fakt %", 80.dp, true, { m[it.id]?.factPct }) { formatPercent(m[it.id]?.factPct) },
-                Col("F-2 %", 80.dp, true, { m[it.id]?.f2Pct }) { formatPercent(m[it.id]?.f2Pct) },
-            ), modifier = Modifier.weight(1f), key = { it.id }, onClick = onOpen, selected = { it.id == c.obj?.id },
+        uz.anncorp.qurai.ui.screens.QObjectList(
+            rows.map { o -> val s = m[o.id]?.smeta; uz.anncorp.qurai.ui.screens.QObjectRow(o.id, o.nom, o.tur, o.rows, o.unpriced, s?.qqsBilan?.let(::money), s?.ustamali?.let(::money), s?.ustamasiz?.let(::money), m[o.id]?.factPct?.let { formatPercent(it) }, m[o.id]?.f2Pct?.let { formatPercent(it) }) },
+            { r -> rows.firstOrNull { it.id == r.id }?.let(onOpen) }, Modifier.weight(1f), selectedId = c.obj?.id,
         )
-    }
+   }
 }
 
 // ============================ Smeta (tree) ============================
@@ -131,15 +126,15 @@ fun SmetaScreen(c: Ctx) = NeedObject(c) { o ->
     var q by remember(o.id) { mutableStateOf("") }
     var expanded by remember(o.id) { mutableStateOf(setOf<Long>()) }
     Page("Smeta: ${o.nom}") {
-        if (pk == null) { Loading(); return@Page }
+        if (pk == null) { QLoading(); return@Page }
         pk.Banner()
         val p = pk.valueOrNull() ?: return@Page
         PackStrip("Smeta (server)", mny.valueOrNull()?.get(o.id)?.smeta)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(q, { q = it }, label = { Text("Kod yoki nom bo'yicha qidirish") }, singleLine = true, modifier = Modifier.width(380.dp))
-            OutlinedButton(onClick = { expanded = p.nodes.filter { it.hasChildren }.map { it.id }.toSet() }) { Text("Hammasini yoyish") }
-            OutlinedButton(onClick = { expanded = emptySet() }) { Text("Yig'ish") }
-            Hint("${p.nodes.size} ta tugun, ${p.blCount} ta ish")
+            QInput(q, { q = it }, label = "Kod yoki nom bo'yicha qidirish", singleLine = true, modifier = Modifier.width(380.dp))
+            QSecondaryButton(onClick = { expanded = p.nodes.filter { it.hasChildren }.map { it.id }.toSet() }) { Text("Hammasini yoyish") }
+            QSecondaryButton(onClick = { expanded = emptySet() }) { Text("Yig'ish") }
+            QHint("${p.nodes.size} ta tugun, ${p.blCount} ta ish")
         }
         val vis = remember(p, expanded, q) { visibleNodes(p.nodes, if (q.isBlank()) expanded else p.nodes.filter { it.hasChildren }.map { it.id }.toSet(), q) }
         Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant).padding(vertical = 6.dp)) {
@@ -183,21 +178,21 @@ fun F2Screen(c: Ctx) = NeedObject(c) { o ->
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf<String?>(null) }
     Page("F-2 aktlar: ${o.nom}", "Qatorni bosing: akt qatorlari ochiladi") {
-        if (acts == null) { Loading(); return@Page }
+        if (acts == null) { QLoading(); return@Page }
         acts.Banner()
         val mo: ObjectMoney? = mny.valueOrNull()?.get(o.id)
         PackStrip("Qabul qilingan F-2 (server)", mo?.f2)
         val list = acts.valueOrNull().orEmpty()
         Box(Modifier.fillMaxWidth().height(220.dp)) {
-            SortTable(
+            QTable(
                 list, listOf(
-                    Col("Oy", 90.dp, sort = { it.oy }) { f2MonthLabel(it.oy) ?: T_DASH },
-                    Col("Raqam", 140.dp, sort = { it.raqam }) { it.raqam ?: T_DASH },
-                    Col("Holat", 140.dp, sort = { it.state.ordinal }) { statusUz(it.state, it.status) },
-                    Col("Qator", 80.dp, true, { it.rows }) { it.rows?.toString() ?: T_DASH },
-                    Col("Narxsiz", 80.dp, true, { it.unpriced }) { it.unpriced?.toString() ?: T_DASH },
-                    Col("Minus", 80.dp, true, { it.negativeRows }) { it.negativeRows?.toString() ?: T_DASH },
-                    Col("Farq", 60.dp) { if (it.hasDiff) "ha" else "" },
+                    QCol("Oy", 90.dp, sort = { it.oy }) { f2MonthLabel(it.oy) ?: T_DASH },
+                    QCol("Raqam", 140.dp, sort = { it.raqam }) { it.raqam ?: T_DASH },
+                    QCol("Holat", 140.dp, sort = { it.state.ordinal }) { statusUz(it.state, it.status) },
+                    QCol("Qator", 80.dp, true, { it.rows }) { it.rows?.toString() ?: T_DASH },
+                    QCol("Narxsiz", 80.dp, true, { it.unpriced }) { it.unpriced?.toString() ?: T_DASH },
+                    QCol("Minus", 80.dp, true, { it.negativeRows }) { it.negativeRows?.toString() ?: T_DASH },
+                    QCol("Farq", 60.dp) { if (it.hasDiff) "ha" else "" },
                 ), key = { it.id }, onClick = { pick = it }, selected = { it.id == pick?.id },
             )
         }
@@ -208,7 +203,7 @@ fun F2Screen(c: Ctx) = NeedObject(c) { o ->
         val f2docs = gen.valueOrNull().orEmpty().filter { it.isF2 }
         if (f2docs.isNotEmpty()) {
             Text("Eksport (Excel / PDF)", fontWeight = FontWeight.SemiBold)
-            Hint("Yuklab olinganda tokenlar yechilishi mumkin; qayta yuklash bepul.")
+            QHint("Yuklab olinganda tokenlar yechilishi mumkin; qayta yuklash bepul.")
             LazyColumn(Modifier.height(150.dp)) {
                 items(f2docs, key = { it.key }) { g -> GenRow(g, busy == g.key) { fmt -> scope.launch { busy = g.key; generate(c, o, g, fmt); busy = null } } }
             }
@@ -222,21 +217,21 @@ private fun ActRows(c: Ctx, o: Obj, a: F2Act) {
     val names = pk.valueOrNull()?.byId.orEmpty()
     val rows = load(a.id, names.size) { c.repo.actRows(a.id, names) }
     Text("Akt ${a.raqam ?: a.id} qatorlari", fontWeight = FontWeight.SemiBold)
-    if (rows == null) { Loading(); return }
+    if (rows == null) { QLoading(); return }
     rows.Banner()
     val r = rows.valueOrNull().orEmpty()
     val direct = r.sumOf { it.summa ?: 0.0 }
-    Row { Kv("Qatorlar soni", r.size.toString()); Kv("Qatorlar summasi (ustamasiz, QQS siz)", money(direct)) }
-    Hint("Ustamali va QQS bilan summalar faqat serverdan (yuqorida, obyekt bo'yicha qabul qilingan F-2). Akt qatorlari summasi: faqat ustamasiz.")
+    Row { QKv("Qatorlar soni", r.size.toString()); QKv("Qatorlar summasi (ustamasiz, QQS siz)", money(direct)) }
+    QHint("Ustamali va QQS bilan summalar faqat serverdan (yuqorida, obyekt bo'yicha qabul qilingan F-2). Akt qatorlari summasi: faqat ustamasiz.")
     Box(Modifier.fillMaxWidth().height(260.dp)) {
-        SortTable(
+        QTable(
             r, listOf(
-                Col("Kod", 120.dp, sort = { it.kod }) { it.kod ?: "" },
-                Col("Nomi", 420.dp, sort = { it.nom.lowercase() }) { it.nom },
-                Col("Birlik", 70.dp) { it.birlik ?: "" },
-                Col("Hajm", 100.dp, true, { it.hajm }) { qty(it.hajm) },
-                Col("Narx", 110.dp, true, { it.narx }) { money(it.narx) },
-                Col("Summa", 140.dp, true, { it.summa }) { money(it.summa) },
+                QCol("Kod", 120.dp, sort = { it.kod }) { it.kod ?: "" },
+                QCol("Nomi", 420.dp, sort = { it.nom.lowercase() }) { it.nom },
+                QCol("Birlik", 70.dp) { it.birlik ?: "" },
+                QCol("Hajm", 100.dp, true, { it.hajm }) { qty(it.hajm) },
+                QCol("Narx", 110.dp, true, { it.narx }) { money(it.narx) },
+                QCol("Summa", 140.dp, true, { it.summa }) { money(it.summa) },
             ),
         )
     }
@@ -255,7 +250,7 @@ private fun GenRow(g: GenItem, busy: Boolean, onGen: (String) -> Unit) {
         Text(g.title, Modifier.weight(1f), maxLines = 2)
         Text(g.state, Modifier.width(110.dp), style = MaterialTheme.typography.labelMedium)
         Text(money(g.amount), Modifier.width(150.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
-        g.formats.forEach { f -> OutlinedButton(onClick = { onGen(f) }, enabled = !busy) { Text(f.uppercase()) } }
+        g.formats.forEach { f -> QSecondaryButton(onClick = { onGen(f) }, enabled = !busy) { Text(f.uppercase()) } }
     }
     HorizontalDivider(thickness = 0.5.dp)
 }
@@ -282,45 +277,44 @@ fun FaktScreen(c: Ctx) = NeedObject(c) { o ->
         journal?.Banner()
         Text("Fakt jurnali", fontWeight = FontWeight.SemiBold)
         Box(Modifier.fillMaxWidth().height(180.dp)) {
-            if (journal == null) Loading() else SortTable(
+            if (journal == null) QLoading() else QTable(
                 journal.valueOrNull().orEmpty(), listOf(
-                    Col("Raqam", 140.dp, sort = { it.raqam }) { it.raqam ?: "#${it.id}" },
-                    Col("Oy", 100.dp, sort = { it.oy }) { f2MonthLabel(it.oy) ?: T_DASH },
-                    Col("Holat", 130.dp, sort = { it.status }) { it.status ?: T_DASH },
-                    Col("Jami (hujjat)", 160.dp, true, { it.jami }) { money(it.jami) },
+                    QCol("Raqam", 140.dp, sort = { it.raqam }) { it.raqam ?: "#${it.id}" },
+                    QCol("Oy", 100.dp, sort = { it.oy }) { f2MonthLabel(it.oy) ?: T_DASH },
+                    QCol("Holat", 130.dp, sort = { it.status }) { it.status ?: T_DASH },
+                    QCol("Jami (hujjat)", 160.dp, true, { it.jami }) { money(it.jami) },
                 ), key = { it.id },
             )
         }
         HorizontalDivider()
         Text("Yangi fakt yozuvi", fontWeight = FontWeight.SemiBold)
         val p = pk.valueOrNull()
-        if (pk == null) Loading() else if (p == null) { pk.Banner() } else {
+        if (pk == null) QLoading() else if (p == null) { pk.Banner() } else {
             val works = remember(p) { p.nodes.filter { it.isBl } }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(q, { q = it; chosen = null }, label = { Text("Ishni qidiring (kod / nom)") }, singleLine = true, modifier = Modifier.width(360.dp))
-                OutlinedTextField(vol, { vol = it }, label = { Text("Hajm (minus mumkin)") }, singleLine = true, modifier = Modifier.width(160.dp), keyboardOptions = KeyboardOptions())
-                OutlinedTextField(date, { date = it }, label = { Text("Sana (YYYY-MM-DD)") }, singleLine = true, modifier = Modifier.width(170.dp))
+                QInput(q, { q = it; chosen = null }, label = "Ishni qidiring (kod / nom)", singleLine = true, modifier = Modifier.width(360.dp))
+                QInput(vol, { vol = it }, label = "Hajm (minus mumkin)", singleLine = true, modifier = Modifier.width(160.dp), keyboardOptions = KeyboardOptions())
+                QInput(date, { date = it }, label = "Sana (YYYY-MM-DD)", singleLine = true, modifier = Modifier.width(170.dp))
                 val v = uz.anncorp.smeta.core.data.parseVolume(vol)
-                Button(onClick = { chosen?.let { draft.add(it to v!!) }; vol = ""; chosen = null }, enabled = chosen != null && v != null) { Text("Qo'shish") }
+                QPrimaryButton(onClick = { chosen?.let { draft.add(it to v!!) }; vol = ""; chosen = null }, enabled = chosen != null && v != null) { Text("Qo'shish") }
             }
             val hits = if (q.isBlank() || chosen != null) emptyList() else works.filter { (it.kod ?: "").contains(q, true) || it.nom.contains(q, true) }.take(8)
             hits.forEach { w ->
                 Text("${w.kod ?: ""}  ${w.nom}  [${w.birlik ?: ""}]  smeta ${qty(w.hajm)}, fakt ${qty(w.faktHajm)}", Modifier.fillMaxWidth().clickable { chosen = w; q = w.nom }.padding(vertical = 3.dp), style = MaterialTheme.typography.bodyMedium)
             }
-            chosen?.let { Hint("Tanlandi: ${it.nom}") }
+            chosen?.let { QHint("Tanlandi: ${it.nom}") }
             draft.forEachIndexed { i, (n, h) ->
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("${n.kod ?: ""} ${n.nom}", Modifier.weight(1f), maxLines = 1); Text("${qty(h)} ${n.birlik ?: ""}")
-                    TextButton(onClick = { draft.removeAt(i) }) { Text("Olib tashlash") }
+                    QGhostButton(onClick = { draft.removeAt(i) }) { Text("Olib tashlash") }
                 }
             }
             msg?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
-            Button(onClick = { confirm = true }, enabled = draft.isNotEmpty() && !busy && Regex("^\\d{4}-\\d{2}-\\d{2}$").matches(date)) { Text("Yozish (${draft.size} qator)") }
+            QPrimaryButton(onClick = { confirm = true }, enabled = draft.isNotEmpty() && !busy && Regex("^\\d{4}-\\d{2}-\\d{2}$").matches(date)) { Text("Yozish (${draft.size} qator)") }
         }
-        if (confirm) AlertDialog(
-            onDismissRequest = { confirm = false }, title = { Text("Faktni yozish") },
-            text = { Text("${o.nom}: ${draft.size} qator, sana $date. Serverga yoziladi.") },
-            confirmButton = { TextButton(onClick = {
+        if (confirm) QDialog("Faktni yozish", { confirm = false }, buttons = {
+            QGhostButton(onClick = { confirm = false }) { Text("Bekor") }
+            QPrimaryButton(onClick = {
                 confirm = false; busy = true
                 scope.launch {
                     val r = c.sv.api.bff("/api/sb-yoz", "POST", faktPayload(AMAL_FAKT, c.place.companyId, o.id, date, draft.map { FaktLine(it.first.id, it.second) }, UUID.randomUUID().toString()))
@@ -333,9 +327,8 @@ fun FaktScreen(c: Ctx) = NeedObject(c) { o ->
                     Log.i("fakt write ok=${out?.ok} status=${r.status}")
                     busy = false
                 }
-            }) { Text("Yozish") } },
-            dismissButton = { TextButton(onClick = { confirm = false }) { Text("Bekor") } },
-        )
+            }) { Text("Yozish") }
+        }) { Text("${o.nom}: ${draft.size} qator, sana $date. Serverga yoziladi.") }
     }
 }
 
@@ -349,13 +342,13 @@ fun NakopScreen(c: Ctx) = NeedObject(c) { o ->
     var busy by remember { mutableStateOf<String?>(null) }
     var msg by remember { mutableStateOf<String?>(null) }
     Page("Nakopitelniy / Slichitelniy: ${o.nom}", "Hujjatni server tayyorlaydi; fayl Documents\\QURAI papkasiga saqlanadi") {
-        if (gen == null) { Loading(); return@Page }
+        if (gen == null) { QLoading(); return@Page }
         val items = (gen as? Loaded.Fresh)?.data
         if (items == null) { Text("Hujjatlar ro'yxatini yuklab bo'lmadi (oflayn yoki ruxsat yo'q)", color = MaterialTheme.colorScheme.error); return@Page }
         val own = items.filter { it.type == "nakopitelniy" || it.type == "slichitelniy" || it.type == "ostatka" || it.isF3 }
-        Hint("Yuklab olinganda tokenlar yechilishi mumkin; qayta yuklash bepul. Tasdiqlangan F-2 oylari: ${acts.valueOrNull().orEmpty().count { it.state == F2Status.APPROVED }} ta")
+        QHint("Yuklab olinganda tokenlar yechilishi mumkin; qayta yuklash bepul. Tasdiqlangan F-2 oylari: ${acts.valueOrNull().orEmpty().count { it.state == F2Status.APPROVED }} ta")
         msg?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        if (own.isEmpty()) Hint("Bu obyekt uchun nakopitelniy / slichitelniy hozircha yo'q (tasdiqlangan F-2 kerak)")
+        if (own.isEmpty()) QHint("Bu obyekt uchun nakopitelniy / slichitelniy hozircha yo'q (tasdiqlangan F-2 kerak)")
         LazyColumn(Modifier.weight(1f)) {
             items(own, key = { it.key }) { g ->
                 GenRow(g, busy == g.key) { fmt ->
@@ -385,26 +378,26 @@ fun NarxScreen(c: Ctx) {
     var q by remember { mutableStateOf("") }
     var onlyRisk by remember { mutableStateOf(false) }
     Page("Narx / katalog", "Narxlar markazi: resurs bo'yicha eng yuqori narx (QQS siz)") {
-        if (narx == null) { Loading(); return@Page }
+        if (narx == null) { QLoading(); return@Page }
         narx.Banner()
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(q, { q = it }, label = { Text("Resurs qidirish") }, singleLine = true, modifier = Modifier.width(360.dp))
-            OutlinedButton(onClick = { onlyRisk = !onlyRisk }) { Text(if (onlyRisk) "Hammasi" else "Faqat xavfli farq") }
+            QInput(q, { q = it }, label = "Resurs qidirish", singleLine = true, modifier = Modifier.width(360.dp))
+            QSecondaryButton(onClick = { onlyRisk = !onlyRisk }) { Text(if (onlyRisk) "Hammasi" else "Faqat xavfli farq") }
         }
         val rows = narx.valueOrNull().orEmpty().filter { (q.isBlank() || it.nom.contains(q, true)) && (!onlyRisk || it.xavf) }
-        Hint("${rows.size} ta resurs")
-        SortTable(
+        QHint("${rows.size} ta resurs")
+        QTable(
             rows, listOf(
-                Col("Resurs", 400.dp, sort = { it.nom.lowercase() }) { it.nom },
-                Col("Birlik", 70.dp, sort = { it.birlik }) { it.birlik ?: "" },
-                Col("Turi", 90.dp, sort = { it.kat }) { it.kat ?: "" },
-                Col("Obyekt", 70.dp, true, { it.obyektSoni }) { it.obyektSoni.toString() },
-                Col("Smeta min", 120.dp, true, { it.smetaMin }) { money(it.smetaMin) },
-                Col("Smeta max", 120.dp, true, { it.smetaMax }) { money(it.smetaMax) },
-                Col("Belgilangan", 120.dp, true, { it.belgilangan }) { money(it.belgilangan) },
-                Col("Natija (max)", 130.dp, true, { it.natija }) { money(it.natija) },
-                Col("Manba", 100.dp, sort = { it.manba }) { it.manba ?: "" },
-                Col("Xavf", 60.dp, sort = { it.xavf }) { if (it.xavf) "farq>5%" else "" },
+                QCol("Resurs", 400.dp, sort = { it.nom.lowercase() }) { it.nom },
+                QCol("Birlik", 70.dp, sort = { it.birlik }) { it.birlik ?: "" },
+                QCol("Turi", 90.dp, sort = { it.kat }) { it.kat ?: "" },
+                QCol("Obyekt", 70.dp, true, { it.obyektSoni }) { it.obyektSoni.toString() },
+                QCol("Smeta min", 120.dp, true, { it.smetaMin }) { money(it.smetaMin) },
+                QCol("Smeta max", 120.dp, true, { it.smetaMax }) { money(it.smetaMax) },
+                QCol("Belgilangan", 120.dp, true, { it.belgilangan }) { money(it.belgilangan) },
+                QCol("Natija (max)", 130.dp, true, { it.natija }) { money(it.natija) },
+                QCol("Manba", 100.dp, sort = { it.manba }) { it.manba ?: "" },
+                QCol("Xavf", 60.dp, sort = { it.xavf }) { if (it.xavf) "farq>5%" else "" },
             ), modifier = Modifier.weight(1f),
         )
     }
@@ -419,49 +412,49 @@ fun MoneyScreen(c: Ctx) {
     var tab by remember { mutableStateOf(0) }
     Page("Moliya", "Hamma summa: QQS bilan, ustamali, ustamasiz (serverdan, qurilmada hisoblanmaydi)") {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { tab = 0 }) { Text(if (tab == 0) "в—Џ Obyektlar bo'yicha" else "Obyektlar bo'yicha") }
-            OutlinedButton(onClick = { tab = 1 }) { Text(if (tab == 1) "в—Џ Qarzdorlar" else "Qarzdorlar") }
+            QSecondaryButton(onClick = { tab = 0 }) { Text(if (tab == 0) "в—Џ Obyektlar bo'yicha" else "Obyektlar bo'yicha") }
+            QSecondaryButton(onClick = { tab = 1 }) { Text(if (tab == 1) "в—Џ Qarzdorlar" else "Qarzdorlar") }
         }
         if (tab == 0) {
-            if (mny == null) { Loading(); return@Page }
+            if (mny == null) { QLoading(); return@Page }
             mny.Banner()
             val m = mny.valueOrNull().orEmpty()
             val rows = c.objects.filter { m[it.id]?.any == true }
-            Hint("${rows.size} ta obyekt (moliyaviy ma'lumoti borlari)")
-            SortTable(
+            QHint("${rows.size} ta obyekt (moliyaviy ma'lumoti borlari)")
+            QTable(
                 rows, listOf(
-                    Col("Obyekt", 300.dp, sort = { it.nom.lowercase() }) { it.nom },
-                    Col("Smeta QQS bilan", 150.dp, true, { m[it.id]?.smeta?.qqsBilan }) { money(m[it.id]?.smeta?.qqsBilan) },
-                    Col("Smeta ustamali", 150.dp, true, { m[it.id]?.smeta?.ustamali }) { money(m[it.id]?.smeta?.ustamali) },
-                    Col("Smeta ustamasiz", 150.dp, true, { m[it.id]?.smeta?.ustamasiz }) { money(m[it.id]?.smeta?.ustamasiz) },
-                    Col("Fakt QQS bilan", 150.dp, true, { m[it.id]?.fakt?.qqsBilan }) { money(m[it.id]?.fakt?.qqsBilan) },
-                    Col("Fakt ustamali", 150.dp, true, { m[it.id]?.fakt?.ustamali }) { money(m[it.id]?.fakt?.ustamali) },
-                    Col("Fakt ustamasiz", 150.dp, true, { m[it.id]?.fakt?.ustamasiz }) { money(m[it.id]?.fakt?.ustamasiz) },
-                    Col("F-2 QQS bilan", 150.dp, true, { m[it.id]?.f2?.qqsBilan }) { money(m[it.id]?.f2?.qqsBilan) },
-                    Col("F-2 ustamali", 150.dp, true, { m[it.id]?.f2?.ustamali }) { money(m[it.id]?.f2?.ustamali) },
-                    Col("F-2 ustamasiz", 150.dp, true, { m[it.id]?.f2?.ustamasiz }) { money(m[it.id]?.f2?.ustamasiz) },
-                    Col("Shartnoma (QQS bilan)", 170.dp, true, { m[it.id]?.contractQqs }) { money(m[it.id]?.contractQqs) },
-                    Col("To'langan", 150.dp, true, { m[it.id]?.paid }) { money(m[it.id]?.paid) },
-                    Col("Qarz", 150.dp, true, { m[it.id]?.debt }) { money(m[it.id]?.debt) },
-                    Col("Fakt %", 80.dp, true, { m[it.id]?.factPct }) { formatPercent(m[it.id]?.factPct) },
-                    Col("F-2 %", 80.dp, true, { m[it.id]?.f2Pct }) { formatPercent(m[it.id]?.f2Pct) },
+                    QCol("Obyekt", 300.dp, sort = { it.nom.lowercase() }) { it.nom },
+                    QCol("Smeta QQS bilan", 150.dp, true, { m[it.id]?.smeta?.qqsBilan }) { money(m[it.id]?.smeta?.qqsBilan) },
+                    QCol("Smeta ustamali", 150.dp, true, { m[it.id]?.smeta?.ustamali }) { money(m[it.id]?.smeta?.ustamali) },
+                    QCol("Smeta ustamasiz", 150.dp, true, { m[it.id]?.smeta?.ustamasiz }) { money(m[it.id]?.smeta?.ustamasiz) },
+                    QCol("Fakt QQS bilan", 150.dp, true, { m[it.id]?.fakt?.qqsBilan }) { money(m[it.id]?.fakt?.qqsBilan) },
+                    QCol("Fakt ustamali", 150.dp, true, { m[it.id]?.fakt?.ustamali }) { money(m[it.id]?.fakt?.ustamali) },
+                    QCol("Fakt ustamasiz", 150.dp, true, { m[it.id]?.fakt?.ustamasiz }) { money(m[it.id]?.fakt?.ustamasiz) },
+                    QCol("F-2 QQS bilan", 150.dp, true, { m[it.id]?.f2?.qqsBilan }) { money(m[it.id]?.f2?.qqsBilan) },
+                    QCol("F-2 ustamali", 150.dp, true, { m[it.id]?.f2?.ustamali }) { money(m[it.id]?.f2?.ustamali) },
+                    QCol("F-2 ustamasiz", 150.dp, true, { m[it.id]?.f2?.ustamasiz }) { money(m[it.id]?.f2?.ustamasiz) },
+                    QCol("Shartnoma (QQS bilan)", 170.dp, true, { m[it.id]?.contractQqs }) { money(m[it.id]?.contractQqs) },
+                    QCol("To'langan", 150.dp, true, { m[it.id]?.paid }) { money(m[it.id]?.paid) },
+                    QCol("Qarz", 150.dp, true, { m[it.id]?.debt }) { money(m[it.id]?.debt) },
+                    QCol("Fakt %", 80.dp, true, { m[it.id]?.factPct }) { formatPercent(m[it.id]?.factPct) },
+                    QCol("F-2 %", 80.dp, true, { m[it.id]?.f2Pct }) { formatPercent(m[it.id]?.f2Pct) },
                 ), modifier = Modifier.weight(1f), key = { it.id },
             )
         } else {
-            if (debts == null) { Loading(); return@Page }
+            if (debts == null) { QLoading(); return@Page }
             debts.Banner()
             val rows = debts.valueOrNull().orEmpty()
             val known = rows.mapNotNull { it.debt }
-            Row { Kv("Qarz jami (ma'lum qatorlar)", money(if (known.isEmpty()) null else known.sum())); Kv("Shartnoma", rows.size.toString()) }
-            SortTable(
+            Row { QKv("Qarz jami (ma'lum qatorlar)", money(if (known.isEmpty()) null else known.sum())); QKv("Shartnoma", rows.size.toString()) }
+            QTable(
                 rows, listOf(
-                    Col("Kontragent", 260.dp, sort = { it.counterparty?.lowercase() }) { it.counterparty ?: "" },
-                    Col("Shartnoma", 200.dp, sort = { it.number }) { listOfNotNull(it.number, it.name).joinToString(" ") },
-                    Col("Summa", 150.dp, true, { it.contractSum }) { money(it.contractSum) },
-                    Col("F-3 sotuv", 150.dp, true, { it.f3Sale }) { money(it.f3Sale) },
-                    Col("To'langan", 150.dp, true, { it.paid }) { money(it.paid) },
-                    Col("Qarz", 150.dp, true, { it.debt }) { money(it.debt) },
-                    Col("Oxirgi to'lov", 110.dp, sort = { it.lastPayment }) { it.lastPayment?.take(10) ?: "" },
+                    QCol("Kontragent", 260.dp, sort = { it.counterparty?.lowercase() }) { it.counterparty ?: "" },
+                    QCol("Shartnoma", 200.dp, sort = { it.number }) { listOfNotNull(it.number, it.name).joinToString(" ") },
+                    QCol("Summa", 150.dp, true, { it.contractSum }) { money(it.contractSum) },
+                    QCol("F-3 sotuv", 150.dp, true, { it.f3Sale }) { money(it.f3Sale) },
+                    QCol("To'langan", 150.dp, true, { it.paid }) { money(it.paid) },
+                    QCol("Qarz", 150.dp, true, { it.debt }) { money(it.debt) },
+                    QCol("Oxirgi to'lov", 110.dp, sort = { it.lastPayment }) { it.lastPayment?.take(10) ?: "" },
                 ), modifier = Modifier.weight(1f),
             )
         }
@@ -481,16 +474,16 @@ fun DocsScreen(c: Ctx) = NeedObject(c) { o ->
     Page("Hujjatlar: ${o.nom}", "Qatorni bosing: hujjat yuklanadi va ochiladi") {
         msg?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         UploadBar(c, o.id) { bump++ }
-        if (docs == null) { Loading(); return@Page }
+        if (docs == null) { QLoading(); return@Page }
         docs.Banner()
         Box(Modifier.fillMaxWidth().height(300.dp)) {
-            SortTable(
+            QTable(
                 docs.valueOrNull().orEmpty(), listOf(
-                    Col("Fayl", 420.dp, sort = { it.name.lowercase() }) { it.name },
-                    Col("Turi", 110.dp, sort = { it.type }) { it.type },
-                    Col("Hajmi", 100.dp, true, { it.size }) { "${it.size / 1024} KB" },
-                    Col("Yangilangan", 150.dp, sort = { it.updated }) { formatIsoStamp(it.updated) },
-                    Col("Tayyor", 80.dp) { if (it.ready) "ha" else "yo'q" },
+                    QCol("Fayl", 420.dp, sort = { it.name.lowercase() }) { it.name },
+                    QCol("Turi", 110.dp, sort = { it.type }) { it.type },
+                    QCol("Hajmi", 100.dp, true, { it.size }) { "${it.size / 1024} KB" },
+                    QCol("Yangilangan", 150.dp, sort = { it.updated }) { formatIsoStamp(it.updated) },
+                    QCol("Tayyor", 80.dp) { if (it.ready) "ha" else "yo'q" },
                 ), key = { it.id },
                 onClick = { d ->
                     scope.launch {
@@ -503,17 +496,17 @@ fun DocsScreen(c: Ctx) = NeedObject(c) { o ->
         }
         Text("Tasdiqlash kutayotganlar", fontWeight = FontWeight.SemiBold)
         val items = inbox.valueOrNull().orEmpty()
-        if (inbox == null) Loading() else if (items.isEmpty()) Hint("Hozircha tasdiqlash kutayotgan hujjat yo'q") else {
-            SortTable(
+        if (inbox == null) QLoading() else if (items.isEmpty()) QHint("Hozircha tasdiqlash kutayotgan hujjat yo'q") else {
+            QTable(
                 items, listOf(
-                    Col("Sarlavha", 360.dp, sort = { it.sarlavha }) { it.sarlavha },
-                    Col("Turi", 110.dp, sort = { it.tur }) { it.tur },
-                    Col("Rol", 110.dp) { it.rol ?: "" },
-                    Col("Muddat", 120.dp, sort = { it.muddat }) { it.muddat?.take(10) ?: "" },
-                    Col("Kechikkan", 90.dp) { if (it.kechikkan) "ha" else "" },
+                    QCol("Sarlavha", 360.dp, sort = { it.sarlavha }) { it.sarlavha },
+                    QCol("Turi", 110.dp, sort = { it.tur }) { it.tur },
+                    QCol("Rol", 110.dp) { it.rol ?: "" },
+                    QCol("Muddat", 120.dp, sort = { it.muddat }) { it.muddat?.take(10) ?: "" },
+                    QCol("Kechikkan", 90.dp) { if (it.kechikkan) "ha" else "" },
                 ), modifier = Modifier.weight(1f), key = { it.id }, onClick = { openItem = it },
             )
-            Hint("Qatorni bosing: hujjat ochiladi, u yerda tasdiqlash, qaytarish yoki rad etish (sabab bilan).")
+            QHint("Qatorni bosing: hujjat ochiladi, u yerda tasdiqlash, qaytarish yoki rad etish (sabab bilan).")
             openItem?.let { it0 -> ApprovalDialog(c, it0) { changed -> openItem = null; if (changed) bump++ } }
         }
     }
@@ -528,18 +521,18 @@ fun NotifScreen(c: Ctx, onRead: () -> Unit) {
     val list = load(c.tick, tick) { repo.notifications(100, false)?.let { Loaded.Fresh(it) } ?: Loaded.NoData }
     val scope = rememberCoroutineScope()
     Page("Bildirishnomalar") {
-        if (list == null) { Loading(); return@Page }
+        if (list == null) { QLoading(); return@Page }
         val v = list.valueOrNull()
         if (v == null) { list.Banner(); return@Page }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("O'qilmagan: ${v.unread}")
-            Button(onClick = { scope.launch { repo.markRead(v.items.filter { !it.oqildi }.map { it.id }); tick++; onRead() } }, enabled = v.unread > 0) { Text("Hammasini o'qilgan deb belgilash") }
+            QPrimaryButton(onClick = { scope.launch { repo.markRead(v.items.filter { !it.oqildi }.map { it.id }); tick++; onRead() } }, enabled = v.unread > 0) { Text("Hammasini o'qilgan deb belgilash") }
         }
-        SortTable(
+        QTable(
             v.items, listOf(
-                Col("", 30.dp) { if (it.oqildi) "" else "в—Џ" },
-                Col("Mavzu", 420.dp, sort = { it.mavzu }) { notifKind(it.mavzu).label() },
-                Col("Vaqt", 170.dp, sort = { it.yaratildi }) { it.yaratildi?.let { s -> formatIsoStamp(s) } ?: "" },
+                QCol("", 30.dp) { if (it.oqildi) "" else "в—Џ" },
+                QCol("Mavzu", 420.dp, sort = { it.mavzu }) { notifKind(it.mavzu).label() },
+                QCol("Vaqt", 170.dp, sort = { it.yaratildi }) { it.yaratildi?.let { s -> formatIsoStamp(s) } ?: "" },
             ), modifier = Modifier.weight(1f), key = { it.id },
         )
     }
@@ -568,16 +561,16 @@ fun SettingsScreen(c: Ctx) {
     val scope = rememberCoroutineScope()
     var msg by remember { mutableStateOf<String?>(null) }
     Page("Sozlamalar") {
-        if (prof == null) { Loading(); return@Page }
+        if (prof == null) { QLoading(); return@Page }
         prof.Banner()
         val p = prof.valueOrNull()
-        Section {
+        QPanel {
             Text("Profil", fontWeight = FontWeight.SemiBold)
             Text("Email / login: ${p?.email ?: c.me.email}")
             Text("Rol: ${c.me.role}   |   Kompaniya: ${c.place.nom} (${c.place.rol})")
-            OutlinedTextField(name ?: p?.ism.orEmpty(), { name = it }, label = { Text("Ism") }, singleLine = true, modifier = Modifier.width(360.dp))
-            OutlinedTextField(phone ?: p?.telefon.orEmpty(), { phone = it }, label = { Text("Telefon") }, singleLine = true, modifier = Modifier.width(360.dp))
-            Button(onClick = {
+            QInput(name ?: p?.ism.orEmpty(), { name = it }, label = "Ism", singleLine = true, modifier = Modifier.width(360.dp))
+            QInput(phone ?: p?.telefon.orEmpty(), { phone = it }, label = "Telefon", singleLine = true, modifier = Modifier.width(360.dp))
+            QPrimaryButton(onClick = {
                 scope.launch {
                     val r = c.sv.api.bff("/api/profil", "POST", profileUpdateBody(name?.takeIf { it.isNotBlank() }, phone?.takeIf { it.isNotBlank() }, null))
                     msg = if (r.ok) "Saqlandi" else if (r.networkError) Tx.offlineWrite else "Xato: ${r.code ?: r.status}"
@@ -585,22 +578,22 @@ fun SettingsScreen(c: Ctx) {
             }, enabled = (name != null || phone != null) && !c.me.offline) { Text("Saqlash") }
             msg?.let { Text(it) }
         }
-        Section {
+        QPanel {
             Text("Ilova", fontWeight = FontWeight.SemiBold)
             Text("QURAI Windows v${BuildInfo.VERSION}")
             Text("Server: ${BuildInfo.API_BASE}")
             Text("Ma'lumotlar: ${AppPaths.root.absolutePath}")
-            Hint("Oflayn nusxa shifrlangan (Windows DPAPI), 72 soat saqlanadi.")
+            QHint("Oflayn nusxa shifrlangan (Windows DPAPI), 72 soat saqlanadi.")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { c.sv.cache.wipe(); c.sv.cache.scope(c.me.id); msg = "Oflayn nusxa tozalandi" }) { Text("Oflayn nusxani tozalash") }
-                OutlinedButton(onClick = { openFile(AppPaths.logs) }) { Text("Jurnal papkasi") }
-                OutlinedButton(onClick = { openFile(downloadsDir()) }) { Text("Yuklangan hujjatlar") }
+                QSecondaryButton(onClick = { c.sv.cache.wipe(); c.sv.cache.scope(c.me.id); msg = "Oflayn nusxa tozalandi" }) { Text("Oflayn nusxani tozalash") }
+                QSecondaryButton(onClick = { openFile(AppPaths.logs) }) { Text("Jurnal papkasi") }
+                QSecondaryButton(onClick = { openFile(downloadsDir()) }) { Text("Yuklangan hujjatlar") }
             }
         }
-        Section {
+        QPanel {
             Text("Tezkor tugmalar", fontWeight = FontWeight.SemiBold)
             Text("Ctrl+K: Jarvis paneli   |   Ctrl+1..9: bo'limlar   |   F5: yangilash   |   Ctrl+E: Jarvis ga fokus")
         }
-        Button(onClick = { scope.launch { c.sv.signOut() } }) { Text("Chiqish") }
+        QPrimaryButton(onClick = { scope.launch { c.sv.signOut() } }) { Text("Chiqish") }
     }
 }

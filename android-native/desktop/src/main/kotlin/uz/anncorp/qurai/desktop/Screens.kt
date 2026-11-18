@@ -1,5 +1,7 @@
 package uz.anncorp.qurai.desktop
 
+import uz.anncorp.qurai.ui.components.*
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -84,7 +86,7 @@ private object S {
 }
 
 @Composable
-fun BootScreen() = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+fun BootScreen() = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { QLoading() }
 
 @Composable
 fun LoginScreen(sv: Services, onDone: (SessionUser) -> Unit) {
@@ -116,21 +118,9 @@ fun LoginScreen(sv: Services, onDone: (SessionUser) -> Unit) {
             }
         }
     }
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(Modifier.width(380.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("QURAI", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-            OutlinedTextField(login, { login = it }, label = { Text(S.loginLabel) }, singleLine = true, modifier = Modifier.fillMaxWidth(), enabled = !busy)
-            OutlinedTextField(
-                pass, { pass = it }, label = { Text(S.pass) }, singleLine = true, visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done), keyboardActions = KeyboardActions(onDone = { submit() }),
-                modifier = Modifier.fillMaxWidth(), enabled = !busy,
-            )
-            err?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            Button(onClick = { submit() }, enabled = !busy && login.isNotBlank() && pass.isNotEmpty(), modifier = Modifier.fillMaxWidth().height(44.dp)) {
-                if (busy) CircularProgressIndicator(Modifier.height(20.dp), strokeWidth = 2.dp) else Text(S.login)
-            }
-            Text("v${BuildInfo.VERSION}", style = MaterialTheme.typography.labelSmall)
-        }
-    }
+    uz.anncorp.qurai.ui.screens.QLoginScreen(
+        login, { login = it }, pass, { pass = it }, busy, err, { submit() },
+        texts = uz.anncorp.qurai.ui.screens.QLoginTexts(login = S.loginLabel, password = S.pass, signIn = S.login, version = "v${BuildInfo.VERSION}"),
+        logo = { BrandMark(64) },
+    )
 }
-

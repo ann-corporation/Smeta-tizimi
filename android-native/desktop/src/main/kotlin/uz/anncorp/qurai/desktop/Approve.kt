@@ -1,5 +1,7 @@
 package uz.anncorp.qurai.desktop
 
+import uz.anncorp.qurai.ui.components.*
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -78,36 +80,30 @@ fun ApprovalDialog(c: Ctx, item: ApprovalItem, onClose: (changed: Boolean) -> Un
     }
 
     val dt = detail
-    AlertDialog(
-        onDismissRequest = { if (!busy) onClose(false) },
-        title = { Text(item.sarlavha.ifBlank { "Hujjat" }) },
-        text = {
-            Column(Modifier.width(520.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (loading) Loading()
+    QDialog(
+        item.sarlavha.ifBlank { "Hujjat" }, { if (!busy) onClose(false) },
+        buttons = {
+            if (dt?.myTurn == true) {
+                QSecondaryButton(onClick = { decide(Decision.RETURN) }, enabled = !busy) { Text("Qaytarish") }
+                QSecondaryButton(onClick = { decide(Decision.REJECT) }, enabled = !busy) { Text("Rad etish") }
+                QPrimaryButton(onClick = { decide(Decision.APPROVE) }, enabled = !busy) { Text("Tasdiqlash") }
+            }
+            QGhostButton(onClick = { onClose(false) }, enabled = !busy) { Text("Yopish") }
+        },
+    ) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (loading) QLoading()
                 failed?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 doc?.let { d ->
-                    Kv("Turi", d.tur); Kv("Raqam", d.raqam ?: Tx.dash); Kv("Obyekt", d.obyekt ?: Tx.dash); Kv("Sana", d.sana ?: Tx.dash)
-                    Kv("Jami (QQS siz)", money(d.jami))
+                    QKv("Turi", d.tur); QKv("Raqam", d.raqam ?: Tx.dash); QKv("Obyekt", d.obyekt ?: Tx.dash); QKv("Sana", d.sana ?: Tx.dash)
+                    QKv("Jami (QQS siz)", money(d.jami))
                 }
-                dt?.steps?.forEach { s -> Kv("${s.tartib}. ${s.rol}", s.holat + (if (s.men) " (siz)" else "")) }
+                dt?.steps?.forEach { s -> QKv("${s.tartib}. ${s.rol}", s.holat + (if (s.men) " (siz)" else "")) }
                 if (dt != null && !dt.myTurn) Text(serverErrorText("NAVBAT_EMAS"), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (dt?.myTurn == true) OutlinedTextField(comment, { comment = it }, label = { Text("Izoh (rad etish va qaytarish uchun majburiy)") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                if (dt?.myTurn == true) QInput(comment, { comment = it }, label = "Izoh (rad etish va qaytarish uchun majburiy)", modifier = Modifier.fillMaxWidth(), minLines = 2)
                 msg?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
-        },
-        confirmButton = {
-            if (dt?.myTurn == true) Button(onClick = { decide(Decision.APPROVE) }, enabled = !busy) { Text("Tasdiqlash") }
-        },
-        dismissButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (dt?.myTurn == true) {
-                    OutlinedButton(onClick = { decide(Decision.RETURN) }, enabled = !busy) { Text("Qaytarish") }
-                    OutlinedButton(onClick = { decide(Decision.REJECT) }, enabled = !busy) { Text("Rad etish") }
-                }
-                TextButton(onClick = { onClose(false) }, enabled = !busy) { Text("Yopish") }
-            }
-        },
-    )
+    }
 }
 
 /** Next lifecycle step of an F-2 act (submit -> checked -> approved) and rejection of a checked act; the database enforces roles and separation of duties. */
@@ -133,12 +129,12 @@ fun F2StepBar(c: Ctx, act: F2Act, onChanged: () -> Unit) {
     }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { go(next, null) }, enabled = !busy) { Text(f2StepLabel(act.state) ?: "") }
-            if (f2CanReject(act.state)) OutlinedButton(onClick = { rejecting = !rejecting }, enabled = !busy) { Text("Rad etish") }
+            QPrimaryButton(onClick = { go(next, null) }, enabled = !busy) { Text(f2StepLabel(act.state) ?: "") }
+            if (f2CanReject(act.state)) QSecondaryButton(onClick = { rejecting = !rejecting }, enabled = !busy) { Text("Rad etish") }
         }
         if (rejecting) {
-            OutlinedTextField(reason, { reason = it }, label = { Text("Rad etish sababi") }, modifier = Modifier.fillMaxWidth())
-            Button(onClick = { if (reason.isBlank()) msg = serverErrorText("REASON_REQUIRED") else go(F2Status.REJECTED, reason) }, enabled = !busy) { Text("Rad etishni tasdiqlash") }
+            QInput(reason, { reason = it }, label = "Rad etish sababi", modifier = Modifier.fillMaxWidth())
+            QPrimaryButton(onClick = { if (reason.isBlank()) msg = serverErrorText("REASON_REQUIRED") else go(F2Status.REJECTED, reason) }, enabled = !busy) { Text("Rad etishni tasdiqlash") }
         }
         msg?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
@@ -150,11 +146,11 @@ fun AktSummaStrip(c: Ctx, aktId: Long) {
     var res by remember(aktId) { mutableStateOf<uz.anncorp.smeta.core.data.AktSumma?>(null) }
     LaunchedEffect(aktId) { res = null; res = repo.load(aktId) }
     when (val r = res) {
-        null -> Hint("Akt summasi yuklanmoqda...")
+        null -> QHint("Akt summasi yuklanmoqda...")
         is uz.anncorp.smeta.core.data.AktSumma.Known -> {
             PackStrip("Akt summasi (server)", r.pack)
-            if ((r.unpriced ?: 0) > 0) Hint("Narxsiz qatorlar: ${r.unpriced} - ularning summasi jamiga kirmagan.")
+            if ((r.unpriced ?: 0) > 0) QHint("Narxsiz qatorlar: ${r.unpriced} - ularning summasi jamiga kirmagan.")
         }
-        is uz.anncorp.smeta.core.data.AktSumma.Unknown -> Hint(uz.anncorp.smeta.core.data.aktSummaUnknownText(r.code))
+        is uz.anncorp.smeta.core.data.AktSumma.Unknown -> QHint(uz.anncorp.smeta.core.data.aktSummaUnknownText(r.code))
     }
 }

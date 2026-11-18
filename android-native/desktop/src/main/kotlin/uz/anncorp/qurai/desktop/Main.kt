@@ -1,6 +1,6 @@
-﻿package uz.anncorp.qurai.desktop
+package uz.anncorp.qurai.desktop
 
-import androidx.compose.material3.MaterialTheme
+import uz.anncorp.qurai.ui.theme.QuraiTheme
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.res.loadImageBitmap
 import androidx.compose.ui.res.useResource
@@ -23,11 +23,13 @@ private enum class Stage { Boot, Login, Main }
 
 fun main(args: Array<String>) {
     val smoke = "--smoke" in args
+    // Design QA: `--gallery=<login|objects|ombor|f2|jarvis>` shows the shared screens with SAMPLE data (no login, no network) for side-by-side comparison with the site.
+    val gallery = args.firstOrNull { it.startsWith("--gallery=") }?.substringAfter("=")
     Log.i("start v${BuildInfo.VERSION} smoke=$smoke java=${System.getProperty("java.version")} os=${System.getProperty("os.name")}")
     val services = Services()
     application {
         Window(icon = BitmapPainter(useResource("qurai-icon.png", ::loadImageBitmap)), onCloseRequest = { Log.i("exit"); exitApplication() }, title = "QURAI", state = rememberWindowState(size = DpSize(1360.dp, 820.dp)), onPreviewKeyEvent = { Shortcuts.dispatch(it) }) {
-            QuraiTheme { Root(services) }
+            QuraiTheme { if (gallery != null) uz.anncorp.qurai.ui.screens.QGallery(gallery) else Root(services) }
             if (smoke) LaunchedEffect(Unit) {
                 delay(6_000)
                 Log.i("smoke: window alive after 6s, exiting")

@@ -34,7 +34,7 @@ import uz.anncorp.smeta.core.data.Prefs
 import uz.anncorp.smeta.core.data.ThemeMode
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
-import uz.anncorp.smeta.core.ui.QuraiTheme
+import uz.anncorp.qurai.ui.theme.QuraiTheme
 import uz.anncorp.smeta.core.ui.isDarkFor
 import uz.anncorp.smeta.feature.approval.ApprovalDetailScreen
 import uz.anncorp.smeta.feature.home.HomeScreen
