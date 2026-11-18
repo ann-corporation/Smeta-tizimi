@@ -8,19 +8,13 @@ import uz.anncorp.smeta.core.data.ApiClient
 import uz.anncorp.smeta.core.data.ApiResult
 import uz.anncorp.smeta.core.data.AuthEvents
 import uz.anncorp.smeta.core.data.AuthRepository
+import uz.anncorp.smeta.core.data.EncryptedCache
+import uz.anncorp.smeta.core.data.Loaded
 import uz.anncorp.smeta.core.data.JarvisRepository
 import uz.anncorp.smeta.core.data.SessionRepository
 import uz.anncorp.smeta.core.data.TokenStore
 import java.util.concurrent.TimeUnit
 
-/** What a cached read returns: fresh from the server, an offline copy (with its age), or why there is nothing. */
-sealed interface Loaded<out T> {
-    data class Fresh<T>(val data: T) : Loaded<T>
-    data class Offline<T>(val data: T, val savedAt: Long) : Loaded<T>
-    data object Forbidden : Loaded<Nothing>
-    data object NoData : Loaded<Nothing>
-    data class Failed(val code: String) : Loaded<Nothing>
-}
 
 /** Wires the shared (Android-free) core to Windows: DPAPI token store, encrypted cache, the same BFF client and auth as the Android app. */
 class Services(apiBase: String = System.getenv("QURAI_API_BASE") ?: BuildInfo.API_BASE) {
