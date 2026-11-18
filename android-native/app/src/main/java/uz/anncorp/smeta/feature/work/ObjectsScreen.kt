@@ -75,7 +75,7 @@ fun ObjectsScreen(onOpen: (Long) -> Unit, pickForFact: Boolean = false, vm: Obje
                             val d = displayMoney(ui.money[o.id]?.smeta, o.jami)
                             QObjectRow(o.id, o.nom, o.tur, o.qatorSoni, o.narxsiz, formatMoneyShort(d.vatIncl), formatMoneyShort(d.withMarkup), formatMoneyShort(d.withoutMarkup))
                         },
-                        { onOpen(it.id) }, Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp, 8.dp, 16.dp, 24.dp),
+                        { onOpen(it.id) }, Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp, 8.dp, 16.dp, 96.dp),
                         texts = QObjectTexts(rowsLabel = { res.getQuantityString(R.plurals.p1_rows, it, it) }, unpricedLabel = { res.getQuantityString(R.plurals.p1_unpriced, it, it) }),
                     )
                 }            }

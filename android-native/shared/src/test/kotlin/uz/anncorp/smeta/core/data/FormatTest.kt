@@ -8,13 +8,20 @@ class FormatTest {
     private val nb = " "
 
     @Test fun moneyUzbekStyle() {
+        assertEquals("18.11.2026", formatDate("2026-11-18T09:13:00Z"))
+        assertEquals("18.11.2026", formatDate("2026-11-18"))
+        assertEquals("\u2014", formatDate(null))
         assertEquals("1${nb}234${nb}567,89", formatMoney(1234567.89))
         assertEquals("0,00", formatMoney(0.0))
         assertEquals("-1${nb}000,50", formatMoney(-1000.5))
         assertEquals("999,99", formatMoney(999.99))
         assertEquals("1${nb}000,00", formatMoney(999.995))
         assertEquals("—", formatMoney(null))
-        assertEquals("1${nb}234${nb}568", formatMoneyShort(1234567.89))
+        assertEquals("18.11.2026", formatDate("2026-11-18T09:13:00Z"))
+        assertEquals("18.11.2026", formatDate("2026-11-18"))
+        assertEquals("\u2014", formatDate(null))
+        assertEquals("1${nb}234${nb}567,89", formatMoneyShort(1234567.89))
+        assertEquals(formatMoney(1614935115.6, 2), formatMoneyShort(1614935115.6))
     }
 
     @Test fun unknownIsNotZero() {
