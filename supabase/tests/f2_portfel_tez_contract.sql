@@ -1,4 +1,4 @@
--- Kontrakt: 20270111000000_t2_f2_portfel_tez_v1 (F2 portfeli: bitta tez so'rov, summa FAQAT yadrodan).
+-- Kontrakt: 20270111100000_t2_f2_portfel_tez_v1 (F2 portfeli: bitta tez so'rov, summa FAQAT yadrodan).
 -- Asosiy tekshiruv: shartnoma portfeli jami == shartnomadagi har aktning O'Z summa paketi yig'indisi (tasdiqlangan va qoralama alohida);
 -- bekor qilingan akt hech bir jamiga kirmaydi; qatorlar soni to'g'ri. Faqat O'QISH + sun'iy tenant ma'lumoti, oxirida ROLLBACK. Real summalar yo'q.
 begin;
