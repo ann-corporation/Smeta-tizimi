@@ -1,0 +1,4 @@
+{
+  "{n}/{m} tayyor": { "ru": "готово {n}/{m}", "en": "{n}/{m} ready" },
+  "Paket yig‘ilmoqda… {n}/{m} tayyor": { "ru": "Сборка пакета… готово {n}/{m}", "en": "Building package… {n}/{m} ready" }
+}

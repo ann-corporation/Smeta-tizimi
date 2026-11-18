@@ -28,7 +28,7 @@ export type HujjatTokenNatija =
  * yechilgandan KEYIN chaqiriladi. `yacheykalar` berilmasa fayldan sanaladi (`manba` bilan — asl fayl ayirib).
  */
 export async function hujjatTokenBilan(
-  p: { kompaniyaId: number; bytes: Uint8Array; hujjat: string; sabab: string; obyekt?: number | string | null; amal?: TokenAmal; yacheykalar?: number; manba?: Uint8Array | null; /** Paket: har fayl hisoblangan katak soni — narx har fayl narxining YIG'INDISI (bitta yechim). */ fayllar?: number[] },
+  p: { kompaniyaId: number; bytes: Uint8Array; hujjat: string; sabab: string; obyekt?: number | string | null; amal?: TokenAmal; yacheykalar?: number; manba?: Uint8Array | null; /** Paket: har fayl hisoblangan katak soni — narx har fayl narxining YIG'INDISI (bitta yechim). */ fayllar?: number[]; /** Paket: har fayl mazmun xeshi (fayllar bilan bir xil uzunlik) - server faqat to'lanmaganlarini yechadi (hujjat bo'yicha dedup). */ xeshlar?: string[] },
   yetkaz: () => void | Promise<void>,
   d: { tokenBilan: typeof tokenBilan; mazmunXeshi: typeof mazmunXeshi } = { tokenBilan, mazmunXeshi },
 ): Promise<HujjatTokenNatija> {
@@ -36,9 +36,12 @@ export async function hujjatTokenBilan(
   toast('Hujjat tayyorlanmoqda… (token narxi tayyor bo‘lgach ko‘rsatiladi)', 'ok');
   const paketFayllar = p.fayllar && p.fayllar.length ? p.fayllar : null;
   const yacheykalar = paketFayllar ? paketFayllar.reduce((s, x) => s + x, 0) : p.yacheykalar ?? xlsxYacheykaSoni(p.bytes, p.manba);
-  const xesh = await d.mazmunXeshi(p.bytes);
-  const meta: Record<string, string | number | number[]> = { hujjat: p.hujjat, sabab: p.sabab.slice(0, 200), yacheyka: yacheykalar, sanoq: 'formula', xesh };
+  const paketXeshlar = paketFayllar && p.xeshlar && p.xeshlar.length === paketFayllar.length ? p.xeshlar : null;
+  // Hujjat bo'yicha dedup bo'lsa — butun paket xeshi KERAK EMAS (u birinchi hujjatni noto'g'ri bepul qilardi).
+  const meta: Record<string, string | number | string[] | number[]> = { hujjat: p.hujjat, sabab: p.sabab.slice(0, 200), yacheyka: yacheykalar, sanoq: 'formula' };
+  if (!paketXeshlar) meta.xesh = await d.mazmunXeshi(p.bytes);
   if (paketFayllar) meta.fayl_yacheykalar = paketFayllar;
+  if (paketXeshlar) meta.fayl_xeshlar = paketXeshlar;
   if (p.obyekt != null && p.obyekt !== '') meta.obyekt = p.obyekt;
   const r = await d.tokenBilan({ kompaniyaId: p.kompaniyaId, amal: p.amal ?? 'hujjat', birlikSoni: yacheykalar, meta }, async () => { await yetkaz(); return true; });
   if (!r.ok) return { ok: false, xabar: r.xabar };
