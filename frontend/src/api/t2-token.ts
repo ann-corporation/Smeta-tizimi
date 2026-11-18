@@ -36,6 +36,9 @@ export type TokenHolat = {
   balans: number;
   obuna: { tarif: string; nom: string; oylik_token: number; boshlandi: string; tugaydi: string | null } | null;
   tariflar: TokenTarif[]; narxlar: TokenNarx[]; harakatlar: TokenHarakat[];
+  /** Hujjat maydoni (disk) rejalari va kompaniya disk holati (t2_token_holat_v1 kengaytmasi). */
+  disk_tariflar?: Array<{ kod: string; nom: string; disk_bayt: number; narx_som: number }>;
+  disk?: { kvota: { ishlatilgan: number; limit: number; chegara: number; ortiqcha: boolean; foiz: number | null }; reja: { kod: string; tugaydi: string } | null } | null;
   sozlama: TokenSozlama; paketlar: TokenPaket[]; sorovlar: TolovSorov[];
   superadmin: boolean; demo_obyekt_id: number | null;
 };

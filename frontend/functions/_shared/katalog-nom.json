@@ -111,6 +111,14 @@
   "ru": "Оформление документов",
   "en": "Document design"
  },
+ "Hujjatlarim": {
+  "ru": "Мои документы",
+  "en": "My documents"
+ },
+ "Hujjatlarim (disk)": {
+  "ru": "Мои документы (диск)",
+  "en": "My documents (drive)"
+ },
  "Integratsiyalar va audit": {
   "ru": "Интеграции и аудит",
   "en": "Integrations and audit"
