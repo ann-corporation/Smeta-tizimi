@@ -181,7 +181,7 @@ fun MainScreen(sv: Services, me: SessionUser) {
                         Mod.Narx -> NarxScreen(ctx)
                         Mod.Ombor -> OmborScreen(ctx)
                         Mod.Money -> MoneyScreen(ctx)
-                        Mod.Docs -> DiskScreen(ctx)
+                        Mod.Docs -> DiskScreen(ctx) { id, o -> if (id in Mod.ids) { if (o != null) objId = o; mod = Mod.of(id) } }
                         Mod.Notif -> NotifScreen(ctx) { unread = 0 }
                         Mod.Settings -> SettingsScreen(ctx)
                     }

@@ -223,6 +223,15 @@ private class DemoBff(private val context: Context, private val json: Json, priv
             path.startsWith("/api/hujjat-royxat") -> ok(DEMO_DOCS)
             path.startsWith("/api/hujjat-yarat") -> ok(asset("gen_list.json"))
             path.startsWith("/api/foto-dalil") -> ok("""{"ok":true,"id":900}""")
+            // Disk (QA 0.1.19: the demo answered 400 and the screen said it could not load): same shapes as /api/hujjat-maydoni, fixtures in assets/demo/disk_*.json.
+            path.startsWith("/api/hujjat-maydoni") -> ok(asset(when {
+                path.contains("amal=versiyalar") -> "disk_versiyalar.json"
+                path.contains("amal=ulashilgan") -> "disk_ulashilgan.json"
+                path.contains("savat=1") -> "disk_savat.json"
+                path.contains("kompaniya_id") -> if (path.contains("papka_id")) "disk_company_papka.json" else "disk_company.json"
+                path.contains("papka_id") -> "disk_company_papka.json"
+                else -> "disk_mine.json"
+            }))
             else -> ApiResult(404, null)
         }
     }
@@ -500,7 +509,7 @@ private class DemoBff(private val context: Context, private val json: Json, priv
 
     /** Demo document download: ids 9001/9002 are a generated 2-page PDF, 9003 an .xlsx stand-in (no preview), anything else is missing. */
     override suspend fun bffBytes(path: String, maxBytes: Long): uz.anncorp.smeta.core.data.BytesResult {
-        val id = path.substringAfter("id=").toLongOrNull() ?: return uz.anncorp.smeta.core.data.BytesResult(404, null)
+        val id = Regex("[?&]id=(\\d+)").find(path)?.groupValues?.get(1)?.toLongOrNull() ?: return uz.anncorp.smeta.core.data.BytesResult(404, null)
         return when (id) {
             9001L, 9002L -> uz.anncorp.smeta.core.data.BytesResult(200, demoPdf(id), "application/pdf", "F-2 demo.pdf")
             9003L -> uz.anncorp.smeta.core.data.BytesResult(200, ByteArray(2048) { 7 }, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "F-2 demo.xlsx")

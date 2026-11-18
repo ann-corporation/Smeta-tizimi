@@ -34,7 +34,7 @@ class MarkdownTest {
     }
 
     @Test fun navModelMatchesWebWorkPlaces() {
-        assertEquals(listOf("Bugun", "Obyekt", "Hujjatlar", "Ta'minot", "Moliya", "Tomonlar", "Kompaniya"), QNav.sections.map { it.title })
+        assertEquals(listOf("Bugun", "Obyekt", "Disk", "Ta‘minot", "Moliya", "Tomonlar", "Kompaniya"), QNav.sections.map { it.title })
         val v = QNav.visible(setOf("ombor", "obyektlar"))
         assertEquals(listOf("obyekt", "taminot"), v.map { it.id })
     }

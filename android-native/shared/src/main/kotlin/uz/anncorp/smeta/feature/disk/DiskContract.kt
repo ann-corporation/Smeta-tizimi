@@ -22,7 +22,10 @@ import java.math.RoundingMode
 enum class DiskTab { MINE, COMPANY, SHARED, TRASH }
 
 data class DiskFolder(val id: Long, val name: String, val system: Boolean)
-data class DiskFile(val id: Long, val name: String, val mime: String?, val bytes: Long?, val version: Int?, val updated: String?, val inTrash: Boolean, val comments: Int, val lockedBy: String?)
+data class DiskFile(val id: Long, val name: String, val mime: String?, val bytes: Long?, val version: Int?, val updated: String?, val inTrash: Boolean, val comments: Int, val lockedBy: String?,
+    /** System document (F-2, F-3 ...): where it was made (see [diskSystemTarget]). */
+    val system: Boolean = false, val sourceType: String? = null, val sourceId: Long? = null, val objectId: Long? = null, val contractId: Long? = null, val key: String? = null,
+)
 data class DiskCrumb(val id: Long, val name: String)
 data class DiskListing(val level: Int?, val companyId: Long?, val personal: Boolean, val path: List<DiskCrumb>, val folders: List<DiskFolder>, val files: List<DiskFile>)
 data class DiskSharedItem(val kind: String, val id: Long, val name: String, val mime: String?, val from: String?, val level: String?, val until: String?)
@@ -47,6 +50,8 @@ fun parseDiskListing(body: JsonElement?): DiskListing? {
         DiskFile(
             x["id"].num()?.toLong() ?: return@mapNotNull null, x["nom"].str().orEmpty().ifBlank { return@mapNotNull null }, x["mime"].str(), x["bayt"].num()?.toLong(),
             x["versiya"].num()?.toInt(), x["yangilandi"].str(), x["savatda"].str() != null, x["izohlar"].num()?.toInt() ?: 0, x["qulf_ism"].str(),
+            system = (x["tizim_hujjat"] as? JsonPrimitive)?.booleanOrNull == true, sourceType = x["manba_turi"].str(), sourceId = x["manba_id"].num()?.toLong(),
+            objectId = x["obyekt_id"].num()?.toLong(), contractId = x["shartnoma_id"].num()?.toLong(), key = x["hujjat_kalit"].str(),
         )
     }
     val path = o["yol"].arr().orEmpty().mapNotNull { e -> val x = e.obj() ?: return@mapNotNull null; DiskCrumb(x["id"].num()?.toLong() ?: return@mapNotNull null, x["nom"].str().orEmpty()) }
@@ -81,6 +86,9 @@ sealed interface DiskResult {
 }
 
 class DiskRepository(private val api: BffApi) {
+    suspend fun versions(fileId: Long): List<DiskVersion>? = api.diskVersions(fileId)
+    suspend fun fetch(file: DiskFile, version: Int?): DiskBytes = api.diskFetch(file, version)
+
     suspend fun load(tab: DiskTab, companyId: Long?, folderId: Long? = null): DiskResult {
         if ((tab == DiskTab.COMPANY) && companyId == null) return DiskResult.Failed(offline = false, forbidden = true)
         val r = api.bff(diskListPath(tab, companyId, folderId))
@@ -106,11 +114,28 @@ fun List<DiskSharedItem>.toRows(): List<DiskRowModel> = map { DiskRowModel("${it
  * State machine of the Disk screen (tab + folder stack + rows). The Android view model and the Windows module both own ONE of these, so the
  * navigation rules (open folder, up, switch tab) exist once.
  */
+/** What the host app (Android / Windows) does with a file and with a link to a screen; the controller only decides WHEN. */
+interface DiskHost {
+    /** Hand the bytes to the OS: [open] = show in a viewer app, else save / share. */
+    fun deliver(name: String, mime: String, bytes: ByteArray, open: Boolean)
+    /** Ids (QNav) of the screens this app has; "Tizimda ochish" opens one of them, otherwise the website page. */
+    val modules: Set<String> get() = emptySet()
+    fun openModule(module: String, objectId: Long?) {}
+    fun openWeb(path: String) {}
+}
+
+/** The file card: the file, its versions (null = loading, [versionsFailed] = could not load) and the last action result. */
+data class DiskDetail(val file: DiskFile, val versions: List<DiskVersion>? = null, val versionsFailed: Boolean = false, val busy: Boolean = false, val notice: DiskNotice? = null)
+
 class DiskController(private val repo: DiskRepository, private val scope: kotlinx.coroutines.CoroutineScope, private val companyId: () -> Long?) {
+    /** Set by the host once; null = browsing only. */
+    var host: DiskHost? = null
+    private var known: Map<String, DiskFile> = emptyMap()
+    private var detailJob: kotlinx.coroutines.Job? = null
     enum class Status { LOADING, READY, FAILED }
     data class State(
         val tab: DiskTab = DiskTab.MINE, val stack: List<DiskCrumb> = emptyList(), val rows: List<DiskRowModel> = emptyList(),
-        val status: Status = Status.LOADING, val offline: Boolean = false, val forbidden: Boolean = false,
+        val status: Status = Status.LOADING, val offline: Boolean = false, val forbidden: Boolean = false, val detail: DiskDetail? = null,
     ) { val canGoUp get() = stack.isNotEmpty() }
 
     private val _state = kotlinx.coroutines.flow.MutableStateFlow(State())
@@ -120,6 +145,44 @@ class DiskController(private val repo: DiskRepository, private val scope: kotlin
     fun select(tab: DiskTab) { _state.value = State(tab = tab); reload() }
     fun openFolder(id: Long, name: String) { _state.value = _state.value.copy(stack = _state.value.stack + DiskCrumb(id, name)); reload() }
     fun up() { val s = _state.value; if (s.stack.isEmpty()) return; _state.value = s.copy(stack = s.stack.dropLast(1)); reload() }
+
+    /** Opens the card of a FILE row (folders are opened with [openFolder]): shows it at once, then loads its versions. */
+    fun showFile(rowKey: String) {
+        val f = known[rowKey] ?: return
+        detailJob?.cancel()
+        _state.value = _state.value.copy(detail = DiskDetail(f))
+        detailJob = scope.launch {
+            val v = repo.versions(f.id)
+            _state.value.detail?.takeIf { it.file.id == f.id }?.let { d -> _state.value = _state.value.copy(detail = d.copy(versions = v, versionsFailed = v == null)) }
+        }
+    }
+
+    fun closeFile() { detailJob?.cancel(); _state.value = _state.value.copy(detail = null) }
+
+    /** View ([open]) or download the current file, or one [version] of it. A refusal is shown in the card as [DiskDetail.notice]. */
+    fun deliver(version: Int?, open: Boolean) {
+        val d = _state.value.detail ?: return
+        if (d.busy) return
+        _state.value = _state.value.copy(detail = d.copy(busy = true, notice = null))
+        detailJob = scope.launch {
+            val r = repo.fetch(d.file, version)
+            val notice = when (r) {
+                is DiskBytes.Ready -> { host?.deliver(r.name, r.mime, r.bytes, open); if (open) null else DiskNotice.SAVED }
+                is DiskBytes.Failed -> r.notice
+            }
+            _state.value.detail?.takeIf { it.file.id == d.file.id }?.let { cur -> _state.value = _state.value.copy(detail = cur.copy(busy = false, notice = notice)) }
+        }
+    }
+
+    /** Where the open file was made, or null (nothing to open). */
+    fun systemTarget(): DiskSystemTarget? = _state.value.detail?.file?.let { diskSystemTarget(it) }
+
+    /** "Tizimda ochish": the screen in this app when it has one, else the website page. */
+    fun openInSystem() {
+        val t = systemTarget() ?: return
+        val h = host ?: return
+        if (t.module != null && t.module in h.modules) h.openModule(t.module, t.objectId) else h.openWeb(t.webPath)
+    }
 
     fun reload() {
         job?.cancel()
@@ -136,6 +199,11 @@ class DiskController(private val repo: DiskRepository, private val scope: kotlin
                 status = Status.READY,
                 rows = ok.flatMap { r -> when (r) { is DiskResult.Listing -> r.value.toRows(); is DiskResult.Shared -> r.items.toRows(); is DiskResult.Failed -> emptyList() } }.distinctBy { it.key },
             )
+            known = ok.flatMap { r -> when (r) {
+                is DiskResult.Listing -> r.value.files.map { "f${it.id}" to it }
+                is DiskResult.Shared -> r.items.filter { it.kind != "papka" }.map { "${it.kind.take(1)}${it.id}" to DiskFile(it.id, it.name, it.mime, null, null, null, false, 0, null) }
+                is DiskResult.Failed -> emptyList()
+            } }.toMap()
         }
     }
 }

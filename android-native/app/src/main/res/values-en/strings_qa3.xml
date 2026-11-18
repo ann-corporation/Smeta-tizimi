@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="qa3_disk_open">Open</string>
+    <string name="qa3_disk_download">Download</string>
+    <string name="qa3_disk_system">Open in the system</string>
+    <string name="qa3_disk_versions">Versions</string>
+    <string name="qa3_disk_current">current</string>
+    <string name="qa3_disk_close">Close</string>
+    <string name="qa3_disk_loading">Loading...</string>
+    <string name="qa3_disk_versions_failed">Could not load versions</string>
+    <string name="qa3_disk_busy">Preparing...</string>
+    <string name="qa3_disk_n_saved">Done: the file is in the save or share sheet</string>
+    <string name="qa3_disk_n_offline">No connection. Check the internet and try again.</string>
+    <string name="qa3_disk_n_forbidden">You have no permission to open this file</string>
+    <string name="qa3_disk_n_too_large">The file is too large (over 25 MB): download it on the website</string>
+    <string name="qa3_disk_n_missing">File not found</string>
+    <string name="qa3_disk_n_payment">This document is paid on the website</string>
+    <string name="qa3_disk_n_failed">Could not get the file</string>
+    <string name="qa3_disk_flow_short">Workflow</string>
+</resources>
