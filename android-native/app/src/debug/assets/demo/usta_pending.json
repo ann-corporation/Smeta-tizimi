@@ -1,0 +1,4 @@
+{"ok":true,"soni":3,"jamiServerda":3,"toliq":true,"qatorlar":[
+ {"id":71,"kompaniya_id":1,"obyekt_id":101,"qator_id":1002,"sana":"2026-11-16","hajm":12.5,"izoh":"Poydevor, 2-smena","foto_hujjat_id":810,"holat":"qoralama","created_at":"2026-11-16T14:20:00+00:00"},
+ {"id":72,"kompaniya_id":1,"obyekt_id":101,"qator_id":1003,"sana":"2026-11-16","hajm":-0.5,"izoh":null,"foto_hujjat_id":null,"holat":"qoralama","created_at":"2026-11-16T14:22:00+00:00"},
+ {"id":60,"kompaniya_id":1,"obyekt_id":102,"qator_id":2001,"sana":"2026-11-10","hajm":40,"izoh":"Devor terish","foto_hujjat_id":null,"holat":"qoralama","created_at":"2026-11-10T09:00:00+00:00"}]}

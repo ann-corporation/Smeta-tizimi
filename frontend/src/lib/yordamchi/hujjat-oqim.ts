@@ -187,7 +187,7 @@ export async function f2QoralamaReja(d: HujjatDeps, obyektId: number, oy: string
   const chiqarilgan = new Set<number>();
   for (const r of rows) if ((r.tur === 'rs' || r.tur === 'mat' || r.tur === 'ob') && chiqarilganmi(sm.get(r.id) ?? r.hajm, bajH.get(r.id))) chiqarilgan.add(r.id);
   const zamenaAsl = zb?.almashtiradi ?? new Map<number, number>();
-  const faktBor = holat.some((h) => h.fakt_hajm != null && Number(h.fakt_hajm) !== 0) || holat.some((h) => Number(h.f2_mumkin_hajm) > 0);
+  const faktBor = holat.some((h) => h.fakt_hajm != null && Number(h.fakt_hajm) !== 0) || holat.some((h) => Math.abs(Number(h.f2_mumkin_hajm)) > 0);
   const manba: F2Manba = faktBor ? 'fakt' : 'smeta';
   const bolimlar = f2Qur(rows, holat, protokolNarx, manba, qh.hajm, { chiqarilgan, zamenaAsl, stornoQaytar: new Map(), ortiqchaChegir: false, smetaNarxda: false });
   const k = f2MumkinHajmlarniOl(bolimlar, bosKiritma());

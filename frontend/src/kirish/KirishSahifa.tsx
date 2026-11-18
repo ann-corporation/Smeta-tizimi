@@ -6,6 +6,7 @@ import { toast } from '../umumiy/ui/Toast';
 import GoogleKirish, { type GoogleNatija } from './GoogleKirish';
 import { EmailKodKirish, type EmailKirishNatija } from './EmailKodKirish';
 import { TelegramKirish, type TelegramNatija } from './TelegramKirish';
+import { IlovaTugmalari } from '../components/public-entry/IlovaTugmalari';
 import { ilovaWebViewmi, brauzerdaKirishBoshla } from './IlovaKirish';
 import { telefonNiqob } from '../lib/telefon-niqob';
 import { t } from '../i18n/til';
@@ -230,6 +231,7 @@ export default function KirishSahifa() {
                   </button>
                 </form>
                 </div>
+                <IlovaTugmalari />
 
               </motion.div>
             ) : (

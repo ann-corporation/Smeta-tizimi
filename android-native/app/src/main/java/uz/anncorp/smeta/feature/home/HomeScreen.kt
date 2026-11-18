@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -82,8 +84,8 @@ private val Tabs = listOf(
 @Composable
 fun HomeScreen(
     onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOpenApproval: (Long) -> Unit, onOutbox: () -> Unit,
-    onOpenWeb: (path: String, title: String) -> Unit, onPickFakt: () -> Unit, onPickPhoto: () -> Unit,
-    onJarvis: () -> Unit = {}, onRahbar: () -> Unit = {}, onZayavka: () -> Unit = {}, onInvite: () -> Unit = {}, onInvites: () -> Unit = {}, onNotifications: () -> Unit = {},
+    onPickFakt: () -> Unit, onPickPhoto: () -> Unit,
+    onJarvis: () -> Unit = {}, onRahbar: () -> Unit = {}, onZayavka: () -> Unit = {}, onInvite: () -> Unit = {}, onInvites: () -> Unit = {}, onNotifications: () -> Unit = {}, onSettings: () -> Unit = {},
     onModule: (NativeTarget) -> Unit = {},
     vm: HomeViewModel = hiltViewModel(),
 ) {
@@ -96,10 +98,12 @@ fun HomeScreen(
     val openObject: (Long) -> Unit = { vm.opened(it); onOpenObject(it) }
 
     // A fresh account (Google / Telegram / e-mail sign-up) has no workplace: create one, join with a code, or carry on without.
-    if (!state.loading && !state.failed && state.selected == null && !state.skipped) {
+    if (!state.loading && !state.failed && ((state.selected == null && !state.skipped) || state.forceOnboard)) {
         OnboardingScreen(
             busy = state.onboardBusy, error = state.onboardError, onCreate = vm::createCompany, onJoin = vm::joinCompany,
             onSkip = vm::skipOnboarding, onClearError = vm::clearOnboardError, onInvites = onInvites,
+            trial = state.sinov?.takeIf { it.canStart && state.selected == null }, trialBusy = state.sinovBusy, trialError = state.sinovError, onTrial = vm::startTrial,
+            forced = state.selected != null,
         )
         return
     }
@@ -107,8 +111,9 @@ fun HomeScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = { Column { WorkplaceBar(state.selected, state.workplaces.size > 1, workspace, onCabinets = { cabinetSheet = true }) { sheet = true }; UpdateBanner() } },
+        // With the keyboard open the bar would sit under it and push the content below the keyboard (Ombor command field was hidden): drop it, the Scaffold then pads for the IME.
         bottomBar = {
-            NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
+            if (androidx.compose.foundation.layout.WindowInsets.Companion.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current) == 0) NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
                 Tabs.forEachIndexed { i, t ->
                     NavigationBarItem(
                         selected = tab == i || (i == 0 && tab == OMBOR_TAB), onClick = { tab = i },
@@ -119,7 +124,7 @@ fun HomeScreen(
             }
         },
     ) { padding ->
-        Box(Modifier.padding(padding).fillMaxSize()) {
+        Box(Modifier.padding(padding).imePadding().fillMaxSize()) {
             when {
                 state.loading && state.workplaces.isEmpty() -> Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                     CircularProgressIndicator()
@@ -127,8 +132,8 @@ fun HomeScreen(
                     Text(stringResource(R.string.home_loading), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 tab == OMBOR_TAB -> { BackHandler { tab = 0 }; OmborScreen(onOutbox) }
-                tab == 4 -> ProfileScreen(state, onTheme = vm::setTheme, onSwitch = { sheet = true }, onSignOut = vm::requestSignOut, onInvite = onInvite, onInvites = onInvites)
-                else -> TabBody(state, tab, vm::load, openObject, onOpenFakt, onOpenApproval, { tab = it }, onOutbox, onOpenWeb, onPickFakt, onPickPhoto, vm::resumeOnboarding, onJarvis, onRahbar, onNotifications, onZayavka, onModule)
+                tab == 4 -> ProfileScreen(state, onTheme = vm::setTheme, onSwitch = { sheet = true }, onSignOut = vm::requestSignOut, onInvite = onInvite, onInvites = onInvites, onSettings = onSettings)
+                else -> TabBody(state, tab, vm::load, openObject, onOpenFakt, onOpenApproval, { tab = it }, onOutbox, onPickFakt, onPickPhoto, vm::resumeOnboarding, onJarvis, onRahbar, onNotifications, onZayavka, onModule)
             }
         }
     }
@@ -216,7 +221,7 @@ fun RoleChip(role: String) {
 @Composable
 private fun TabBody(
     state: HomeState, tab: Int, onRetry: () -> Unit, onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOpenApproval: (Long) -> Unit,
-    onGoTab: (Int) -> Unit, onOutbox: () -> Unit, onOpenWeb: (String, String) -> Unit, onPickFakt: () -> Unit, onPickPhoto: () -> Unit, onOnboard: () -> Unit, onJarvis: () -> Unit, onRahbar: () -> Unit, onNotifications: () -> Unit, onZayavka: () -> Unit, onModule: (NativeTarget) -> Unit,
+    onGoTab: (Int) -> Unit, onOutbox: () -> Unit, onPickFakt: () -> Unit, onPickPhoto: () -> Unit, onOnboard: () -> Unit, onJarvis: () -> Unit, onRahbar: () -> Unit, onNotifications: () -> Unit, onZayavka: () -> Unit, onModule: (NativeTarget) -> Unit,
     banner: BannerViewModel = hiltViewModel(),
 ) {
     val bannerState by banner.state.collectAsStateWithLifecycle()
@@ -246,10 +251,10 @@ private fun TabBody(
                         NativeTarget.JARVIS -> onJarvis()
                         NativeTarget.RAHBAR -> onRahbar()
                         NativeTarget.ZAYAVKA -> onZayavka()
-                        NativeTarget.M29, NativeTarget.NARYAD, NativeTarget.HUJJAT -> onModule(target)
+                        else -> onModule(target)
                     }
                 },
-                onWeb = onOpenWeb, onObject = onOpenObject, onFakt = onOpenFakt, onOnboard = onOnboard, onNotifications = onNotifications,
+                onObject = onOpenObject, onFakt = onOpenFakt, onOnboard = onOnboard, onNotifications = onNotifications,
             )
         } else if (state.selected == null && !state.loading) {
             Column(Modifier.fillMaxSize().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
@@ -259,7 +264,7 @@ private fun TabBody(
                 TextButton(onClick = onOnboard) { Text(stringResource(R.string.hub_no_company_action)) }
             }
         } else if (tab == 1) {
-            ObjectsScreen(onOpen = onOpenObject, onOpenWeb = { onOpenWeb(it, "") })
+            ObjectsScreen(onOpen = onOpenObject)
         } else if (tab == 2) {
             ApprovalsScreen(onOpen = onOpenApproval)
         } else {

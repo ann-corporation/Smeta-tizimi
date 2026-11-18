@@ -1,5 +1,5 @@
 /**
- * OAuth /authorize sahifasi: foydalanuvchi Smeta tizimi login/paroli bilan kiradi. Parol web ilova bilan AYNAN bir xil
+ * OAuth /authorize sahifasi: foydalanuvchi QURAI login/paroli bilan kiradi. Parol web ilova bilan AYNAN bir xil
  * tekshiriladi (`t2_parol_tekshir_v1`, service kaliti faqat Worker sirida); hisob holati va kompaniyalar — `t2_men_v1`
  * (roleAuthority). Parol hech qayerga yozilmaydi/loglanmaydi. GAS-faqat (Supabase xeshi hali yo'q) hisoblar — avval saytga bir
  * marta kirish kerak (sayt parolni Supabase'ga ko'chiradi).

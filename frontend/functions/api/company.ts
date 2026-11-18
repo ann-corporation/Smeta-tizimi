@@ -35,6 +35,9 @@ const RPC = {
   /* 2026-11-13 (L0): oddiy foydalanuvchi o'z (birinchi) kompaniyasini DARHOL ochadi va unda boss bo'ladi (tasdiqsiz, 1 ta; STIR ixtiyoriy,
      band STIR rad). Qo'shimcha kompaniyalar — eski royxat_soraw oqimi (superadmin tasdig'i). Cheklovlar RPC ichida (20261217210000). */
   ozi_och: 't2_kompaniya_ozi_och_v1',
+  /* 2026-11-17 (egasi): yangi foydalanuvchi 1000 token bilan sinov ish joyini bir tugmada boshlaydi (20270102000000); demo namuna - faqat so'ralganda. */
+  sinov_boshlash: 't2_sinov_boshlash_v1',
+  sinov_demo: 't2_sinov_demo_v1',
   royxat_soraw: 't2_kompaniya_royxat_soraw_v1',
   royxat_royxat: 't2_kompaniya_royxat_royxat_v1',
   royxat_tasdiqla: 't2_kompaniya_royxat_tasdiqla_v1',
@@ -84,7 +87,8 @@ function statusFor(code: string, raw: string): number {
   if (code === 'AUTHORIZATION_DENIED' || code === 'SUPERADMIN_REQUIRED' || code === 'MANAGE_ROLE_REQUIRED' || /42501|direktor|a'zo|azo|membership|PERMISSION/i.test(code + raw)) return 403;
   if (['PROTECTED_AUTHORITY','MANAGEMENT_ROLE_REQUIRED','ACCOUNT_OWNER_REQUIRED'].includes(code)) return 403;
   if (code === 'OPERATION_ID_REQUIRED' || code === 'PAROL_QISQA' || code === 'RUXSAT_NOTOGRI' || /INVALID|REQUIRED/.test(code)) return 400;
-  if (code === 'OZI_OCHILGAN' || code === 'INN_BAND') return 409;
+  if (code === 'OZI_OCHILGAN' || code === 'INN_BAND' || code === 'SINOV_KERAKMAS') return 409;
+  if (code === 'SINOV_YOQ' || code === 'DEMO_YOQ') return 404;
   if (code === 'ALREADY_MEMBER' || code === 'LAST_DIRECTOR' || code === 'STALE_VERSION') return 409;
   if (code === 'TOPILMADI') return 404;
   if (code === 'LIMIT') return 429;
@@ -130,6 +134,16 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       });
       if (!r.ok || !j) {
         console.error('[company authorize] t2_effective_authorization_v1', r.status, text.slice(0, 300));
+        return Response.json({ ok: false, code: 'CONFIG' }, { status: 502 });
+      }
+      return Response.json(j);
+    }
+
+    // ── Sinov holati (balans, demo, boshlash mumkinmi) — faqat o'qish, actor sessiyadan ──
+    if (url.searchParams.get('sinov') === '1') {
+      const { r, j, text } = await callRpc(ctx.env, 't2_sinov_holat_v1', { p_actor_id: a.id });
+      if (!r.ok || !j || j.ok !== true) {
+        console.error('[company sinov] t2_sinov_holat_v1', r.status, text.slice(0, 300));
         return Response.json({ ok: false, code: 'CONFIG' }, { status: 502 });
       }
       return Response.json(j);
@@ -224,6 +238,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       body={p_actor_id:a.id,p_kompaniya_id:Number(b.kompaniya_id),p_azolik_id:Number(b.azolik_id),p_permissions:b.permissions,p_expected_version:b.expected_version,p_operation_id:opId};
     } else if (action === 'create' || action === 'royxat_soraw' || action === 'ozi_och') {
       body = { p_actor_id: a.id, p_nom: String(b.nom ?? ''), p_inn: b.inn == null ? null : String(b.inn), p_telefon: b.telefon == null ? null : String(b.telefon), p_operation_id: opId };
+    } else if (action === 'sinov_boshlash' || action === 'sinov_demo') {
+      body = { p_actor_id: a.id, p_operation_id: opId };
     } else if (action === 'royxat_tasdiqla') {
       body = { p_actor_id: a.id, p_royxat_id: Number(b.royxat_id), p_operation_id: opId };
     } else if (action === 'royxat_rad_et') {
@@ -259,9 +275,10 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         ...(code === 'TOPILMADI' ? { tur: j?.tur, telefon_taklif: j?.telefon_taklif === true, telefon: typeof j?.telefon === 'string' ? j.telefon : null } : {}) }, { status: statusFor(code, text) });
       return xavfsizXato('UPSTREAM', statusFor(code, text), text);
     }
-    if (action === 'ozi_och') vakolatKeshTozala(a.id); // yangi a'zolik darhol ko'rinsin
+    if (action === 'ozi_och' || action === 'sinov_boshlash') vakolatKeshTozala(a.id); // yangi a'zolik darhol ko'rinsin
     return Response.json({ ...j, operation_id: opId });
   } catch (err: any) {
     return xavfsizXato('UPSTREAM', 500, err?.message || String(err));
   }
 };
+

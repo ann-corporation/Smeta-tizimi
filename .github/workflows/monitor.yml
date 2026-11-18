@@ -1,0 +1,69 @@
+name: monitor
+
+# Uptime + limit ogohlantirishi (har 15 daqiqada). Sayt/API 5xx yoki javobsiz bo'lsa — ish YIQILADI (GitHub egasiga xat yuboradi)
+# va, agar sozlangan bo'lsa, to'g'ridan-to'g'ri Telegram'ga xabar ketadi. Baza hajmi ogohlantirishi (>= 85 %) — kuniga 4 marta
+# /api/telegram/monitor orqali (mavjud bot, egasining chati). API xato sakrashi hozir o'lchanmaydi (arzon manba yo'q).
+# Sozlash (egasi): repo o'zgaruvchisi PROD_URL (mavjud) + GitHub sir BILDIRISHNOMA_CRON_KALIT (mavjud) + Cloudflare o'zgaruvchisi MONITOR_EGASI_ID.
+# Ixtiyoriy (sayt butunlay o'chganda ham Telegram xabari uchun): GitHub sirlari TELEGRAM_ALERT_BOT_TOKEN va TELEGRAM_ALERT_CHAT_ID.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: monitor
+  cancel-in-progress: true
+
+jobs:
+  tekshir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PROD_URL: ${{ vars.PROD_URL }}
+      BILDIRISHNOMA_CRON_KALIT: ${{ secrets.BILDIRISHNOMA_CRON_KALIT }}
+      TG_TOKEN: ${{ secrets.TELEGRAM_ALERT_BOT_TOKEN }}
+      TG_CHAT: ${{ secrets.TELEGRAM_ALERT_CHAT_ID }}
+    steps:
+      - name: Sayt va API sog'ligi
+        run: |
+          if [ -z "$PROD_URL" ]; then echo "PROD_URL sozlanmagan — o'tkazib yuborildi."; exit 0; fi
+          muammo=""
+          for yol in "/" "/api/soglik"; do
+            ok=0
+            for urinish in 1 2 3; do
+              code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$PROD_URL$yol" || echo 000)
+              if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then ok=1; break; fi
+              sleep 10
+            done
+            if [ "$ok" != "1" ]; then muammo="$muammo $yol=HTTP$code"; fi
+          done
+          if [ -n "$muammo" ]; then
+            echo "::error::QURAI ishlamayapti:$muammo"
+            if [ -n "$TG_TOKEN" ] && [ -n "$TG_CHAT" ]; then
+              curl -sS --max-time 20 -o /dev/null "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+                --data-urlencode "chat_id=${TG_CHAT}" --data-urlencode "text=QURAI ogohlantirish: sayt/API javob bermayapti:$muammo" || true
+            fi
+            exit 1
+          fi
+          echo "Sayt va API ishlayapti."
+      - name: Baza hajmi (kuniga 4 marta)
+        run: |
+          if [ -z "$PROD_URL" ] || [ -z "$BILDIRISHNOMA_CRON_KALIT" ]; then echo "sozlanmagan — o'tkazib yuborildi."; exit 0; fi
+          soat=$(date -u +%H); daq=$(date -u +%M)
+          if [ $((10#$soat % 6)) -ne 0 ] || [ $((10#$daq)) -ge 15 ]; then echo "Hajm tekshiruvi vaqti emas."; exit 0; fi
+          code=$(curl -sS -o resp.json -w '%{http_code}' -X POST "$PROD_URL/api/telegram/monitor" \
+            -H 'Content-Type: application/json' -H "X-Cron-Kalit: $BILDIRISHNOMA_CRON_KALIT" --data '{"db":true}' --max-time 60 || echo 000)
+          echo "HTTP $code"; head -c 200 resp.json; echo
+          if [ "$code" != "200" ]; then echo "::warning::hajm tekshiruvi muvaffaqiyatsiz (HTTP $code)"; fi
+      - name: AI ishchilar holati (kuniga 1 marta)
+        run: |
+          if [ -z "$PROD_URL" ] || [ -z "$BILDIRISHNOMA_CRON_KALIT" ]; then echo "sozlanmagan - o'tkazib yuborildi."; exit 0; fi
+          soat=$(date -u +%H); daq=$(date -u +%M)
+          if [ "$((10#$soat))" -ne 4 ] || [ $((10#$daq)) -ge 15 ]; then echo "AI holat tekshiruvi vaqti emas."; exit 0; fi
+          code=$(curl -sS -o resp.json -w '%{http_code}' -X POST "$PROD_URL/api/telegram/monitor" \
+            -H 'Content-Type: application/json' -H "X-Cron-Kalit: $BILDIRISHNOMA_CRON_KALIT" --data '{"ai":true}' --max-time 60 || echo 000)
+          echo "HTTP $code"; head -c 200 resp.json; echo
+          if [ "$code" != "200" ]; then echo "::warning::AI holat tekshiruvi muvaffaqiyatsiz (HTTP $code)"; fi

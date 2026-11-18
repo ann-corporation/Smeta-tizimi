@@ -2,18 +2,89 @@
 <html lang="uz">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/brand/qur-icon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/brand/qur-icon-16.png" />
     <link rel="shortcut icon" href="/favicon.ico" />
-    <meta name="description" content="QURAI — qurilish uchun raqamli ish joyi: smeta, fakt, F2, hujjatlar." />
+    <meta name="description" content="QURAI — qurilish uchun raqamli ish joyi: smeta, fakt, F-2, nakopitelniy, ijro hujjatlari va ombor bitta tizimda. Sayt, Android va Windows ilova." />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href="https://qurai.uz/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="QURAI" />
+    <meta property="og:title" content="QURAI — qurilish uchun raqamli ish joyi" />
+    <meta property="og:description" content="Smeta, fakt, F-2, nakopitelniy, ijro hujjatlari va ombor bitta tizimda." />
+    <meta property="og:url" content="https://qurai.uz/" />
+    <meta property="og:locale" content="uz_UZ" />
+    <meta property="og:image" content="https://qurai.uz/brand/qur-icon-512.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="QURAI — qurilish uchun raqamli ish joyi" />
+    <meta name="twitter:description" content="Smeta, fakt, F-2, nakopitelniy, ijro hujjatlari va ombor bitta tizimda." />
+    <meta name="twitter:image" content="https://qurai.uz/brand/qur-icon-512.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://qurai.uz/#org",
+            "name": "QURAI",
+            "alternateName": "QURAI qurilish platformasi",
+            "description": "QURAI — qurilish uchun raqamli platforma",
+            "url": "https://qurai.uz/",
+            "logo": "https://qurai.uz/brand/qur-icon-512.png",
+            "areaServed": { "@type": "Country", "name": "Uzbekistan" },
+            "sameAs": ["https://t.me/qurai_uz", "https://www.instagram.com/qurai_uz", "https://www.facebook.com/profile.php?id=61596557735297"]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://qurai.uz/#site",
+            "name": "QURAI",
+            "url": "https://qurai.uz/",
+            "inLanguage": ["uz", "ru", "en"],
+            "publisher": { "@id": "https://qurai.uz/#org" }
+          },
+          {
+            "@type": "SoftwareApplication",
+            "name": "QURAI",
+            "url": "https://qurai.uz/",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "Web, Android, Windows",
+            "audience": {
+              "@type": "Audience",
+              "audienceType": "Qurilish kompaniyalari, pudratchilar, PTO mutaxassislari, prorablar, omborchilar va rahbarlar",
+              "geographicArea": { "@type": "Country", "name": "Uzbekistan" }
+            },
+            "areaServed": { "@type": "Country", "name": "Uzbekistan" },
+            "description": "Qurilish uchun raqamli ish joyi: smeta, fakt, F-2, nakopitelniy, ijro hujjatlari va ombor.",
+            "inLanguage": ["uz", "ru", "en"],
+            "image": "https://qurai.uz/brand/qur-icon-512.png",
+            "publisher": { "@id": "https://qurai.uz/#org" }
+          }
+        ]
+      }
+    </script>
+    <style>
+      /* Qidiruv robotlari va JS yuklanguncha ko'rinadigan statik sahifa; React ishga tushganda #root tarkibi almashtiriladi. */
+      .qurai-seo { max-width: 760px; margin: 0 auto; padding: 48px 20px; font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', sans-serif; color: #e8ecef; background: #0e1113; min-height: 100vh; box-sizing: border-box; }
+      [data-mavzu='ganch'] .qurai-seo { color: #1a1d20; background: #f5f4f0; }
+      .qurai-seo a { color: #9fc4ff; }
+      [data-mavzu='ganch'] .qurai-seo a { color: #1f5fbf; }
+      .qurai-seo h1 { font-size: 32px; margin: 0 0 12px; }
+      .qurai-seo h2 { font-size: 20px; margin-top: 28px; }
+    </style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0e1113" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="QURAI" />
-    <link rel="apple-touch-icon" href="/ikonlar/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <script>
       (function () {
         try {
@@ -31,10 +102,27 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <title>QURAI</title>
+    <title>QURAI — qurilish uchun raqamli ish joyi: smeta, fakt, F-2</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <main class="qurai-seo">
+        <h1>QURAI — qurilish uchun raqamli ish joyi</h1>
+        <p><strong>QURAI — qurilish uchun raqamli platforma.</strong> QURAI qurilish kompaniyalari, pudratchilar va ustalar uchun bitta tizim: smeta tuzish va narxlash, haqiqiy bajarilgan ishlar (fakt), F-2 aktlari, nakopitelniy va slichitelniy qaydnomalar, ijro hujjatlari hamda ombor hisobi.</p>
+        <h2>Imkoniyatlar</h2>
+        <ul>
+          <li>Smeta studiyasi: LRV, resurs smetasi va manbali narxlash.</li>
+          <li>Fakt kiritish va F-2 aktlari: har obyekt bo'yicha bajarilgan ishlar hisobi.</li>
+          <li>Hujjatlar: nakopitelniy, F-3, M-29 va boshqa rasmiy shakllar, QR bilan tekshiriladigan imzo.</li>
+          <li>AI yordamchi: buyruq satri orqali hamma ishni tez bajarish.</li>
+          <li>Sayt, Android ilova va Windows dastur.</li>
+        </ul>
+        <h2>Ochiq bo'limlar</h2>
+        <p><a href="/smeta">AI smeta va ShNK normalari</a> · <a href="/f2">F-2, Forma-3, nakopitelniy</a> · <a href="/ombor">Ombor</a> · <a href="/ilova">Android ilova va Telegram bot</a> · <a href="/haqida">QURAI haqida</a> · <a href="/ru/haqida">На русском</a></p>
+        <p><a href="/tender">Tender</a> · <a href="/bozor">Bozor</a> · <a href="/yuk">Yuk tashish</a></p>
+        <noscript><p>Tizimga kirish uchun brauzerda JavaScript yoqilgan bo'lishi kerak.</p></noscript>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -266,7 +266,7 @@ private fun GenList(ui: DocsUi, vm: DocumentsViewModel) {
 }
 
 @Composable
-private fun GenCard(g: GenItem, generating: String?, onGenerate: (String) -> Unit) {
+internal fun GenCard(g: GenItem, generating: String?, onGenerate: (String) -> Unit) {
     WorkCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -334,7 +334,7 @@ internal fun dateLabel(iso: String): String? =
 // ---------- viewer ----------
 
 @Composable
-private fun DocViewer(v: Viewing, onBack: () -> Unit) {
+internal fun DocViewer(v: Viewing, onBack: () -> Unit) {
     val context = LocalContext.current
     val savedMsg = stringResource(R.string.docs_saved)
     val noApp = stringResource(R.string.docs_no_app)

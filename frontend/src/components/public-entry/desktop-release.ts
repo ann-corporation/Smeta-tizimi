@@ -6,7 +6,7 @@ export function parseDesktopRelease(input: unknown) {
   if (typeof generatedAtUtc !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,7})?Z$/.test(generatedAtUtc)) return null;
   const timestamp = new Date(generatedAtUtc);
   if (!Number.isFinite(timestamp.valueOf()) || timestamp.toISOString().slice(0, 19) !== generatedAtUtc.slice(0, 19)) return null;
-  if (typeof file !== 'string' || !/^[\w -]+[\w .-]*\.exe$/i.test(file) || file !== file.trim()) return null;
+  if (typeof file !== 'string' || !/^[\w -]+[\w .-]*\.(?:exe|msi)$/i.test(file) || file !== file.trim()) return null;
   if (typeof bytes !== 'number' || !Number.isSafeInteger(bytes) || bytes <= 0) return null;
   if (typeof sha256 !== 'string' || sha256.length !== 64 || !/^[a-f\d]{64}$/i.test(sha256)) return null;
   if (signature === 'NotSigned' ? signerThumbprint !== null :

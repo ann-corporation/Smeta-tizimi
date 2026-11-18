@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -69,6 +70,8 @@ fun OmborScreen(onOutbox: () -> Unit, vm: OmborViewModel = hiltViewModel(), bann
     var picking by rememberSaveable { mutableStateOf(false) }
     var entryOp by rememberSaveable { mutableStateOf<String?>(null) }
     var preset by remember { mutableStateOf<StockRow?>(null) }
+    var tab by rememberSaveable { mutableStateOf(0) }
+    var item by remember { mutableStateOf<StockRow?>(null) }
     val allLabel = stringResource(R.string.ombor_scope_all)
 
     Column(Modifier.fillMaxSize()) {
@@ -96,6 +99,11 @@ fun OmborScreen(onOutbox: () -> Unit, vm: OmborViewModel = hiltViewModel(), bann
             Box(Modifier.weight(1f))
             if (ui.syncing) CircularProgressIndicator(Modifier.width(16.dp).height(16.dp), strokeWidth = 2.dp)
         }
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(R.string.ombor_tab_stock, R.string.ombor_tab_in, R.string.ombor_tab_out, R.string.t14_tab_report).forEachIndexed { i, res ->
+                FilterChip(selected = tab == i, onClick = { tab = i }, label = { Text(stringResource(res)) })
+            }
+        }
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 pluralStringResource(R.plurals.ombor_materials, ui.rows.size, ui.rows.size), style = MaterialTheme.typography.labelMedium,
@@ -103,8 +111,11 @@ fun OmborScreen(onOutbox: () -> Unit, vm: OmborViewModel = hiltViewModel(), bann
             )
             UpdatedLine(ui.updatedAt)
         }
+        if (ui.computedBalance && tab == 0) Text(stringResource(R.string.ombor_computed_note), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.padding(horizontal = 20.dp))
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
+                tab == 3 -> OmborReportPanel((ui.scope as? OmborScope.Central)?.id ?: ui.warehouses.firstOrNull()?.id, ui.query)
+                tab != 0 -> MovesList(filterMoves(ui.moves, tab == 1, ui.scope, ui.query), ui.objectNames, showObject = ui.scope !is OmborScope.Obyekt)
                 ui.rows.isEmpty() && ui.syncing && ui.updatedAt == null -> CenterMessage(null, stringResource(R.string.ombor_loading))
                 ui.rows.isEmpty() && ui.updatedAt == null -> when (ui.result) {
                     is SyncResult.Offline -> CenterMessage(Icons.Filled.CloudOff, stringResource(R.string.ombor_offline_empty), null, stringResource(R.string.retry)) { vm.refresh() }
@@ -116,12 +127,14 @@ fun OmborScreen(onOutbox: () -> Unit, vm: OmborViewModel = hiltViewModel(), bann
                     Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp, 6.dp, 16.dp, 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(ui.rows, key = { "${it.obyektId}|${it.nomi}|${it.birligi}" }) { row ->
-                        StockCard(row, ui.objectNames[row.obyektId], showObject = ui.scope is OmborScope.AllObjects, onClick = if (ui.access.write) ({ preset = row; entryOp = OmborOp.ISSUE.name }) else null)
+                        StockCard(row, ui.objectNames[row.obyektId], showObject = ui.scope is OmborScope.AllObjects, onClick = { item = row })
                     }
                 }
             }
         }
-        if (ui.access.write) {
+        // The report tab needs the room: no command bar / action buttons there.
+        if (ui.access.write && tab != 3) CommandBar(ui, vm)
+        if (ui.access.write && tab != 3) {
             Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, tonalElevation = 3.dp) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(onClick = { preset = null; entryOp = OmborOp.RECEIVE.name }, modifier = Modifier.weight(1f).heightIn(min = TouchTarget)) { Text(stringResource(R.string.ombor_btn_receive)) }
@@ -131,6 +144,14 @@ fun OmborScreen(onOutbox: () -> Unit, vm: OmborViewModel = hiltViewModel(), bann
         }
     }
 
+    item?.let { row ->
+        ItemSheet(
+            row, ui.objectNames[row.obyektId], materialHistory(ui.moves, row.nomi, row.birligi, row.obyektId), ui.objectNames, ui.access.write,
+            onReceive = { preset = row; entryOp = OmborOp.RECEIVE.name; item = null }, onIssue = { preset = row; entryOp = OmborOp.ISSUE.name; item = null }, onDismiss = { item = null },
+        )
+    }
+    ui.cmd.question?.let { q -> QuestionDialog(q, ui.cmd.working, onAnswer = vm::answerQuestion, onDismiss = vm::dismissCommand) }
+    ui.cmd.preview?.let { p -> CommandPreviewDialog(p, ui, vm, onEdit = { op, row -> preset = row; entryOp = op.name }) }
     if (scanning) ScanDialog(onResult = { vm.setQuery(it); scanning = false }, onDismiss = { scanning = false })
     if (picking) ScopePicker(ui, allLabel, onPick = { vm.setScope(it); picking = false }, onDismiss = { picking = false })
     entryOp?.let { name ->

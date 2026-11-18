@@ -866,7 +866,7 @@ export function sbT2AktYaratV2(p: {
 export function sbT2F2QoralamaYangila(p: {
   kompaniyaId: number; aktId: number; kutilganVersiya: number; operationId: string;
   qatorlar: Parameters<typeof sbT2AktYaratV2>[0]['qatorlar'];
-}): Promise<AktNatija & { code?: string; versiya?: number; eski_qator_soni?: number }> {
+}): Promise<AktNatija & { code?: string; versiya?: number; eski_qator_soni?: number; resurs_tushgan_soni?: number }> {
   return yozAmali({
     amal: 'f2_qoralama_yangila_v1', kompaniya_id: p.kompaniyaId, akt_id: p.aktId, kutilgan_versiya: p.kutilganVersiya, operation_id: p.operationId,
     qatorlar: p.qatorlar.map((q) => ({

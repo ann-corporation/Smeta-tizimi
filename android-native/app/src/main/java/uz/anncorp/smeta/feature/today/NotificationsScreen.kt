@@ -56,6 +56,7 @@ import uz.anncorp.smeta.core.data.NotificationItem
 import uz.anncorp.smeta.core.data.SyncResult
 import uz.anncorp.smeta.core.data.TodayRepository
 import uz.anncorp.smeta.core.data.WorkContext
+import uz.anncorp.smeta.core.data.group
 import uz.anncorp.smeta.core.data.notifKind
 import uz.anncorp.smeta.core.ui.CenterMessage
 import uz.anncorp.smeta.core.ui.SkeletonList
@@ -71,15 +72,22 @@ data class NotificationsUi(
     val items: List<NotificationItem> = emptyList(),
     val unread: Int = 0,
     val waiting: List<ApprovalItem> = emptyList(),
+    /** Groups switched off in Settings > Notifications (this device only). */
+    val muted: Set<uz.anncorp.smeta.core.data.NotifGroup> = emptySet(),
 ) {
-    val shown: List<NotificationItem> get() = if (unreadOnly) items.filter { !it.oqildi } else items
+    val visible: List<NotificationItem> get() = uz.anncorp.smeta.core.data.visibleNotifications(items, muted) { notifKind(it.mavzu).group() }
+    val shown: List<NotificationItem> get() = if (unreadOnly) visible.filter { !it.oqildi } else visible
 }
 
 /** Notifications centre: the full server list (read/unread filter, mark read) plus the approvals waiting in my queue. Same server reads as the Today tab. */
 @HiltViewModel
-class NotificationsViewModel @Inject constructor(private val today: TodayRepository, private val approvals: ApprovalsRepository, private val ctx: WorkContext) : ViewModel() {
-    private val _state = MutableStateFlow(NotificationsUi())
+class NotificationsViewModel @Inject constructor(
+    private val today: TodayRepository, private val approvals: ApprovalsRepository, private val ctx: WorkContext, private val prefs: uz.anncorp.smeta.core.data.Prefs,
+) : ViewModel() {
+    private val _state = MutableStateFlow(NotificationsUi(muted = prefs.mutedGroups.value))
     val state: StateFlow<NotificationsUi> = _state.asStateFlow()
+
+    init { viewModelScope.launch { prefs.mutedGroups.collect { m -> _state.update { it.copy(muted = m) } } } }
 
     fun refresh() {
         viewModelScope.launch {
@@ -155,7 +163,7 @@ private fun WaitingCard(waiting: List<ApprovalItem>, onOpen: (Long) -> Unit) {
 private fun NotificationRow(n: NotificationItem, onOpenApproval: (Long) -> Unit, onOpenLetter: (Long) -> Unit, onMarkRead: (List<Long>) -> Unit) {
     WorkCard(modifier = Modifier.heightIn(min = TouchTarget), onClick = {
         onMarkRead(listOf(n.id).filter { !n.oqildi })
-        if (n.zanjirId != null) onOpenApproval(n.zanjirId) else n.xatId?.let(onOpenLetter)
+        n.zanjirId?.let(onOpenApproval) ?: n.xatId?.let(onOpenLetter)
     }) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(8.dp).clip(CircleShape).background(if (n.oqildi) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.primary))

@@ -14,6 +14,10 @@ describe('role integration architecture',()=>{
       'qulf',
       /* superadminActor: har chaqiruvda bazada qayta tekshiriladi (db-hajm.test.ts — superadmin bo'lmasa 403). */
       'db-hajm',
+      /* AI salomatligi hisoboti: superadminActor (har chaqiruvda bazada qayta tekshiriladi, ai-salomatlik.test.ts - superadmin bo'lmasa 403); faqat o'qiydi, sonlar/kodlar. */
+      'ai-salomatlik',
+      /* AI baho (yoqdi/yoqmadi): actor FAQAT sessiyadan, kompaniya a'zoligi handlerda + t2_agent_scope_guard_v1 (SQL); matn saqlanmaydi; origin tekshiruvi (ai-baho.test.ts). */
+      'ai-baho',
       /* Tungi sovuq-arxiv cron (arxiv-tick.test.ts): X-Cron-Kalit (BILDIRISHNOMA_CRON_KALIT, doimiy vaqtli taqqoslash) - sessiya/kompaniya yo'q, faqat tizim ishi. */
       'arxiv-tick',
       /* Global immutable reference data, not tenant rows: session + pinned file whitelist;
@@ -23,6 +27,13 @@ describe('role integration architecture',()=>{
          checks company membership/document.write/explicit deny and never writes stock.
          ombor-ovoz.test.ts proves unauthenticated/foreign/denied requests make no provider call. */
       'ombor-ovoz',
+      /* OMBOR-BUYRUQ: omborchi yagona nuqtasi (web/Android/Telegram). Handler o'zi: roleAuthority + a'zolik + warehouse.write|document.write (yozish) /
+         warehouse.read|write|document.read (o'qish) + modul holati + aniq rad; aktor FAQAT sessiyadan; RPC lar a'zolik/ruxsatni takror tekshiradi;
+         yozish faqat HMAC tasdiq tokeni yoki aniq operation_id bilan. ombor-buyruq.test.ts: anonim/begona/o'qish-faqat/soxta token — hech narsa yozilmaydi. */
+      'ombor-buyruq',
+/* F2-BUYRUQ (Jarvis → smeta MCP vositalari): aktor faqat sessiyadan, a'zolik + write-command-policy capability (fail-closed);
+yozish faqat dry_run preview → HMAC tasdiq tokeni (aktor/kompaniya/obyekt, 15 daqiqa, reja xeshi) bilan. f2-buyruq.test.ts. */
+'f2-buyruq',
       /* «Telegram modeli» (2026-10-22): havola orqali qo'shilayotgan odam hali a'zo emas — middleware ruxsat ro'yxati qo'llanmaydi.
          Actor sessiyadan; a'zolik, company.member.manage, muddat, soni va cheklov — har RPC ichida bazada (ish-joyi.test.ts). */
       'ish-joyi',

@@ -15,7 +15,7 @@ const inner: PagesFunction<Env> = async ctx => {
   let api:string;
   try { api=decodeURIComponent(url.pathname.split('/').filter(Boolean).at(-1)||''); } catch { return fail('PATH_INVALID',400); }
   /* QULF/TASDIQ (step-up): imzo / hujjat zanjiri qarori ham shu yerda (SCOPED emas); sb-yoz pul buyruqlari ham. Tanani bir marta o'qiydi. */
-  if (ctx.request.method==='POST' && (api==='sb-yoz'||api==='imzo'||api==='hujjat-aylanish') && /application\/json/i.test(ctx.request.headers.get('Content-Type')||'')) {
+  if (ctx.request.method==='POST' && (api==='sb-yoz'||api==='imzo'||api==='hujjat-aylanish'||api==='tomon') && /application\/json/i.test(ctx.request.headers.get('Content-Type')||'')) {
     let sb:Record<string,unknown>|null=null;
     try { const parsed=await ctx.request.clone().json(); if (parsed && typeof parsed==='object' && !Array.isArray(parsed)) sb=parsed as Record<string,unknown>; } catch { sb=null; }
     if (sb) { const g=await qulfDarvoza(ctx.request,ctx.env,api,sb); if (g) return g; }

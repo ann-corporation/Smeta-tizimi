@@ -85,6 +85,9 @@ import uz.anncorp.smeta.core.ui.TouchTarget
 internal fun iconFor(code: String): ImageVector = when (code) {
     "zayavka" -> Icons.Filled.ShoppingCart
     "m29" -> Icons.Filled.Place
+    "qarzdor" -> Icons.Filled.Warning
+    "qabul" -> Icons.Filled.CheckCircle
+    "resurs" -> Icons.Filled.List
     "naryad" -> Icons.Filled.Build
     "nazorat" -> Icons.Filled.Warning
     "obyektlar" -> Icons.Filled.Home
@@ -106,7 +109,6 @@ internal fun iconFor(code: String): ImageVector = when (code) {
     "logistika" -> Icons.Filled.Place
     "hr" -> Icons.Filled.Person
     "sotuv" -> Icons.Filled.Home
-    "hisobot" -> Icons.Filled.KeyboardArrowUp
     "kompaniya" -> Icons.Filled.Settings
     else -> Icons.Filled.Build
 }
@@ -118,7 +120,6 @@ internal fun iconFor(code: String): ImageVector = when (code) {
 @Composable
 fun HubScreen(
     onNative: (NativeTarget) -> Unit,
-    onWeb: (path: String, title: String) -> Unit,
     onObject: (Long) -> Unit,
     onFakt: (Long) -> Unit,
     onOnboard: () -> Unit,
@@ -132,12 +133,12 @@ fun HubScreen(
     val openAction: (uz.anncorp.smeta.core.data.WsAction) -> Unit = { a ->
         when (val o = a.open()) {
             is uz.anncorp.smeta.core.data.WsOpen.Native -> onNative(o.target)
-            is uz.anncorp.smeta.core.data.WsOpen.Web -> onWeb(o.path, a.title)
+            is uz.anncorp.smeta.core.data.WsOpen.Web -> Unit
             uz.anncorp.smeta.core.data.WsOpen.Onboard -> onOnboard()
             null -> Unit
         }
     }
-    val open: (ModuleDef) -> Unit = { m -> if (m.kind == ModuleKind.NATIVE) m.target?.let(onNative) else m.webPath?.let { onWeb(it, context.getString(m.title)) } }
+    val open: (ModuleDef) -> Unit = { m -> m.target?.let(onNative) }
     val searching = ui.query.trim().length >= 2
     androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) { vm.refreshUnread() }
 
@@ -151,7 +152,7 @@ fun HubScreen(
         if (!searching) emptyList() else catalogUi.catalog?.search(ui.query).orEmpty()
             .filter { p -> visible.none { m -> m.webPath == p.path || (p.native != null && m.code == p.native) } }.take(12)
     }
-    val openPage: (uz.anncorp.smeta.core.data.CatalogItem) -> Unit = { p -> openItem(p, lang, onNative, onWeb) }
+    val openPage: (uz.anncorp.smeta.core.data.CatalogItem) -> Unit = { p -> openItem(p, onNative) }
     if (allMode) {
         androidx.activity.compose.BackHandler { allMode = false }
         Column(Modifier.fillMaxSize()) {
@@ -159,7 +160,7 @@ fun HubScreen(
                 IconButton(onClick = { allMode = false }, modifier = Modifier.size(TouchTarget)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.p1_back)) }
                 Text(stringResource(R.string.hub_all_modules), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
             }
-            AllModulesScreen(onNative = onNative, onWeb = onWeb, vm = catalogVm)
+            AllModulesScreen(onNative = onNative, vm = catalogVm)
         }
         return
     }
@@ -168,7 +169,7 @@ fun HubScreen(
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
                 value = ui.query, onValueChange = vm::setQuery, singleLine = true,
-                placeholder = { Text(stringResource(R.string.hub_search)) },
+                placeholder = { Text(stringResource(R.string.hub_search), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 leadingIcon = { Icon(Icons.Filled.Search, null) },
                 trailingIcon = { if (ui.query.isNotEmpty()) IconButton(onClick = { vm.setQuery("") }) { Icon(Icons.Filled.Clear, stringResource(R.string.p1_remove)) } },
                 shape = RoundedCornerShape(14.dp),
@@ -184,15 +185,15 @@ fun HubScreen(
         when {
             !ui.hasCompany && !ui.loading -> CenterMessage(Icons.Filled.Home, stringResource(R.string.hub_no_company), stringResource(R.string.hub_no_company_hint), stringResource(R.string.hub_no_company_action), onAction = onOnboard)
             ui.loading && ui.permissions == null && !searching -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-            else -> HubGrid(ui, arranged, searching, vm, open, openAction, onObject, onFakt, onWeb, pageHits, lang, openPage) { allMode = true }
+            else -> HubGrid(ui, arranged, searching, vm, open, openAction, onObject, onFakt, pageHits, lang, openPage, FirstStepsActions(onNative = onNative, onOnboard = onOnboard)) { allMode = true }
         }
     }
 }
 
 @Composable
 private fun HubGrid(
-    ui: HubUi, arranged: Arranged, searching: Boolean, vm: HubViewModel, open: (ModuleDef) -> Unit, openAction: (uz.anncorp.smeta.core.data.WsAction) -> Unit, onObject: (Long) -> Unit, onFakt: (Long) -> Unit, onWeb: (String, String) -> Unit,
-    pageHits: List<uz.anncorp.smeta.core.data.CatalogItem>, lang: String, onPage: (uz.anncorp.smeta.core.data.CatalogItem) -> Unit, onAllModules: () -> Unit,
+    ui: HubUi, arranged: Arranged, searching: Boolean, vm: HubViewModel, open: (ModuleDef) -> Unit, openAction: (uz.anncorp.smeta.core.data.WsAction) -> Unit, onObject: (Long) -> Unit, onFakt: (Long) -> Unit,
+    pageHits: List<uz.anncorp.smeta.core.data.CatalogItem>, lang: String, onPage: (uz.anncorp.smeta.core.data.CatalogItem) -> Unit, steps: FirstStepsActions, onAllModules: () -> Unit,
 ) {
     val span = GridItemSpan(2)
     LazyVerticalGrid(
@@ -209,6 +210,19 @@ private fun HubGrid(
             if (ui.objectHits.isNotEmpty()) { item(span = { span }) { SectionTitle(R.string.hub_sec_objects) }; items(ui.objectHits, key = { "o" + it.id }, span = { span }) { ObjectChip(it) { onObject(it.id) } } }
             if (ui.rowHits.isNotEmpty()) { item(span = { span }) { SectionTitle(R.string.hub_sec_rows) }; items(ui.rowHits, key = { "r" + it.rid }, span = { span }) { RowHit(it) { onFakt(it.obyektId) } } }
             return@LazyVerticalGrid
+        }
+        // Trial account: the first-steps checklist leads (sample object, upload, F-2, AI, real company); gone once the workspace is a real company.
+        ui.sinov?.takeIf { it.showChecklist }?.let { s ->
+            item(span = { span }) {
+                FirstStepsCard(s, jarvis = uz.anncorp.smeta.core.data.Features.JARVIS, busy = ui.sinovBusy, error = ui.sinovError) { id ->
+                    when (id) {
+                        FirstStepId.DEMO -> vm.openDemo { steps.onNative(NativeTarget.OBJECTS) }
+                        FirstStepId.F2 -> steps.onNative(NativeTarget.F2REESTR)
+                        FirstStepId.AI -> steps.onNative(NativeTarget.JARVIS)
+                        FirstStepId.REAL -> steps.onOnboard()
+                    }
+                }
+            }
         }
         // Server-driven role workspace first (the cabinet's sections and quick actions); the plain module launcher stays below as "all apps".
         ui.workspace?.let { ws ->
@@ -231,9 +245,6 @@ private fun HubGrid(
             item(span = { span }) { SectionTitle(R.string.hub_sec_all) }
         }
         items(arranged.others, key = { "a" + it.code }) { m -> ModuleCard(m, pinned = false, edit = ui.edit, first = false, last = false, vm = vm, onOpen = open) }
-        if (ui.objectCount == 0 && ui.permissions?.let { p -> "smeta.write" in p || "object.write" in p || "control.company.read" in p } != false) {
-            item(span = { span }) { FirstObjectCard { onWeb("/admin/obyektlar", "") } }
-        }
     }
 }
 
@@ -274,7 +285,6 @@ private fun ModuleCard(m: ModuleDef, pinned: Boolean, edit: Boolean, first: Bool
             Spacer(Modifier.height(10.dp))
             Text(stringResource(m.title), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(stringResource(m.desc), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            if (m.kind == ModuleKind.WEB) Text(stringResource(R.string.hub_web_badge), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 4.dp))
             if (edit && pinned) Row {
                 if (!first) TextButton(onClick = { vm.move(m.code, -1) }) { Text(stringResource(R.string.hub_earlier)) }
                 if (!last) TextButton(onClick = { vm.move(m.code, 1) }) { Text(stringResource(R.string.hub_later)) }
@@ -304,13 +314,6 @@ private fun RowHit(r: QatorEntity, onClick: () -> Unit) {
     }
 }
 
-@Composable
-private fun FirstObjectCard(onClick: () -> Unit) {
-    Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
-        Column(Modifier.padding(16.dp)) {
-            Text(stringResource(R.string.hub_first_object), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
-            Spacer(Modifier.height(4.dp))
-            Text(stringResource(R.string.hub_first_object_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
-        }
-    }
-}
+/** Where the first-steps checklist sends the user (the hub's own navigation callbacks). */
+class FirstStepsActions(val onNative: (NativeTarget) -> Unit, val onOnboard: () -> Unit)
+

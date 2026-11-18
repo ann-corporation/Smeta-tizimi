@@ -96,6 +96,7 @@ export function f2YozishXatoMatni(r: { code?: string | null; xabar?: string | nu
     STORNO_LINE_INVALID: () => t('Storno qatori noto‘g‘ri (eski F2 qatoriga mos emas) — storno blokini qayta yarating.'),
     DEPENDENTS_EXIST: () => t('Bu F2 ga bog‘liq hujjatlar bor: {b}. Avval ularni hal qiling.', { b: bogliq || '—' }),
     NARXSIZ_QATOR_BOR: () => t('{n} ta qatorda narx yo‘q (qoralamada avtomatik narxsiz) — tasdiqlashdan oldin narx kiriting yoki «narxsiz» deb belgilang.', { n: soni }),
+    F2_RESURS_TUSHGAN: () => t('{n} ta resurs qatori F2 ga tushmagan: ish qatori bor, uning resurslari (mehnat, mexanizm, material) yo‘q — summa to‘liq emas. «F2 tayyorlash»da resurslarni qo‘shing.', { n: soni }),
     DUPLICATE_F2_SOURCE_LINE: () => t('Bitta smeta qatori F2 da ikki marta turibdi — takror qatorni olib tashlang.'),
     CERTIFIED_QTY_INVALID: () => t('F2 qatorida hajm noto‘g‘ri (son emas yoki 0) — hajmni tekshiring.'),
     F2_HAJM_NOL: () => t('F2 qatorida hajm 0 — bunday qator yozilmaydi. Hajmi 0 qatorni olib tashlang yoki hajm kiriting.'),

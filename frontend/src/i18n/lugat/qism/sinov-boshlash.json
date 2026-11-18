@@ -1,0 +1,86 @@
+{
+  "Bugungi sinov joylari tugadi. Ertaga urinib ko‘ring yoki pastdagi kompaniya so‘rovini yuboring.": {
+    "ru": "Пробные места на сегодня закончились. Попробуйте завтра или отправьте запрос на компанию ниже.",
+    "en": "Today's trial spots are used up. Try again tomorrow or send the company request below."
+  },
+  "Sizda allaqachon ish joyi bor.": {
+    "ru": "У вас уже есть рабочее место.",
+    "en": "You already have a workspace."
+  },
+  "Namuna obyekt hozircha yo‘q.": {
+    "ru": "Образец объекта пока нет.",
+    "en": "The sample object is not available yet."
+  },
+  "Bajarib bo‘lmadi. Qayta urinib ko‘ring.": {
+    "ru": "Не удалось выполнить. Попробуйте ещё раз.",
+    "en": "Could not complete. Please try again."
+  },
+  "Sinab ko‘ring": {
+    "ru": "Попробуйте",
+    "en": "Try it"
+  },
+  "Tizimni bepul sinab ko‘ring": {
+    "ru": "Попробуйте систему бесплатно",
+    "en": "Try the system for free"
+  },
+  "Bir bosishda shaxsiy sinov joyingiz ochiladi va hisobingizga {n} token tushadi. Kompaniya nomi yoki STIR kerak emas.": {
+    "ru": "Одним нажатием откроется ваше личное пробное место, на счёт поступит {n} токенов. Название компании и ИНН не нужны.",
+    "en": "One click opens your personal trial workspace and adds {n} tokens to your balance. No company name or tax ID needed."
+  },
+  "Sinovni boshlash — {n} token": {
+    "ru": "Начать пробу — {n} токенов",
+    "en": "Start trial — {n} tokens"
+  },
+  "Token bir marta beriladi. Keyin haqiqiy kompaniyangizni shu joyning o‘zida ochasiz — tokenlaringiz saqlanadi.": {
+    "ru": "Токены выдаются один раз. Затем вы откроете настоящую компанию на этом же месте — токены сохранятся.",
+    "en": "Tokens are granted once. Later you open your real company in the same workspace and keep your tokens."
+  },
+  "Birinchi qadamlar": {
+    "ru": "Первые шаги",
+    "en": "First steps"
+  },
+  "Sinov balansi: {n} token": {
+    "ru": "Пробный баланс: {n} токенов",
+    "en": "Trial balance: {n} tokens"
+  },
+  "Token narxlari": {
+    "ru": "Цены в токенах",
+    "en": "Token prices"
+  },
+  "Namuna obyektni oching — tayyor kichik smeta": {
+    "ru": "Откройте образец объекта — готовая небольшая смета",
+    "en": "Open the sample object — a ready small estimate"
+  },
+  "Namunani ochish": {
+    "ru": "Открыть образец",
+    "en": "Open sample"
+  },
+  "tez orada": {
+    "ru": "скоро",
+    "en": "soon"
+  },
+  "O‘z smetangizni yuklang (Excel)": {
+    "ru": "Загрузите свою смету (Excel)",
+    "en": "Upload your own estimate (Excel)"
+  },
+  "F-2": {
+    "ru": "Ф-2",
+    "en": "F-2"
+  },
+  "F-2 tayyorlang": {
+    "ru": "Подготовьте Ф-2",
+    "en": "Prepare an F-2"
+  },
+  "AI yordamchiga savol bering (Ctrl+K)": {
+    "ru": "Задайте вопрос ИИ-помощнику (Ctrl+K)",
+    "en": "Ask the AI assistant (Ctrl+K)"
+  },
+  "Haqiqiy kompaniya ish joyini oching (tokenlar saqlanadi)": {
+    "ru": "Откройте рабочее место настоящей компании (токены сохранятся)",
+    "en": "Open your real company workspace (tokens are kept)"
+  },
+  "Ko‘rish va tahrirlash bepul. Hujjat tayyorlash, eksport va AI natijalari token yechadi — narxlar «Token narxlari» sahifasida.": {
+    "ru": "Просмотр и редактирование бесплатны. Подготовка документов, экспорт и результаты ИИ списывают токены — цены на странице «Цены в токенах».",
+    "en": "Viewing and editing are free. Document preparation, export and AI results spend tokens — prices are on the \"Token prices\" page."
+  }
+}

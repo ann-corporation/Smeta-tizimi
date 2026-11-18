@@ -68,6 +68,13 @@ describe('modul-katalog: native moslash', () => {
     expect(k.sahifalar.find((s) => s.yol === '/admin/buxgalteriya')?.native).toBeNull();
   });
 
+  it('P8: F2 reestri, nakopitelniy, qarzdorlik va direktor pulti native ekranga bog\'langan', () => {
+    expect(NATIVE_YOL['/admin/f2-reestr']).toBe('f2reestr');
+    expect(NATIVE_YOL['/admin/nakopitelniy']).toBe('nakop');
+    expect(NATIVE_YOL['/admin/qarzdorlik']).toBe('qarzdor');
+    expect(NATIVE_YOL['/admin/pult']).toBe(NATIVE_YOL['/admin/dashboard']);
+  });
+
   it('NATIVE_YOL dagi har yo\'l reestrda bor (ko\'rinmas native bo\'lib qolmasin)', () => {
     const reestr = new Set(SAHIFALAR.map((s) => s.yol));
     for (const y of Object.keys(NATIVE_YOL)) expect(reestr.has(y)).toBe(true);

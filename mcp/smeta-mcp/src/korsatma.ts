@@ -4,12 +4,12 @@
  */
 
 /** Qisqa `instructions` (MCP initialize javobi). */
-export const KORSATMA = 'Smeta tizimi (T2) bazasi bilan to\'g\'ridan-to\'g\'ri ishlash. Pul: NDS siz; ustamasiz + ustamali (ИТОГО-4), NDS alohida; null — noma\'lum (0 emas). '
+export const KORSATMA = 'QURAI (T2) bazasi bilan to\'g\'ridan-to\'g\'ri ishlash. Pul: NDS siz; ustamasiz + ustamali (ИТОГО-4), NDS alohida; null — noma\'lum (0 emas). '
   + 'Yozuvchi toollar avtomatik snapshot oladi (snapshot sxemasi bo\'lsa), bazaga audit yozadi; dry_run:true — preview + ROLLBACK. '
   + 'RPC aktori: SMETA_AKTOR_ID yoki aktor_tanla. Sxema: `sxema` tooli.';
 
 /** Domen qoidalari (har LLM to'g'ri ishlatishi uchun; masofaviy serverda `smeta://qoidalar` resursi). */
-export const QOIDALAR = `# Smeta tizimi (T2) — domen qoidalari
+export const QOIDALAR = `# QURAI (T2) — domen qoidalari
 
 ## Pul
 - Barcha narx va summalar **NDS (QQS) siz**. QQS faqat alohida yorliq bilan ko'rsatiladi («QQS bilan»).
@@ -25,6 +25,7 @@ export const QOIDALAR = `# Smeta tizimi (T2) — domen qoidalari
 
 ## Fakt va F2
 - Fakt — bajarilgan hajm (fakt_yoz, delta: + yoki −). F2 — buyurtmachiga topshiriladigan akt.
+- MINUS qatorlar («normaga keltirish», hajm<0): asosga fakt yozilsa jufti ulush bo'yicha avtomatik ergashadi; eski bo'shliqlar — minus_fakt (korik → qollash, obyektma-obyekt).
 - **F2 narxi = max(smeta narxi, xarid/shartnoma narxi QQS siz)** (f2_qoralama_yangila \`narx_qoida:"max"\` standart).
 - F2 hajmi fakt qoldig'idan (f2_mumkin) oshsa — bloklanmaydi, ogohlantiriladi. Narxsiz qoralama bloklanmaydi; tasdiqda narx kerak.
 - Tasdiqlangan F2 muzlaydi: bekor qilinmaydi, faqat tuzatish/storno. F2 = Nakopitelniy = F3 (bir manba).

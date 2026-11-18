@@ -19,6 +19,14 @@ class Prefs(private val sp: SharedPreferences) : PicksStore, WorkspaceCache {
     fun selectCompany(id: Long) { sp.edit().putLong(KEY_COMPANY, id).apply(); _company.value = id }
     fun clearCompany() { sp.edit().remove(KEY_COMPANY).apply(); _company.value = null }
 
+    /** Notification groups the user switched off on THIS device (the notification centre hides them). */
+    private val _muted = MutableStateFlow(decodeGroups(sp.getString(KEY_MUTED, null)))
+    val mutedGroups: StateFlow<Set<NotifGroup>> = _muted.asStateFlow()
+    fun setGroupMuted(g: NotifGroup, muted: Boolean) {
+        val n = if (muted) _muted.value + g else _muted.value - g
+        sp.edit().putString(KEY_MUTED, encodeGroups(n)).apply(); _muted.value = n
+    }
+
     // Module picks: local copy (works offline); the shared copy lives on the server (/api/modullarim).
     override fun get(companyId: Long): Picks? = sp.getString(KEY_PICKS + companyId, null)?.let(::decodePicks)
     override fun put(companyId: Long, picks: Picks) { sp.edit().putString(KEY_PICKS + companyId, encodePicks(picks)).apply() }
@@ -43,6 +51,7 @@ class Prefs(private val sp: SharedPreferences) : PicksStore, WorkspaceCache {
         const val KEY_PICKS = "picks:"
         const val KEY_WS = "ws:"
         const val KEY_RECENT = "recent"
+        const val KEY_MUTED = "muted_groups"
     }
 }
 

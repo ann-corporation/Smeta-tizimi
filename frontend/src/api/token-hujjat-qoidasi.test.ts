@@ -17,6 +17,8 @@ const BEPUL: Record<string, string> = {
   'admin/sahifalar/FaylMenejer.tsx': 'foydalanuvchining o‘zi yuklagan fayllari (uning mulki)',
   'admin/sahifalar/NormSmetaWorkbench.tsx': 'ichki review JSON (katalog tekshiruvi), hujjat emas',
   'components/imzo/ImzoUi.tsx': 'imzolangan nusxa (IMZO varag‘i qo‘shilgan) — avval to‘langan hujjatning qayta yuklanishi; takror yechilmaydi (egasi 2026-11-13), imzolashning o‘zi token yechadi (t2-imzo.ts, hujjat: IMZO)',
+  'components/ombor/OmborIshJoyi.tsx': 'ostatka Excel: token SERVERDA yechiladi (/api/ombor-buyruq eksport -> serverSarfla, mazmun xeshi bo‘yicha; qayta yuklash bepul) — klientda ikkinchi marta yechilmaydi',
+  'components/ombor/OmborHisobot.tsx': 'kirim-chiqim Excel: token SERVERDA yechiladi (/api/ombor-buyruq eksport tur=hisobot -> serverSarfla, mazmun xeshi bo‘yicha; qayta yuklash bepul) — klientda ikkinchi marta yechilmaydi',
   'lib/lrv-plus-export.ts': '`lrvPlusYuklab` — chaqiruvchisi yo‘q (LRV HolatNative orqali token bilan beriladi)',
 };
 

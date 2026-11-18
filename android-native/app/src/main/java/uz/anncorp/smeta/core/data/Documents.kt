@@ -65,19 +65,6 @@ fun parseDocuments(body: JsonElement?): List<DocItem>? {
     }
 }
 
-/** `Content-Disposition: attachment; filename*=UTF-8''<percent-encoded>` -> file name, or null. */
-fun parseDispositionName(header: String?): String? {
-    val h = header ?: return null
-    Regex("filename\\*=(?:UTF-8|utf-8)''([^;]+)").find(h)?.let { m -> return runCatching { URLDecoder.decode(m.groupValues[1].trim().replace("+", "%2B"), "UTF-8") }.getOrNull() }
-    return Regex("filename=\"?([^\";]+)\"?").find(h)?.groupValues?.get(1)?.trim()
-}
-
-/** A file name that is safe to put in the cache / share directory (no path separators, bounded length). */
-fun safeFileName(name: String, fallback: String): String {
-    val cleaned = name.replace(Regex("[\\\\/:*?\"<>|\\u0000-\\u001f]"), "_").trim().trim('.').take(120)
-    return cleaned.ifBlank { fallback }
-}
-
 // ---------- encrypted cache ----------
 
 /**
@@ -118,6 +105,9 @@ class DocCache(private val dir: File, private val cipher: SecretCipher, private 
     /** Sign-out / device change: nothing of a previous user may stay on the device. */
     @Synchronized
     fun clear() { dir.listFiles()?.forEach { it.delete() } }
+
+    /** Bytes currently cached (shown in Settings > Storage). */
+    fun sizeBytes(): Long = dir.listFiles()?.sumOf { it.length() } ?: 0L
 }
 
 // ---------- repository ----------
@@ -161,9 +151,10 @@ class DocumentsRepository(private val api: BffApi, private val db: AppDb, privat
             r.status == 413 -> OpenResult.TooLarge
             r.status == 403 || r.status == 401 -> OpenResult.Forbidden
             r.status == 404 || r.code == "CANONICAL_BINARY_MISSING" || r.code == "DOCUMENT_NOT_FOUND" -> OpenResult.Missing
-            r.ok && r.bytes != null && r.bytes.isNotEmpty() -> {
-                runCatching { cache.put(companyId, doc.id, doc.sha256, r.bytes) }
-                OpenResult.Ready(r.filename ?: doc.name, r.mime?.takeIf { it.isNotBlank() } ?: doc.mime, r.bytes, false)
+            r.ok && (r.bytes?.size ?: 0) > 0 -> {
+                val bytes: ByteArray = r.bytes!!
+                runCatching { cache.put(companyId, doc.id, doc.sha256, bytes) }
+                OpenResult.Ready(r.filename ?: doc.name, r.mime?.takeIf { it.isNotBlank() } ?: doc.mime, bytes, false)
             }
             else -> OpenResult.Failed(r.code ?: "HTTP ${r.status}")
         }
@@ -171,5 +162,5 @@ class DocumentsRepository(private val api: BffApi, private val db: AppDb, privat
 
     fun clearCache() = cache.clear()
 
-    companion object { const val MAX_BYTES = 25L * 1024 * 1024 }
+    companion object { const val MAX_BYTES = DOC_MAX_BYTES }
 }

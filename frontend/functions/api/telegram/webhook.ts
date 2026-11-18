@@ -14,11 +14,13 @@ import {
 import { type BotJavob, type Callback, type TgRasm, bugunJavobi, fotoAmali, jarvisJavobi, kunlikAmali, obyektlarJavobi, yordamMatni } from '../../_shared/telegram-bot';
 import { callbackIshlaV2, faktTaklif, fotoQidiruv, menyuTugmasi, qidiruvKonteksti } from '../../_shared/telegram-bot-oqim';
 import { startTugmalari } from '../../_shared/telegram-tugma';
+import { omborBuyruq, omborCallback, omborSavolCallback } from '../../_shared/telegram-ombor';
 import { NONCE_PREFIKS, kalitYaroqli, nonceYaroqli, xesh, yoqilgan } from '../../_shared/kirish-emailsiz';
+import { type KanalEnv, kanalCallback, kanalCallbackmi, kanalTahrirJavobi, tahrirBelgisi } from '../../_shared/telegram-kanal';
 import { menUsernameQatori, taklifJavobi, usernameCallback, usernameJavobi, usernameTaklifi } from '../../_shared/telegram-username';
 import { telegramJarvisMenu, telegramJarvisReply, telegramJarvisSelect, type JarvisBotReply, type JarvisReplyTo } from '../../_shared/telegram-jarvis';
 
-type Xabar = { message_id?: number; reply_to_message?: JarvisReplyTo & { text?: string }; text?: string; caption?: string; photo?: TgRasm[]; contact?: { phone_number?: string; user_id?: number }; chat?: { id?: number; type?: string }; from?: { id?: number; is_bot?: boolean; language_code?: string; username?: string } };
+type Xabar = { message_id?: number; reply_to_message?: JarvisReplyTo & { text?: string }; text?: string; caption?: string; photo?: TgRasm[]; voice?: { file_id?: string; file_size?: number }; audio?: { file_id?: string; file_size?: number }; contact?: { phone_number?: string; user_id?: number }; chat?: { id?: number; type?: string }; from?: { id?: number; is_bot?: boolean; language_code?: string; username?: string } };
 export type Update = { update_id?: number; message?: Xabar; edited_message?: Xabar; callback_query?: Callback };
 
 const ROL_NOMI: Record<string, string> = {
@@ -67,7 +69,18 @@ async function callbackAjrat(env: TgEnv, cb: Callback, tgId: number | undefined)
     if (Number.isSafeInteger(cb.message?.message_id)) await tgApi(env, 'editMessageReplyMarkup', { chat_id: chat.id, message_id: cb.message?.message_id, reply_markup: { inline_keyboard: [] } });
     return 'cb:' + u.amal;
   }
-  const r = await callbackIshlaV2(env, a.foydalanuvchi_id, til, cb, chat.id as number);
+  if (kanalCallbackmi(cb.data)) {
+    /* KANAL-BOSHQARUV: kanalga chiqarish/o'chirish FAQAT egasi (superadmin) shu tugmani bosganda; qoralama egasi va rol qayta tekshiriladi. */
+    const k = await kanalCallback(env as KanalEnv, a.foydalanuvchi_id, til, String(cb.data), chat.id as number);
+    await javobBer(k.toast || undefined);
+    if (k.tugmalarniOlibTashla && Number.isSafeInteger(cb.message?.message_id)) await tgApi(env, 'editMessageReplyMarkup', { chat_id: chat.id, message_id: cb.message?.message_id, reply_markup: { inline_keyboard: [] } });
+    return k.amal;
+  }
+  const r = typeof cb.data === 'string' && cb.data.startsWith('os:')
+    ? await omborSavolCallback(env, a.foydalanuvchi_id, til, cb)   // OMBOR: aniqlovchi savol / QQS tugmalari (imzolangan token xabar matnida)
+    : typeof cb.data === 'string' && cb.data.startsWith('ob:')
+    ? await omborCallback(env, a.foydalanuvchi_id, til, cb)   // OMBOR-OVOZ: tasdiq tokeni preview xabari matnida
+    : await callbackIshlaV2(env, a.foydalanuvchi_id, til, cb, chat.id as number);
   await javobBer(r.toast || undefined);
   if (r.xabar) await yubor(env, chat.id as number, r.xabar);
   if (r.tugmalarniOlibTashla && Number.isSafeInteger(cb.message?.message_id)) {
@@ -144,6 +157,17 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
   if (!a.ulangan || !a.foydalanuvchi_id) { await xabarYubor(env, chatId, ulangMatni(env, til)); return 'ulanmagan'; }
   const uid = a.foydalanuvchi_id;
 
+  // KANAL-BOSHQARUV: «Tahrirlash» xabariga javob — qoralama matni yangilanadi (chiqarilmaydi).
+  const kpId = tahrirBelgisi(msg.reply_to_message);
+  if (kpId && typeof msg.text === 'string') return kanalTahrirJavobi(env as KanalEnv, uid, til, chatId, kpId, msg.text);
+  // OMBOR-OVOZ: ovozli xabar / oddiy matn → omborchi buyrug'i (preview + tasdiq tugmalari). Omborchi bo'lmasa — oddiy oqim davom etadi.
+  const ovoz = msg.voice?.file_id ?? msg.audio?.file_id;
+  if (ovoz || (!b && typeof msg.text === 'string' && msg.text.trim() && !qidiruvKonteksti(msg.reply_to_message))) {
+    const j = await omborBuyruq(env, uid, til, ovoz ? { fileId: ovoz } : { matn: String(msg.text) });
+    if (j) { await yubor(env, chatId, j); return ovoz ? 'ombor_ovoz' : 'ombor_matn'; }
+    if (ovoz) { await xabarYubor(env, chatId, tgT('Ovozli buyruq faqat omborchilar uchun.', til)); return 'ovoz_ruxsatsiz'; }
+  }
+
   // Rasm (izoh bilan yoki izohsiz) → foto-dalil (umumiy, faktga biriktirilmagan). Fakt summasi/hajmi yozilmaydi.
   if (Array.isArray(msg.photo) && msg.photo.length) {
     const j = await fotoAmali(env, uid, til, msg.photo.slice(0, 10), String(msg.caption || '').slice(0, 600));
@@ -182,6 +206,12 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
       return 'jarvis';
     case 'kunlik': await yubor(env, chatId, await kunlikAmali(env, uid, til, b?.arg ?? '')); return 'kunlik';
     case 'fakt': await yubor(env, chatId, await faktTaklif(env, uid, til, b?.arg ?? '')); return 'fakt';
+    case 'hisobot': case 'qoldiq': case 'ostatka': {
+      // OMBOR: /hisobot o'tgan oy sement · /qoldiq 2026-11-01 — matn omborchi buyrug'i bilan bir xil yo'ldan (tahlil → kartochka) o'tadi.
+      const j = await omborBuyruq(env, uid, til, { matn: (b?.buyruq === 'hisobot' ? 'hisobot ' : 'qoldiq ') + (b?.arg ?? '') });
+      await yubor(env, chatId, j ?? { matn: tgT('Bu buyruq faqat omborchilar uchun.', til) });
+      return 'ombor_' + b?.buyruq;
+    }
     case 'yordam': case 'help':
       await xabarYubor(env, chatId, yordamMatni(til), { reply_markup: miniAppTugma(env, til) });
       return 'yordam';
