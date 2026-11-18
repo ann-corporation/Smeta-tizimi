@@ -9,7 +9,7 @@ export type HujjatTur = 'f2' | 'forma3' | 'nakopitelniy' | 'm29' | 'slichitelniy
 export type HujjatFormat = 'xlsx' | 'pdf';
 
 export type HujjatYaratNatija =
-  | { ok: true; bytes: Uint8Array; faylNomi: string; mime: string; sarflandi: number; bepulTakror: boolean }
+  | { ok: true; bytes: Uint8Array; faylNomi: string; mime: string; sarflandi: number; bepulTakror: boolean; /** X-Disk-Holat: 'ok' | 'otkazildi' | 'xato:<kod>' (Diskka yozish natijasi). */ diskHolat: string | null }
   | { ok: false; status: number; code: string | null; xabar: string };
 
 export type HujjatRoyxatQator = {
@@ -43,7 +43,7 @@ export async function hujjatYarat(p: { kompaniyaId: number; obyektId: number; tu
   const bytes = new Uint8Array(await r.arrayBuffer());
   return {
     ok: true, bytes, faylNomi: faylNomi(r.headers.get('Content-Disposition'), `hujjat.${format}`), mime: tur,
-    sarflandi: Number(r.headers.get('X-Hujjat-Sarf')) || 0, bepulTakror: r.headers.get('X-Hujjat-Bepul-Takror') === '1',
+    sarflandi: Number(r.headers.get('X-Hujjat-Sarf')) || 0, bepulTakror: r.headers.get('X-Hujjat-Bepul-Takror') === '1', diskHolat: r.headers.get('X-Disk-Holat'),
   };
 }
 

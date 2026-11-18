@@ -1,4 +1,5 @@
 import { MoneyInput } from '../umumiy/ui/MoneyInput';
+import { obyektHujjatManba } from '../lib/disk-hujjat';
 import { downloadBlob } from '../lib/construction-document-control/export/download-helper';
 /**
  * TestAosr.tsx — Ijro hujjatlari: АОСР (ШНК 3.01.01-22 Прил.6) va laboratoriya.
@@ -265,7 +266,9 @@ export default function TestAosr() {
       const logo = await sbKompaniyaLogoOl(kompaniyaId);
       const bytes = await aosrKitobExcel(royxat.map((a) => aktKirish(a, logo)), { sanasiz });
       const obyektNomi = obyektlar.find((o) => o.id === obyektId)?.nom ?? 'Объект';
-      const tk = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'AOSR', sabab: `Печатная книга АОСР · ${obyektNomi} · ${royxat.length} акт`, obyekt: obyektId }, () => {
+      const tk = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'AOSR', sabab: `Печатная книга АОСР · ${obyektNomi} · ${royxat.length} акт`, obyekt: obyektId,
+        /* Disk (A2): AOSR pechat kitobi obyekt bo'yicha bitta fayl; qayta yasalsa - yangi versiya. */
+        ...(obyektId ? { disk: { turi: 'aosr' as const, obyektId, faylNomi: aosrKitobFaylNomi(obyektNomi, royxat.length, sanasiz ? null : new Date().toISOString().slice(0, 10)), manba: obyektHujjatManba({ tur: 'aosr', obyektId, obyekt: obyektNomi, oy: null }) } } : {}) }, () => {
         downloadBlob(bytes, aosrKitobFaylNomi(obyektNomi, royxat.length, sanasiz ? null : new Date().toISOString().slice(0, 10)));
       });
       if (!tk.ok) toast(tk.xabar, 'danger'); else if (tk.xabar) toast(tk.xabar, 'ok');
@@ -296,7 +299,9 @@ export default function TestAosr() {
       const logo = kompaniyaId ? await sbKompaniyaLogoOl(kompaniyaId) : null;
       const bytes = await aktBaytlari(a, logo);
       if (!kompaniyaId) { toast(t('Kompaniyani tanlang'), 'warn'); return; }
-      const tk = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'AOSR', sabab: `АОСР № ${a.raqam ?? ''} · ${a.obyekt ?? ''}` }, () => {
+      const tk = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'AOSR', sabab: `АОСР № ${a.raqam ?? ''} · ${a.obyekt ?? ''}`,
+        /* Disk (A2): har AOSR akti o'z fayli (kalit aosr_akt:<akt_id>); tahrirlanib qayta yasalsa - yangi versiya. */
+        ...(obyektId && a.id ? { disk: { turi: 'aosr' as const, obyektId, faylNomi: aosrFaylNomi(a.obyekt, a.raqam, a.sana), manba: { turi: 'aosr', id: Number(a.id), kalit: `aosr_akt:${a.id}`, nom: `AOSR №${a.raqam ?? a.id}${a.obyekt ? ` — ${a.obyekt}` : ''}` } } } : {}) }, () => {
         downloadBlob(bytes, aosrFaylNomi(a.obyekt, a.raqam, a.sana)); // tizim imzosi shu yo'lda qo'yiladi
       });
       if (!tk.ok) toast(tk.xabar, 'danger'); else if (tk.xabar) toast(tk.xabar, 'ok');

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { obyektHujjatManba } from '../../lib/disk-hujjat';
 import { sverkaManbalardan, SVERKA_KAT_NOMI, type SverkaManba, type SverkaNatija, type SverkaHolat } from '../../lib/smeta-anatomiya/sverka';
 import { SVERKA_HOLAT_NOMI, sverkaHujjatXlsx } from '../../lib/lrv-res-sverka-export';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
@@ -18,10 +19,12 @@ const HOLAT_UZ: Record<SverkaHolat, string> = {
 };
 const fmt = (x: number | null, kasr = 3) => (x == null ? '—' : x.toLocaleString('ru-RU', { maximumFractionDigits: kasr }));
 
-export function LrvResSverkaPanel({ lrvlar, reslar, obyektNomi }: {
+export function LrvResSverkaPanel({ lrvlar, reslar, obyektNomi, obyektId }: {
   lrvlar: readonly SverkaManba[];
   reslar: readonly SverkaManba[];
   obyektNomi: string;
+  /** Disk (A2): sverka hujjati shu obyekt papkasiga saqlanadi. */
+  obyektId?: number | null;
 }) {
   const [natija, setNatija] = useState<SverkaNatija | null>(null);
   const [xato, setXato] = useState('');
@@ -50,7 +53,8 @@ export function LrvResSverkaPanel({ lrvlar, reslar, obyektNomi }: {
   const hujjat = async (korish: boolean) => {
     if (!joriy?.id) { toast('Hujjat uchun kompaniyani tanlang.', 'danger'); return; }
     const { bytes, faylNomi } = sverkaHujjatXlsx(natija, { obyektNomi: obyektNomi || 'Объект', lrvManba, resManba, faqatFarq });
-    const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes, hujjat: 'SVERKA_LRV_RES', sabab: `Сверка ЛРВ и РС · ${obyektNomi || 'Объект'}` },
+    const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes, hujjat: 'SVERKA_LRV_RES', sabab: `Сверка ЛРВ и РС · ${obyektNomi || 'Объект'}`,
+        ...(obyektId ? { disk: { turi: 'sverka_lrv_res' as const, obyektId, faylNomi, manba: obyektHujjatManba({ tur: 'sverka_lrv_res', obyektId, obyekt: obyektNomi || null, oy: null }) } } : {}) },
       () => { if (korish) korinish.ochish(bytes, faylNomi); else downloadBlob(bytes, faylNomi); });
     if (!t.ok) toast(t.xabar, 'danger'); else if (t.xabar) toast(t.xabar, 'ok');
   };

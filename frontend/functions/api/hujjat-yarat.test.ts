@@ -135,3 +135,50 @@ describe('ichki rejim (yuklovchilar uchun nisbiy fetch)', () => {
     expect(r.status).toBe(404);
   });
 });
+
+describe('/api/hujjat-yarat — Disk (A2): natija kompaniya diskiga yoziladi', () => {
+  const soR2 = (body: unknown, put = vi.fn(async () => ({}))) => {
+    const x = so(body) as unknown as { env: Record<string, unknown> };
+    x.env.R2_CANONICAL = { put, get: vi.fn(), head: vi.fn(), delete: vi.fn() };
+    return { ctx: x as never, put };
+  };
+  const diskFetch = (yoz: Record<string, unknown> = { ok: true, fayl_id: 4, raqam: 1, yangi: true }) => {
+    const c: Array<{ nom: string; args: any }> = [];
+    vi.stubGlobal('fetch', vi.fn(async (u: string, init?: RequestInit) => {
+      const nom = String(u).split('/rpc/')[1]; c.push({ nom, args: JSON.parse(String(init?.body ?? '{}')) });
+      if (nom === 't2_document_canonical_reserve_v1') return Response.json({ ok: true, document_id: 9, r2_key: 'docs/17/_/79/d9/r1', canonical_storage_status: 'reserved' });
+      if (nom === 't2_disk_tizim_yoz_v1') return Response.json(yoz);
+      return Response.json({ ok: true });
+    }));
+    return c;
+  };
+
+  it('tasdiqlangan F-2: kalit f2:<akt_id>, aniq nom, bir marta yoziladi; X-Disk-Holat: ok', async () => {
+    const c = diskFetch(); const { ctx, put } = soR2({ amal: 'yarat', tur: 'f2', format: 'xlsx', kompaniya_id: 17, obyekt_id: 79, akt_id: 246 });
+    const r = await onRequestPost(ctx);
+    expect(r.status).toBe(200); expect(r.headers.get('X-Disk-Holat')).toBe('ok');
+    const yoz = c.filter((x) => x.nom === 't2_disk_tizim_yoz_v1');
+    expect(yoz).toHaveLength(1);
+    expect(yoz[0].args).toMatchObject({ p_actor: 9, p_kompaniya: 17, p_registry_id: 9, p_manba_turi: 'f2', p_manba_id: 246, p_hujjat_kalit: 'f2:246', p_nom: 'F-2 №1 — Fast Food 1-etaj — 2026-10' });
+    expect(c.find((x) => x.nom === 't2_document_canonical_reserve_v1')!.args).toMatchObject({ p_document_type: 'f2_hujjat', p_obyekt_id: 79, p_revision: '2026-10-01' });
+    expect(put).toHaveBeenCalledTimes(1);
+  });
+
+  it('F-2 qoralama (tasdiqlanmagan) Diskka yozilmaydi', async () => {
+    mocks.reestr.mockResolvedValue({ ok: true, qatorlar: [{ ...AKT, holat: 'qoralama' }] });
+    const c = diskFetch(); const { ctx } = soR2({ amal: 'yarat', tur: 'f2', format: 'xlsx', kompaniya_id: 17, obyekt_id: 79, akt_id: 246 });
+    const r = await onRequestPost(ctx);
+    expect(r.status).toBe(200); expect(r.headers.get('X-Disk-Holat')).toBe('otkazildi');
+    expect(c.filter((x) => x.nom === 't2_disk_tizim_yoz_v1')).toHaveLength(0);
+  });
+
+  it('Disk yozuvi yiqilsa hujjat BERILADI (200), sarlavha xato:<kod>, jurnalga yoziladi', async () => {
+    const jurnal = vi.spyOn(console, 'error').mockImplementation(() => {});
+    diskFetch({ ok: false, code: 'KVOTA_TUGADI' }); const { ctx } = soR2({ amal: 'yarat', tur: 'f2', format: 'xlsx', kompaniya_id: 17, obyekt_id: 79, akt_id: 246 });
+    const r = await onRequestPost(ctx);
+    expect(r.status).toBe(200); expect(r.headers.get('X-Disk-Holat')).toBe('xato:KVOTA_TUGADI');
+    expect(new Uint8Array(await r.arrayBuffer()).byteLength).toBeGreaterThan(1000);
+    expect(jurnal).toHaveBeenCalled();
+    jurnal.mockRestore();
+  });
+});

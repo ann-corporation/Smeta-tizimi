@@ -16,6 +16,7 @@
 import { xlsxYacheykaSoni } from './xlsx-yacheyka';
 import { toast } from '../umumiy/ui/Toast';
 import { mazmunXeshi, tokenBilan, type NarxTafsilot, type TokenAmal } from '../api/t2-token';
+import { diskkaSaqla, type DiskSaqlaSoz } from './disk-saqla';
 
 export { varaqYacheykaSoni, xlsxYacheykaSoni } from './xlsx-yacheyka';
 
@@ -28,7 +29,9 @@ export type HujjatTokenNatija =
  * yechilgandan KEYIN chaqiriladi. `yacheykalar` berilmasa fayldan sanaladi (`manba` bilan — asl fayl ayirib).
  */
 export async function hujjatTokenBilan(
-  p: { kompaniyaId: number; bytes: Uint8Array; hujjat: string; sabab: string; obyekt?: number | string | null; amal?: TokenAmal; yacheykalar?: number; manba?: Uint8Array | null; /** Paket: har fayl hisoblangan katak soni — narx har fayl narxining YIG'INDISI (bitta yechim). */ fayllar?: number[]; /** Paket: har fayl mazmun xeshi (fayllar bilan bir xil uzunlik) - server faqat to'lanmaganlarini yechadi (hujjat bo'yicha dedup). */ xeshlar?: string[] },
+  p: { kompaniyaId: number; bytes: Uint8Array; hujjat: string; sabab: string; obyekt?: number | string | null; amal?: TokenAmal; yacheykalar?: number; manba?: Uint8Array | null; /** Paket: har fayl hisoblangan katak soni — narx har fayl narxining YIG'INDISI (bitta yechim). */ fayllar?: number[]; /** Paket: har fayl mazmun xeshi (fayllar bilan bir xil uzunlik) - server faqat to'lanmaganlarini yechadi (hujjat bo'yicha dedup). */ xeshlar?: string[];
+    /** Disk (A2): hujjat berilgach kompaniya diskiga saqlanadi (kalit/nom lib/disk-hujjat dan). Berilmasa - faqat yuklab berish. Paket (fayllar) uchun ishlatilmaydi. */
+    disk?: Omit<DiskSaqlaSoz, 'kompaniyaId' | 'bytes'> & { bytes?: Uint8Array } },
   yetkaz: () => void | Promise<void>,
   d: { tokenBilan: typeof tokenBilan; mazmunXeshi: typeof mazmunXeshi } = { tokenBilan, mazmunXeshi },
 ): Promise<HujjatTokenNatija> {
@@ -45,6 +48,8 @@ export async function hujjatTokenBilan(
   if (p.obyekt != null && p.obyekt !== '') meta.obyekt = p.obyekt;
   const r = await d.tokenBilan({ kompaniyaId: p.kompaniyaId, amal: p.amal ?? 'hujjat', birlikSoni: yacheykalar, meta }, async () => { await yetkaz(); return true; });
   if (!r.ok) return { ok: false, xabar: r.xabar };
+  /* Disk: token yechildi va hujjat berildi - endi Diskka (bir xil mazmun - versiya qo'shilmaydi). Xato hujjatni buzmaydi, jim ham emas (toast). */
+  if (p.disk) void diskkaSaqla({ ...p.disk, kompaniyaId: p.kompaniyaId, bytes: p.disk.bytes ?? p.bytes, obyektId: p.disk.obyektId ?? (typeof p.obyekt === 'number' ? p.obyekt : Number(p.obyekt) || null) });
   const xabar = r.bepulTakror
     ? 'Bu hujjat avval to‘langan — qayta yuklash bepul'
     : r.sarflandi

@@ -22,6 +22,9 @@
  *   sha256        hex (required — client-computed)
  *   size          bytes (required)
  *   revision      string (optional)
+ *   manba_turi / manba_id / hujjat_kalit / shartnoma_id / korinish_nom  optional (Disk): tizim hujjatining shaxsi (kalit: lib/disk-hujjat.ts) - bir kalit = bitta
+ *                   Disk fayli, qayta yuklash = o'sha faylning YANGI VERSIYASI. Berilmasa kalit/nom registry qatoridan SQL da aniqlanadi.
+ *                   Saqlangan har hujjat Diskka yoziladi (t2_disk_tizim_yoz_v1); xato yuklashni buzmaydi (javobda disk, jurnalda).
  *   source_slot_key optional, immutable logical source slot for a multi-file
  *                   smeta package. Different slots are independent documents,
  *                   not revisions of one another.
@@ -33,6 +36,7 @@ import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { pullikTurmi, tolovDalili, tolovRad } from '../_shared/hujjat-tolov';
 import { serverQaytar, serverSarfla, sarfRad } from '../_shared/hujjat-sarf';
 import { mazmunXeshi } from '../../src/api/mazmun-xesh';
+import { diskYoz } from '../_shared/disk-yoz';
 
 type Env = {
   SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string;
@@ -101,6 +105,17 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     const declaredSize = Number(form.get('size') || (file ? (file as any).size : 0)) || 0;
     const revision = form.get('revision') != null ? String(form.get('revision')) : null;
     const sourceSlotKey = form.get('source_slot_key') != null ? String(form.get('source_slot_key')).trim().toLowerCase() : '';
+    const manbaTuri = String(form.get('manba_turi') || '').trim().toLowerCase();
+    const hujjatKalit = String(form.get('hujjat_kalit') || '').trim();
+    const manbaIdSon = Number(form.get('manba_id')); const shartnomaSon = Number(form.get('shartnoma_id'));
+    const diskManba = manbaTuri || hujjatKalit || form.get('korinish_nom') ? {
+      turi: manbaTuri, id: Number.isSafeInteger(manbaIdSon) && manbaIdSon > 0 ? manbaIdSon : null, kalit: hujjatKalit,
+      nom: String(form.get('korinish_nom') || '').trim().slice(0, 200), shartnomaId: Number.isSafeInteger(shartnomaSon) && shartnomaSon > 0 ? shartnomaSon : null } : null;
+    /** Saqlangan hujjatni Diskka yozadi; javobga natija qo'shadi. Hech qachon yuklashni yiqitmaydi. */
+    const diskBilan = async (documentId: number, javob: Record<string, unknown>) => {
+      const d = await diskYoz(ctx.env, { actorId: Number(actorId), kompaniyaId, registryId: documentId, manba: diskManba, joy: 'yukla' });
+      return Response.json({ ...javob, disk: d.ok ? { ok: true, fayl_id: d.faylId, versiya: d.versiya, takror: d.takror } : { ok: false, code: d.code } });
+    };
 
     if (!file || typeof file.stream !== 'function') return Response.json({ ok: false, code: 'DOCUMENT_CONTEXT_REQUIRED', xato: 'Fayl topilmadi' }, { status: 400 });
     if (!kompaniyaId || !UUID.test(operationId)) return Response.json({ ok: false, code: 'DOCUMENT_CONTEXT_REQUIRED', xato: 'kompaniya_id va UUID operation_id majburiy' }, { status: 400 });
@@ -167,7 +182,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     const r2Key: string = reserve.body.r2_key;
     // Already stored (retry) — nothing more to do.
     if (reserve.body.canonical_storage_status === 'stored') {
-      return Response.json({ ok: true, document_id: documentId, r2_key: r2Key, sha256: reserve.body.sha256,
+      return diskBilan(documentId, { ok: true, document_id: documentId, r2_key: r2Key, sha256: reserve.body.sha256,
         versiya: reserve.body.versiya, retry: true, dedup: reserve.body.dedup === true });
     }
 
@@ -201,7 +216,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         p_sha256: serverSha, p_size_bytes: declaredSize,
       }).catch(() => null);
       if (share?.httpOk && share.body?.ok === true) {
-        return Response.json({
+        return diskBilan(documentId, {
           ok: true, document_id: documentId, revision_seq: share.body.revision_seq,
           r2_key: r2Key, sha256: share.body.sha256, sha256_verified: true,
           size_bytes: declaredSize, versiya: share.body.versiya, shared_from: share.body.shared_from,
@@ -233,7 +248,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       }, { status: 202 });
     }
 
-    return Response.json({
+    return diskBilan(documentId, {
       ok: true, document_id: documentId, revision_seq: fin.body.revision_seq,
       r2_key: r2Key, sha256: fin.body.sha256, sha256_verified: fin.body.sha256_verified,
       size_bytes: declaredSize, versiya: fin.body.versiya,

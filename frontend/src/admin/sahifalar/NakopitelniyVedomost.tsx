@@ -32,7 +32,7 @@ import type { Podval } from '../../lib/hisob-yadro';
 import { nakopitelniyAktlarKOplate, nakopitelniyAktUstunOl, nakopitelniyHujjatQur, nakopitelniyOylarOl, nakopitelniyQatorlarniTayyorla, nakopitelniySmetaNakrutka, nakopitelniyUstamaOl, nakopitelniyUstamaTayyorEmas, nakopitelniyYukla, type NakopitelniyUstama } from '../../lib/oylik-hujjat/nakopitelniy';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
-import { hujjatArxivla } from '../../api/t2-hujjat-arxiv';
+import { forma3QoralamaManba, obyektHujjatManba } from '../../lib/disk-hujjat';
 import { toast } from '../../umumiy/ui/Toast';
 import { forma3Tayyorgarlik } from '../../lib/pto-markazi/forma3-tayyorgarlik';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
@@ -375,15 +375,12 @@ function Sessiya({ companyId }: { companyId: number }) {
         },
       );
       setForma3Diqqat([...h.diqqat, ...(context.warning ? [{ nom: 'Rekvizitlar', sabab: context.warning }] : []), ...(!f2Oylik.length ? [{ nom: 'F2 manbasi', sabab: 'Bu davrgacha tasdiqlangan F2 yo‘q; bajarilgan ish qiymatlari bo‘sh hisobot sifatida beriladi.' }] : [])]);
-      const t = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'F3', sabab: `Форма №3${f3Shakl === 'bir_qatorli' ? ' (одностр.)' : ''} · ${obyektNom} · ${davr.slice(0, 7)}`, obyekt: objectId },
+      const t = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'F3', sabab: `Форма №3${f3Shakl === 'bir_qatorli' ? ' (одностр.)' : ''} · ${obyektNom} · ${davr.slice(0, 7)}`, obyekt: objectId,
+          /* Disk (A2): F-3 shartnoma-oy bo'yicha bitta fayl; qayta yasalsa - yangi versiya (aniq nom; vaqtinchalik kalit haqiqiy forma3 kalitiga ulanadi). Faqat F2 manbasi bor hujjat. */
+          ...(f2Oylik.length ? { disk: { turi: 'f3', obyektId: Number(objectId), loyihaId: loyihaId ?? null, faylNomi: h.faylNomi, davr: davr.slice(0, 7), manba: forma3QoralamaManba({ shartnomaId, raqam: tay.raqam ?? null, shartnomaRaqam: shartnoma?.raqam ?? null, davr }) } } : {}) },
         () => { if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi); });
       if (!t.ok) { toast(t.xabar, 'danger'); return; }
       if (t.xabar) toast(t.xabar, 'ok');
-      // F3 — rasmiy hujjat: R2 arxivga o'zgarmas versiya (davr bo'yicha; aynan bir xil mazmun qayta saqlanmaydi).
-      if (f2Oylik.length) {
-        void hujjatArxivla({ kompaniyaId: companyId, loyihaId: loyihaId ?? null, obyektId: Number(objectId), turi: 'f3', faylNomi: h.faylNomi, bytes: h.bytes, davr: davr.slice(0, 7) })
-          .then((a) => { if (!a.ok) toast('F3 arxivga saqlanmadi — keyinroq qayta chiqaring.', 'warn'); else if (!a.takror) toast(`F3 arxivga saqlandi (v${a.versiya})`, 'ok'); });
-      }
     } catch (e) {
       setXato(e instanceof Error && e.message === 'MISSING_CERTIFIED_AMOUNT'
         ? 'Tasdiqlangan F2 manba summasi yetishmaydi. Manba hujjatni tekshiring; qiymat taxminan hisoblanmaydi.'
@@ -419,7 +416,8 @@ function Sessiya({ companyId }: { companyId: number }) {
       const aktUstunH = await nakopitelniyAktUstunOl(companyId, Number(objectId), obyektNom, davr);
       const aktlarKOplate = aktUstunH?.oylar.length ? undefined : await nakopitelniyAktlarKOplate(companyId, Number(objectId), obyektNom, davr);
       const h = nakopitelniyHujjatQur({ qatorlar: rows, jami, obyektNom, davr, ustama, oylar, imzo: tomonlar, ndsFoiz: stavkaOl(), aktlarKOplate, aktUstun: aktUstunH });
-      const t = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'NAKOPITELNIY', sabab: `Накопительная ведомость · ${obyektNom} · ${davr}`, obyekt: objectId },
+      const t = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'NAKOPITELNIY', sabab: `Накопительная ведомость · ${obyektNom} · ${davr}`, obyekt: objectId,
+          disk: { turi: 'nakopitelniy', obyektId: Number(objectId), loyihaId: loyihaId ?? null, faylNomi: h.faylNomi, davr: davr.slice(0, 7), manba: obyektHujjatManba({ tur: 'nakopitelniy', obyektId: Number(objectId), obyekt: obyektNom, oy: davr }) } },
         () => { if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi); });
       if (!t.ok) toast(t.xabar, 'danger'); else if (t.xabar) toast(t.xabar, 'ok');
     } catch (e) { setXato(e instanceof HujjatToliqEmasXato ? 'Hujjat to‘liq emas — eksport bloklandi.' : 'Excel fayli tuzilmadi.'); }
