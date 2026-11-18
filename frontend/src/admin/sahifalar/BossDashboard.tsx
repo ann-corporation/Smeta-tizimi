@@ -29,6 +29,7 @@ import { davrOraligi, type DavrTur } from '../../lib/rahbar-panel/markaz';
 import { ObyektPaneli, TahlilYorliqlari } from '../../components/rahbar-panel/RahbarTahlil';
 import { rahbarXlsx } from '../../lib/rahbar-panel/eksport';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { toast } from '../../umumiy/ui/Toast';
 import { paketUchligi, type SummaPaket } from '../../lib/summa-paket';
@@ -260,7 +261,7 @@ function Markaz({ kompaniyaId, nom, rp, davr, setDavr, davrQ }: {
     if (!rp.data) return;
     const qamrov = nom ?? String(kompaniyaId);
     const { bytes, faylNomi } = await rahbarXlsx(rp.data, { qamrovNomi: qamrov });
-    const r = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'RAHBAR_PANEL', sabab: `Панель руководителя · ${qamrov}` },
+    const r = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'RAHBAR_PANEL', disk: diskJoy({ tur: 'rahbar_panel', kompaniyaId, qism: qamrov, qismNom: qamrov, faylNomi }), sabab: `Панель руководителя · ${qamrov}` },
       () => downloadBlob(bytes, faylNomi));
     if (!r.ok) toast(t(r.xabar), 'danger'); else if (r.xabar) toast(t(r.xabar), 'ok');
   };

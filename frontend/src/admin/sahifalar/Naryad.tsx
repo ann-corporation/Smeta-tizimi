@@ -16,6 +16,7 @@ import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { yangiOperationId } from '../../api/supabase';
 import { kompaniyaAzolariOl, type KompaniyaAzo } from '../../api/t2-men';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
 import { podvalTanla, sbPodvallarOl } from '../../api/t2-nakrutka-podval';
@@ -167,7 +168,7 @@ export default function Naryad() {
             onBekor={() => harakat(() => naryadBekor({ kompaniyaId: kid, naryadId: ochiq.id, versiya: ochiq.versiya, operationId: yangiOperationId() }), ochiq.id, t('Naryad bekor qilindi'))}
             onHujjat={async () => {
               const { bytes, faylNomi } = naryadHujjat(ochiq, { obyektNom });
-              const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'NARYAD', sabab: `Наряд ${ochiq.raqam}`, obyekt: ochiq.obyekt_id }, () => {
+              const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'NARYAD', disk: diskJoy({ tur: 'naryad', kompaniyaId: kid, obyektId: ochiq.obyekt_id, obyekt: obyektNom, qism: ochiq.raqam, qismNom: `№`, faylNomi }), sabab: `Наряд ${ochiq.raqam}`, obyekt: ochiq.obyekt_id }, () => {
                 downloadBlob(new Uint8Array(bytes), faylNomi, undefined, { turi: 'naryad', obyektId: ochiq.obyekt_id });   // yagona yo'l: tizim imzosi + manba QR
               });
               toast(r.xabar, r.ok ? 'ok' : 'danger');

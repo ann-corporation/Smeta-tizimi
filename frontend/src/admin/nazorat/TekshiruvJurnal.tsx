@@ -12,6 +12,7 @@ import { tekshiruvTafsilotOl, tekshiruvlarOl, type TekshiruvQisqa, type Tekshiru
 import { hujjatYuklabOlishUrl } from '../../api/t2-hujjat-canonical';
 import { kunlikJurnalXlsx } from '../../lib/nazorat/tekshiruv';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { t } from '../../i18n/til';
 import { Bolim } from '../zakazchik/tomon-ui';
@@ -60,7 +61,7 @@ export default function TekshiruvJurnal() {
   const yakun = royxat.filter((x) => x.holat === 'yakunlandi');
   async function yukla() {
     const { bytes, faylNomi } = kunlikJurnalXlsx(royxat, { davr: `${kun(dan)} - ${kun(gacha)}`, inspektorNomi: joriy?.nom });
-    const r = await hujjatTokenBilan({ kompaniyaId: kompaniyaId!, bytes, hujjat: 'ZHURNAL_PROVEROK', sabab: `Журнал проверок · ${kun(dan)} - ${kun(gacha)}` }, () => downloadBlob(bytes, faylNomi));
+    const r = await hujjatTokenBilan({ kompaniyaId: kompaniyaId!, bytes, hujjat: 'ZHURNAL_PROVEROK', disk: diskJoy({ tur: 'tekshiruv_jurnal', kompaniyaId: kompaniyaId!, oy: kun(gacha), qism: kun(dan), qismNom: ` - `, faylNomi }), sabab: `Журнал проверок · ${kun(dan)} - ${kun(gacha)}` }, () => downloadBlob(bytes, faylNomi));
     if (!r.ok) toast(r.xabar, 'danger'); else if (r.xabar) toast(r.xabar, 'ok');
   }
   return (

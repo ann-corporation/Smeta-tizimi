@@ -4,6 +4,7 @@ import { t, tilLocale } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { buxOsvOl, type BuxOsv } from '../../api/t2-bux-hisob';
 import { osvHujjat } from '../../lib/buxgalteriya/eksport';
@@ -36,7 +37,7 @@ export function Osv({ kid, davr, versiya, onHisob }: { kid: number; davr: Davr; 
   const eksport = async () => {
     if (!d) return;
     const { bytes, faylNomi } = osvHujjat({ kompaniya: (joriy as { nom?: string } | null | undefined)?.nom ?? null, osv: d });
-    const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'OBOROT_SALDO', sabab: `Оборотно-сальдовая ведомость · ${d.dan}..${d.gacha}` }, () => downloadBlob(bytes, faylNomi));
+    const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'OBOROT_SALDO', disk: diskJoy({ tur: 'oborot_saldo', kompaniyaId: kid, oy: d.gacha, qism: d.dan, qismNom: `..`, faylNomi }), sabab: `Оборотно-сальдовая ведомость · ${d.dan}..${d.gacha}` }, () => downloadBlob(bytes, faylNomi));
     toast(r.ok ? (r.xabar || t('Oborot-saldo yuklandi')) : r.xabar, r.ok ? 'ok' : 'danger');
   };
 

@@ -9,6 +9,7 @@ import { toast } from '../../umumiy/ui/Toast';
 import { t } from '../../i18n/til';
 import { bugunOl, type Bugun, type BugunObyekt } from '../../api/t2-tomon';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { Bolim } from './tomon-ui';
 import { TolovXabariYozish } from './TolovXabarlari';
@@ -53,7 +54,7 @@ export default function BugunBolimi({ kompaniyaId, kompaniyaNomi }: { kompaniyaI
     try {
       const { zakazchikOylikHisobot } = await import('../../lib/zakazchik-hisobot');
       const x = await zakazchikOylikHisobot(d.obyektlar, { kompaniya: kompaniyaNomi, sana: d.sana });
-      const r = await hujjatTokenBilan({ kompaniyaId, bytes: x.bytes, hujjat: 'ZAKAZCHIK_HISOBOT', sabab: `Oylik hisobot ${d.sana}`, yacheykalar: x.yacheykalar }, () => downloadBlob(x.bytes, x.faylNomi));
+      const r = await hujjatTokenBilan({ kompaniyaId, bytes: x.bytes, hujjat: 'ZAKAZCHIK_HISOBOT', disk: diskJoy({ tur: 'zakazchik_hisobot', kompaniyaId, oy: d.sana, faylNomi: x.faylNomi }), sabab: `Oylik hisobot ${d.sana}`, yacheykalar: x.yacheykalar }, () => downloadBlob(x.bytes, x.faylNomi));
       toast(r.ok ? (r.xabar || t('Yuklandi')) : r.xabar, r.ok ? 'ok' : 'danger');
     } catch { toast(t('Hisobotni yig‘ib bo‘lmadi.'), 'danger'); }
     setBand(false);

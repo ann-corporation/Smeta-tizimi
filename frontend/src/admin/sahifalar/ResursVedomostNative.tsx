@@ -8,6 +8,7 @@ import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/Hu
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { FmtN } from '../../lib/format';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { toast } from '../../umumiy/ui/Toast';
 import { KatNishon } from '../../umumiy/ui/KatNishon';
 import { t } from '../../i18n/til';
@@ -70,7 +71,7 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
   async function hujjat(korish: boolean) {
     const nom = objects.find((o) => String(o.id) === objectId)?.nom || `Obyekt ${objectId}`;
     const h = resursVedomostHujjat(holatlar, { obyektNomi: nom, imzo: tomonlar });
-    const t = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'RESURS_VEDOMOST', sabab: `Ресурсная ведомость · ${nom}`, obyekt: objectId },
+    const t = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'RESURS_VEDOMOST', disk: diskJoy({ tur: 'resurs_vedomost', kompaniyaId: companyId, obyektId: objectId, obyekt: nom, faylNomi: h.faylNomi }), sabab: `Ресурсная ведомость · ${nom}`, obyekt: objectId },
       () => { if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi); });
     if (!t.ok) toast(t.xabar, 'danger'); else if (t.xabar) toast(t.xabar, 'ok');
   }

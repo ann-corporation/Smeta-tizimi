@@ -6,6 +6,7 @@ import { prixodKitobFonda } from '../../lib/ombor-prixod/read-fonda';
 import { varaqNomlari } from '../../lib/ombor-prixod/kitob';
 import { PrixodQatorEditor } from './PrixodQatorEditor';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { omborDavrExcel, type OmborDavr, type OmborHisobotQator } from '../../lib/ombor-prixod/davr-eksport';
 import { materialTaklifQur } from '../../lib/ombor-prixod/taklif';
@@ -212,7 +213,7 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi, yozishMumk
       const bytes = await omborDavrExcel(eksportQatorlari, davr);
       if (generation !== generationRef.current) return;
       const nom = `Kirim_qoralama_${davrBoshi}_${davrOxiri}.xlsx`;
-      const natija = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'OMBOR_QORALAMA_REESTR',
+      const natija = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'OMBOR_QORALAMA_REESTR', disk: diskJoy({ tur: 'ombor_qoralama', kompaniyaId, oy: davrBoshi, qism: `sklad---`, qismNom: `sklad `, faylNomi: nom }),
         sabab: `Черновик прихода · ${davr.bosh} — ${davr.oxir} · склад ${skladId}` }, () => {
         if (generation !== generationRef.current) throw new Error('EXPORT_SCOPE_CHANGED');
         downloadBlob(bytes, nom);

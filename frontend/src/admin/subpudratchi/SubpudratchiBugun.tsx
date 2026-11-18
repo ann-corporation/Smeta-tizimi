@@ -14,6 +14,7 @@ import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { toast } from '../../umumiy/ui/Toast';
 import { aloqalarOl, type Aloqa } from '../../api/t2-tomon';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { subAktHujjat } from '../../lib/subpudratchi/eksport';
 import { subAktQaytar, subAktTafsilotOl, subAktYoz, subAktYubor, subAktlarOl, subIshlarimOl, subTolovOl, type SubAktQisqa, type SubIsh, type SubTolovQator } from '../../api/t2-sub';
@@ -130,7 +131,7 @@ export default function SubpudratchiBugun() {
       qqsFoiz: d.natija.qatorlar.length && d.natija.qatorlar.every((q) => q.qqs_foiz === d.natija.qatorlar[0].qqs_foiz) ? d.natija.qatorlar[0].qqs_foiz : null,
       qatorlar: d.natija.qatorlar.map((q) => ({ kod: q.kod, nom: q.nom, birlik: q.birlik, hajm: q.hajm, narx: q.narx })),
     });
-    const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'SUB_AKT', sabab: `Акт субподрядчика · ${a.obyekt_nom} · ${a.oy.slice(0, 7)}`.slice(0, 120) }, () => downloadBlob(bytes, faylNomi));
+    const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'SUB_AKT', disk: diskJoy({ tur: 'sub_akt', kompaniyaId: kid, oy: a.oy, qism: a.id, qismNom: ` №`, obyekt: a.obyekt_nom, faylNomi }), sabab: `Акт субподрядчика · ${a.obyekt_nom} · ${a.oy.slice(0, 7)}`.slice(0, 120) }, () => downloadBlob(bytes, faylNomi));
     toast(r.ok ? (r.xabar || t('Akt yuklandi')) : r.xabar, r.ok ? 'ok' : 'danger');
   }
 

@@ -16,6 +16,7 @@ import { f3AktTanlov, f3OldingiSana, f3OyChegarasi, f3YuboriladiganAktlar } from
 import { bugungiOy, f3BoshOy, oyOldin } from '../../lib/pto-markazi/oy';
 import { forma3ShartnomaManbalari } from '../../lib/oylik-hujjat/forma3-shartnoma';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { forma3Manba, forma3QoralamaManba } from '../../lib/disk-hujjat';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { toast } from '../../umumiy/ui/Toast';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
@@ -188,7 +189,7 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
         return;
       }
       const tk = await hujjatTokenBilan(
-        { kompaniyaId: companyId, bytes: h.bytes, hujjat: 'F3', sabab: `Форма №3 (договор) · № ${raqamTozala(sh.raqam)} · ${oy}` },
+        { kompaniyaId: companyId, bytes: h.bytes, hujjat: 'F3', sabab: `Форма №3 (договор) · № ${raqamTozala(sh.raqam)} · ${oy}`, disk: { turi: 'f3', loyihaId: sh.loyiha_id ?? null, faylNomi: h.faylNomi, davr: oy, manba: f3Id ? forma3Manba({ forma3Id: f3Id, shartnomaId: sh.id, raqam: tay.raqam ?? null, shartnomaRaqam: sh.raqam, davr: chegara.oxiri }) : forma3QoralamaManba({ shartnomaId: sh.id, raqam: tay.raqam ?? null, shartnomaRaqam: sh.raqam, davr: chegara.oxiri }) } },
         () => downloadBlob(h.bytes, h.faylNomi),
       );
       if (!tk.ok) { toast(tk.xabar, 'danger'); return; }

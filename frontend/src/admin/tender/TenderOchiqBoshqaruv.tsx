@@ -16,6 +16,7 @@ import { tnAloqa, tnBayonnoma, tnKorsatish, tnLotSmetadan, tnNarxManba, tnShartn
 import { taqqosQatorlari } from '../../lib/tender-ochiq/taqqos';
 import { bayonnomaXlsx } from '../../lib/tender-ochiq/bayonnoma-export';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 
 const maydon = 'h-12 w-full rounded-lg border border-border px-3 text-[16px]';
@@ -132,7 +133,7 @@ function Lot({ kid, rfqId, yangila }: { kid: number; rfqId: number; yangila: () 
     setBand(true);
     try {
       const { bytes, faylNomi } = await bayonnomaXlsx(b);
-      const tk = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'TENDER_BAYONNOMA', sabab: `Tender bayonnomasi · ${b.tender.raqam ?? b.tender.id}` }, () => downloadBlob(bytes, faylNomi));
+      const tk = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'TENDER_BAYONNOMA', disk: diskJoy({ tur: 'tender_bayonnoma', kompaniyaId: kid, qism: b.tender.id, qismNom: `№`, faylNomi }), sabab: `Tender bayonnomasi · ${b.tender.raqam ?? b.tender.id}` }, () => downloadBlob(bytes, faylNomi));
       if (!tk.ok) toast(tk.xabar, 'danger'); else toast(tk.xabar || t('Bayonnoma tayyor.'), 'ok');
     } catch { toast(t('Bayonnoma tuzilmadi. Qayta urinib ko‘ring.'), 'warn'); }
     setBand(false);

@@ -6,6 +6,7 @@ import {
 } from '../../lib/fakt-obosnovanie';
 import { bugunSana, type ImzoNomlar } from '../../lib/hujjat-yozuvchi';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { toast } from '../../umumiy/ui/Toast';
 import { t } from '../../i18n/til';
@@ -57,7 +58,7 @@ export function ObosnovaniePanel({ kompaniyaId, obyektId, obyektNomi, loyihaId, 
       }
       const nom = rejim === 'loyiha' && royxat.length > 1 ? `Проект (${royxat.length} объектов)` : obyektNomi;
       const { bytes, faylNomi } = obosnovanieXlsx(modellar, { nom, sana, tuzilgan: bugunSana(), imzo: tomonlar, eski: eskiXarita, f2OshganKorsat: f2Oshgan });
-      const r = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'OBOSNOVANIE', sabab: `Обоснование выполненных объёмов, не закрытых Ф-2 · ${nom}`, obyekt: royxat.length === 1 ? royxat[0].id : null },
+      const r = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'OBOSNOVANIE', disk: diskJoy({ tur: 'obosnovanie', kompaniyaId, obyektId: royxat.length === 1 ? royxat[0].id : null, obyekt: nom, oy: sana, faylNomi }), sabab: `Обоснование выполненных объёмов, не закрытых Ф-2 · ${nom}`, obyekt: royxat.length === 1 ? royxat[0].id : null },
         () => downloadBlob(bytes, faylNomi));
       if (!r.ok) { setXabar({ tur: 'xato', matn: r.xabar }); return; }
       const poz = modellar.reduce((s, m) => s + m.pozSoni, 0);

@@ -10,6 +10,7 @@ import { downloadBlob } from '../../lib/construction-document-control/export/dow
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { agentRegister, jarayonYoz } from './studioAgent';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { t } from '../../i18n/til';
 import type { StudioNormCatalog } from '../../lib/catalog-extraction/norm-library';
 import { narxKatalogi, type PriceCatalog } from '../../lib/narx-katalog/price-remote';
@@ -709,7 +710,7 @@ export function ResBosqichi({ doc, hisob, unitText, katalog, kompaniyaId, onBack
   /** Official documents are billed by filled cells like every other document (token session 2026-10-16); the file is given only after payment. */
   async function tokenBilanBer(bytes: Uint8Array, nom: string, hujjat: string, sabab: string): Promise<string | null> {
     if (kompaniyaId == null) { setXabar(t('Hujjat uchun avval kompaniyani tanlang.')); return null; }
-    const r = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat, sabab: `${sabab} · ${doc.context.objectLabel || doc.context.title || 'Smeta'}` }, () => yuklabBer(bytes, nom));
+    const r = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat, disk: diskJoy({ tur: 'studio_hujjat', kompaniyaId, obyektId: doc.context.objectId ?? null, obyekt: doc.context.objectLabel || null, qism: hujjat.toLowerCase(), qismNom: hujjat === 'LRV_RES' ? 'LRV + RES' : 'Narx protokoli', faylNomi: nom }), sabab: `${sabab} · ${doc.context.objectLabel || doc.context.title || 'Smeta'}` }, () => yuklabBer(bytes, nom));
     if (!r.ok) { setXabar(r.xabar); return null; }
     return r.xabar;
   }

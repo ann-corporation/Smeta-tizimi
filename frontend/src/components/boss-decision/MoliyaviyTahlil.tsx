@@ -5,6 +5,7 @@ import { yangiOperationId } from '../../api/supabase';
 import { moliyaQoldaYoz, moliyaTahlilOl } from '../../api/t2-moliya-tahlil';
 import { MOLIYA_NOM, mlrd, mlrdOqi, moliyaXlsx, type MoliyaKorsatkich, type MoliyaManba, type MoliyaTahlilJavob } from '../../lib/moliya-tahlil';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { toast } from '../../umumiy/ui/Toast';
 
@@ -57,7 +58,7 @@ export default function MoliyaviyTahlil({ companyId, obyektId, qamrovNomi }: { c
   async function eksport() {
     if (!data) return;
     const { bytes, faylNomi } = await moliyaXlsx(data, { qamrovNomi });
-    const r = await hujjatTokenBilan({ kompaniyaId: companyId, bytes, hujjat: 'MOLIYA_TAHLIL', sabab: `Финансовый анализ · ${qamrovNomi}`, obyekt: obyektId },
+    const r = await hujjatTokenBilan({ kompaniyaId: companyId, bytes, hujjat: 'MOLIYA_TAHLIL', disk: diskJoy({ tur: 'moliya_tahlil', kompaniyaId: companyId, obyektId, qism: qamrovNomi, qismNom: qamrovNomi, faylNomi }), sabab: `Финансовый анализ · ${qamrovNomi}`, obyekt: obyektId },
       () => downloadBlob(bytes, faylNomi));
     if (!r.ok) toast(t(r.xabar), 'danger'); else if (r.xabar) toast(t(r.xabar), 'ok');
   }

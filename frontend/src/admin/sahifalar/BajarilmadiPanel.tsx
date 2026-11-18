@@ -7,6 +7,7 @@ import {
 import { FmtN } from '../../lib/format';
 import { bajarilmadiXlsx } from '../../lib/bajarilmadi-export';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { t } from '../../i18n/til';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
@@ -74,7 +75,7 @@ export function BajarilmadiPanel({ kompaniyaId, obyektId, obyektNomi, qatorlar, 
     try {
       const { bytes, faylNomi, soni } = await bajarilmadiXlsx(royxat, { obyektNomi: obyektNomi ?? `#${obyektId}` });
       if (!soni) { setXabar({ tur: 'xato', matn: t('Bajarilmadi deb belgilangan ish yo‘q.') }); return; }
-      const r = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'BAJARILMADI', sabab: `Ведомость невыполненных объёмов · ${obyektNomi ?? obyektId}`, obyekt: obyektId },
+      const r = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'BAJARILMADI', disk: diskJoy({ tur: 'bajarilmadi', kompaniyaId, obyektId, obyekt: obyektNomi ?? null, faylNomi }), sabab: `Ведомость невыполненных объёмов · ${obyektNomi ?? obyektId}`, obyekt: obyektId },
         () => downloadBlob(bytes, faylNomi));
       if (!r.ok) setXabar({ tur: 'xato', matn: r.xabar }); else setXabar({ tur: 'ok', matn: `${soni} ${t('ta pozitsiya')}${r.xabar ? ' · ' + r.xabar : ''}` });
     } catch { setXabar({ tur: 'xato', matn: t('Excel fayli tuzilmadi. Qayta urinib ko‘ring.') }); }
