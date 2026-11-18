@@ -9,6 +9,7 @@
 -- Bu migratsiya: (1) ichki yordamchi `_t2_f2_qol_olib_belgila_v1`; (2) 2026-11-18 mcp.f2_qoralama_tahrir olib_tashla yozuvlaridan
 -- (t2_audit_log) backfill — faqat qoralama aktlar, ota ish aktda bor va resurs aktda YO'Q bo'lganda. Idempotent (birlashtiriladi).
 
+-- versiya: texnik — t2_qator faqat akt qatorining smeta ma'lumotini (tur/ota) o'qish uchun, versiya tanlovi akt qatori orqali.
 create or replace function public._t2_f2_qol_olib_belgila_v1(p_akt_id bigint, p_olib jsonb)
 returns integer
 language plpgsql security definer set search_path = public, pg_temp
@@ -42,7 +43,7 @@ revoke all on function public._t2_f2_qol_olib_belgila_v1(bigint, jsonb) from pub
 grant execute on function public._t2_f2_qol_olib_belgila_v1(bigint, jsonb) to service_role;
 
 comment on function public._t2_f2_qol_olib_belgila_v1(bigint, jsonb) is
-  'F2 qoralama: olib tashlangan resurslarni ota ish qatoriga raw_snapshot.qolTahrir.olib (tombstone) sifatida yozadi — «yangilash» qayta qo''shmasin. Faqat qoralama; ichki.';
+  'F2 qoralama: olib tashlangan resurslarni ota ish qatoriga raw_snapshot.qolTahrir.olib (tombstone) sifatida yozadi — «yangilash» qayta qo''shmasin. Faqat qoralama; ichki. versiya: texnik (t2_qator faqat akt qatorining tur/ota ma''lumoti uchun).';
 
 do $$
 declare r record; v_args jsonb; v_n integer; v_jami integer := 0; v_audit integer := 0;
