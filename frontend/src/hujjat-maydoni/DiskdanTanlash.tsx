@@ -141,12 +141,14 @@ export function DiskdanTanlash({ onYop, onTanlandi, kopmi = false, accept }: {
   );
 }
 
+type FayllarQabul = (fayllar: File[]) => unknown;
+
 /**
  * «Diskdan tanlash» tugmasi: bosilganda oyna ochiladi, tanlangan fayllar File ga aylantirilib `onFayllar` ga beriladi
  * (yuklash inputining onChange handleri bilan bir xil File[]). Disk yo'q/xato bo'lsa sahifa buzilmaydi - faqat toast o'rniga `onXato`.
  */
 export function DiskdanTanlashTugma({ onFayllar, kopmi = false, accept, disabled, className, onXato }: {
-  onFayllar: (fayllar: File[]) => void | Promise<void>; kopmi?: boolean; accept?: string; disabled?: boolean; className?: string; onXato?: (xabar: string) => void;
+  onFayllar: FayllarQabul; kopmi?: boolean; accept?: string; disabled?: boolean; className?: string; onXato?: (xabar: string) => void;
 }) {
   const [ochiq, setOchiq] = useState(false);
   const [band, setBand] = useState(false);

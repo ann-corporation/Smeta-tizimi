@@ -1,0 +1,6 @@
+{
+  "Diskdan tanlash": { "ru": "Выбрать с Диска", "en": "Choose from Disk" },
+  "Disk bo‘limlari": { "ru": "Разделы Диска", "en": "Disk sections" },
+  "Mos fayl topilmadi.": { "ru": "Подходящих файлов не найдено.", "en": "No matching files found." },
+  "Tanlandi: {n}": { "ru": "Выбрано: {n}", "en": "Selected: {n}" }
+}
