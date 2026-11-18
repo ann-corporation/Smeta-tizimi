@@ -113,7 +113,7 @@ export function faylTakliffi(f: YetimFayl, obyektlar: YetimObyekt[], loyihalar: 
   const birMa = !ikkinchi || ikkinchi.ball <= eng.ball - FARQ;
   const daraja = eng.ball >= ANIQ_BALL && birMa ? 'aniq' : 'taxminiy';
   const o = eng.obyektId != null ? obyektlar.find((x) => x.id === eng.obyektId) : undefined;
-  return { faylId: f.id, daraja, manba: 'nom', loyihaId: eng.loyihaId, obyektId: eng.obyektId, loyihaNom: loyNom.get(eng.loyihaId) ?? o?.loyiha_nom ?? null, obyektNom: o ? obyNom(o) : null, ball: Math.round(eng.ball * 100) / 100 };
+  return { faylId: f.id, daraja, manba: 'nom', loyihaId: eng.loyihaId, obyektId: eng.obyektId, loyihaNom: loyNom.get(eng.loyihaId) ?? o?.loyiha_nom ?? null, obyektNom: o ? obyNom(o) : null, ball: eng.ball };
 }
 
 export const takliflar = (fayllar: YetimFayl[], obyektlar: YetimObyekt[], loyihalar: YetimLoyiha[]): Taklif[] => fayllar.map((f) => faylTakliffi(f, obyektlar, loyihalar));
@@ -154,7 +154,7 @@ export function aiTaklifTekshir(xom: unknown, fayllar: YetimFayl[], obyektlar: Y
     if (!fid.has(faylId) || korildi.has(faylId) || !oby.has(obyektId) || !(ishonch >= 0.6)) continue;
     korildi.add(faylId);
     const o = oby.get(obyektId)!;
-    r.push({ faylId, daraja: 'taxminiy', manba: 'ai', loyihaId: o.loyiha_id, obyektId: o.id, loyihaNom: o.loyiha_nom ?? null, obyektNom: o.nom, ball: Math.min(1, Math.round(ishonch * 100) / 100) });
+    r.push({ faylId, daraja: 'taxminiy', manba: 'ai', loyihaId: o.loyiha_id, obyektId: o.id, loyihaNom: o.loyiha_nom ?? null, obyektNom: o.nom, ball: Math.min(1, ishonch) });
   }
   return r;
 }
