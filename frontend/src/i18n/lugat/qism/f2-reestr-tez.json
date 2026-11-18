@@ -1,0 +1,10 @@
+{
+  "Paketni yuklab olish": { "ru": "Скачать пакет", "en": "Download package" },
+  "Akt №": { "ru": "Акт №", "en": "Act No." },
+  "{a}/{b} akt tayyor": { "ru": "Готово актов: {a}/{b}", "en": "{a}/{b} acts ready" },
+  "{a}/{b} akt summasi hisoblandi…": { "ru": "Рассчитано сумм актов: {a}/{b}…", "en": "{a}/{b} act totals calculated…" },
+  "Diqqat: shartnoma jami aktlar yig‘indisidan {f} so‘mga farq qiladi — ma’lumotni tekshiring.": { "ru": "Внимание: итог договора отличается от суммы актов на {f} сум — проверьте данные.", "en": "Warning: the contract total differs from the sum of acts by {f} UZS — please check the data." },
+  "Obyekt filtri": { "ru": "Фильтр по объекту", "en": "Object filter" },
+  "Yana yuklash ({a}/{b})": { "ru": "Загрузить ещё ({a}/{b})", "en": "Load more ({a}/{b})" },
+  "Shartnoma yoki obyektning barcha F2 lari, barcha oylar; summalar serverdan": { "ru": "Все Ф-2 договора или объекта за все месяцы; суммы с сервера", "en": "All F2 of a contract or object, all months; totals from the server" }
+}

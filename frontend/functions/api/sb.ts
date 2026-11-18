@@ -314,6 +314,9 @@ export const onRequestPost: PagesFunction<{
         /* Issue #195 (egasi 2026-10-29): RAHBAR PANELI — kartalar, pul oqimi, obyektlar matritsasi, diqqat (top-10), tasdiq navbati.
            Summalar yagona «summa paketi» (QQS bilan · ustamali · прямые + kesim). `stable`; a'zolik + financial.read ichida. */
         rahbar_panel_v1: 'kompaniya_actor',
+        /* F2 portfeli (tez): shartnoma -> obyekt -> akt jadvali bitta so'rovda + aktlarning o'z summa paketi (yadro). `stable`; a'zolik + f2.read ichida. */
+        f2_portfel_v1: 'kompaniya_actor',
+        f2_portfel_summa_v1: 'kompaniya_actor',
         /* Direktor pulti (V3): 6 plitka — «tayyor hisoblar» (t2_obyekt_kesh) orqali tez. `stable`; a'zolik + financial.read ichida. */
         rahbar_pult_v1: 'kompaniya_actor',
         /* Moslash qutisi (2026-11-14): kunlik avtomat tekshiruvlar bitta ro'yxatda. FAQAT O'QISH; `stable`; a'zolik + financial.read ichida. */
@@ -612,6 +615,41 @@ export const onRequestPost: PagesFunction<{
           if (typeof v !== 'string' || !/^\d{4}-\d{2}(-\d{2})?$/.test(v)) return Response.json({ ok: false, error: `${kalit} noto'g'ri` });
           q.set(param, v.length === 7 ? `${v}-01` : v);
         }
+      }
+      if (so.soro === 'f2_portfel_v1') {
+        for (const [kalit, param] of [['obyekt_id', 'p_obyekt_id'], ['shartnoma_id', 'p_shartnoma_id']] as const) {
+          const v = so[kalit];
+          if (v == null || String(v) === '') continue;
+          const id = Number(v);
+          if (!Number.isSafeInteger(id) || id <= 0) return Response.json({ ok: false, error: `${kalit} noto'g'ri` });
+          q.set(param, String(id));
+        }
+        if (so.obyekt_id == null && so.shartnoma_id == null) return Response.json({ ok: false, error: 'shartnoma_id yoki obyekt_id majburiy' });
+        for (const [kalit, param] of [['oy_dan', 'p_oy_dan'], ['oy_gacha', 'p_oy_gacha']] as const) {
+          const v = (so as Record<string, unknown>)[kalit];
+          if (v == null || v === '') continue;
+          if (typeof v !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])(-\d{2})?$/.test(v)) return Response.json({ ok: false, error: `${kalit} noto'g'ri` });
+          q.set(param, v.length === 7 ? `${v}-01` : v);
+        }
+        const holat = (so as Record<string, unknown>).holat;
+        if (holat != null && holat !== '') {
+          if (holat !== 'tasdiqlangan' && holat !== 'qoralama' && holat !== 'bekor') return Response.json({ ok: false, error: "holat noto'g'ri" });
+          q.set('p_holat', holat);
+        }
+        for (const [kalit, param, max] of [['limit', 'p_limit', 500], ['offset', 'p_offset', 1000000]] as const) {
+          const v = (so as Record<string, unknown>)[kalit];
+          if (v == null || v === '') continue;
+          const n = Number(v);
+          if (!Number.isSafeInteger(n) || n < 0 || n > max) return Response.json({ ok: false, error: `${kalit} noto'g'ri` });
+          q.set(param, String(n));
+        }
+      }
+      if (so.soro === 'f2_portfel_summa_v1') {
+        const idlar = (so as Record<string, unknown>).akt_idlar;
+        if (!Array.isArray(idlar) || idlar.length === 0 || idlar.length > 12 || !idlar.every((x) => Number.isSafeInteger(x) && (x as number) > 0)) {
+          return Response.json({ ok: false, error: "akt_idlar noto'g'ri (1-12 ta musbat butun son)" });
+        }
+        q.set('p_akt_ids', `{${idlar.join(',')}}`);
       }
       if (so.soro === 'pul_tahlil_v1' || so.soro === 'pul_tahlil_v2') {
         for (const [kalit, param] of [['obyekt_id', 'p_obyekt_id'], ['shartnoma_id', 'p_shartnoma_id']] as const) {
