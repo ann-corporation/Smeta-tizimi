@@ -29,11 +29,15 @@ import { FAYL_TURI_NOMI, FAYL_TURI_RANG, faylTurTaqsimot } from '../../lib/fayl-
 const EXCEL = /spreadsheet|excel|\.xlsx?$/i;
 const sanaMatni = (s: string) => (s ? new Date(s).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' }) : '');
 
-export function FaylMenejer({ kompaniyaId, documentId }: { kompaniyaId: number; documentId?: number }) {
-  return <CompanyFileManager key={kompaniyaId} kompaniyaId={kompaniyaId} documentId={documentId} />;
+/**
+ * faqatTizim: Hujjatlar sahifasidagi «Tizim hujjatlari» ko'rinishi - faqat tizim papkalari daraxti + ZIP; o'z papkalari/savat yaratilmaydi
+ * (ular Kompaniya diskida). Eski o'z papkalari/savat bo'lsa - yo'qolmaydi, o'qish uchun ko'rinadi. documentId: shu hujjat ochiladi (yuqoridagi linked mantig'i).
+ */
+export function FaylMenejer({ kompaniyaId, faqatTizim = false, documentId }: { kompaniyaId: number; faqatTizim?: boolean; documentId?: number }) {
+  return <CompanyFileManager key={kompaniyaId} kompaniyaId={kompaniyaId} faqatTizim={faqatTizim} documentId={documentId} />;
 }
 
-function CompanyFileManager({ kompaniyaId, documentId }: { kompaniyaId: number; documentId?: number }) {
+function CompanyFileManager({ kompaniyaId, faqatTizim, documentId }: { kompaniyaId: number; faqatTizim: boolean; documentId?: number }) {
   const { t } = useTil();
   const [storedData, setData] = useState<FaylExplorer | null>(null);
   const data = storedData?.kompaniya_id === kompaniyaId ? storedData : null;
@@ -114,6 +118,7 @@ function CompanyFileManager({ kompaniyaId, documentId }: { kompaniyaId: number; 
     </select>
   );
   const joriy = useMemo(() => papkaTop(ildiz, joriyKalit) ?? ildiz, [ildiz, joriyKalit]);
+  const eskiBor = menPapkalar.length > 0 || savat.length > 0;
   const qidiruvNatija = useMemo(() => {
     const q = qidiruv.trim().toLowerCase();
     if (!q) return null;
@@ -350,18 +355,18 @@ function CompanyFileManager({ kompaniyaId, documentId }: { kompaniyaId: number; 
             <FolderOpen size={14} className="text-accent" /><span className="truncate">{data?.kompaniya ?? t('Kompaniya')}</span><span className="ml-auto text-[10px] text-text-mute">{ildiz.soni}</span>
           </button>
           <ul>{ildiz.bolalar.map(papkaQatori)}</ul>
-          <div className="mt-3 border-t border-border/50 pt-2">
+          {(!faqatTizim || eskiBor) && <><div className="mt-3 border-t border-border/50 pt-2">
             <div className="flex items-center gap-1">
               <button type="button" onClick={() => menTanla(null)} className={`flex min-w-0 flex-1 items-center gap-1.5 rounded px-1 py-1 text-left text-[12px] font-semibold ${bolim === 'mening' && menJoriy == null ? 'bg-accent/15 text-text' : 'text-text'}`}>
                 <Folder size={14} className="text-accent" /><span className="truncate">{t('Mening papkalarim')}</span>
               </button>
-              {yozaOladi && <button type="button" disabled={!!band} onClick={() => { menTanla(null); papkaYarat(null); }} aria-label={t('Yangi papka')} title={t('Yangi papka')} className="rounded p-1 text-text-dim hover:text-text"><FolderPlus size={14} /></button>}
+              {yozaOladi && !faqatTizim && <button type="button" disabled={!!band} onClick={() => { menTanla(null); papkaYarat(null); }} aria-label={t('Yangi papka')} title={t('Yangi papka')} className="rounded p-1 text-text-dim hover:text-text"><FolderPlus size={14} /></button>}
             </div>
             <ul>{papkaBolalari(menPapkalar, null).map((p) => menPapkaQatori(p, 0))}</ul>
           </div>
           <button type="button" onClick={() => { setBolim('savat'); setQidiruv(''); setKochirish(null); }} className={`mt-2 flex w-full items-center gap-1.5 rounded px-1 py-1 text-left text-[12px] ${bolim === 'savat' ? 'bg-accent/15 text-text' : 'text-text-dim'}`}>
             <Trash2 size={14} /><span>{t('Savat')}</span><span className="ml-auto text-[10px] text-text-mute">{savat.length}</span>
-          </button>
+          </button></>}
         </nav>
 
         <section className="fz-card flex min-w-0 flex-1 flex-col overflow-hidden">

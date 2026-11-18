@@ -76,7 +76,6 @@ export const GENERATED_SITE_MAP = {
     "/admin/mutaxassis",
     "/admin/osuvchi",
     "/admin/akkaunt",
-    "/admin/hujjat-maydoni",
     "/admin/imzo",
     "/admin/sozlamalar",
     "/admin/bugun",

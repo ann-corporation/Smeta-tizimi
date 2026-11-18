@@ -1,4 +1,8 @@
 {
+  "Disk": {
+    "ru": "Диск",
+    "en": "Disk"
+  },
  "AI ishchilar": {
   "ru": "AI-агенты",
   "en": "AI agents"

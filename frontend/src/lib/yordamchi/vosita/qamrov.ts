@@ -33,7 +33,7 @@ export const QAMROV: Readonly<Record<string, Qamrov>> = {
   qarzdorlik: q(['niyat:qarz']), buxgalteriya: q(['xarajat_yoz', 'tolov_yoz'], ['provodka tahriri']),
   kontragentlar: q([], ['kontragent yaratish']), yetkazuvchi: q(['bugun'], ['yetkazuvchi amallari (narx taklifi, yetkazish)']),
   subpudratchi: q(['bugun'], ['subpudrat akt topshirish']), subpudrat: q([], ['subpudrat akt tasdiqlash']),
-  documents: q(['murojaat_yubor'], ['hujjat yuklash/versiya']), 'hujjat-nazorat': q([], ['hujjat o‘zgarishini tasdiqlash']),
+  documents: q(['murojaat_yubor'], ['hujjat yuklash/versiya', 'fayl ulashish/taqdim (Jarvis /api/hujjat-buyruq fayl_* vositalari orqali; sahifa UI da to‘liq)']), 'hujjat-nazorat': q([], ['hujjat o‘zgarishini tasdiqlash']),
   aosr: q(['niyat:aosrQoralama', 'niyat:oqish', 'slichitelniy', 'slichitelniy_tsikl', 'hujjat_yasa'], ['АОСР pechat kitobi (Jarvis АОСР sahifasini ochadi; Excel va «sanasiz» tanlovi sahifada)', 'АОСР tasdiqlash/imzolash', 'АОСР ni smeta qatoriga ommaviy bog‘lash (taklif — #413 dan keyin)']),
   nazorat: q(['murojaat_yubor']), 'nazorat/tekshiruv': q([], ['tekshiruv kiritish']), 'nazorat/jurnal': q([]),
   zakazchik: q(['bugun', 'murojaat_yubor']), taqdimlar: q(['taqdim_yubor', 'bugun'], ['taqdimga qaror (qabul/rad)']),
@@ -46,7 +46,7 @@ export const QAMROV: Readonly<Record<string, Qamrov>> = {
   kompaniya: q([], ['a’zo/modul boshqaruvi']), 'system-control': q([], ['integratsiya sozlamalari']),
   'tizim-sozlama': q(['xotira_korsat', 'xotira_yoz', 'xotira_unut']), 'hujjat-dizayn': q([], ['hujjat dizayni sozlamalari']), tokenlar: q([], ['obuna/token to‘ldirish']),
   'ai-agentlar': q(['xotira_korsat', 'ishchi_holat', 'ishchi_topshir'], ['AI ishchilarni yoqish/o‘chirish va jadval sozlamalari (boss)']), korzinka: q([], ['tiklash']),
-  'ish-joylarim': q(['bugun']), 'hujjat-maydoni': q([], ['fayl yuklash/ulashish/versiya (Jarvis /api/hujjat-buyruq fayl_* vositalari orqali; sahifa UI da to‘liq)']), kurs: q([]), topshiriqlar: q(['bugun']), mutaxassis: q([], ['xizmat e’lon qilish']),
+  'ish-joylarim': q(['bugun']), kurs: q([]), topshiriqlar: q(['bugun']), mutaxassis: q([], ['xizmat e’lon qilish']),
   osuvchi: q(['niyat:oqish'], ['taklifni qabul/rad']), akkaunt: q([], ['akkaunt sozlamalari']), sozlamalar: q(['xotira_korsat', 'xotira_yoz', 'xotira_unut']),
   boshqaruv: q([], ['platforma boshqaruvi']), 'tizim-xaritasi': q([]), 'fayl-boglash': q([], ['fayl bog‘lash']),
   // Imzo: Jarvis faqat sahifani ochadi; imzolash qurilma kaliti va token yechilishini talab qiladi — shuning uchun hammasi qo‘lda qoladi.

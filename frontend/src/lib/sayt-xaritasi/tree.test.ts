@@ -17,7 +17,7 @@ describe('sayt xaritasi 2D daraxt layouti', () => {
   });
 
   it('filterlangan katalogda faqat ko‘rinayotgan scope va sahifalar qoladi', () => {
-    const pages = SAHIFA_KATALOGI.filter((page) => page.scope === 'OBJECT' && /f2|hujjat/i.test(`${page.nom} ${page.yol}`));
+    const pages = SAHIFA_KATALOGI.filter((page) => page.scope === 'OBJECT' && /f2|hujjat|documents/i.test(`${page.nom} ${page.yol}`));
     const layout = buildSaytTree(pages);
 
     expect(layout.nodes.filter((node) => node.kind === 'page').map((node) => node.route)).toEqual(['/admin/documents', '/admin/hujjat-nazorat', '/admin/f2-tarix', '/admin/f2', '/admin/f2-tayyorlash']);

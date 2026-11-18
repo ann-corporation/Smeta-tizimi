@@ -4,7 +4,7 @@
  * Aktor sessiyadan. O'qish vositalari bevosita natija; ulashish/savat - taklif, bajarish faqat `tasdiqlayman:true` bilan va OVOZ bilan HECH QACHON.
  * fayl_yukla veb yuklash bilan bir xil yo'l (kvota/ruxsat serverda).
  */
-import { hmRpc, hmYukla, rpcOk, rpcXato, sessiyaAktor, type HmEnv } from '../_shared/hujjat-maydoni';
+import { hmQidirYuqori, hmRpc, hmYukla, rpcOk, rpcXato, sessiyaAktor, type HmEnv } from '../_shared/hujjat-maydoni';
 import { hujjatVositaSorov } from '../_shared/hujjat-vositalar';
 
 const javob = (r: { httpOk: boolean; body: any; raw: string }) => (rpcOk(r) ? Response.json({ ok: true, natija: r.body }) : rpcXato(r));
@@ -19,7 +19,7 @@ export const onRequestPost: PagesFunction<HmEnv> = async (ctx) => {
     if ('xato' in q) return Response.json({ ok: false, code: q.xato, xato: q.tafsilot }, { status: 400 });
     const id = a.actorId; const A = q.a as Record<string, any>; const komp = A.kompaniya_id as number | null;
     switch (q.vosita.nom) {
-      case 'fayl_qidir': return javob(await hmRpc(ctx.env, 't2_hm_qidir_v1', { p_actor: id, p_kompaniya: komp, p_q: A.matn }));
+      case 'fayl_qidir': return javob(await hmQidirYuqori(ctx.env, id, komp, String(A.matn)));
       case 'fayl_royxat': return javob(await hmRpc(ctx.env, 't2_hm_royxat_v1', { p_actor: id, p_kompaniya: komp, p_papka: A.papka_id, p_savat: A.savat }));
       case 'fayl_kvota': { const r = await hmRpc(ctx.env, 't2_hm_royxat_v1', { p_actor: id, p_kompaniya: komp, p_papka: null, p_savat: true }); return rpcOk(r) ? Response.json({ ok: true, natija: r.body.kvota }) : rpcXato(r); }
       case 'fayl_faoliyat': return javob(await hmRpc(ctx.env, 't2_hm_faoliyat_v1', { p_actor: id, p_kompaniya: komp, p_fayl_id: A.fayl_id, p_limit: A.limit }));

@@ -6,7 +6,8 @@
 import { cachedAuthority } from './permission-policy';
 import { tekshir } from './auth';
 import { supabaseBaseUrl } from './supabase-url';
-import { r2Yoz, sha256Hex, yuklashTekshir } from './r2-saqlash';
+import { r2Ochir, r2Oqi, r2Yoz, sha256Hex, yuklashTekshir } from './r2-saqlash';
+import { MATN_MAX_KIRISH, matnAjratadimi, matnAjrat, parchaTop, qidiruvNorm, qidiruvSozlar } from './hujjat-matn';
 
 export type HmEnv = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; R2_CANONICAL: R2Bucket };
 
@@ -61,6 +62,8 @@ const KODLAR: Record<string, [number, string]> = {
   KVOTA_TUGADI: [413, 'Disk to‘ldi. Joy bo‘shating yoki Tokenlar va obuna sahifasida disk rejasini oshiring.'],
   HAVOLA_YOQILMAGAN: [403, 'Tashqi havola ulashish kompaniyada yoqilmagan (kompaniya admini yoqadi).'],
   TOKEN_YETMAYDI: [402, 'Tokenlar yetarli emas.'], ALOQA_YOQ: [403, 'Bu kompaniya bilan faol aloqa yo‘q.'],
+  TAQDIM_ALOQA_YOQ: [404, 'Faol aloqa topilmadi.'], TAQDIM_SHAXSIY: [400, 'Shaxsiy fayl taqdim qilinmaydi: avval kompaniya diskiga ko‘chiring.'], TAQDIM_BOSH: [400, 'Taqdim qilinadigan fayl topilmadi.'], TAQDIM_KO_P: [413, 'Papkada 200 tadan ko‘p fayl bor: kichikroq papka tanlang.'], TAQDIM_TOPILMADI: [404, 'Taqdim topilmadi.'], TAQDIMDA: [409, 'Fayl taqdim qilingan: avval taqdimni qaytaring.'],
+  YUKLA_YAROQSIZ: [400, 'Yuklash sessiyasi yaroqsiz yoki muddati tugagan.'], QISM_NOTOGRI: [400, 'Qism hajmi yoki raqami noto‘g‘ri.'], QISMLAR_YETMAYDI: [400, 'Barcha qismlar yuborilmagan.'], SHA_MOS_EMAS: [422, 'Fayl butunligi tekshiruvidan o‘tmadi. Qayta yuklang.'], HAJM_MOS_EMAS: [422, 'Yuklangan hajm e‘lon qilinganiga mos emas. Qayta yuklang.'],
   EMPTY_FILE: [400, 'Fayl bo‘sh.'], FILE_TOO_LARGE: [413, 'Fayl juda katta.'], MIME_REJECTED: [415, 'Bu turdagi faylni yuklab bo‘lmaydi.'],
 };
 export function rpcXato(res: { httpOk: boolean; body: any; raw: string }): Response {
@@ -107,6 +110,48 @@ export async function hmYukla(env: HmEnv, p: {
   }
   const t = await hmRpc(env, 't2_hm_yuklash_tasdiq_v1', { p_actor: p.actorId, p_versiya_id: rez.body.versiya_id });
   if (!rpcOk(t)) return rpcXato(t);
+  await hmIndeksla(env, { actorId: p.actorId, versiyaId: Number(rez.body.versiya_id), r2Kalit: String(rez.body.r2_kalit), nom, mime }, p.bayt);
   return Response.json({ ok: true, fayl_id: rez.body.fayl_id, raqam: rez.body.raqam, yangi: !!rez.body.yangi });
+}
+
+/**
+ * To'liq matnli qidiruv indeksi (yuklashdan keyin, xato bo'lsa JIM): matn R2 da (r2 kalit + '.txt'), Postgres'da faqat ixcham tsvector qatori
+ * (fayl boshiga bitta qator - faqat joriy versiya). Eski versiyaning matn obyekti almashtirilganda R2 dan o'chiriladi.
+ */
+export async function hmIndeksla(env: HmEnv, v: { actorId: number; versiyaId: number; r2Kalit: string; nom: string; mime: string }, bayt: Uint8Array): Promise<boolean> {
+  try {
+    if (!matnAjratadimi(v.nom, v.mime) || bayt.byteLength > MATN_MAX_KIRISH) return false;
+    const matn = matnAjrat(v.nom, v.mime, bayt);
+    if (!matn) return false;
+    const norm = qidiruvNorm(matn).slice(0, 200_000);
+    if (norm.length < 2) return false;
+    const kalit = v.r2Kalit + '.txt';
+    await r2Yoz(env.R2_CANONICAL, kalit, matn, { httpMetadata: { contentType: 'text/plain; charset=utf-8' } });
+    const r = await hmRpc(env, 't2_hm_matn_yoz_v1', { p_actor: v.actorId, p_versiya_id: v.versiyaId, p_norm: norm, p_belgi: matn.length, p_r2_kalit: kalit });
+    if (!rpcOk(r)) { await r2Ochir(env.R2_CANONICAL, kalit).catch(() => undefined); return false; }
+    const eski = r.body?.eski_kalit;
+    if (typeof eski === 'string' && eski && eski !== kalit) await r2Ochir(env.R2_CANONICAL, eski).catch(() => undefined);
+    return true;
+  } catch { return false; }
+}
+
+/** Qidiruv (nom + fayl ichidagi matn): RPC dan keyin eng yaxshi mazmun natijalariga R2 dan parcha qo'shiladi; ichki matn kaliti mijozga chiqmaydi. */
+export async function hmQidirYuqori(env: HmEnv, actorId: number, kompaniyaId: number | null, q: string) {
+  const r = await hmRpc(env, 't2_hm_qidir_v1', { p_actor: actorId, p_kompaniya: kompaniyaId, p_q: q, p_q_norm: qidiruvNorm(q) });
+  if (!rpcOk(r)) return r;
+  const sozlar = qidiruvSozlar(q);
+  const royxat: any[] = Array.isArray(r.body.royxat) ? r.body.royxat : [];
+  let n = 0;
+  await Promise.all(royxat.map(async (x) => {
+    const k = x.matn_kalit; delete x.matn_kalit;
+    if (!k || x.mos !== 'matn' || n >= 10 || !env.R2_CANONICAL) return;
+    n++;
+    try {
+      const o = await r2Oqi(env.R2_CANONICAL, String(k));
+      const s = o ? await o.text() : '';
+      x.parcha = parchaTop(s, sozlar);
+    } catch { /* parchasiz */ }
+  }));
+  return { ...r, body: { ...r.body, royxat } };
 }
 

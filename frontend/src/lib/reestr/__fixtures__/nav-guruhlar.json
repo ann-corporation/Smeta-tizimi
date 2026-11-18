@@ -449,21 +449,14 @@
     "qatlam": "ish",
     "bandlar": [
       {
-        "nom": "Hujjatlar",
+        "nom": "Disk",
         "ikonka": "FileStack",
         "sahifalar": [
           {
             "yol": "/admin/documents",
-            "ilova": "hujjat",
-            "nom": "Hujjatlar",
-            "ruxsat": [
-              "control.company.read",
-              "project.read",
-              "document.write",
-              "financial.write"
-            ],
-            "modul": "module.loyiha",
-            "scope": "COMPANY_SCOPED"
+            "ilova": "yadro",
+            "nom": "Disk",
+            "ruxsat": []
           },
           {
             "yol": "/admin/hujjat-nazorat",
@@ -1129,18 +1122,6 @@
             "yol": "/admin/imzo",
             "ilova": "yadro",
             "nom": "Mening imzom",
-            "ruxsat": []
-          }
-        ]
-      },
-      {
-        "nom": "Hujjatlarim",
-        "ikonka": "FileStack",
-        "sahifalar": [
-          {
-            "yol": "/admin/hujjat-maydoni",
-            "ilova": "yadro",
-            "nom": "Hujjatlarim (disk)",
             "ruxsat": []
           }
         ]
