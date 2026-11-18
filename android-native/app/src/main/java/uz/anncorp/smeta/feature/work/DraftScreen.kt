@@ -46,6 +46,14 @@ import uz.anncorp.smeta.core.ui.OutboxBanner
 import uz.anncorp.smeta.core.ui.TouchTarget
 import uz.anncorp.smeta.core.ui.WorkCard
 import uz.anncorp.smeta.core.ui.WorkTopBar
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
+import uz.anncorp.qurai.ui.components.QDateField
 import java.time.LocalDate
 
 @Composable
@@ -74,6 +82,7 @@ fun DraftScreen(onBack: () -> Unit, onOutbox: () -> Unit, onSaved: () -> Unit, v
             } else {
                 LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp, 8.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     item(key = "head") { DateRow(ui.date, vm::setDate) }
+                    item(key = "photo") { PhotoNoteBlock(ui.photos, ui.note, onNote = vm::setNote, onPick = vm::addPhoto, onClear = vm::clearPhotos) }
                     item(key = "note") {
                         Row(verticalAlignment = Alignment.Top) {
                             Icon(Icons.Filled.Info, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(18.dp))
@@ -122,8 +131,27 @@ private fun DateRow(date: LocalDate, onPick: (LocalDate) -> Unit) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             FilterChip(selected = date == today, onClick = { onPick(today) }, label = { Text(stringResource(R.string.p1_today)) }, modifier = Modifier.heightIn(min = 48.dp))
             FilterChip(selected = date == today.minusDays(1), onClick = { onPick(today.minusDays(1)) }, label = { Text(stringResource(R.string.p1_yesterday)) }, modifier = Modifier.heightIn(min = 48.dp))
-            Text(uz.anncorp.smeta.core.data.formatIsoStamp(date.toString()), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
         }
+        // Any other day: the shared calendar (same picker as Windows); shown dd.MM.yyyy.
+        QDateField(date.toString(), onPick = { iso -> runCatching { LocalDate.parse(iso) }.getOrNull()?.let(onPick) }, modifier = Modifier.fillMaxWidth())
+    }
+}
+
+/** Fact + photo in ONE flow: attach photos and a note right here; they are sent together with the fact on "Saqlash". */
+@Composable
+private fun PhotoNoteBlock(photos: Int, note: String, onNote: (String) -> Unit, onPick: (android.net.Uri) -> Unit, onClear: () -> Unit) {
+    val gallery = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: android.net.Uri? -> if (uri != null) onPick(uri) }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = { gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, modifier = Modifier.heightIn(min = 48.dp)) {
+                Icon(Icons.Filled.AddAPhoto, null, Modifier.width(20.dp)); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.qa2_add_photo))
+            }
+            if (photos > 0) {
+                Text(pluralStringResource(R.plurals.qa2_photos_n, photos, photos), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
+                TextButton(onClick = onClear) { Text(stringResource(R.string.p1_remove)) }
+            }
+        }
+        OutlinedTextField(value = note, onValueChange = onNote, label = { Text(stringResource(R.string.qa2_note)) }, modifier = Modifier.fillMaxWidth(), minLines = 1, maxLines = 3)
     }
 }
 
@@ -140,7 +168,7 @@ private fun DraftLine(d: DraftEntity, onEdit: () -> Unit, onRemove: () -> Unit) 
             Spacer(Modifier.width(8.dp))
             Column(horizontalAlignment = Alignment.End) {
                 Text(formatVolumeSigned(d.hajm), style = MaterialTheme.typography.titleMedium, color = if (d.hajm < 0.0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
-                Text(d.birlik.orEmpty(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(uz.anncorp.smeta.core.data.displayUnit(d.birlik), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             IconButton(onClick = onRemove, modifier = Modifier.heightIn(min = TouchTarget).width(TouchTarget)) { Icon(Icons.Filled.Delete, stringResource(R.string.p1_remove)) }
         }

@@ -65,11 +65,24 @@ object ModuleCatalog {
         ModuleDef("kompaniya", R.string.mod_company, R.string.mod_company_d, ModuleKind.NATIVE, listOf(BOSS, "company.member.manage", "company.profile.update"), target = NativeTarget.KOMPANIYA, webPath = "/admin/kompaniya"),
     )
 
-    /** [permissions] null = unknown (offline / not loaded yet): show everything, like the website does while loading. */
-    fun visible(permissions: Set<String>?, offModules: Set<String>): List<ModuleDef> = all.filter { m ->
+    /**
+     * THE one access rule for a module: used by the hub grid, the "Barcha modullar" search and the workspace quick buttons.
+     * [permissions] null = unknown (offline / not loaded yet): show everything, like the website does while loading.
+     * [granted] = module codes the server-driven workspace itself offers this cabinet (the server already checked them): they count as allowed.
+     */
+    fun allowed(m: ModuleDef, permissions: Set<String>?, offModules: Set<String>, granted: Set<String> = emptySet()): Boolean =
         m.enabled && (m.moduleCode == null || m.moduleCode !in offModules) &&
-            (permissions == null || m.anyOf.isEmpty() || m.anyOf.any { it in permissions })
-    }
+            (permissions == null || m.anyOf.isEmpty() || m.code in granted || m.anyOf.any { it in permissions })
+
+    fun visible(permissions: Set<String>?, offModules: Set<String>, granted: Set<String> = emptySet()): List<ModuleDef> =
+        all.filter { allowed(it, permissions, offModules, granted) }
+
+    /** Module of a native screen (several modules never share a target). */
+    fun byTarget(t: NativeTarget): ModuleDef? = all.firstOrNull { it.target == t }
+
+    /** Allowed modules the server catalogue does not list (e.g. the warehouse tab): the search must still find them. */
+    fun missingFrom(catalogTargets: Set<NativeTarget>, visible: List<ModuleDef>): List<ModuleDef> =
+        visible.filter { it.target != null && it.target !in catalogTargets }
 }
 
 /** The user's own choices for one company: pinned modules and their order. Same shape the server stores (/api/modullarim). */
@@ -102,7 +115,18 @@ fun arrange(visible: List<ModuleDef>, picks: Picks, query: String, titleOf: (Mod
 class ModulesRepository(private val api: BffApi, private val json: Json, private val local: PicksStore) {
     data class Access(val permissions: Set<String>?, val offModules: Set<String>)
 
-    suspend fun access(companyId: Long): Access {
+    /** Last known access per session: lets other screens (F-2, approvals) apply the same rule without a second request. */
+    @Volatile private var last: Pair<Long, Access>? = null
+
+    /** Same rule everywhere an amount is shown; unknown permissions = allowed (the server still decides). */
+    suspend fun canSeeAmounts(companyId: Long): Boolean {
+        val a = last?.takeIf { it.first == companyId }?.second ?: access(companyId)
+        return canSeeActAmounts(a.permissions)
+    }
+
+    suspend fun access(companyId: Long): Access = loadAccess(companyId).also { last = companyId to it }
+
+    private suspend fun loadAccess(companyId: Long): Access {
         val me = api.bff("/api/company?me=1")
         val perms: Set<String>? = if (me.ok) permissionsFrom(me.body, companyId) else null
         val off = api.bff("/api/sb", "POST", buildJsonObject { put("soro", "modul_holat_v1"); put("kompaniya_id", companyId) })

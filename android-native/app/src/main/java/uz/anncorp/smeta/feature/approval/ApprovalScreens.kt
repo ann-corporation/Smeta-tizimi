@@ -158,7 +158,7 @@ fun ApprovalDetailScreen(onBack: () -> Unit, vm: ApprovalDetailViewModel = hiltV
             d == null -> CenterMessage(Icons.Filled.Warning, stringResource(if (ui.result is SyncResult.Offline) R.string.p2_appr_err_offline else R.string.p2_appr_err_load), null, stringResource(R.string.retry), Modifier.padding(pad)) { vm.load() }
             else -> Column(Modifier.padding(pad).fillMaxSize()) {
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp)) {
-                    DocCard(d, ui.doc)
+                    DocCard(d, ui.doc, ui.showAmount)
                     Spacer(Modifier.height(12.dp))
                     StepsCard(d.steps)
                 }
@@ -176,7 +176,7 @@ fun ApprovalDetailScreen(onBack: () -> Unit, vm: ApprovalDetailViewModel = hiltV
 }
 
 @Composable
-private fun DocCard(d: ApprovalDetail, doc: ApprovalDoc?) {
+private fun DocCard(d: ApprovalDetail, doc: ApprovalDoc?, showAmount: Boolean) {
     val typeKey = doc?.tur?.ifBlank { null } ?: d.tur
     WorkCard {
         Column(Modifier.padding(16.dp)) {
@@ -186,8 +186,10 @@ private fun DocCard(d: ApprovalDetail, doc: ApprovalDoc?) {
             Fact(stringResource(R.string.p2_appr_number), doc?.raqam ?: "—")
             Fact(stringResource(R.string.p2_appr_object), doc?.obyekt ?: "—")
             Fact(stringResource(R.string.p2_appr_date), doc?.sana?.let { uz.anncorp.smeta.core.data.formatIsoStamp(it) } ?: "—")
-            Fact(stringResource(R.string.p2_appr_total), formatMoney(doc?.jami), emphasize = true)
-            Text(stringResource(R.string.p2_appr_total_note), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+            if (showAmount) {
+                Fact(stringResource(R.string.p2_appr_total), formatMoney(doc?.jami), emphasize = true)
+                Text(stringResource(R.string.p2_appr_total_note), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+            }
         }
     }
 }

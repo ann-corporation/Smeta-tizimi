@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- QA round 2 strings (uz). -->
+<resources>
+    <string name="am_extra_group">Boshqa modullar</string>
+    <string name="m_markup_forbidden">Ustamali summani ko\'rishga ruxsat yo\'q.</string>
+    <string name="m_markup_pending">Ustamali summa serverdan hali olinmadi.</string>
+    <string name="qa2_add_photo">Foto qo\'shish</string>
+    <plurals name="qa2_photos_n"><item quantity="one">%d ta foto biriktirildi</item><item quantity="other">%d ta foto biriktirildi</item></plurals>
+    <string name="qa2_note">Izoh (foto va fakt uchun, ixtiyoriy)</string>
+    <string name="qa2_bn_failed">Rad etildi: %1$d</string>
+    <string name="qa2_bn_queued">Navbatda: %1$d</string>
+    <string name="qa2_bn_offline">Oflayn</string>
+    <string name="qa2_bn_sending">Yuborilmoqda: %1$d</string>
+    <string name="qa2_bn_open">Ko\'rish</string>
+    <string name="qa2_bn_expand">Batafsil</string>
+    <string name="qa2_disk_title">Disk</string>
+    <string name="qa2_disk_mine">Mening diskim</string>
+    <string name="qa2_disk_company">Kompaniya diski</string>
+    <string name="qa2_disk_shared">Ulashilgan</string>
+    <string name="qa2_disk_trash">Savat</string>
+    <string name="qa2_disk_empty">Bu yerda hali hech narsa yo\'q</string>
+    <string name="qa2_disk_forbidden">Bu diskni ko\'rishga ruxsat yo\'q</string>
+    <string name="qa2_theme">Mavzu</string>
+    <string name="qa2_theme_dark">Qorong\'i</string>
+    <string name="qa2_theme_light">Yorug\'</string>
+</resources>

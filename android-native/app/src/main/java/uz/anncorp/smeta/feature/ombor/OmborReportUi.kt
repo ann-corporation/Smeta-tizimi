@@ -14,7 +14,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.foundation.layout.Box
+import uz.anncorp.smeta.core.data.displayUnit
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
@@ -123,19 +128,35 @@ internal fun OmborReportPanel(skladId: Long?, query: String, vm: OmborReportView
     LaunchedEffect(skladId, period, from, to, op, date, query) { if (query.isNotBlank()) kotlinx.coroutines.delay(350); reload() }
 
     Column(Modifier.fillMaxSize()) {
+        // ONE compact filter line (QA 2026-11-18: four rows ate ~60 % of the screen): period / balance-on-date in a dropdown chip + the kind chips.
+        var menu by rememberSaveable { mutableStateOf(false) }
         Column(Modifier.padding(horizontal = 16.dp)) { ChipRow {
-            ReportPeriod.entries.forEach { p ->
-                FilterChip(selected = date == null && period == p.name, onClick = { date = null; period = p.name; from = null; to = null }, label = { Text(stringResource(periodLabel(p))) })
+            Box {
+                AssistChip(
+                    onClick = { menu = true }, modifier = Modifier.heightIn(min = 40.dp),
+                    label = {
+                        Text(
+                            when {
+                                date != null -> stringResource(R.string.t14_balance_on, uz.anncorp.smeta.core.data.formatDate(date))
+                                period != null -> stringResource(periodLabel(ReportPeriod.valueOf(period!!)))
+                                else -> uz.anncorp.smeta.core.data.formatDate(from) + " \u2013 " + uz.anncorp.smeta.core.data.formatDate(to)
+                            }, maxLines = 1,
+                        )
+                    },
+                    leadingIcon = { Icon(Icons.Filled.CalendarMonth, null) }, trailingIcon = { Icon(Icons.Filled.ArrowDropDown, null) },
+                )
+                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                    ReportPeriod.entries.forEach { p ->
+                        DropdownMenuItem(text = { Text(stringResource(periodLabel(p))) }, onClick = { menu = false; date = null; period = p.name; from = null; to = null })
+                    }
+                    DropdownMenuItem(text = { Text(stringResource(R.string.t14_period_range)) }, onClick = { menu = false; rangeDialog = true })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.t14_balance_date)) }, onClick = { menu = false; dateDialog = true })
+                }
             }
-            FilterChip(selected = date == null && period == null, onClick = { rangeDialog = true }, label = { Text(if (from != null || to != null) (from ?: "…") + " – " + (to ?: "…") else stringResource(R.string.t14_period_range)) },
-                leadingIcon = { Icon(Icons.Filled.CalendarMonth, null) })
-        } }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             listOf(R.string.t14_op_all, R.string.t14_op_in, R.string.t14_op_out).forEachIndexed { i, res ->
-                FilterChip(selected = date == null && op == i, onClick = { date = null; op = i }, label = { Text(stringResource(res)) })
+                FilterChip(selected = date == null && op == i, onClick = { date = null; op = i }, label = { Text(stringResource(res), maxLines = 1) })
             }
-            AssistChip(onClick = { dateDialog = true }, label = { Text(date?.let { stringResource(R.string.t14_balance_on, uz.anncorp.smeta.core.data.formatDate(it)) } ?: stringResource(R.string.t14_balance_date)) }, leadingIcon = { Icon(Icons.Filled.CalendarMonth, null) })
-        }
+        } }
         when {
             skladId == null -> CenterMessage(Icons.Filled.Warning, stringResource(R.string.ombor_cmd_m_nowarehouse))
             ui.loading -> SkeletonList(4)
@@ -159,18 +180,13 @@ internal fun OmborReportPanel(skladId: Long?, query: String, vm: OmborReportView
         ) { DateRangePicker(st, modifier = Modifier.heightIn(max = 520.dp)) }
     }
     if (dateDialog) {
-        val st = rememberDatePickerState()
-        DatePickerDialog(
-            onDismissRequest = { dateDialog = false },
-            confirmButton = {
-                TextButton(enabled = st.selectedDateMillis != null, onClick = {
-                    val d = isoOf(st.selectedDateMillis)
-                    // The server refuses a future date; today is the latest allowed.
-                    date = d?.let { if (LocalDate.parse(it).isAfter(LocalDate.now())) LocalDate.now().toString() else it }; dateDialog = false
-                }) { Text(stringResource(R.string.t14_apply)) }
+        uz.anncorp.qurai.ui.components.QDatePickerDialog(
+            initialIso = date, onDismiss = { dateDialog = false },
+            onPick = { d -> // The server refuses a future date; today is the latest allowed.
+                date = if (LocalDate.parse(d).isAfter(LocalDate.now())) LocalDate.now().toString() else d
             },
-            dismissButton = { TextButton(onClick = { dateDialog = false }) { Text(stringResource(R.string.p8_cancel)) } },
-        ) { DatePicker(st, modifier = Modifier.heightIn(max = 520.dp)) }
+            okText = stringResource(R.string.t14_apply), cancelText = stringResource(R.string.p8_cancel),
+        )
     }
 }
 
@@ -186,7 +202,7 @@ private fun DateRows(date: String, rows: List<DateBalanceRow>) {
                         Text(r.name, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, maxLines = 3)
                         r.lastDate?.let { Text(stringResource(R.string.ombor_last_movement, uz.anncorp.smeta.core.data.formatDate(it)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     }
-                    Text(formatQty(r.qty) + " " + r.unit, style = MaterialTheme.typography.titleMedium, color = if ((r.qty ?: 0.0) < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
+                    Text(formatQty(r.qty) + " " + displayUnit(r.unit), style = MaterialTheme.typography.titleMedium, color = if ((r.qty ?: 0.0) < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
@@ -206,7 +222,7 @@ private fun ReportBody(r: Report) {
                         Text(listOfNotNull(row.date?.let { uz.anncorp.smeta.core.data.formatDate(it) }, row.party, row.objectName).joinToString("  ·  "), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
                         if (row.sum != null) Text(stringResource(R.string.t14_sum_both, formatMoney(row.sum), formatMoney(row.sumVat)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Text((if (row.income) "+" else "−") + formatQty(row.qty) + " " + row.unit, style = MaterialTheme.typography.titleSmall, color = if (row.income) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary)
+                    Text((if (row.income) "+" else "−") + formatQty(row.qty) + " " + displayUnit(row.unit), style = MaterialTheme.typography.titleSmall, color = if (row.income) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary)
                 }
             }
         }
@@ -219,7 +235,7 @@ private fun Totals(r: Report) {
     val t = r.totals
     WorkCard {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text((r.from ?: "…") + " – " + (r.to ?: "…"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(uz.anncorp.smeta.core.data.formatDate(r.from) + " \u2013 " + uz.anncorp.smeta.core.data.formatDate(r.to), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(stringResource(R.string.t14_tot_in, t.incomeCount) + units(t.units) { it.income }, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
             if (t.incomeSum != null) Text(stringResource(R.string.t14_sum_both, formatMoney(t.incomeSum), formatMoney(t.incomeSumVat)), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (t.unpriced > 0) Text(stringResource(R.string.t14_unpriced, t.unpriced), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.tertiary)
@@ -230,7 +246,7 @@ private fun Totals(r: Report) {
 }
 
 private fun units(list: List<UnitTotal>, pick: (UnitTotal) -> Double): String =
-    list.filter { pick(it) > 0 }.joinToString(", ", prefix = ": ") { formatQty(pick(it)) + " " + it.unit }.let { if (it == ": ") "" else it }
+    list.filter { pick(it) > 0 }.joinToString(", ", prefix = ": ") { formatQty(pick(it)) + " " + displayUnit(it.unit) }.let { if (it == ": ") "" else it }
 
 /** The clarifying question of the server with its answer buttons (kirim / chiqim, which supplier, which material). One tap sends the answer. */
 @Composable

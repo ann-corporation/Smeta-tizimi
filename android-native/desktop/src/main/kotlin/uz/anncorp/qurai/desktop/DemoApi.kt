@@ -34,6 +34,12 @@ class DesktopDemoApi(private val json: Json) : BffApi {
             path.startsWith("/api/ombor-buyruq") -> when (((body as? JsonObject)?.get("amal") as? JsonPrimitive)?.content) {
                 "hisobot" -> ok(asset("ombor_hisobot")); "qoldiq" -> ok(asset("ombor_qoldiq_sana")); else -> ok("""{"ok":true,"holat":"javob","matn":"Demo rejimi: buyruq yuborilmaydi","nomzodlar":[]}""")
             }
+            path.startsWith("/api/hujjat-maydoni") -> when {
+                path.contains("amal=ulashilgan") -> ok("""{"ok":true,"royxat":[{"turi":"fayl","id":31,"nom":"Shartnoma ilovasi.pdf","mime":"application/pdf","bergan":"Demo hamkor","daraja":"korish","tugaydi":null}]}""")
+                path.contains("savat=1") -> ok("""{"ok":true,"daraja":4,"shaxsiy":true,"yol":[],"papkalar":[],"fayllar":[{"id":21,"nom":"Eski reja.xlsx","mime":"application/vnd.ms-excel","bayt":48210,"versiya":2,"yangilandi":"2026-11-10T09:00:00+00:00","savatda":"2026-11-12T09:00:00+00:00","izohlar":0}]}""")
+                path.contains("kompaniya_id") -> ok("""{"ok":true,"daraja":3,"shaxsiy":false,"kompaniya_id":1,"yol":[],"papkalar":[{"id":2,"nom":"Shartnomalar","tizim":false},{"id":3,"nom":"Tizim hujjatlari","tizim":true}],"fayllar":[{"id":11,"nom":"Obyekt qoidalari.docx","mime":"application/msword","bayt":184320,"versiya":1,"yangilandi":"2026-11-14T08:10:00+00:00","savatda":null,"izohlar":1}]}""")
+                else -> ok("""{"ok":true,"daraja":4,"shaxsiy":true,"yol":[],"papkalar":[{"id":1,"nom":"Rasmlar","tizim":false}],"fayllar":[{"id":10,"nom":"Mening rejam.pdf","mime":"application/pdf","bayt":2097152,"versiya":3,"yangilandi":"2026-11-16T07:30:00+00:00","savatda":null,"izohlar":0}]}""")
+            }
             path.startsWith("/api/hujjat-aylanish") && method == "GET" -> when {
                 path.contains("bolim=kiruvchi") -> ok(asset("inbox")); path.contains("bolim=bildirishnomalar") -> ok(asset("notes")); else -> ApiResult(400, null)
             }

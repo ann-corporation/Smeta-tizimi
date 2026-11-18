@@ -56,11 +56,14 @@ data class DetailUi(
     val errorCode: String? = null,
     /** Set once a decision went through; the screen shows the confirmation and leaves. */
     val done: Decision? = null,
+    /** One rule with the F-2 act screen ([uz.anncorp.smeta.core.data.canSeeActAmounts]): false = the amount line is not drawn. */
+    val showAmount: Boolean = true,
 )
 
 @HiltViewModel
 class ApprovalDetailViewModel @Inject constructor(
     handle: SavedStateHandle, private val repo: ApprovalsRepository, private val ctx: WorkContext, connectivity: ConnectivityMonitor,
+    private val modules: uz.anncorp.smeta.core.data.ModulesRepository,
 ) : ViewModel() {
     val id: Long = checkNotNull(handle["id"])
     private val local = MutableStateFlow(DetailUi())
@@ -77,7 +80,8 @@ class ApprovalDetailViewModel @Inject constructor(
             local.value = local.value.copy(loading = true, error = null)
             val (r, d, doc) = repo.detail(w.companyId, id)
             seenToken = d?.stepToken
-            local.value = local.value.copy(loading = false, detail = d, doc = doc, result = r)
+            val amounts = modules.canSeeAmounts(w.companyId)
+            local.value = local.value.copy(loading = false, detail = d, doc = doc, result = r, showAmount = amounts)
         }
     }
 

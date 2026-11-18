@@ -207,10 +207,10 @@
     <string name="hub_web_open_browser">Открыть в браузере</string>
     <string name="mod_objects">Объекты</string>
     <string name="mod_objects_d">Объекты и их состояние</string>
-    <string name="mod_fact">Факт</string>
+    <string name="mod_fact">Ввод факта</string>
     <string name="mod_fact_d">Ввод выполненных работ</string>
-    <string name="mod_photo">Фото</string>
-    <string name="mod_photo_d">Фото-подтверждение</string>
+    <string name="mod_photo">Фото-подтверждение</string>
+    <string name="mod_photo_d">Прикрепить фото к строке</string>
     <string name="mod_approval">Согласование</string>
     <string name="mod_approval_d">Ваша очередь согласования</string>
     <string name="mod_today">Сегодня</string>
@@ -231,8 +231,8 @@
     <string name="mod_finance_d">Платежи и расходы</string>
     <string name="mod_accounting">Бухгалтерия</string>
     <string name="mod_accounting_d">Проводки, расчёты</string>
-    <string name="mod_documents">Документы</string>
-    <string name="mod_documents_d">Документооборот</string>
+    <string name="mod_documents">Диск</string>
+    <string name="mod_documents_d">Файлы, доступ, документооборот</string>
     <string name="mod_aosr">АОСР</string>
     <string name="mod_aosr_d">Акт скрытых работ</string>
     <string name="mod_tender">Тендер</string>

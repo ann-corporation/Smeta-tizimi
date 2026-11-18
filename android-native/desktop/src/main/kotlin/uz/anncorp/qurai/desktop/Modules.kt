@@ -31,6 +31,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import uz.anncorp.qurai.ui.theme.Q
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -151,7 +153,7 @@ fun SmetaScreen(c: Ctx) = NeedObject(c) { o ->
                         mark + (x.kod?.let { "$it  " } ?: "") + x.nom, Modifier.width(560.dp).padding(start = (x.depth * 16).dp, end = 6.dp),
                         fontWeight = if (x.isRz) FontWeight.Bold else if (x.isBl) FontWeight.Medium else FontWeight.Normal, maxLines = 2,
                     )
-                    DataCell(x.birlik ?: "", 70.dp); DataCell(if (x.isRz) "" else qty(x.hajm), 100.dp, true); DataCell(if (x.isRz) "" else money(x.narx), 110.dp, true)
+                    DataCell(uz.anncorp.smeta.core.data.displayUnit(x.birlik), 70.dp); DataCell(if (x.isRz) "" else qty(x.hajm), 100.dp, true); DataCell(if (x.isRz) "" else money(x.narx), 110.dp, true)
                     DataCell(money(sum), 150.dp, true); DataCell(if (x.isBl) money(x.faktSumma) else "", 140.dp, true); DataCell(if (x.isBl) money(x.f2Summa) else "", 140.dp, true)
                 }
                 HorizontalDivider(thickness = 0.5.dp)
@@ -230,7 +232,7 @@ private fun ActRows(c: Ctx, o: Obj, a: F2Act) {
             r, listOf(
                 QCol("Kod", 120.dp, sort = { it.kod }) { it.kod ?: "" },
                 QCol("Nomi", 420.dp, sort = { it.nom.lowercase() }) { it.nom },
-                QCol("Birlik", 70.dp) { it.birlik ?: "" },
+                QCol("Birlik", 70.dp) { uz.anncorp.smeta.core.data.displayUnit(it.birlik) },
                 QCol("Hajm", 100.dp, true, { it.hajm }) { qty(it.hajm) },
                 QCol("Narx", 110.dp, true, { it.narx }) { money(it.narx) },
                 QCol("Summa", 140.dp, true, { it.summa }) { money(it.summa) },
@@ -296,18 +298,18 @@ fun FaktScreen(c: Ctx) = NeedObject(c) { o ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 QInput(q, { q = it; chosen = null }, label = "Ishni qidiring (kod / nom)", singleLine = true, modifier = Modifier.width(360.dp))
                 QInput(vol, { vol = it }, label = "Hajm (minus mumkin)", singleLine = true, modifier = Modifier.width(160.dp), keyboardOptions = KeyboardOptions())
-                QInput(date, { date = it }, label = "Sana (YYYY-MM-DD)", singleLine = true, modifier = Modifier.width(170.dp))
+                uz.anncorp.qurai.ui.components.QDateField(date, { date = it }, label = T("Sana"), modifier = Modifier.width(170.dp))
                 val v = uz.anncorp.smeta.core.data.parseVolume(vol)
                 QPrimaryButton(onClick = { chosen?.let { draft.add(it to v!!) }; vol = ""; chosen = null }, enabled = chosen != null && v != null) { Text("Qo'shish") }
             }
             val hits = if (q.isBlank() || chosen != null) emptyList() else works.filter { (it.kod ?: "").contains(q, true) || it.nom.contains(q, true) }.take(8)
             hits.forEach { w ->
-                Text("${w.kod ?: ""}  ${w.nom}  [${w.birlik ?: ""}]  smeta ${qty(w.hajm)}, fakt ${qty(w.faktHajm)}", Modifier.fillMaxWidth().clickable { chosen = w; q = w.nom }.padding(vertical = 3.dp), style = MaterialTheme.typography.bodyMedium)
+                Text("${w.kod ?: ""}  ${w.nom}  [${uz.anncorp.smeta.core.data.displayUnit(w.birlik)}]  smeta ${qty(w.hajm)}, fakt ${qty(w.faktHajm)}", Modifier.fillMaxWidth().clickable { chosen = w; q = w.nom }.padding(vertical = 3.dp), style = MaterialTheme.typography.bodyMedium)
             }
             chosen?.let { QHint("Tanlandi: ${it.nom}") }
             draft.forEachIndexed { i, (n, h) ->
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("${n.kod ?: ""} ${n.nom}", Modifier.weight(1f), maxLines = 1); Text("${qty(h)} ${n.birlik ?: ""}")
+                    Text("${n.kod ?: ""} ${n.nom}", Modifier.weight(1f), maxLines = 1); Text("${qty(h)} ${uz.anncorp.smeta.core.data.displayUnit(n.birlik)}")
                     QGhostButton(onClick = { draft.removeAt(i) }) { Text("Olib tashlash") }
                 }
             }
@@ -391,7 +393,7 @@ fun NarxScreen(c: Ctx) {
         QTable(
             rows, listOf(
                 QCol("Resurs", 400.dp, sort = { it.nom.lowercase() }) { it.nom },
-                QCol("Birlik", 70.dp, sort = { it.birlik }) { it.birlik ?: "" },
+                QCol("Birlik", 70.dp, sort = { it.birlik }) { uz.anncorp.smeta.core.data.displayUnit(it.birlik) },
                 QCol("Turi", 90.dp, sort = { it.kat }) { it.kat ?: "" },
                 QCol("Obyekt", 70.dp, true, { it.obyektSoni }) { it.obyektSoni.toString() },
                 QCol("Smeta min", 120.dp, true, { it.smetaMin }) { money(it.smetaMin) },
@@ -463,7 +465,48 @@ fun MoneyScreen(c: Ctx) {
     }
 }
 
-// ============================ Hujjatlar ============================
+// ============================ Disk ============================
+
+/** "Disk" (website: Mening diskim | Kompaniya diski | Ulashilgan | Savat) + the old document workflow as the last tab. Same state machine as Android (shared DiskController). */
+@Composable
+fun DiskScreen(c: Ctx) {
+    val scope = rememberCoroutineScope()
+    val ctl = remember(c.place.companyId) { uz.anncorp.smeta.feature.disk.DiskController(uz.anncorp.smeta.feature.disk.DiskRepository(c.sv.api), scope) { c.place.companyId } }
+    var section by remember { mutableStateOf("mine") }
+    val st by ctl.state.collectAsState()
+    LaunchedEffect(c.place.companyId, c.tick) { ctl.reload() }
+    val tabs = listOf(
+        uz.anncorp.qurai.ui.screens.QDiskTab("mine", I18n.s("qa2_disk_mine", "Mening diskim")), uz.anncorp.qurai.ui.screens.QDiskTab("company", I18n.s("qa2_disk_company", "Kompaniya diski")),
+        uz.anncorp.qurai.ui.screens.QDiskTab("shared", I18n.s("qa2_disk_shared", "Ulashilgan")), uz.anncorp.qurai.ui.screens.QDiskTab("trash", I18n.s("qa2_disk_trash", "Savat")),
+        uz.anncorp.qurai.ui.screens.QDiskTab("flow", I18n.s("dl_doc_title", "Hujjat aylanishi")),
+    )
+    Column(Modifier.fillMaxSize()) {
+        Text(I18n.s("qa2_disk_title", "Disk"), style = Q.type.titleLarge, color = Q.colors.text, modifier = Modifier.padding(bottom = 6.dp))
+        uz.anncorp.qurai.ui.screens.QDiskTabs(tabs, section, { id ->
+            section = id
+            when (id) {
+                "mine" -> ctl.select(uz.anncorp.smeta.feature.disk.DiskTab.MINE); "company" -> ctl.select(uz.anncorp.smeta.feature.disk.DiskTab.COMPANY)
+                "shared" -> ctl.select(uz.anncorp.smeta.feature.disk.DiskTab.SHARED); "trash" -> ctl.select(uz.anncorp.smeta.feature.disk.DiskTab.TRASH)
+            }
+        })
+        if (section == "flow") DocsScreen(c) else uz.anncorp.qurai.ui.screens.QDiskList(
+            rows = st.rows.map { uz.anncorp.qurai.ui.screens.QDiskRow(it.key, it.folder, it.name, it.sub, it.meta) },
+            state = when (st.status) {
+                uz.anncorp.smeta.feature.disk.DiskController.Status.LOADING -> uz.anncorp.qurai.ui.screens.QDiskState.Loading
+                uz.anncorp.smeta.feature.disk.DiskController.Status.READY -> uz.anncorp.qurai.ui.screens.QDiskState.Ready
+                uz.anncorp.smeta.feature.disk.DiskController.Status.FAILED -> uz.anncorp.qurai.ui.screens.QDiskState.Failed
+            },
+            onRow = { r -> st.rows.firstOrNull { it.key == r.key }?.let { m -> if (m.folder && (section == "mine" || section == "company")) ctl.openFolder(m.id, m.name) } },
+            crumbs = st.stack.takeIf { it.isNotEmpty() }?.joinToString(" / ") { it.name },
+            onUp = if (st.canGoUp) ({ ctl.up() }) else null, upLabel = I18n.s("p1_back", "Orqaga"),
+            emptyText = I18n.s("qa2_disk_empty", "Bu yerda hali hech narsa yo'q"),
+            errorText = if (st.offline) Tx.offlineWrite else if (st.forbidden) I18n.s("qa2_disk_forbidden", "Bu diskni ko'rishga ruxsat yo'q") else "Yuklab bo'lmadi",
+            onRetry = { ctl.reload() },
+        )
+    }
+}
+
+// ============================ Hujjat aylanishi ============================
 
 @Composable
 fun DocsScreen(c: Ctx) = NeedObject(c) { o ->
@@ -562,7 +605,7 @@ fun SettingsScreen(c: Ctx) {
     var phone by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     var msg by remember { mutableStateOf<String?>(null) }
-    Page("Sozlamalar") {
+    Page(T("Sozlamalar")) {
         if (prof == null) { QLoading(); return@Page }
         prof.Banner()
         val p = prof.valueOrNull()
@@ -580,13 +623,18 @@ fun SettingsScreen(c: Ctx) {
             }, enabled = (name != null || phone != null) && !c.me.offline) { Text("Saqlash") }
             msg?.let { Text(it) }
         }
+        // Til + Mavzu on top of the page (QA 2026-11-18: no language setting on Windows). The language list reads the same translations as Android.
+        QPanel {
+            Text(T("Til"), fontWeight = FontWeight.SemiBold)
+            QFilterBar(I18n.languages, DesktopPrefs.lang, { I18n.names[it] ?: it }, { DesktopPrefs.chooseLang(it) })
+            Text(I18n.s("qa2_theme", "Mavzu"), fontWeight = FontWeight.SemiBold)
+            QFilterBar(listOf(true, false), DesktopPrefs.dark, { if (it) I18n.s("qa2_theme_dark", "Qorong'i") else I18n.s("qa2_theme_light", "Yorug'") }, { DesktopPrefs.chooseDark(it) })
+        }
         QPanel {
             Text("Ilova", fontWeight = FontWeight.SemiBold)
             Text("QURAI Windows v${BuildInfo.VERSION}")
             Text("Server: ${BuildInfo.API_BASE}")
             Text("Ma'lumotlar: ${AppPaths.root.absolutePath}")
-            Text("Mavzu", fontWeight = FontWeight.SemiBold)
-            QFilterBar(listOf(true, false), DesktopPrefs.dark, { if (it) "Qorong'i" else "Yorug'" }, { DesktopPrefs.chooseDark(it) })
             QHint("Oflayn nusxa shifrlangan (Windows DPAPI), 72 soat saqlanadi.")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 QSecondaryButton(onClick = { c.sv.cache.wipe(); c.sv.cache.scope(c.me.id); msg = "Oflayn nusxa tozalandi" }) { Text("Oflayn nusxani tozalash") }

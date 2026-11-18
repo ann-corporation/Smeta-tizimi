@@ -95,7 +95,9 @@ fun MainScreen(sv: Services, me: SessionUser) {
     var objId by remember { mutableStateOf<Long?>(null) }
     var unread by remember { mutableStateOf(0) }
     val jarvis = remember { JarvisState() }
-    val sections = remember { QNav.visible(Mod.ids) }
+    // The language setting retranslates the shared menu titles (Android strings; unknown titles stay Uzbek).
+    val lang = DesktopPrefs.lang
+    val sections = remember(lang) { QNav.visible(Mod.ids).map { s -> s.copy(title = I18n.t(s.title, lang), items = s.items.map { it.copy(title = I18n.t(it.title, lang)) }) } }
     val order = remember(sections) { sections.flatMap { s -> s.items.map { it.id } } }
 
     LaunchedEffect(Unit) {
@@ -179,7 +181,7 @@ fun MainScreen(sv: Services, me: SessionUser) {
                         Mod.Narx -> NarxScreen(ctx)
                         Mod.Ombor -> OmborScreen(ctx)
                         Mod.Money -> MoneyScreen(ctx)
-                        Mod.Docs -> DocsScreen(ctx)
+                        Mod.Docs -> DiskScreen(ctx)
                         Mod.Notif -> NotifScreen(ctx) { unread = 0 }
                         Mod.Settings -> SettingsScreen(ctx)
                     }

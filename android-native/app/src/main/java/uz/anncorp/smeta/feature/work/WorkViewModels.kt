@@ -109,6 +109,8 @@ data class CardUi(
     val sections: List<SectionProgress> = emptyList(),
     /** Accepted / draft F-2 acts of this object (null = never loaded; empty = none). */
     val f2: List<F2Act>? = null,
+    /** Result of the last money (server package) read: only a real 403 means "no permission"; null while it is still loading. */
+    val moneyResult: SyncResult? = null,
 )
 
 @HiltViewModel
@@ -118,6 +120,7 @@ class ObjectCardViewModel @Inject constructor(
 ) : ViewModel() {
     val id: Long = checkNotNull(handle["id"])
     private val sync = MutableStateFlow<Pair<Boolean, SyncResult?>>(true to null)
+    private val moneyResult = MutableStateFlow<SyncResult?>(null)
 
     val state: StateFlow<CardUi> = combine(
         objects.observeOne(id), rows.totals(id), rows.rowCount(id), rows.source(id), rows.lastUpdated(id),
@@ -125,6 +128,7 @@ class ObjectCardViewModel @Inject constructor(
         .combine(moneyRepo.observe(id)) { ui, m -> ui.copy(money = m) }
         .combine(rows.all(id)) { ui, list -> ui.copy(sections = sectionProgress(list)) }
         .combine(f2Repo.observe(id)) { ui, f -> ui.copy(f2 = f) }
+        .combine(moneyResult) { ui, m -> ui.copy(moneyResult = m) }
         .combine(sync) { ui, s -> ui.copy(syncing = s.first, result = s.second) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CardUi())
 
@@ -133,8 +137,9 @@ class ObjectCardViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             sync.value = true to null
+            moneyResult.value = null
             val r = rows.sync(id)
-            ctx.current.value?.let { moneyRepo.refreshObject(it.companyId, id) }
+            moneyResult.value = ctx.current.value?.let { moneyRepo.refreshObject(it.companyId, id) } ?: SyncResult.Failed("NO_WORKPLACE")
             f2Repo.refresh(id)   // best effort: a role without F-2 read keeps an empty timeline
             sync.value = false to r
         }
@@ -197,6 +202,9 @@ data class DraftUi(
     val saving: Boolean = false,
     val savedId: String? = null,
     val role: String = "",
+    /** Photos attached to this fact (one flow: fact + photo evidence + note), and the note they carry. */
+    val photos: Int = 0,
+    val note: String = "",
 ) {
     val exceeding get() = lines.count { it.exceeds }
     val belowZero get() = lines.count { it.goesBelowZero }
@@ -205,16 +213,24 @@ data class DraftUi(
 @HiltViewModel
 class DraftViewModel @Inject constructor(
     handle: SavedStateHandle, objects: ObjectsRepository, private val fakt: FaktRepository, private val ctx: WorkContext,
+    private val processor: uz.anncorp.smeta.core.media.PhotoProcessor, private val photoQueue: uz.anncorp.smeta.core.data.PhotoRepository,
 ) : ViewModel() {
     val id: Long = checkNotNull(handle["id"])
     private val date = MutableStateFlow(LocalDate.now())
     private val saving = MutableStateFlow<String?>(null)
+    private val attached = MutableStateFlow<List<uz.anncorp.smeta.core.media.ProcessedPhoto>>(emptyList())
+    private val noteFlow = MutableStateFlow("")
 
     val state: StateFlow<DraftUi> = combine(fakt.drafts(id), objects.observeOne(id), date, saving, ctx.current) { d, o, dt, s, w ->
         DraftUi(o?.nom.orEmpty(), d, dt, savedId = s, role = w?.rol.orEmpty())
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DraftUi())
+    }.combine(attached) { ui, p -> ui.copy(photos = p.size) }
+        .combine(noteFlow) { ui, n -> ui.copy(note = n) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DraftUi())
 
     fun setDate(d: LocalDate) { date.value = d }
+    fun setNote(s: String) { noteFlow.value = s.take(500) }
+    fun addPhoto(uri: android.net.Uri) { viewModelScope.launch { runCatching { processor.process(uri) }.getOrNull()?.let { p -> attached.update { it + p } } } }
+    fun clearPhotos() { attached.value = emptyList() }
     fun updateLine(row: DraftEntity, hajm: Double) { viewModelScope.launch { fakt.addToDraftFromEntity(row, hajm) } }
     fun remove(qatorId: Long) { viewModelScope.launch { fakt.removeFromDraft(id, qatorId) } }
     fun clear() { viewModelScope.launch { fakt.clearDraft(id) } }
@@ -223,9 +239,15 @@ class DraftViewModel @Inject constructor(
         val w = ctx.current.value ?: return
         viewModelScope.launch {
             val nom = state.value.title.ifBlank { "#$id" }
+            val firstRow = state.value.lines.firstOrNull()?.qatorId
             val op = fakt.save(w.companyId, w.rol, id, nom, date.value)
             saving.value = op
-            if (op != null) onSaved()
+            if (op != null) {
+                // Photo evidence rides along with the same save: queued once, linked to the first fact row, with the typed note (position never attached here).
+                attached.value.forEach { p -> photoQueue.enqueue(uz.anncorp.smeta.core.media.ProcessedPhoto(p.jpeg, p.width, p.height, p.sha256, null, null), w.companyId, id, nom, firstRow, noteFlow.value, date.value) }
+                attached.value = emptyList(); noteFlow.value = ""
+                onSaved()
+            }
         }
     }
 }

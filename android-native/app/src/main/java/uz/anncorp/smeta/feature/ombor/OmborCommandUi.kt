@@ -154,7 +154,7 @@ internal fun CommandPreviewDialog(p: CommandPreview, ui: OmborUi, vm: OmborViewM
                 if (p.kind == CommandKind.BALANCE) {
                     val hit = ui.scopeRows.filter { matchesQuery(it.nomi, name) }.take(3)
                     Text(
-                        p.answer ?: if (hit.isEmpty()) stringResource(R.string.ombor_cmd_balance_none) else hit.joinToString("\n") { it.nomi + ": " + formatQty(it.qoldiq) + " " + it.birligi },
+                        p.answer ?: if (hit.isEmpty()) stringResource(R.string.ombor_cmd_balance_none) else hit.joinToString("\n") { it.nomi + ": " + formatQty(it.qoldiq) + " " + uz.anncorp.smeta.core.data.displayUnit(it.birligi) },
                         style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface,
                     )
                 } else if (isEdit) {

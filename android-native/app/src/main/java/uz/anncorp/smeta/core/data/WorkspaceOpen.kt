@@ -2,6 +2,9 @@ package uz.anncorp.smeta.core.data
 
 // Android-side mapping (needs ModuleCatalog); the desktop app has its own mapping over the shared WsOpen type.
 
+/** Module codes this cabinet's workspace offers as native actions: the server already checked them, so the module access rule counts them as allowed. */
+fun Workspace.grantedModules(): Set<String> = actions.filter { it.target.native }.map { it.target.code }.toSet()
+
 /** Existing screens are the targets: the module code maps to a [NativeTarget]; anything unknown (or only a website page) is null = the button is hidden. No page comes from the website. */
 fun WsAction.open(): WsOpen? {
     // A website page of a module this app has natively (e.g. "/admin/moliya") opens that module.

@@ -16,7 +16,7 @@ kotlin {
     compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) }
 }
 
-val appVersion = "0.2.3"
+val appVersion = "0.2.4"
 val apiBase = (project.findProperty("apiBase") as String?) ?: "https://qurai.uz"
 
 // Build-time constants (no secrets): app version and the canonical API host.
@@ -31,7 +31,20 @@ val genConfig = tasks.register("generateBuildConfig") {
         f.writeText("package uz.anncorp.qurai.desktop\n\nobject BuildInfo {\n    const val VERSION = \"$appVersion\"\n    const val API_BASE = \"$apiBase\"\n}\n")
     }
 }
-sourceSets { main { java.srcDir(genDir) } }
+// UI language: the Windows app reads the SAME translations as Android (app/src/main/res/values{,-ru,-en}/strings*.xml) - no second dictionary to keep in step.
+val i18nDir = layout.buildDirectory.dir("generated/i18n")
+val syncI18n = tasks.register<Sync>("syncI18n") {
+    into(i18nDir.map { it.dir("i18n") })
+    listOf("values" to "uz", "values-ru" to "ru", "values-en" to "en").forEach { (dir, loc) ->
+        from(rootProject.file("app/src/main/res/$dir")) { include("strings*.xml"); into(loc) }
+    }
+    doLast {
+        val root = destinationDir
+        root.resolve("index.txt").writeText(root.walkTopDown().filter { it.isFile && it.extension == "xml" }.map { it.relativeTo(root).invariantSeparatorsPath }.sorted().joinToString("\n"))
+    }
+}
+sourceSets { main { java.srcDir(genDir); resources.srcDir(i18nDir) } }
+tasks.named("processResources") { dependsOn(syncI18n) }
 tasks.named("compileKotlin") { dependsOn(genConfig) }
 
 dependencies {

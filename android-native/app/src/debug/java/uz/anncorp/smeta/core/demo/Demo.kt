@@ -168,6 +168,7 @@ private class DemoBff(private val context: Context, private val json: Json, priv
                 when {
                     s("soro") == "rahbar_panel_v1" -> ok(asset("panel.json"))
                     s("soro") == "akt_reestr_obyekt_v1" -> ok(asset("f2list.json"))
+                    s("soro") == "akt_summa_paket_v1" -> ok("""{"ok":true,"natija":{"ok":true,"akt_id":${o?.get("akt_id")?.let { (it as? JsonPrimitive)?.content } ?: "0"},"paket":{"qqs_bilan":396396000,"ustamali":353925000,"ustamasiz":330000000,"narxsiz_soni":0}}}""")
                     s("soro") == "akt_reestr_kompaniya_v1" -> ok(asset("f2reestr.json"))
                     s("soro") == "qarz_svod_v1" -> ok(asset("qarz_svod.json"))
                     jadval == "t2_usta_fakt_qoralama" -> ok(asset("usta_pending.json"))
