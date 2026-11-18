@@ -25,6 +25,7 @@ import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { toast } from '../../umumiy/ui/Toast';
 import { NarxProtokolPanel } from './NarxProtokolPanel';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { dalilQamrovi, narxOgish } from '../../lib/narx-korinish';
@@ -111,7 +112,7 @@ export default function NarxDalil() {
   const excel = async () => {
     if (!obyekt || !kompaniyaId) return;
     const { bytes, faylNomi, tasdiqlangan, dalilsiz } = narxAsoslashXlsx(resurslar, dalillar, { obyektNomi: obyekt.nom, imzo: tomonlar });
-    const tk = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'OBOSNOVANIE_NARX', sabab: `Обоснование цен · ${obyekt.nom}`, obyekt: obyekt.id }, () => {
+    const tk = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'OBOSNOVANIE_NARX', disk: diskJoy({ tur: 'narx_dalil', kompaniyaId, obyektId: obyekt.id, obyekt: obyekt.nom, faylNomi }), sabab: `Обоснование цен · ${obyekt.nom}`, obyekt: obyekt.id }, () => {
       downloadBlob(bytes, faylNomi); // tizim imzosi shu yo'lda qo'yiladi
     });
     if (!tk.ok) { toast(tk.xabar, 'danger'); return; }

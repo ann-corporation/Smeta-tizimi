@@ -6,6 +6,7 @@ import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { yangiOperationId } from '../../api/supabase';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { buxKassaBekor, buxKassaKitobOl, buxKassaYoz, buxXato, type BuxHisob, type KassaKitob } from '../../api/t2-bux-hisob';
@@ -47,7 +48,7 @@ export function Kassa({ kid, davr, versiya, hisoblar, yozadi, onOzgardi }: { kid
   };
   const chop = async (o: KassaKitob['orderlar'][number]) => {
     const { bytes, faylNomi } = kassaOrderHujjat({ kompaniya: (joriy as { nom?: string } | null | undefined)?.nom ?? null, order: o, kassaHisob: d?.kassa_hisob ?? '5010' });
-    const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'KASSA_ORDER', sabab: `Кассовый ордер ${o.tur} № ${o.raqam}/${o.yil}` }, () => downloadBlob(bytes, faylNomi));
+    const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'KASSA_ORDER', disk: diskJoy({ tur: 'kassa_order', kompaniyaId: kid, qism: `--`, qismNom: ` №/`, faylNomi }), sabab: `Кассовый ордер ${o.tur} № ${o.raqam}/${o.yil}` }, () => downloadBlob(bytes, faylNomi));
     toast(r.ok ? (r.xabar || t('Order yuklandi')) : r.xabar, r.ok ? 'ok' : 'danger');
   };
   const faol = hisoblar.filter((h) => h.faol && h.kod !== (d?.kassa_hisob ?? '5010'));

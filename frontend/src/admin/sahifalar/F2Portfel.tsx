@@ -18,6 +18,7 @@ import { portfelObyektOl, type PortfelObyektMalumot } from '../../api/f2-oylik-p
 import { aktSummalarParallel, portfelBarchaAktlar, portfelOl, type PortfelAktQator, type PortfelHolat, type PortfelJavob } from '../../api/t2-f2-portfel';
 import { paketUchligi, type SummaPaket } from '../../lib/summa-paket';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { hujjatFaylNomi, rasmiyKitob } from '../../lib/hujjat-yozuvchi';
 import { f2HujjatVaraqlar } from '../../lib/f2-hujjat';
@@ -228,7 +229,7 @@ function PortfelIchi({ kompaniyaId, malumot, tashkilot }: { kompaniyaId: number;
       const varaqlar = tartib.map((id) => aktVaraqlar.get(id)).filter((x): x is PortfelAktVaraq => !!x);
       const svod = portfelSvodVaraq(portfel, { kesimMatni, tashkilot, imzo, varaqlar: varaqNomi, kirmadi });
       const kitob = portfelKitob(svod, varaqlar, { nom: kesimNomi, tashkilot });
-      const r = await hujjatTokenBilan({ kompaniyaId, bytes: kitob.bytes, hujjat: 'F2_PORTFEL', sabab: `Свод Ф-2 ${kesimMatni}`, obyekt: kesim.tur === 'obyekt' ? kesim.id : null, fayllar: tanlanganKatak },
+      const r = await hujjatTokenBilan({ kompaniyaId, bytes: kitob.bytes, hujjat: 'F2_PORTFEL', disk: diskJoy({ tur: 'f2_portfel', kompaniyaId, obyektId: kesim.tur === 'obyekt' ? kesim.id : null, obyekt: tashkilot ?? null, qism: kesimNomi, qismNom: kesimNomi, faylNomi: kitob.faylNomi }), sabab: `Свод Ф-2 ${kesimMatni}`, obyekt: kesim.tur === 'obyekt' ? kesim.id : null, fayllar: tanlanganKatak },
         () => downloadBlob(kitob.bytes, kitob.faylNomi));
       if (!r.ok) { toast(r.xabar, 'danger'); return; }
       toast(kirmadi.size ? t('Yuklandi; {n} ta F2 varag‘i kirmadi (Свод varag‘ida sababi)', { n: kirmadi.size }) : (r.xabar || t('Yuklandi')), kirmadi.size ? 'warn' : 'ok');

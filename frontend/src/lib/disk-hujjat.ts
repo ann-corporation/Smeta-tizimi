@@ -72,3 +72,52 @@ export function shartnomaHujjatManba(p: { tur: 'shartnoma_oylik_paket' | 'sverka
 
 /** Server hujjat turi -> registry document_type (mavjud arxiv turlari bilan bir xil). */
 export const DISK_HUJJAT_TURI: Readonly<Record<string, string>> = { f2: 'f2_hujjat', forma3: 'f3', nakopitelniy: 'nakopitelniy', m29: 'm29', slichitelniy: 'slichitelniy', ostatka: 'ostatka' };
+
+
+/* ---------------------------------------------------------------------------------------------------------------------------------
+ * A5: qolgan hujjat joylari (buxgalteriya, HR, ombor, hisobotlar ...). Hammasi BITTA yo'ldan: `hujjatJoyManba` (kalit + nom) va
+ * `lib/disk-joy.ts` (har hujjat uchun tur/daraja). Kalit: <tur>:<obyekt_id | k<kompaniya_id>>:<YYYY-MM | ->[:<qism>]
+ *   obyekt darajasi    - hujjat obyektga bog'liq (Loyiha -> Shartnoma -> Obyekt -> Tur -> Oy daraxti)
+ *   kompaniya darajasi - obyektsiz hujjat (buxgalteriya, HR ...): tur `kompaniya_<nom>`, Kompaniya diskida «Kompaniya hujjatlari» papkasi
+ *   qism               - bir obyekt/oyda bir nechta alohida hujjat bo'lsa (naryad raqami, protokol raqami, bo'lim ...): har qism = alohida fayl
+ * `qism` faqat TS tomonida: SQL `_t2_disk_kalit_v1` uni bilmaydi (kalitni mijoz beradi; SQL faqat yozadi).
+ * ------------------------------------------------------------------------------------------------------------------------------- */
+export const KOMPANIYA_TUR_PREFIKS = 'kompaniya_';
+
+/** Obyekt darajasidagi hujjat turlari (registry document_type) va Diskdagi ko'rinadigan nomi. */
+export const JOY_NOMI: Readonly<Record<string, string>> = {
+  bajarilmadi: 'Bajarilmadi ro‘yxati', loyiha_smeta_fakt: 'Loyiha-smeta-fakt solishtirmasi', narx_dalil: 'Narx asoslash', narx_protokol: 'Narx protokoli', naryad: 'Naryad',
+  obosnovanie: 'Obosnovanie', pereraschet: 'Pereraschet', resurs_vedomost: 'Resurs vedomosti', smeta_dava: 'Smeta bo‘yicha da’vo', moliya_tahlil: 'Moliyaviy tahlil',
+  boshqaruv_hisobot: 'Boshqaruv hisoboti', f2_portfel: 'F-2 portfeli', studio_hujjat: 'Studio hujjati', oferta: 'Oferta',
+  qarzdorlik: 'Qarzdorlik asosnomasi', tender_bayonnoma: 'Tender bayonnomasi', sub_akt: 'Subpudratchi akti', rahbar_panel: 'Rahbar paneli', zakazchik_hisobot: 'Buyurtmachi hisoboti',
+  akt_sverki: 'Akt-sverka', bux_hisobot: 'Buxgalteriya hisoboti', kassa_order: 'Kassa orderi', oborot_saldo: 'Oborot-saldo vedomosti', sverka_tomon: 'Tomonlar sverkasi',
+  ish_haqi: 'Ish haqi vedomosti', tekshiruv_jurnal: 'Tekshiruvlar jurnali', ombor_qoralama: 'Ombor kirim qoralamasi', hujjat_aylanish: 'Hujjat aylanishi', shartnoma_svod: 'Shartnomalar svodi',
+};
+export type DiskTur = 'f2_hujjat' | 'f3' | 'nakopitelniy' | 'slichitelniy' | 'ostatka' | 'm29' | 'aosr' | 'sverka' | 'sverka_lrv_res' | 'smeta_lrv' | 'smeta_res' | 'f2_portfel' | 'shartnoma_oylik_paket'
+  | keyof typeof JOY_NOMI | `${typeof KOMPANIYA_TUR_PREFIKS}${string}`;
+
+const slug = (s: string | number | null | undefined) => String(s ?? '').trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+
+/** Tur kompaniya darajasidami (obyektsiz): registry turi `kompaniya_<asos>`. */
+export const kompaniyaTuri = (asos: string): string => KOMPANIYA_TUR_PREFIKS + asos;
+export const asosTur = (tur: string): string => (tur.startsWith(KOMPANIYA_TUR_PREFIKS) ? tur.slice(KOMPANIYA_TUR_PREFIKS.length) : tur);
+
+export function kalitQism(tur: string, joy: { obyektId?: number | null; kompaniyaId: number }, oy: string | null, qism?: string | number | null): string {
+  const q = qism != null && String(qism).trim() !== '' ? ':' + slug(qism) : '';
+  return `${tur}:${joy.obyektId != null ? joy.obyektId : 'k' + joy.kompaniyaId}:${oy ?? '-'}${q}`;
+}
+
+/**
+ * Har qanday obyekt/kompaniya darajasidagi hujjat: kalit (yuqoridagi format) + aniq nom «<Tur> — <Obyekt> — <Qism> — <Oy>».
+ * `tur` - registry turi (obyektli: JOY_NOMI kaliti; obyektsiz: `kompaniya_<kalit>` - `kompaniyaTuri`).
+ */
+export function hujjatJoyManba(p: { tur: string; kompaniyaId: number; obyektId?: number | null; obyekt?: string | null; oy?: string | null; qism?: string | number | null; qismNom?: string | null }): DiskManba {
+  const oy = oyMatni(p.oy);
+  const obyektId = p.obyektId != null && Number.isFinite(Number(p.obyektId)) && Number(p.obyektId) > 0 ? Number(p.obyektId) : null;
+  const turi = obyektId == null && !p.tur.startsWith(KOMPANIYA_TUR_PREFIKS) ? kompaniyaTuri(p.tur) : p.tur;
+  const asos = asosTur(turi);
+  return {
+    turi: turi.slice(0, 40), id: obyektId, kalit: kalitQism(turi, { obyektId, kompaniyaId: p.kompaniyaId }, oy, p.qism),
+    nom: qism(JOY_NOMI[asos] ?? asos, obyektId != null ? p.obyekt : null, p.qismNom, oy),
+  };
+}

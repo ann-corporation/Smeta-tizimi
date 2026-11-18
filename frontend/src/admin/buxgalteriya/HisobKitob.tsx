@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, Download, FileText } from 'lucide-react';
 import { t, tilLocale } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { buxKontragentOl, type BuxKontragent } from '../../api/t2-bux-hisob';
 import { kontragentGuruhla, sverkaQatorlari, MANBA_NOM, type KontragentGuruh } from '../../lib/buxgalteriya/hisob';
@@ -46,7 +47,7 @@ export function HisobKitob({ kid, davr, versiya }: { kid: number; davr: Davr; ve
     const { bytes, faylNomi } = aktSverkaHujjat({
       kompaniya: x.kompaniya?.nom ?? null, kontragent: g.nom, kontragentInn: g.inn, dan: davr.dan, gacha: davr.gacha, ochilish, hujjatlar: x.hujjatlar ?? [],
     });
-    const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'AKT_SVERKI', sabab: `Акт сверки · ${g.nom}`.slice(0, 120) }, () => downloadBlob(bytes, faylNomi));
+    const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'AKT_SVERKI', disk: diskJoy({ tur: 'akt_sverki', kompaniyaId: kid, oy: davr.gacha, qism: g.inn ?? g.nom, qismNom: g.nom, faylNomi }), sabab: `Акт сверки · ${g.nom}`.slice(0, 120) }, () => downloadBlob(bytes, faylNomi));
     toast(r.ok ? (r.xabar || t('Akt-sverka yuklandi')) : r.xabar, r.ok ? 'ok' : 'danger');
   };
 

@@ -13,6 +13,7 @@ import type { PQator } from '../../lib/pereraschet';
 import { faktJurnalHavola, faktPereraschetHisobla, farqYuk, qaytaYuk, stornoYuk, type BoglanmaganSabab, type FaktFormat, type FaktTekshirSabab } from '../../lib/pereraschet-fakt';
 import { pereraschetFaktXlsx } from '../../lib/pereraschet-export';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { bloklarmi, dublikatTekshiruv } from '../../lib/f2-dublikat/tekshiruv';
 import type { ImzoNomlar } from '../../lib/hujjat-yozuvchi';
@@ -83,7 +84,7 @@ export function PereraschetFakt({ companyId, obyektId, obyektNom, tomonlar, ndsF
     try {
       const h = pereraschetFaktXlsx(n, { obyektNomi: obyektNom, bolimNomi, imzo: tomonlar, ndsFoiz,
         ustamali: uKerak != null && uOlingan != null && uPlus != null && uMinus != null ? { kerak: uKerak, olingan: uOlingan, plus: uPlus, minus: uMinus } : null });
-      const r = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'PERERASCHET', sabab: `Перерасчёт по факту · ${obyektNom}${bolimNomi ? ` · ${bolimNomi}` : ''}`, obyekt: obyektId, yacheykalar: h.yacheykalar },
+      const r = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'PERERASCHET', disk: diskJoy({ tur: 'pereraschet', kompaniyaId: companyId, obyektId, obyekt: obyektNom, qism: `fakt-`, qismNom: `Fakt`, faylNomi: h.faylNomi }), sabab: `Перерасчёт по факту · ${obyektNom}${bolimNomi ? ` · ${bolimNomi}` : ''}`, obyekt: obyektId, yacheykalar: h.yacheykalar },
         () => downloadBlob(h.bytes, h.faylNomi));
       if (!r.ok) toast(r.xabar, 'danger'); else if (r.xabar) toast(r.xabar, 'ok');
     } catch { toast(t('Excel fayli tuzilmadi.'), 'danger'); }

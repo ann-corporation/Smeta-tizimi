@@ -14,6 +14,7 @@ import { ustamaManbaOl } from '../../lib/oylik-hujjat/ostatka-slichitelniy';
 import type { SvodYaxlit } from '../../lib/svod-yaxlit';
 import { pereraschetXlsx } from '../../lib/pereraschet-export';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import type { ImzoNomlar } from '../../lib/hujjat-yozuvchi';
 import { FmtN } from '../../lib/format';
@@ -123,7 +124,7 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
     if (!natija) return;
     try {
       const h = pereraschetXlsx(natija, { obyektNomi: obyektNom, bolimNomi, imzo: tomonlar, ndsFoiz, ustamali: uPlus != null && uMinus != null ? { plus: uPlus, minus: uMinus } : null });
-      const r = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'PERERASCHET', sabab: `Перерасчёт · ${obyektNom}${bolimNomi ? ` · ${bolimNomi}` : ''}`, obyekt: obyektId, yacheykalar: h.yacheykalar },
+      const r = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'PERERASCHET', disk: diskJoy({ tur: 'pereraschet', kompaniyaId: companyId, obyektId, obyekt: obyektNom, qism: `smeta-`, qismNom: bolimNomi ?? null, faylNomi: h.faylNomi }), sabab: `Перерасчёт · ${obyektNom}${bolimNomi ? ` · ${bolimNomi}` : ''}`, obyekt: obyektId, yacheykalar: h.yacheykalar },
         () => downloadBlob(h.bytes, h.faylNomi));
       if (!r.ok) toast(r.xabar, 'danger'); else if (r.xabar) toast(r.xabar, 'ok');
     } catch { toast(t('Excel fayli tuzilmadi.'), 'danger'); }

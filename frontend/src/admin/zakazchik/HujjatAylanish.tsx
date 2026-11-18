@@ -21,6 +21,7 @@ import {
 import { STANDART_ZANJIRLAR, egasiAmallari, menQarorChiqaraman, type ZanjirModel } from '../../lib/hujjat-aylanish/zanjir';
 import { SHABLON_TURLARI, type ShablonTuri } from '../../lib/hujjat-aylanish/toliqlik';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { t } from '../../i18n/til';
 import { Bolim } from './tomon-ui';
 import { inp, sana, tugma, tugmaAsosiy } from './tomon-yordam';
@@ -314,7 +315,7 @@ function Shablonlar() {
     };
     const r = shablonYoz(tur, kirish);
     if (!joriy) return;
-    const tk = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes: r.bytes, hujjat: tur.toUpperCase(), sabab: `${tur} · ${q.obyekt ?? ''} · ${q.raqam ?? ''}` }, () => downloadBlob(r.bytes, r.faylNomi));
+    const tk = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes: r.bytes, hujjat: tur.toUpperCase(), disk: diskJoy({ tur: 'hujjat_aylanish', kompaniyaId: joriy.id, qism: `-`, qismNom: ` `.trim(), faylNomi: r.faylNomi }), sabab: `${tur} · ${q.obyekt ?? ''} · ${q.raqam ?? ''}` }, () => downloadBlob(r.bytes, r.faylNomi));
     if (!tk.ok) { toast(tk.xabar, 'danger'); return; }
     if (tk.xabar) toast(tk.xabar, 'ok');
     setYetishmaydi((await import('../../lib/hujjat-aylanish/toliqlik')).shablonToliqligi(tur, kirish));

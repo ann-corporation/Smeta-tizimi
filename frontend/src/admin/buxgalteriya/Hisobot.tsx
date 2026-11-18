@@ -4,6 +4,7 @@ import { t, tilLocale } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { buxHisobotOl, type BuxHisobot } from '../../api/t2-bux-hisob';
 import { hisobotHujjat } from '../../lib/buxgalteriya/eksport';
@@ -27,7 +28,7 @@ export function Hisobot({ kid, davr, versiya }: { kid: number; davr: Davr; versi
   const eksport = async () => {
     if (!d) return;
     const { bytes, faylNomi } = hisobotHujjat({ kompaniya: (joriy as { nom?: string } | null | undefined)?.nom ?? null, h: d });
-    const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'BUX_HISOBOT', sabab: `${forma === 'balans' ? 'Баланс' : 'Прибыли и убытки'} · ${d.gacha}` }, () => downloadBlob(bytes, faylNomi));
+    const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'BUX_HISOBOT', disk: diskJoy({ tur: 'bux_hisobot', kompaniyaId: kid, oy: d.gacha, qism: forma, qismNom: forma === 'balans' ? 'Balans' : 'Foyda va zarar', faylNomi }), sabab: `${forma === 'balans' ? 'Баланс' : 'Прибыли и убытки'} · ${d.gacha}` }, () => downloadBlob(bytes, faylNomi));
     toast(r.ok ? (r.xabar || t('Hisobot yuklandi')) : r.xabar, r.ok ? 'ok' : 'danger');
   };
   const muvozanat = d?.forma === 'balans' && d.tekshiruv != null;
