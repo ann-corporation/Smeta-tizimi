@@ -16,6 +16,7 @@
         "frontend/src/lib/jarvis/write-tools.ts", "frontend/src/lib/jarvis/write-tools.test.ts",
         "frontend/src/lib/jarvis/f2-preview-card.ts", "frontend/src/lib/jarvis/f2-preview-card.test.ts",
         "frontend/functions/_shared/jarvis/chat.ts", "frontend/functions/_shared/jarvis/jarvis-eval.test.ts",
+        "frontend/functions/_shared/jarvis/telegram-preview-delivery.test.ts",
         "frontend/functions/api/agent-ish.ts", "frontend/src/api/t2-agent-ish.ts", "frontend/src/umumiy/ui/AiChat.tsx",
         "frontend/functions/_shared/telegram-jarvis.ts", "frontend/functions/_shared/telegram-jarvis.test.ts",
         "frontend/functions/api/telegram/webhook.ts", "frontend/src/i18n/lugat/qism/telegram-jarvis.json"
