@@ -7,18 +7,20 @@
  * YOZISH QOIDASI: ulashish va savat - taklif (preview); bajarish faqat `tasdiqlayman: true` bilan, OVOZ bilan HECH QACHON.
  * Token: o'z fayllarini yuklab olish/ro'yxat BEPUL; disk kvotasi va ortiqcha xotira kunlik hisobi (t2_hm_hisobla_v1) tokenda.
  */
-export type HujjatVositaNomi = 'fayl_qidir' | 'fayl_royxat' | 'fayl_kvota' | 'fayl_faoliyat' | 'fayl_yukla' | 'fayl_ulash' | 'fayl_savat';
+export type HujjatVositaNomi = 'fayl_qidir' | 'fayl_royxat' | 'fayl_kvota' | 'fayl_faoliyat' | 'fayl_yukla' | 'fayl_ulash' | 'fayl_savat' | 'fayl_taqdim_nishon' | 'fayl_taqdim';
 
 export type HujjatVosita = { nom: HujjatVositaNomi; versiya: 1; tavsif: string; yozadi: boolean; tasdiqKerak: boolean; kirish: Record<string, string> };
 
 export const HUJJAT_VOSITALAR: readonly HujjatVosita[] = [
-  { nom: 'fayl_qidir', versiya: 1, yozadi: false, tasdiqKerak: false, tavsif: 'Fayl nomi bo\'yicha qidirish (shaxsiy yoki kompaniya diski).', kirish: { matn: 'nom bo\'lagi (kamida 2 belgi)', kompaniya_id: 'ixtiyoriy; bo\'lmasa shaxsiy' } },
+  { nom: 'fayl_qidir', versiya: 1, yozadi: false, tasdiqKerak: false, tavsif: 'Fayl nomi VA fayl ichidagi matn (pdf, docx, xlsx, pptx, matn) bo\'yicha qidirish (shaxsiy yoki kompaniya diski). Natijada mos parcha ko\'rsatiladi.', kirish: { matn: 'nom bo\'lagi (kamida 2 belgi)', kompaniya_id: 'ixtiyoriy; bo\'lmasa shaxsiy' } },
   { nom: 'fayl_royxat', versiya: 1, yozadi: false, tasdiqKerak: false, tavsif: 'Papkadagi fayl va papkalar ro\'yxati (hajm, versiya, qulf).', kirish: { papka_id: 'ixtiyoriy (ildiz)', kompaniya_id: 'ixtiyoriy', savat: 'true = savat' } },
   { nom: 'fayl_kvota', versiya: 1, yozadi: false, tasdiqKerak: false, tavsif: 'Disk hajmi: ishlatilgan / limit / foiz.', kirish: { kompaniya_id: 'ixtiyoriy' } },
   { nom: 'fayl_faoliyat', versiya: 1, yozadi: false, tasdiqKerak: false, tavsif: 'Faoliyat lentasi: kim nima qildi.', kirish: { fayl_id: 'ixtiyoriy', kompaniya_id: 'ixtiyoriy', limit: '1..100' } },
   { nom: 'fayl_yukla', versiya: 1, yozadi: true, tasdiqKerak: false, tavsif: 'Suhbatdan matn faylini saqlash (.txt/.md). Bir xil nom = yangi versiya. Kvota serverda tekshiriladi.', kirish: { nom: 'fayl nomi (majburiy)', matn: 'mazmun (<= 200 000 belgi)', papka_id: 'ixtiyoriy', kompaniya_id: 'ixtiyoriy' } },
   { nom: 'fayl_ulash', versiya: 1, yozadi: true, tasdiqKerak: true, tavsif: 'Faylni foydalanuvchiga ulashish TAKLIFI (ikkinchi tasdiq bilan). Daraja: korish | izoh | tahrir.', kirish: { fayl_id: 'majburiy', foydalanuvchi_id: 'majburiy', daraja: 'korish|izoh|tahrir (sukut korish)', tasdiqlayman: 'true (majburiy bajarish uchun)' } },
   { nom: 'fayl_savat', versiya: 1, yozadi: true, tasdiqKerak: true, tavsif: 'Faylni savatga olish TAKLIFI (30 kun ichida tiklanadi).', kirish: { fayl_id: 'majburiy', tasdiqlayman: 'true (majburiy bajarish uchun)' } },
+  { nom: 'fayl_taqdim_nishon', versiya: 1, yozadi: false, tasdiqKerak: false, tavsif: 'Kompaniya faylini QAYERGA taqdim qilish mumkin: faol aloqalar (pudratchi / sub / buyurtmachi).', kirish: { kompaniya_id: 'majburiy' } },
+  { nom: 'fayl_taqdim', versiya: 1, yozadi: true, tasdiqKerak: true, tavsif: 'Kompaniya fayli yoki papkasini aloqadagi tomonga o\'zgarmas SURAT sifatida taqdim qilish TAKLIFI (ikkinchi tasdiq bilan; oluvchi faqat o\'qiydi).', kirish: { fayl_id: 'fayl_id YOKI papka_id', papka_id: 'fayl_id YOKI papka_id', aloqa_id: 'majburiy (fayl_taqdim_nishon dan)', izoh: 'ixtiyoriy', tasdiqlayman: 'true (majburiy bajarish uchun)' } },
 ];
 
 export const hujjatVositaTop = (nom: unknown): HujjatVosita | null => HUJJAT_VOSITALAR.find((v) => v.nom === nom) ?? null;
@@ -58,6 +60,12 @@ export function hujjatVositaSorov(nom: unknown, args: unknown): HujjatSorov {
       if (!f || !u) return xato('FAYL_VA_FOYDALANUVCHI_KERAK');
       if (!['korish', 'izoh', 'tahrir'].includes(d)) return xato('DARAJA_NOTOGRI');
       return ok('yozish', { fayl_id: f, foydalanuvchi_id: u, daraja: d, tasdiqlayman: x.tasdiqlayman === true });
+    }
+    case 'fayl_taqdim_nishon': return komp ? ok('oqish', {}) : xato('KOMPANIYA_KERAK');
+    case 'fayl_taqdim': {
+      const f = butun(x.fayl_id); const pk = butun(x.papka_id); const al = butun(x.aloqa_id);
+      if ((!f && !pk) || (f && pk) || !al) return xato('FAYL_YOKI_PAPKA_VA_ALOQA_KERAK');
+      return ok('yozish', { fayl_id: f, papka_id: pk, aloqa_id: al, izoh: matn(x.izoh, 500) ?? '', tasdiqlayman: x.tasdiqlayman === true });
     }
     case 'fayl_savat': { const f = butun(x.fayl_id); return f ? ok('yozish', { fayl_id: f, tasdiqlayman: x.tasdiqlayman === true }) : xato('FAYL_KERAK'); }
   }

@@ -127,7 +127,8 @@ describe('Hujjat maydoni: amallar', () => {
     const s = r2();
     const res = await amal({ request: new Request('https://x/api/hujjat-maydoni', { method: 'POST', headers: { Cookie: await kuki() }, body: JSON.stringify({ amal: 'bosh', kompaniya_id: 17, tur: 'savat' }) }), env: ENV(s.bucket) } as never);
     expect(res.status).toBe(200);
-    expect(s.del).toHaveBeenCalledTimes(2);
+    expect(s.del).toHaveBeenCalledTimes(4); // har versiya + uning matn indeksi (.txt)
+    expect(s.del).toHaveBeenCalledWith('docs/17/0/0/f7/r2.txt');
     expect(c.map((x) => x.nom)).toEqual(['t2_hm_bosh_ol_v1', 't2_hm_tozala_tasdiq_v1']);
   });
   it('bosh: huquq yo\u2018q bo\u2018lsa R2 ga tegilmaydi', async () => {

@@ -55,3 +55,24 @@ export function arxivKalit(jadval: string, sana: Date, partiya: string): string 
   const m = String(sana.getUTCMonth() + 1).padStart(2, '0');
   return `arxiv/${jadval}/${y}/${m}/${partiya}.ndjson.gz`;
 }
+
+/**
+ * Katta fayl: R2 multipart (Hujjat maydoni, <= 200 MB). Yozish nuqtasi shu modulda qoladi (guard: r2Yoz/shu yordamchilar).
+ * R2 qoidasi: oxirgisidan boshqa hamma qism BIR XIL hajmda va >= 5 MiB bo'lishi shart.
+ */
+export type R2Qism = { partNumber: number; etag: string };
+export type R2BolakBucket = R2Bucket & {
+  createMultipartUpload(k: string, o?: any): Promise<{ uploadId: string }>;
+  resumeMultipartUpload(k: string, uploadId: string): { uploadPart(n: number, v: any): Promise<R2Qism>; complete(p: R2Qism[]): Promise<{ size: number; body?: any }>; abort(): Promise<void> };
+};
+export async function r2BolakBoshla(bucket: R2Bucket, kalit: string, mime: string): Promise<string> {
+  if (!kalit || kalit.startsWith('/') || kalit.includes('..')) throw new Error('R2_KALIT_NOTOGRI');
+  const u = await (bucket as R2BolakBucket).createMultipartUpload(kalit, { httpMetadata: { contentType: mime } });
+  return String(u.uploadId);
+}
+export const r2BolakQism = (bucket: R2Bucket, kalit: string, uploadId: string, n: number, bayt: Uint8Array): Promise<R2Qism> =>
+  (bucket as R2BolakBucket).resumeMultipartUpload(kalit, uploadId).uploadPart(n, bayt);
+export const r2BolakTugat = (bucket: R2Bucket, kalit: string, uploadId: string, qismlar: R2Qism[]) =>
+  (bucket as R2BolakBucket).resumeMultipartUpload(kalit, uploadId).complete(qismlar);
+export const r2BolakBekor = (bucket: R2Bucket, kalit: string, uploadId: string): Promise<void> =>
+  (bucket as R2BolakBucket).resumeMultipartUpload(kalit, uploadId).abort();

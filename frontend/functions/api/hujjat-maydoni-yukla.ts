@@ -7,8 +7,10 @@
  *
  * multipart/form-data: fayl, kompaniya_id (bo'sh = shaxsiy), papka_id?, fayl_id? (aniq faylning yangi versiyasi), operation_id (uuid), sha256 (hex)
  * Mijoz sha256/hajmiga ishonilmaydi: server baytlarni o'zi o'qib hisoblaydi.
+ * Katta fayl (>100 MB, <= 200 MB): ?amal=boshla|qism|tugat|bekor (R2 multipart, davom ettiriladi) - _shared/hujjat-maydoni-bolak.ts.
  */
 import { HM_MAX_BAYT, hmYukla, sessiyaAktor, type HmEnv } from '../_shared/hujjat-maydoni';
+import { bolakYonalt } from '../_shared/hujjat-maydoni-bolak';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -17,6 +19,8 @@ export const onRequestPost: PagesFunction<HmEnv> = async (ctx) => {
     const a = await sessiyaAktor(ctx);
     if (a instanceof Response) return a;
     if (!ctx.env.R2_CANONICAL) return Response.json({ ok: false, code: 'CONFIG', xato: 'R2_CANONICAL binding yo‘q' }, { status: 500 });
+    const bolak = await bolakYonalt(ctx.env, a.actorId, ctx.request);
+    if (bolak) return bolak;
     const declared = Number(ctx.request.headers.get('Content-Length') || 0);
     if (declared > HM_MAX_BAYT + 1024 * 1024) return Response.json({ ok: false, code: 'FILE_TOO_LARGE', xato: 'Fayl juda katta.' }, { status: 413 });
     const form = await ctx.request.formData();
@@ -34,4 +38,12 @@ export const onRequestPost: PagesFunction<HmEnv> = async (ctx) => {
   } catch (e: any) {
     return Response.json({ ok: false, code: 'HM_XATO', xato: String(e?.message || e).slice(0, 200) }, { status: 500 });
   }
+};
+
+/** Bo'lak yuklash klientlari PUT ham ishlatadi (qism). */
+export const onRequestPut: PagesFunction<HmEnv> = async (ctx) => {
+  const a = await sessiyaAktor(ctx);
+  if (a instanceof Response) return a;
+  if (!ctx.env.R2_CANONICAL) return Response.json({ ok: false, code: 'CONFIG' }, { status: 500 });
+  return (await bolakYonalt(ctx.env, a.actorId, ctx.request)) ?? Response.json({ ok: false, code: 'AMAL_NOMALUM' }, { status: 400 });
 };

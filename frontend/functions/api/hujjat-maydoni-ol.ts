@@ -2,6 +2,7 @@
  * hujjat-maydoni-ol.ts - Hujjat maydoni fayllarini yuklab olish (R2, proksi; ruxsat RPC da).
  *   GET /api/hujjat-maydoni-ol?id=<fayl_id>[&v=<versiya>][&korish=1]   (sessiya; o'z fayllari BEPUL)
  *   GET /api/hujjat-maydoni-ol?t=<token>                                (tashqi havola: faqat ko'rish, muddatli, kompaniya yoqqan bo'lsa)
+ *   GET /api/hujjat-maydoni-ol?taqdim=<id>&el=<id>[&korish=1]           (taqdim surati: oluvchi tomon faqat o'qiydi; faol taqdim + faol aloqa)
  * Kvota to'lganda ham yuklab olish ISHLAYDI (foydalanuvchi ma'lumoti garovga olinmaydi); trafik t2_hm_yuklab_v1 ichida hisoblanadi.
  */
 import { hmRpc, rpcOk, rpcXato, sessiyaAktor, yuklashSarlavha, type HmEnv } from '../_shared/hujjat-maydoni';
@@ -15,6 +16,12 @@ export const onRequestGet: PagesFunction<HmEnv> = async (ctx) => {
     if (token) {
       if (!/^[0-9a-f]{64}$/.test(token)) return Response.json({ ok: false, code: 'HAVOLA_YOQ', xato: 'Havola yaroqsiz yoki muddati tugagan.' }, { status: 404 });
       res = await hmRpc(ctx.env, 't2_hm_havola_ol_v1', { p_xesh: await sha256Hex(new TextEncoder().encode(token)) });
+    } else if (q.get('taqdim')) {
+      const a = await sessiyaAktor(ctx);
+      if (a instanceof Response) return a;
+      const tq = Number(q.get('taqdim')); const el = Number(q.get('el'));
+      if (!(tq > 0) || !(el > 0)) return Response.json({ ok: false, code: 'TAQDIM_TOPILMADI' }, { status: 400 });
+      res = await hmRpc(ctx.env, 't2_hm_taqdim_yuklab_v1', { p_actor: a.actorId, p_taqdim_id: tq, p_el_id: el });
     } else {
       const a = await sessiyaAktor(ctx);
       if (a instanceof Response) return a;
