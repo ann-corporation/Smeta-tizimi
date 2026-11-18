@@ -6,6 +6,7 @@
  * user adds the ready works to the estimate in one undoable step.
  */
 import { aslFaylSaqla } from '../../api/t2-asl-fayl';
+import { DiskdanTanlashTugma } from '../../hujjat-maydoni/DiskdanTanlash';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../../i18n/til';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
@@ -134,6 +135,10 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
   const qadam = useCallback((matn: string, holat: Qadam['holat'] = 'ishda') => setQadamlar(l => [...l.map(x => (x.holat === 'ishda' ? { ...x, holat: 'ok' as const } : x)), { matn, holat }].slice(-40)), []);
   useEffect(() => jarayonTingla(q => qadam(q.matn, q.holat)), [qadam]);
   const [holat, setHolat] = useState('');
+  /** Diskdan tanlangan fayl: kompyuterdan yuklangan fayl bilan bir xil yo'l (asl nusxa + AI ilovasi). */
+  const diskFaylQabul = (f: File) => {
+    void ilovaTayyorla(f).then(setIlova).catch((err) => setHolat(err instanceof Error && err.message === 'FAYL_KATTA' ? t('Fayl juda katta (7 MB gacha).') : t('Bu fayl turini o‘qib bo‘lmaydi (rasm, PDF, Excel, Word).')));
+  };
   const [tinglash, setTinglash] = useState(false);
   const rec = useRef<SpeechRec | null>(null);
   const oxir = useRef<HTMLDivElement>(null);
@@ -403,6 +408,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
         <input aria-label={t('Loyiha hujjati')} type="file" className="hidden" accept=".png,.jpg,.jpeg,.webp,.pdf,.xlsx,.xls,.xlsm,.docx"
           onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void aslFaylSaqla(f, { kompaniyaId, turi: 'asl_boshqa' });
           if (f) void ilovaTayyorla(f).then(setIlova).catch(err => setHolat(err instanceof Error && err.message === 'FAYL_KATTA' ? t('Fayl juda katta (7 MB gacha).') : t('Bu fayl turini o‘qib bo‘lmaydi (rasm, PDF, Excel, Word).'))); }} /></label>
+      <DiskdanTanlashTugma accept=".png,.jpg,.jpeg,.webp,.pdf,.xlsx,.xls,.xlsm,.docx" onFayllar={(fl) => { if (fl[0]) diskFaylQabul(fl[0]); }} onXato={setHolat} />
       <button type="submit" className="fz-btn fz-btn--sm fz-btn--primary ml-auto" disabled={!!band || (!matn.trim() && !ilova)}>{t('Yuborish')}</button>
     </form>
     {holat && <p role="status" className="text-xs text-warn">{holat}</p>}

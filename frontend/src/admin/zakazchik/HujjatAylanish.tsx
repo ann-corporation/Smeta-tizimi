@@ -11,6 +11,7 @@ import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { toast } from '../../umumiy/ui/Toast';
+import { DiskdanTanlashTugma } from '../../hujjat-maydoni/DiskdanTanlash';
 import { sbLoyihaUmumiy } from '../../api/t2-loyiha';
 import { hujjatYukla, hujjatYuklabOlishUrl } from '../../api/t2-hujjat-canonical';
 import { aloqalarOl, type Aloqa } from '../../api/t2-tomon';
@@ -124,7 +125,9 @@ function ZanjirTafsilotPaneli({ kompaniyaId, id, yangila }: { kompaniyaId: numbe
       {(menQarorChiqaraman(model) || ega.qayta || ega.bekor) && (
         <div className="space-y-2 rounded border border-border p-2">
           <textarea className={`${inp} block h-16 w-full`} value={izoh} onChange={(e) => setIzoh(e.target.value)} placeholder={t('Izoh (rad etish va qaytarishda majburiy)')} />
-          {ega.qayta && <input type="file" className="block text-xs" onChange={(e) => setFile(e.target.files?.[0] ?? null)} aria-label={t('Tuzatilgan hujjat fayli')} />}
+          {ega.qayta && <><input type="file" className="block text-xs" onChange={(e) => setFile(e.target.files?.[0] ?? null)} aria-label={t('Tuzatilgan hujjat fayli')} />
+        <DiskdanTanlashTugma onFayllar={(fl) => setFile(fl[0] ?? null)} onXato={(m) => toast(m, 'danger')} />
+        {file && <span className="text-xs text-text-dim" data-testid="tanlangan-fayl">{file.name}</span>}</>}
           <div className="flex flex-wrap gap-2">
             {menQarorChiqaraman(model) && <>
               <button type="button" className={tugmaAsosiy} disabled={band} onClick={() => void qaror('tasdiqlash')}>{t('Tasdiqlash')}</button>
@@ -182,6 +185,8 @@ function ZanjirYaratish({ kompaniyaId, aloqalar, onYaratildi }: { kompaniyaId: n
       <div className="flex flex-wrap items-center gap-2">
         <button type="button" className={tugma} disabled={qadamlar.length >= 8} onClick={() => setQadamlar([...qadamlar, { kompaniyaId: '', rol: 'texnadzor', muddat: '' }])}>{t('Qadam qo‘shish')}</button>
         <input type="file" className="text-xs" onChange={(e) => setFile(e.target.files?.[0] ?? null)} aria-label={t('Hujjat fayli')} />
+        <DiskdanTanlashTugma onFayllar={(fl) => setFile(fl[0] ?? null)} onXato={(m) => toast(m, 'danger')} />
+        {file && <span className="text-xs text-text-dim" data-testid="tanlangan-fayl">{file.name}</span>}
         <button type="button" className={tugmaAsosiy} disabled={band || !tayyor} onClick={() => void yubor()}>{t('Tasdiqqa yuborish')}</button>
       </div>
     </div>
@@ -247,6 +252,8 @@ function XatYozish({ kompaniyaId, aloqalar, otaXat, onYuborildi }: { kompaniyaId
       <label className="text-xs text-text-dim">{t('Javob muddati')}<input type="date" className={`${inp} mt-1 block w-full`} value={muddat} onChange={(e) => setMuddat(e.target.value)} /></label>
       <div className="flex flex-wrap items-end gap-2 md:col-span-4">
         <input type="file" className="text-xs" onChange={(e) => setFile(e.target.files?.[0] ?? null)} aria-label={t('Ilova fayli')} />
+        <DiskdanTanlashTugma onFayllar={(fl) => setFile(fl[0] ?? null)} onXato={(m) => toast(m, 'danger')} />
+        {file && <span className="text-xs text-text-dim" data-testid="tanlangan-fayl">{file.name}</span>}
         <button type="button" className={tugmaAsosiy} disabled={band || qabul === '' || mavzu.trim().length < 3} onClick={() => void yubor()}>{t('Xat yuborish')}</button>
       </div>
     </div>

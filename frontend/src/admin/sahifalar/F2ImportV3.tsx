@@ -63,6 +63,7 @@ import { F2EgizakNusxa } from './F2EgizakNusxa';
 import { F2DublikatPanel } from './F2DublikatPanel';
 import { F2MoslashHisoboti } from './F2MoslashHisoboti';
 import { toast } from '../../umumiy/ui/Toast';
+import { DiskdanTanlashTugma } from '../../hujjat-maydoni/DiskdanTanlash';
 import { moslikHisobla, moslikTuzilma, type MoslikNatija } from '../../lib/ish-material-moslik';
 import { IshMaterialOgohRoyxat } from '../../components/fakt/IshMaterialOgoh';
 import { moslashHisoboti } from '../../lib/f2-moslash-v3/moslashHisoboti';
@@ -1610,6 +1611,7 @@ function Sessiya({ companyId }: { companyId: number }) {
           <input type="file" accept=".xlsx,.xlsm" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setTizimTanlov(''); void faylTanla(f); } }}
             className="input mt-1.5 block h-9 w-full px-2 py-1.5 text-[12px]" />
         </label>
+        <DiskdanTanlashTugma accept=".xlsx,.xlsm" onFayllar={(fl) => { if (fl[0]) { setTizimTanlov(''); void faylTanla(fl[0]); } }} onXato={(m) => toast(m, 'danger')} />
         {tizimFayllar.length > 0 && (
           <label className="block text-[12px] font-medium text-text">{t('Yoki tizimdagi F2 fayldan (qayta yuklanmaydi)')}
             <select aria-label={t('Tizimdagi F2 fayl')} value={tizimTanlov} onChange={(e) => { if (e.target.value) void tizimdanTanla(Number(e.target.value)); }}

@@ -5,6 +5,7 @@ import { qidiruvKaliti } from '../../i18n/lotin-kirill';
 import { prixodKitobFonda } from '../../lib/ombor-prixod/read-fonda';
 import { varaqNomlari } from '../../lib/ombor-prixod/kitob';
 import { PrixodQatorEditor } from './PrixodQatorEditor';
+import { DiskdanTanlashTugma } from '../../hujjat-maydoni/DiskdanTanlash';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
@@ -133,7 +134,10 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi, yozishMumk
   const faylTanla = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = '';
-    if (!file) return;
+    if (file) await faylQabul(file);
+  };
+  /** Kompyuterdan tanlangan ham, Diskdan tanlangan ham fayl shu yerdan o'tadi. */
+  const faylQabul = async (file: File) => {
     tozala();
     const generation = ++generationRef.current;
     const controller = new AbortController();
@@ -297,6 +301,7 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi, yozishMumk
           <input aria-label={t('XLSX fayli')} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             disabled={kompaniyaId <= 0 || ishlayapti} onChange={(e) => void faylTanla(e)} className="sr-only" />
         </label>
+        <DiskdanTanlashTugma accept=".xlsx" className="fz-btn min-h-[56px]" disabled={kompaniyaId <= 0 || ishlayapti} onFayllar={(fl) => fl[0] ? faylQabul(fl[0]) : undefined} />
         {faylNomi && <div className="flex min-h-[56px] min-w-0 items-center justify-between gap-2 rounded-md bg-surface-2 px-3 text-[12px] text-text-dim sm:flex-1">
           <span className="truncate" title={faylNomi}>{faylNomi}</span>
           <button type="button" onClick={tozala} disabled={ishlayapti} className="fz-btn fz-btn--ghost min-h-[48px] min-w-[48px] px-2" aria-label={t('Tozalash')}><X size={16} aria-hidden="true" /></button>
