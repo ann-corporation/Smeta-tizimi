@@ -101,6 +101,16 @@ describe('qoralamaTahrirYuki', () => {
     expect(t.yuk[3]).toMatchObject({ certified_quantity: -1, certified_amount: -10, manba_akt_qator_id: 99 });
     expect(yukJami(t.yuk)).toMatchObject({ qatorlar: 4, summa: 62, narxsiz: 1, narxsiz_avto: 0 });
   });
+  it('qo\'lda tahrir belgisi: hajm/narx o\'zgargan qatorga qolTahrir yoziladi, tegilmagan qatorga yo\'q; keyingi tahrirda belgi saqlanadi', () => {
+    const t = qoralamaTahrirYuki(mav, { ozgartir: [{ qator_id: 3, hajm: 6 }, { qator_id: 2, narx: 3 }] });
+    expect(t.yuk[2].raw_snapshot.qolTahrir).toEqual({ hajm: true });
+    expect(t.yuk[1].raw_snapshot.qolTahrir).toEqual({ narx: true });
+    expect(t.yuk[0].raw_snapshot.qolTahrir).toBeUndefined();
+    // belgi yuk orqali qayta kelsa va faqat narx berilsa — hajm belgisi yo'qolmaydi
+    const mav2 = mav.map((m) => (m.qator_id === 3 && !m.raw_snapshot.manba_akt_qator_id ? { ...m, certified_quantity: 6, raw_snapshot: { ...m.raw_snapshot, qolTahrir: { hajm: true } } } : m));
+    const t2 = qoralamaTahrirYuki(mav2, { ozgartir: [{ qator_id: 3, narx: 11 }] });
+    expect(t2.yuk[2].raw_snapshot.qolTahrir).toEqual({ hajm: true, narx: true });
+  });
   it('ongli narxsiz; olib tashlash; storno/yo\'q qatorga tegish — xato', () => {
     const t = qoralamaTahrirYuki(mav, { ozgartir: [{ qator_id: 2, narxsiz: true }], olibTashla: [1] });
     expect(t.yuk.map((q) => q.qator_id)).toEqual([2, 3, 3]);

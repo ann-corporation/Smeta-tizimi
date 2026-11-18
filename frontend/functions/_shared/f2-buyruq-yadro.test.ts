@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { previewQur, rejaQur, rejaXeshi, tokenTekshir, tokenYarat, uuidHosila, uchlik, type Kontekst, type QatorMalumot, type Reja } from './f2-buyruq-yadro';
+import { previewQur, qolTahrirBelgi, rejaQur, rejaXeshi, tokenTekshir, tokenYarat, uuidHosila, uchlik, type Kontekst, type QatorMalumot, type Reja } from './f2-buyruq-yadro';
 
 const SIR = 'k'.repeat(32);
 const q = (id: number, o: Partial<QatorMalumot> = {}): QatorMalumot => ({ id, ota_id: null, tur: 'mat', kod: `K${id}`, nom: `Qator ${id}`, birlik: 'm3', versiya: 4, versiya_holat: 'faol', qoshimcha: false, zamena: false, replaces_line_id: null, ...o });
@@ -121,5 +121,14 @@ describe('previewQur — oldin→keyin va jami', () => {
   });
   it('chaqiruvlar soni mos kelmasa — ok=false (tasdiq tokeni berilmaydi)', () => {
     expect(previewQur(reja, { natijalar: [] }, meta).natijalar.some((n) => !n.ok)).toBe(true);
+  });
+});
+
+describe('qolTahrirBelgi (qo‘lda tahrir himoyasi)', () => {
+  it('hajm/narx o‘zgargan — belgi; o‘zgarmagan — null; mavjud belgi saqlanadi', () => {
+    expect(qolTahrirBelgi(undefined, true, false)).toEqual({ hajm: true });
+    expect(qolTahrirBelgi({ norma: 0.5 }, false, true)).toEqual({ norma: 0.5, narx: true });
+    expect(qolTahrirBelgi({ hajm: true }, false, false)).toEqual({ hajm: true });
+    expect(qolTahrirBelgi(undefined, false, false)).toBeNull();
   });
 });

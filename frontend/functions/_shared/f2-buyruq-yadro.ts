@@ -76,6 +76,13 @@ function mavjudYuk(q: AktQatorMalumot): Record<string, unknown> {
     certified_amount: absent ? null : q.certified_amount, price_intentionally_absent: absent, certified_source_hash: q.certified_source_hash ?? null,
     raw_snapshot: q.raw_snapshot ?? {}, izoh: q.izoh ?? null, ...(mak != null ? { manba_akt_qator_id: mak } : {}) };
 }
+/** `raw_snapshot.qolTahrir` ni yangilaydi (mavjud belgi saqlanadi; hajm/narx o'zgargan bo'lsa qo'shiladi). Norma nisbati — F2 sahifasi yuklaganda aktdan hisoblanadi. */
+export function qolTahrirBelgi(eski: unknown, hajmOzgardi: boolean, narxBerildi: boolean): Record<string, unknown> | null {
+  const b: Record<string, unknown> = eski && typeof eski === 'object' ? { ...(eski as Record<string, unknown>) } : {};
+  if (hajmOzgardi) b.hajm = true;
+  if (narxBerildi) b.narx = true;
+  return b.hajm === true || b.narx === true ? b : null;
+}
 function qoralamaYuki(mavjud: readonly AktQatorMalumot[], oz: Array<{ qator_id: number; hajm?: number; narx?: number; narxsiz?: boolean }>, olib: readonly number[]) {
   const xato: string[] = [];
   const oddiy = new Map<number, AktQatorMalumot>();
@@ -92,6 +99,9 @@ function qoralamaYuki(mavjud: readonly AktQatorMalumot[], oz: Array<{ qator_id: 
     ozgardi.push(q.qator_id);
     const hajm = z.hajm != null ? y6(z.hajm) : (y.certified_quantity as number);
     const snap: Record<string, unknown> = { ...(y.raw_snapshot as Record<string, unknown>), enteredQuantity: hajm };
+    // Qo'lda tahrir himoyasi: F2 tayyorlash «yangilash» shu belgidagi hajm/narxni smeta normasiga qaytarib yubormasin (lib/f2-akt-kiritma).
+    const qolBelgi = qolTahrirBelgi(snap.qolTahrir, z.hajm != null && y6(z.hajm) !== y.certified_quantity, z.narx != null);
+    if (qolBelgi) snap.qolTahrir = qolBelgi;
     if (z.narxsiz) {
       delete snap.narxsizSabab; delete snap.enteredUnitPrice; delete snap.enteredAmount;
       yuk.push({ ...y, certified_quantity: hajm, certified_unit_price: null, certified_amount: null, price_intentionally_absent: true, raw_snapshot: snap });

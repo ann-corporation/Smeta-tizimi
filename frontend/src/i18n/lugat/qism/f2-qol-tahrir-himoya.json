@@ -1,0 +1,10 @@
+{
+  "norma va narx": { "ru": "норма и цена", "en": "norm and price" },
+  "norma": { "ru": "норма", "en": "norm" },
+  "narx": { "ru": "цена", "en": "price" },
+  "qo‘lda": { "ru": "вручную", "en": "manual" },
+  "o‘zgartirilgan": { "ru": "изменена", "en": "changed" },
+  "Bu qator qo‘lda o‘zgartirilgan: «F2 qoralamani yangilash» uni smeta normasiga/narxiga qaytarmaydi": { "ru": "Строка изменена вручную: «Обновить черновик Ф-2» не вернёт её к норме/цене сметы", "en": "This line was changed manually: “Update F-2 draft” will not revert it to the estimate norm/price" },
+  "Smeta normasiga qaytarish": { "ru": "Вернуть к норме сметы", "en": "Revert to estimate norm" },
+  "Qo‘lda norma/narxni olib tashlab, smeta normasi va narxiga qaytarish": { "ru": "Убрать ручную норму/цену и вернуть норму и цену сметы", "en": "Remove the manual norm/price and return to the estimate norm and price" }
+}

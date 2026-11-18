@@ -21,10 +21,21 @@ export function aktdanKiritma(aktQatorlari: readonly AktBand[], bolimlar: readon
   }
   const nk = bosKiritma(); let yoq = 0;
   const avtoAktda: Array<{ id: number; ota: number }> = [];
+  // Qo'lda tahrir himoyasi: avtomatik resurs hajmi ish hajmiga nisbatan hisoblanadi — ota (ish) hajmi aktdagi qiymatdan olinadi.
+  const otaHajm = new Map<number, number>();
+  for (const x of aktQatorlari) { if (stornoQatorimi(x)) continue; const q0 = sonQ(x.certified_quantity) ?? sonQ(x.hajm); if (q0 != null && hajmQ.has(x.qator_id)) otaHajm.set(x.qator_id, q0); }
   for (const x of aktQatorlari) {
     if (stornoQatorimi(x)) continue; // Сторно (eski F2) bloki alohida saqlanadi (aktniYangila), kiritmalarga tushmaydi
-    const snap = (x.raw_snapshot ?? {}) as { narxsizSabab?: unknown };
+    const snap = (x.raw_snapshot ?? {}) as { narxsizSabab?: unknown; qolTahrir?: { hajm?: unknown; narx?: unknown; norma?: unknown } | null };
+    const qol = snap.qolTahrir && typeof snap.qolTahrir === 'object' ? snap.qolTahrir : null;
     const id = x.qator_id; const qty = sonQ(x.certified_quantity) ?? sonQ(x.hajm);
+    if (qol && avtoOta.has(id) && qol.hajm === true) {
+      // Avtomatik resurs, hajmi qo'lda: nisbat = aktdagi resurs hajmi / aktdagi ish hajmi (yo'q bo'lsa — saqlangan nisbat).
+      const ota = otaHajm.get(avtoOta.get(id)!);
+      const nisbat = qty != null && ota != null && ota !== 0 ? qty / ota : sonQ(qol.norma);
+      if (nisbat != null && nisbat !== 0) (nk.qolNorma ??= {})[id] = Math.round(nisbat * 1e9) / 1e9;
+    }
+    if (qol?.narx === true) (nk.qolNarx ??= {})[id] = true;
     // Son → matn faqat sonMatn orqali (A-4): String(1e-7) = «1e-7» edi va yolg'on «0 bo'lmasin» xatosini berardi.
     if (hajmQ.has(id)) { if (qty != null) nk.hajm[id] = sonMatn(qty); }
     else if (avtoOta.has(id)) avtoAktda.push({ id, ota: avtoOta.get(id)! });
@@ -36,7 +47,7 @@ export function aktdanKiritma(aktQatorlari: readonly AktBand[], bolimlar: readon
     if (x.provenance_status === 'price_intentionally_absent') { if (snap.narxsizSabab !== 'avto_qoralama') nk.narxsiz[id] = true; }
     else if (narx != null) {
       // A-20: narx taklif bilan bir xil bo'lsa kiritmaga yozilmaydi — manba «qo'lda» emas, asl manbasi (smeta/oldingi F2/protokol) qoladi.
-      if (r.taklifNarx == null || Math.abs(y6(r.taklifNarx) - narx) > 1e-9) nk.narx[id] = sonMatn(narx);
+      if (r.taklifNarx == null || nk.qolNarx?.[id] || Math.abs(y6(r.taklifNarx) - narx) > 1e-9) nk.narx[id] = sonMatn(narx);
       if (qty != null && summa != null && Math.abs(qty * narx - summa) > 0.005) nk.summa[id] = sonMatn(summa);
     }
   }

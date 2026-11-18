@@ -261,8 +261,27 @@ export type F2Kiritma = {
   narx: Record<number, string>;           // qo'lda narx (rs/mat/ob)
   summa: Record<number, string>;          // qo'lda hujjat summasi
   narxsiz: Record<number, boolean>;       // ataylab narxsiz
+  /**
+   * QO'LDA TAHRIR HIMOYASI (egasi 2026-11-18): avtomatik resurs (rs) uchun qo'lda berilgan norma nisbati (resurs hajmi / ish hajmi).
+   * Bor bo'lsa resurs hajmi = ish hajmi × shu nisbat (smeta normasi emas) — ish hajmi o'zgarsa proporsional ergashadi.
+   * «Smeta normasiga qaytarish» shu yozuvni olib tashlaydi.
+   */
+  qolNorma?: Record<number, number>;
+  /** Narxi qo'lda belgilangan qatorlar: narx taklif narxiga tenglashib qolsa ham kiritmada SAQLANADI (qoralama qayta ochilganda). */
+  qolNarx?: Record<number, boolean>;
 };
 export const bosKiritma = (): F2Kiritma => ({ hajm: {}, narx: {}, summa: {}, narxsiz: {} });
+
+/**
+ * «Smeta normasiga qaytarish»: shu qatorlarning qo'lda norma nisbati va qo'lda narxi kiritmadan olib tashlanadi —
+ * resurs hajmi yana ish hajmi × smeta normasi, narx — taklif narxi (smeta/oldingi F2/protokol). Qolgan kiritmalar tegilmaydi.
+ */
+export function qolniQaytar(k: F2Kiritma, ids: readonly number[]): F2Kiritma {
+  if (!ids.length) return k;
+  const s = new Set(ids);
+  const kes = <V,>(o: Record<number, V>): Record<number, V> => Object.fromEntries(Object.entries(o).filter(([id]) => !s.has(Number(id)))) as Record<number, V>;
+  return { ...k, narx: kes(k.narx), summa: kes(k.summa), ...(k.qolNorma ? { qolNorma: kes(k.qolNorma) } : {}), ...(k.qolNarx ? { qolNarx: kes(k.qolNarx) } : {}) };
+}
 
 export const sonOqi = (s: string | undefined): number | null | 'xato' => {
   const t = (s ?? '').replace(/\s/g, '').replace(',', '.');
@@ -283,7 +302,12 @@ export type F2Qator = {
   /** Hajm hech qachon xato emas (egasi: hajmni bloklama) - oshsa `ogoh`. */
   xato?: 'HAJM' | 'NARX' | 'SUMMA';
   ogoh?: 'RESURS_CHEGARA' | 'ARIFMETIKA' | 'SMETADAN_OSHDI' | 'QOLDIQDAN_OSHDI' | 'QORALAMA_TAKROR' | 'AXBOROT_NARXSIZ';
+  /** Qo'lda tahrirlangan qator (smeta normasi/narxidan ongli farq): `rawSnapshot.qolTahrir` ga yoziladi, yangilashda saqlanadi. */
+  qol?: QolTahrir;
 };
+
+/** `raw_snapshot.qolTahrir` — qoralama yangilanganda qo'lda qiymat smeta qiymatiga qaytib ketmasligi uchun belgi. */
+export type QolTahrir = { hajm?: true; narx?: true; /** resurs hajmi / ish hajmi (qo'lda nisbat) */ norma?: number };
 
 /** Kiritilgan hajm qoldiqdan oshsa - faqat ogohlantirish kodi (blok emas). */
 function oshOgoh(v: number, x: { mumkin: number; qoralama?: number; erkin?: boolean }): F2Qator['ogoh'] {
@@ -297,7 +321,16 @@ function oshOgoh(v: number, x: { mumkin: number; qoralama?: number; erkin?: bool
 /** Narxi umuman bo'lmagan axborot qatori (masalan ЗАТРАТЫ ТРУДА МАШИНИСТОВ) - xato emas, narxsiz + bildirishnoma. */
 export const axborotResursmi = (nom: string): boolean => /^\s*(ЗАТРАТЫ\s+ТРУДА|ЗП\s+МАШИНИСТ|В\s+Т\.?\s*Ч|ОПЛАТА\s+ТРУДА\s+МАШИНИСТ)/i.test(nom);
 
-function resursQator(r: F2Resurs, hajm: number, ishId: number | null, k: F2Kiritma): F2Qator {
+function resursQator(r: F2Resurs, hajm: number, ishId: number | null, k: F2Kiritma, qolNorma?: number): F2Qator {
+  const q = resursQatorAsos(r, hajm, ishId, k);
+  const qol: QolTahrir = {};
+  if (qolNorma != null) { qol.hajm = true; qol.norma = qolNorma; }
+  if (q.manba === 'qolda' && !q.narxsiz && q.narx != null) qol.narx = true; // k.narx dagi har qo'lda narx saqlanadi (qolNarx faqat yuklashda taklif narxiga tenglashib qolmasligi uchun)
+  if (qol.hajm || qol.narx) q.qol = qol;
+  return q;
+}
+
+function resursQatorAsos(r: F2Resurs, hajm: number, ishId: number | null, k: F2Kiritma): F2Qator {
   const qolNarx = sonOqi(k.narx[r.id]);
   const qolSumma = sonOqi(k.summa[r.id]);
   // Narxsizlik — faqat operatorning ongli qarori (H7: ИТОГО bo‘sh bo‘ladi); sukut bo‘yicha narx talab qilinadi.
@@ -343,12 +376,16 @@ export function f2Qatorlar(bolimlar: F2Bolim[], k: F2Kiritma): F2Qator[] {
           const ustida = ish.mumkin < 0 ? v < ish.mumkin - 1e-9 : v > ish.mumkin + 1e-9;
           const minus = v < 0; // minus ish: resurslari ham minus (norma bo'yicha), qoldiqqa bog'lanmaydi
           for (const r of ish.resurslar) {
-            if (!r.avto || r.chiqarilgan || r.norma == null || r.norma <= 0 || (!minus && r.mumkin + (r.qoralama ?? 0) <= 0 && !r.erkin)) continue;
-            const talab = y6(v * r.norma);
-            const hajm = r.erkin || ustida || minus ? talab : Math.min(talab, r.mumkin);
+            // Qo'lda norma nisbati (qolNorma) — ongli belgilangan: smeta normasi emas, shu nisbat; qoldiq chegarasi QIRQMAYDI (ogohlantirish bor).
+            const qolN = k.qolNorma?.[r.id];
+            const qolBor = qolN != null && Number.isFinite(qolN) && qolN !== 0;
+            if (!r.avto || r.chiqarilgan || r.norma == null || r.norma <= 0) continue;
+            if (!qolBor && !minus && r.mumkin + (r.qoralama ?? 0) <= 0 && !r.erkin) continue;
+            const talab = y6(v * (qolBor ? qolN : r.norma));
+            const hajm = qolBor || r.erkin || ustida || minus ? talab : Math.min(talab, r.mumkin);
             // Chang (egasi 2026-11-06): 5e-7 dan kichik talab yoki qoldig'i 0 resurs (min(talab, 0) = 0) — hajm 0 serverga yuborilmaydi (CHECK 23514).
             if (Math.abs(hajm) < CHANG) continue;
-            const q = resursQator(r, hajm, ish.id, k);
+            const q = resursQator(r, hajm, ish.id, k, qolBor ? qolN : undefined);
             if (talab > r.mumkin + 1e-9 && !q.ogoh) q.ogoh = r.erkin || ustida ? oshOgoh(talab, r) : 'RESURS_CHEGARA';
             out.push(q);
           }
@@ -401,7 +438,7 @@ export function f2ZamenaQolla(q: F2Qator[], bolimlar: readonly F2Bolim[], k: F2K
     yopildi.set(x.id, y6(Math.min(y, x.hajm)));
     if (qoldi < CHANG) { tashlandi.add(x.id); continue; }
     if (x.tur === 'bl') { out.push({ ...x, hajm: qoldi }); continue; }
-    const n = resursQator(r!, qoldi, x.ishId, k);
+    const n = resursQator(r!, qoldi, x.ishId, k, x.qol?.hajm ? x.qol.norma : undefined);
     if (!n.ogoh && x.ogoh && x.ogoh !== 'RESURS_CHEGARA') n.ogoh = x.ogoh;
     out.push(n);
   }
@@ -451,7 +488,7 @@ export function f2Yuk(q: F2Qator[], hujjatRaqam: string, hajmManba?: F2Manba): F
     certifiedAmount: x.narxsiz ? undefined : x.summa ?? undefined,
     priceIntentionallyAbsent: x.narxsiz,
     rawSnapshot: { source: 'native_f2_preparation', sourceReference: x.tur === 'bl' ? manba : `${manba}; ${NARX_MANBA_HUJJAT[x.manba]}${x.protokol ? ` ${x.protokol}` : ''}`, enteredQuantity: x.hajm, enteredUnitPrice: x.narxsiz ? undefined : x.narx ?? undefined, enteredAmount: x.narxsiz ? undefined : x.summa ?? undefined,
-      ...(x.avtoNarxsiz ? { narxsizSabab: 'avto_qoralama' as const } : {}), ...(hajmManba ? { hajmManba } : {}) },
+      ...(x.avtoNarxsiz ? { narxsizSabab: 'avto_qoralama' as const } : {}), ...(hajmManba ? { hajmManba } : {}), ...(x.qol ? { qolTahrir: x.qol } : {}) },
   }));
 }
 
