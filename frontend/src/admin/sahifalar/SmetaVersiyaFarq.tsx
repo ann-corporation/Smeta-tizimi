@@ -26,6 +26,7 @@ import { davaXlsx, type DavaEksportQator } from '../../lib/smeta-versiya/dava-ex
 import { son, type JPozitsiya, type MoslikHolat, type MoslikQator, type PozitsiyaQator, type Qaror, type SmetaVersiya, type Tasdiq, type VersiyaTur } from '../../lib/smeta-versiya/turlar';
 import { bosKatKesim, type KatKesim } from '../../lib/ustamali-summa';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { NDS_SUKUT_FOIZ } from '../../lib/nakopitelniy-vedomost-export';
 import type { ImzoNomlar } from '../../lib/hujjat-yozuvchi';
@@ -294,7 +295,7 @@ export function SmetaVersiyaFarq({ kompaniyaId, obyektId, obyektNom, joriyQatorl
     const kesim = davaQatorlari.reduce((k, q) => (q.pul.davaKesim ? kesimQosh(k, q.pul.davaKesim) : k), bosKatKesim());
     try {
       const h = davaXlsx(rows, { obyektNomi: obyektNom, versiyaNomi: versiya.nom, versiyaSanasi: versiya.manba_sana, imzo: tomonlar, ndsFoiz, ustamali: ustamali(kesim) });
-      const r = await hujjatTokenBilan({ kompaniyaId, bytes: h.bytes, hujjat: 'SMETA_DAVA', sabab: `Претензия по экспертизе · ${obyektNom}`, obyekt: obyektId },
+      const r = await hujjatTokenBilan({ kompaniyaId, bytes: h.bytes, hujjat: 'SMETA_DAVA', disk: diskJoy({ tur: 'smeta_dava', kompaniyaId, obyektId, obyekt: obyektNom, qism: versiya.nom, qismNom: versiya.nom, faylNomi: h.faylNomi }), sabab: `Претензия по экспертизе · ${obyektNom}`, obyekt: obyektId },
         () => downloadBlob(h.bytes, h.faylNomi));
       if (!r.ok) toast(r.xabar, 'danger'); else if (r.xabar) toast(r.xabar, 'ok');
     } catch { toast(t('Excel fayli tuzilmadi.'), 'danger'); }

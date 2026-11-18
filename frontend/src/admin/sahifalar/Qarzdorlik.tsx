@@ -1,6 +1,7 @@
 import { t } from '../../i18n/til';
 import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { SaqlashPaneli } from '../../umumiy/ui/SaqlashPaneli';
@@ -314,7 +315,7 @@ export function Qarzdorlik() {
     const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf as ArrayBuffer);
     const faylNomi = `ОБОСНОВАНИЕ_ЗАДОЛЖЕННОСТИ_${new Date().toISOString().slice(0, 10)}.xlsx`;
     // Har hujjat token yechadi; bir xil mazmunni qayta yuklash bepul.
-    const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'QARZDORLIK', sabab: 'Обоснование задолженности' }, () => {
+    const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'QARZDORLIK', disk: diskJoy({ tur: 'qarzdorlik', kompaniyaId: kid, oy: new Date().toISOString().slice(0, 7), faylNomi }), sabab: 'Обоснование задолженности' }, () => {
       downloadBlob(bytes, faylNomi, undefined, { turi: 'qarzdorlik' });   // yagona yo'l: tizim imzosi + manba QR
     });
     toast(r.xabar, r.ok ? 'ok' : 'danger');

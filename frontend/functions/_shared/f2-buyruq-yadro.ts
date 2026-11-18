@@ -76,7 +76,14 @@ function mavjudYuk(q: AktQatorMalumot): Record<string, unknown> {
     certified_amount: absent ? null : q.certified_amount, price_intentionally_absent: absent, certified_source_hash: q.certified_source_hash ?? null,
     raw_snapshot: q.raw_snapshot ?? {}, izoh: q.izoh ?? null, ...(mak != null ? { manba_akt_qator_id: mak } : {}) };
 }
-function qoralamaYuki(mavjud: readonly AktQatorMalumot[], oz: Array<{ qator_id: number; hajm?: number; narx?: number; narxsiz?: boolean }>, olib: readonly number[]) {
+/** `raw_snapshot.qolTahrir` ni yangilaydi (mavjud belgi saqlanadi; hajm/narx o'zgargan bo'lsa qo'shiladi). Norma nisbati — F2 sahifasi yuklaganda aktdan hisoblanadi. */
+export function qolTahrirBelgi(eski: unknown, hajmOzgardi: boolean, narxBerildi: boolean): Record<string, unknown> | null {
+  const b: Record<string, unknown> = eski && typeof eski === 'object' ? { ...(eski as Record<string, unknown>) } : {};
+  if (hajmOzgardi) b.hajm = true;
+  if (narxBerildi) b.narx = true;
+  return b.hajm === true || b.narx === true ? b : null;
+}
+function qoralamaYuki(mavjud: readonly AktQatorMalumot[], oz: Array<{ qator_id: number; hajm?: number; narx?: number; narxsiz?: boolean }>, olib: readonly number[], ota?: (id: number) => number | null | undefined) {
   const xato: string[] = [];
   const oddiy = new Map<number, AktQatorMalumot>();
   for (const q of mavjud) if (!stornomi(q)) oddiy.set(q.qator_id, q);
@@ -92,6 +99,9 @@ function qoralamaYuki(mavjud: readonly AktQatorMalumot[], oz: Array<{ qator_id: 
     ozgardi.push(q.qator_id);
     const hajm = z.hajm != null ? y6(z.hajm) : (y.certified_quantity as number);
     const snap: Record<string, unknown> = { ...(y.raw_snapshot as Record<string, unknown>), enteredQuantity: hajm };
+    // Qo'lda tahrir himoyasi: F2 tayyorlash «yangilash» shu belgidagi hajm/narxni smeta normasiga qaytarib yubormasin (lib/f2-akt-kiritma).
+    const qolBelgi = qolTahrirBelgi(snap.qolTahrir, z.hajm != null && y6(z.hajm) !== y.certified_quantity, z.narx != null);
+    if (qolBelgi) snap.qolTahrir = qolBelgi;
     if (z.narxsiz) {
       delete snap.narxsizSabab; delete snap.enteredUnitPrice; delete snap.enteredAmount;
       yuk.push({ ...y, certified_quantity: hajm, certified_unit_price: null, certified_amount: null, price_intentionally_absent: true, raw_snapshot: snap });
@@ -102,6 +112,15 @@ function qoralamaYuki(mavjud: readonly AktQatorMalumot[], oz: Array<{ qator_id: 
     const summa = y2(hajm * narx); // hujjat qatori: hajm × narx (mcp/smeta-mcp va F2 sahifasi bilan bir xil); jami/ustama — server yadrosidan
     delete snap.narxsizSabab; Object.assign(snap, { enteredUnitPrice: narx, enteredAmount: summa });
     yuk.push({ ...y, certified_quantity: hajm, certified_unit_price: narx, certified_amount: summa, price_intentionally_absent: false, raw_snapshot: snap });
+  }
+  // Tombstone: olib tashlangan avtomatik resurs ota ish qatorida qolsa — «yangilash» uni qayta qo'shmasin (qolTahrir.olib).
+  if (ota) for (const id of olibS) {
+    const o = ota(id); if (o == null || !oddiy.has(id)) continue;
+    const bor = yuk.find((y) => y.qator_id === o && !(y.manba_akt_qator_id != null)); if (!bor) continue;
+    const snap = { ...(bor.raw_snapshot as Record<string, unknown>) };
+    const qb: Record<string, unknown> = snap.qolTahrir && typeof snap.qolTahrir === 'object' ? { ...(snap.qolTahrir as Record<string, unknown>) } : {};
+    qb.olib = [...new Set([...(Array.isArray(qb.olib) ? (qb.olib as unknown[]).map(Number) : []), id])].sort((a, b) => a - b);
+    bor.raw_snapshot = { ...snap, qolTahrir: qb };
   }
   if (!yuk.length) xato.push('qoralamada birorta qator qolmaydi — F2 ni bekor qilish alohida amal');
   return { yuk, xato, ozgardi, olindi: [...olibS].filter((id) => oddiy.has(id)) };
@@ -134,7 +153,7 @@ export function rejaQur(vosita: YozishNomi, a: Normal, k: Kontekst): Reja | Reja
       if (!akt) return rad('AKT_TOPILMADI');
       if (akt.tur !== 'f2') return rad('AKT_F2_EMAS');
       if (akt.holat !== 'qoralama' || !['draft', 'rejected'].includes(akt.lifecycle_status ?? 'draft')) return rad('AKT_QORALAMA_EMAS', `holat ${akt.holat}/${akt.lifecycle_status ?? '-'}: tasdiqlangan/yuborilgan F2 muzlagan`);
-      const t = qoralamaYuki(k.aktQatorlar ?? [], a.ozgartir as never, a.olib_tashla as number[]);
+      const t = qoralamaYuki(k.aktQatorlar ?? [], a.ozgartir as never, a.olib_tashla as number[], (id) => k.qatorlar.get(id)?.ota_id);
       if (t.xato.length) return rad('TAHRIR_RAD', t.xato.slice(0, 10).join('; '));
       const kv = (a.kutilgan_versiya as number | null) ?? akt.versiya;
       return { vosita, obyekt_id: akt.obyekt_id, olchov: 'f2_qoralama', akt_id: akt.id, qator_idlar: [], birlik_soni: Math.max(1, t.ozgardi.length + t.olindi.length) * 3,

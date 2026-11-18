@@ -33,6 +33,7 @@ import { revizyaFarqi } from '../../lib/loyiha-smeta/revizya';
 import { birlikkaQaytar } from '../../lib/loyiha-smeta/birlik';
 import { solishtirmaHujjatXlsx } from '../../lib/loyiha-smeta/solishtirma-export';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { t } from '../../i18n/til';
 import { Bolim } from '../zakazchik/tomon-ui';
@@ -254,7 +255,7 @@ export default function LoyihaSmetaFakt() {
     try {
       const nom = obyektlar.find((o) => o.id === obyektId)?.nom ?? String(obyektId);
       const x = solishtirmaHujjatXlsx(farqlar, jami, { obyektNomi: nom });
-      const r = await hujjatTokenBilan({ kompaniyaId, bytes: x.bytes, hujjat: 'LOYIHA_SMETA_FAKT', sabab: `Ведомость сопоставления проекта, сметы и факта · ${nom}`, obyekt: obyektId }, () => downloadBlob(x.bytes, x.faylNomi));
+      const r = await hujjatTokenBilan({ kompaniyaId, bytes: x.bytes, hujjat: 'LOYIHA_SMETA_FAKT', disk: diskJoy({ tur: 'loyiha_smeta_fakt', kompaniyaId, obyektId, obyekt: nom, faylNomi: x.faylNomi }), sabab: `Ведомость сопоставления проекта, сметы и факта · ${nom}`, obyekt: obyektId }, () => downloadBlob(x.bytes, x.faylNomi));
       toast(r.ok ? (r.xabar || t('Vedomost tayyor')) : r.xabar, r.ok ? 'ok' : 'danger');
     } catch { toast(t('Excel fayli tuzilmadi. Qayta urinib ko‘ring.'), 'danger'); } finally { setBand(false); }
   }

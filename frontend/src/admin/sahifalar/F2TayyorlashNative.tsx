@@ -78,8 +78,8 @@ import { sbAosrCoverageOl, type AosrCoverage } from '../../api/t2-aosr';
 import { aosrIshora, AOSR_ISHORA_MATNI, type AosrIshora } from '../../lib/nazorat/aosr-holat';
 import { amaldagiProtokolNarxlari, narxProtokolQatorlariOl, type NarxProtokolQator } from '../../api/t2-narx-protokol';
 import {
-  bosKiritma, f2Jami, f2KatKesim, f2Qatorlar, f2Qur, f2Yacheykalar, f2Yuk, f2ZamenaQolla, ishBirlikNarxi, narxsizNomzodlar, ortiqchaXulosa, smetaNarxXulosa, sonOqi, ulushHajm,
-  type F2Bolim, type F2Ish, type F2Kiritma, type F2Manba, type F2Qator, type F2Resurs, type F2ZamenaKontekst, bolimOlRejasi, f2MumkinHajmlarniOl, sonMatn, y6, type BolimOlReja } from '../../lib/f2-tayyor';
+  bosKiritma, f2Jami, f2KatKesim, f2Qatorlar, f2Qur, f2Yacheykalar, f2Yuk, f2ZamenaQolla, ishBirlikNarxi, narxsizNomzodlar, olibniQaytar, olibTashlanganlar, ortiqchaXulosa, qolniQaytar, smetaNarxXulosa, sonOqi, ulushHajm,
+  type QolTahrir, type F2Bolim, type F2Ish, type F2Kiritma, type F2Manba, type F2Qator, type F2Resurs, type F2ZamenaKontekst, bolimOlRejasi, f2MumkinHajmlarniOl, sonMatn, y6, type BolimOlReja } from '../../lib/f2-tayyor';
 import { bloklovchi, davomMumkinmi, f2YozishXatoMatni, saqlashSabablari, type SaqlashSabab } from '../../lib/f2-tayyor-sabab';
 import { t2ToliqOqi } from '../../api/t2-toliq-oqish';
 import { MinusCircle, Repeat2, RotateCcw } from 'lucide-react';
@@ -431,6 +431,7 @@ export function F2TayyorlashNative() {
   const resursNomi = useMemo(() => { const m = new Map<number, string>(); for (const b of bolimlar) { for (const i of b.ishlar) { m.set(i.id, i.nom); for (const r of i.resurslar) m.set(r.id, r.nom); } for (const r of b.alohida) m.set(r.id, r.nom); } return (id: number) => m.get(id) ?? null; }, [bolimlar]);
   /** Vedomostdan tanlangan taklif narxi: faqat F2 qatoriga (qo'lda narx) yoziladi - asl smetaga emas. */
   const narxniQollash = (ids: number[], narx: number) => setK((o) => { const n = { ...o.narx }; const ns = { ...o.narxsiz }; for (const id of ids) { n[id] = sonMatn(narx); delete ns[id]; } return { ...o, narx: n, narxsiz: ns }; });
+  const olibList = useMemo(() => olibTashlanganlar(bolimlar, k), [bolimlar, k]);
   const tayyor = qatorlar.length > 0 && jami.xato === 0;
   /** Faqat storno bloki tahrirlangan bo'lsa ham qoralama saqlanadi (yangi plyus qatorlarsiz). */
   const stornoOzgardi = aktId != null && stornoTahrir != null;
@@ -970,6 +971,15 @@ export function F2TayyorlashNative() {
       {faktNol ? t('F2 faktdan ko‘p — chegirma (fakt 0)') : t('F2 faktdan ko‘p — chegirma')}</span>;
   }
 
+  /** Qo'lda tahrirlangan qator belgisi (norma/narx smetadan ongli farq qiladi) + «Smeta normasiga qaytarish». Yangilash bu qiymatni saqlaydi. */
+  function qolBelgisi(id: number, qol: QolTahrir) {
+    const nima = qol.hajm && qol.narx ? t('norma va narx') : qol.hajm ? t('norma') : t('narx');
+    return <>
+      <span className="fz-chip fz-chip--warn" data-testid="f2-qol-belgi" title={t('Bu qator qo‘lda o‘zgartirilgan: «F2 qoralamani yangilash» uni smeta normasiga/narxiga qaytarmaydi')}>{t('qo‘lda')}: {nima} {t('o‘zgartirilgan')}</span>
+      <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" data-testid="f2-qol-qaytar" title={t('Qo‘lda norma/narxni olib tashlab, smeta normasi va narxiga qaytarish')} onClick={() => setK((o) => qolniQaytar(o, [id]))}>{t('Smeta normasiga qaytarish')}</button>
+    </>;
+  }
+
   function resursQatori(r: F2Resurs, ish: F2Ish | null = null) {
     const x = byId.get(r.id);
     const taklif = r.taklifNarx != null ? sonMatn(y6(r.taklifNarx)) : '';
@@ -987,7 +997,7 @@ export function F2TayyorlashNative() {
         <td className="py-1.5 pl-9 pr-2">
           <div className="flex items-center gap-1.5">{katBelgi}<span className={`truncate text-text ${r.chiqarilgan ? 'line-through' : ''}`}>{r.nom}</span></div>
           {r.norma != null && r.avto && <div className="pl-1 text-[11px] text-text-mute">{t('norma')} {r.norma}</div>}
-          {(amal || zb2 || orqBelgi) && <div className="mt-0.5 flex flex-wrap items-center gap-1 pl-1">{orqBelgi}{zb2}{amal}</div>}
+          {(amal || zb2 || orqBelgi || x?.qol) && <div className="mt-0.5 flex flex-wrap items-center gap-1 pl-1">{orqBelgi}{zb2}{amal}{x?.qol && qolBelgisi(r.id, x.qol)}</div>}
         </td>
         <td className="px-2 py-1.5 text-right text-text-mute">{r.birlik}</td>
         <td className="px-2 py-1.5 text-right tabular-nums">
@@ -1290,6 +1300,14 @@ export function F2TayyorlashNative() {
           <div className="order-first grid min-h-0 content-start gap-3 lg:col-span-2 lg:grid-cols-2 xl:order-none xl:col-span-1 xl:grid-cols-1 xl:overflow-auto">
             <F2TekshiruvPanel sabablar={sabablar} onSababAmal={sababAmali} bandlar={bandlar} onOtish={qatorgaOtish} amal={bandAmali} obyektId={obyektId} yangilaHref={(id) => `/admin/f2-tayyorlash?obyekt=${obyektId}&akt=${id}`} />
             <F2KatPanel kat={katTaq} manba={jami.manba} />
+            {olibList.length > 0 && <section className="fz-card p-3" data-testid="f2-olib-royxat" aria-label={t('Olib tashlangan qatorlar')}>
+              <h3 className="mb-1 text-[13px] font-semibold text-text">{t('Olib tashlangan qatorlar')} ({olibList.length})</h3>
+              <p className="mb-2 text-[11px] text-text-mute">{t('Bu resurslar qoralamadan ongli olib tashlangan: «yangilash» ularni qayta qo‘shmaydi.')}</p>
+              <ul className="grid gap-1">{olibList.map((x) => <li key={x.id} className="flex items-center justify-between gap-2 text-[12px]">
+                <span className="truncate" title={`${x.ishNom} → ${x.nom}`}>{x.nom}</span>
+                <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" data-testid="f2-olib-qaytar" onClick={() => setK((o) => olibniQaytar(o, [x.id]))}>{t('Qaytarish')}</button>
+              </li>)}</ul>
+            </section>}
           </div>
         </div>
         <section className="flex flex-wrap items-start gap-3"><div className="min-w-[280px] flex-1"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} tafsilot={imzoTafsilot} />

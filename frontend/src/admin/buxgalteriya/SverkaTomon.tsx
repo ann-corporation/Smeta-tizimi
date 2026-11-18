@@ -4,6 +4,7 @@ import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { buxSverkaOl, buxSverkaTomonlarOl, buxXato, type BuxSverka } from '../../api/t2-bux-hisob';
 import { sverkaTomonHujjat } from '../../lib/buxgalteriya/eksport';
@@ -34,7 +35,7 @@ export function SverkaTomon({ kid, davr, versiya }: { kid: number; davr: Davr; v
   const eksport = async () => {
     if (!d) return;
     const { bytes, faylNomi } = sverkaTomonHujjat({ kompaniya: (joriy as { nom?: string } | null | undefined)?.nom ?? null, s: d });
-    const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'SVERKA_TOMON', sabab: `Акт сверки сторон · ${d.qarshi_nom ?? ''}`.slice(0, 120) }, () => downloadBlob(bytes, faylNomi));
+    const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'SVERKA_TOMON', disk: diskJoy({ tur: 'sverka_tomon', kompaniyaId: kid, qism: d.qarshi_nom ?? 'tomon', qismNom: d.qarshi_nom ?? null, faylNomi }), sabab: `Акт сверки сторон · ${d.qarshi_nom ?? ''}`.slice(0, 120) }, () => downloadBlob(bytes, faylNomi));
     toast(r.ok ? (r.xabar || t('Akt sverki yuklandi')) : r.xabar, r.ok ? 'ok' : 'danger');
   };
   return (

@@ -1,0 +1,5 @@
+{
+  "Olib tashlangan qatorlar": { "ru": "Удалённые строки", "en": "Removed lines" },
+  "Bu resurslar qoralamadan ongli olib tashlangan: «yangilash» ularni qayta qo‘shmaydi.": { "ru": "Эти ресурсы сознательно удалены из черновика: «обновить» не добавит их снова.", "en": "These resources were deliberately removed from the draft: “update” will not add them back." },
+  "Qaytarish": { "ru": "Вернуть", "en": "Restore" }
+}

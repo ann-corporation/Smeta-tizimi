@@ -32,10 +32,12 @@ import type { Podval } from '../../lib/hisob-yadro';
 import { nakopitelniyAktlarKOplate, nakopitelniyAktUstunOl, nakopitelniyHujjatQur, nakopitelniyOylarOl, nakopitelniyQatorlarniTayyorla, nakopitelniySmetaNakrutka, nakopitelniyUstamaOl, nakopitelniyUstamaTayyorEmas, nakopitelniyYukla, type NakopitelniyUstama } from '../../lib/oylik-hujjat/nakopitelniy';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
-import { forma3QoralamaManba, obyektHujjatManba } from '../../lib/disk-hujjat';
+import { forma3QoralamaManba, obyektHujjatManba, shartnomaHujjatManba } from '../../lib/disk-hujjat';
 import { toast } from '../../umumiy/ui/Toast';
 import { forma3Tayyorgarlik } from '../../lib/pto-markazi/forma3-tayyorgarlik';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
+type BerDisk = Parameters<typeof hujjatTokenBilan>[0]['disk'];
 import type { SmetaModel } from '../../lib/smeta-model';
 import { validatePtoHierarchy, type PtoF3LineageInput, type PtoLineageScope } from '../../lib/pto-document-lineage';
 import { f3CertifiedHajm, f3CertifiedSources, f2OyKesimi } from '../../lib/pto-document-lineage/f3-sources';
@@ -633,9 +635,9 @@ function ShartnomaSvodBolimi({ companyId, shartnomaId, tashkilot }: { companyId:
   const sv = useMemo(() => (sh ? shartnomaSvodi(sh) : null), [sh]);
   const sverka = useMemo(() => (sh ? sverkaHisobla(sh, { dan: dan || null, gacha: gacha || null }) : null), [sh, dan, gacha]);
 
-  async function ber(h: { bytes: Uint8Array; faylNomi: string } | null, hujjat: string, sabab: string) {
+  async function ber(h: { bytes: Uint8Array; faylNomi: string } | null, hujjat: string, sabab: string, disk?: (x: { bytes: Uint8Array; faylNomi: string }) => BerDisk) {
     if (!h) return;
-    const r = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat, sabab }, () => downloadBlob(h.bytes, h.faylNomi));
+    const r = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat, sabab, ...(disk ? { disk: disk(h) } : {}) }, () => downloadBlob(h.bytes, h.faylNomi));
     if (!r.ok) { toast(r.xabar, 'danger'); return; }
     if (r.xabar) toast(r.xabar, 'ok');
   }
@@ -701,10 +703,10 @@ function ShartnomaSvodBolimi({ companyId, shartnomaId, tashkilot }: { companyId:
           <p className="fz-card__sub">{t('Shartnoma → F2 → F3 → to‘lov → qoldiq: pul oqimi bir qarashda')}</p>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-          <button type="button" className="fz-btn" onClick={() => void ber(sverkaXlsx(sh, { tashkilot, dan: dan || null, gacha: gacha || null }), 'AKT_SVERKA', `Акт сверки № ${raqamTozala(sh.raqam)}`)}>
+          <button type="button" className="fz-btn" onClick={() => void ber(sverkaXlsx(sh, { tashkilot, dan: dan || null, gacha: gacha || null }), 'AKT_SVERKA', `Акт сверки № ${raqamTozala(sh.raqam)}`, hSv => ({ turi: 'sverka', loyihaId: sh.loyiha_id ?? null, faylNomi: hSv.faylNomi, davr: gacha || null, manba: shartnomaHujjatManba({ tur: 'sverka_shartnoma', shartnomaId: sh.id, shartnomaRaqam: sh.raqam, oy: gacha || null }) }))}>
             <Download />{t('Akt-sverka (Excel)')}
           </button>
-          <button type="button" className="fz-btn" onClick={() => void ber(hammasi ? shartnomaSvodXlsx(hammasi, { tashkilot }) : null, 'NAKOPITELNIY', 'Накопительная по договорам')}>
+          <button type="button" className="fz-btn" onClick={() => void ber(hammasi ? shartnomaSvodXlsx(hammasi, { tashkilot }) : null, 'NAKOPITELNIY', 'Накопительная по договорам', hS => diskJoy({ tur: 'shartnoma_svod', kompaniyaId: companyId, faylNomi: hS.faylNomi }))}>
             <FileSpreadsheet />{t('Barcha shartnomalar svodi (Excel)')}
           </button>
         </div>

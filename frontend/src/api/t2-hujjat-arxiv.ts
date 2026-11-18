@@ -7,9 +7,9 @@
  * Saqlash hujjatni berishni to'xtatmaydi: xato bo'lsa faqat ogohlantiriladi.
  */
 import { hujjatYukla } from './t2-hujjat-canonical';
-import type { DiskManba } from '../lib/disk-hujjat';
+import type { DiskManba, DiskTur } from '../lib/disk-hujjat';
 
-export type ArxivTuri = 'f2_hujjat' | 'f3' | 'nakopitelniy' | 'slichitelniy' | 'ostatka' | 'm29' | 'aosr' | 'sverka' | 'sverka_lrv_res' | 'smeta_lrv' | 'smeta_res' | 'f2_portfel' | 'shartnoma_oylik_paket';
+export type ArxivTuri = DiskTur;
 
 const hex = async (s: Uint8Array | string) => {
   const b = typeof s === 'string' ? new TextEncoder().encode(s) : s;

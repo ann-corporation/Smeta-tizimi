@@ -25,6 +25,7 @@ import {
 import { FaylYon } from './FaylYon';
 import { BoshqaruvBolim } from './BoshqaruvBolim';
 import { UlashilganBolim } from './UlashilganBolim';
+import { YetimTaklif } from './YetimTaklif';
 import { papkaZip } from './diskZip';
 
 type Joy = 'shaxsiy' | 'kompaniya' | 'ulashilgan' | 'savat';
@@ -296,6 +297,7 @@ export default function HujjatMaydoni() {
               </div>
             )}
             {jarayon && <p className="mb-2 text-[12px] text-text-mute" role="status">{jarayon}</p>}
+            {kompaniyaJoyi && kompId != null && papkaId != null && data.yol.length === 1 && data.yol[0].nom === 'Biriktirilmagan' && <YetimTaklif kompId={kompId} papkaId={papkaId} onOzgardi={yangila} />}
             <div className="flex flex-col gap-3 lg:flex-row">
               <div className="fz-table-wrap relative min-w-0 flex-1" onDragOver={(e) => { if (yozaOladi && e.dataTransfer.types.includes('Files')) { e.preventDefault(); setTortish(true); } }} onDragLeave={() => setTortish(false)} onDrop={(e) => { if (!yozaOladi) return; e.preventDefault(); setTortish(false); void yuklash(e.dataTransfer.files); }}>
                 {tortish && <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded border-2 border-dashed border-accent bg-accent/10 text-[14px] font-semibold text-text">{t('Yuklash uchun fayllarni shu yerga tashlang')}</div>}

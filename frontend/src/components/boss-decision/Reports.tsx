@@ -1,4 +1,5 @@
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { useEffect, useRef, useState } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
@@ -36,7 +37,7 @@ export default function Reports({data,initialObjectId,initialProjectId}:{data:Bo
     const scope:ReportScope=kind==='company'?{kind}:kind==='project'?{kind,id:projectId??null}:kind==='section'?{kind,id:scopedObject!.object_id,sectionId:Number(section)}:{kind:'object',id:scopedObject!.object_id};
     try {const bytes=await managementWorkbook(data,scope,rows.data);if(ticket.signal.aborted)return;
       // Boshqaruv hisoboti — tizim tuzgan hujjat: token bilan beriladi (egasi 2026-10-16, faqat hisoblangan kataklar).
-      const tok=await hujjatTokenBilan({kompaniyaId:data.kompaniya.kompaniya_id,bytes:new Uint8Array(bytes),hujjat:'BOSHQARUV_HISOBOTI',sabab:`Boshqaruv hisoboti · ${scope.kind}`,obyekt:scopedObject?.object_id??null},()=>{
+      const tok=await hujjatTokenBilan({kompaniyaId:data.kompaniya.kompaniya_id,bytes:new Uint8Array(bytes),hujjat:'BOSHQARUV_HISOBOTI',disk:diskJoy({tur:'boshqaruv_hisobot',kompaniyaId:data.kompaniya.kompaniya_id,obyektId:scopedObject?.object_id??null,obyekt:scopedObject?.name??null,qism:scope.kind==='section'?`section-`:scope.kind,qismNom:scope.kind,faylNomi:`Management--.xlsx`}),sabab:`Boshqaruv hisoboti · ${scope.kind}`,obyekt:scopedObject?.object_id??null},()=>{
         downloadBlob(new Uint8Array(bytes),`Management-${data.kompaniya.kompaniya_id}-${scope.kind}-${Date.now()}.xlsx`);});
       if(!tok.ok&&!ticket.signal.aborted)setError(true);
     } catch {if(!ticket.signal.aborted)setError(true);} finally {if(!ticket.signal.aborted)setBusy(false);}

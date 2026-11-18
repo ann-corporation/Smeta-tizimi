@@ -2,13 +2,14 @@
  * hujjat-maydoni.ts - Hujjat maydoni (Hujjatlarim / Kompaniya diski) API: papka, fayl amallari, versiya, izoh, ulashish, kvota, admin.
  * Aktor - faqat sessiyadan. Ruxsat/kvota - service_role RPC lari ichida (t2_hm_*). Baytlar - /api/hujjat-maydoni-yukla va -ol.
  *
- *   GET  /api/hujjat-maydoni?amal=royxat|ulashilgan|versiyalar|izoh|ulashish|faoliyat|qidir|tizim|registry_joy|odamlar|admin|sozlama|tg|taqdim_nishon|taqdim_royxat|taqdim_tafsilot
- *   POST /api/hujjat-maydoni { amal: papka|fayl|izoh|ulash|sozlama|abadiy|bosh|reja|taqdim|taqdim_qaytar, ... }
+ *   GET  /api/hujjat-maydoni?amal=royxat|yetim|ulashilgan|versiyalar|izoh|ulashish|faoliyat|qidir|tizim|registry_joy|odamlar|admin|sozlama|tg|taqdim_nishon|taqdim_royxat|taqdim_tafsilot
+ *   POST /api/hujjat-maydoni { amal: papka|fayl|izoh|ulash|sozlama|abadiy|bosh|reja|taqdim|taqdim_qaytar|yetim_kochir|yetim_ai, ... }
  *   Taqdim (tomonlararo o'zgarmas surat): oluvchi tomon faqat o'qiydi; yuklab olish - /api/hujjat-maydoni-ol?taqdim=<id>&el=<id>.
  *   qidir: fayl nomi + fayl ICHIDAGI matn (pdf/docx/xlsx/pptx/matn; yuklashda indekslanadi).
  */
 import { hmQidirYuqori, hmRpc, rpcOk, rpcXato, sessiyaAktor, type HmEnv } from '../_shared/hujjat-maydoni';
 import { r2Ochir, sha256Hex } from '../_shared/r2-saqlash';
+import { yetimAi, yetimKochir, yetimRoyxat } from '../_shared/disk-yetim';
 
 const num = (v: unknown): number | null => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : null; };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -40,6 +41,7 @@ export const onRequestGet: PagesFunction<HmEnv> = async (ctx) => {
       case 'taqdim_nishon': return komp ? R('t2_hm_taqdim_nishon_v1', { p_actor: id, p_kompaniya: komp }) : Response.json({ ok: false, code: 'KOMPANIYA_KERAK' }, { status: 400 });
       case 'taqdim_royxat': return komp ? R('t2_hm_taqdim_royxat_v1', { p_actor: id, p_kompaniya: komp, p_yonalish: q.get('yonalish') === 'yuborilgan' ? 'yuborilgan' : 'kelgan' }) : Response.json({ ok: false, code: 'KOMPANIYA_KERAK' }, { status: 400 });
       case 'taqdim_tafsilot': return R('t2_hm_taqdim_tafsilot_v1', { p_actor: id, p_taqdim_id: num(q.get('taqdim_id')) });
+      case 'yetim': return komp ? yetimRoyxat(ctx.env, id, komp) : Response.json({ ok: false, code: 'KOMPANIYA_KERAK' }, { status: 400 });
       case 'tizim': return komp ? R('t2_hm_tizim_hujjat_v1', { p_actor: id, p_kompaniya: komp, p_limit: 200 }) : Response.json({ ok: false, code: 'KOMPANIYA_KERAK' }, { status: 400 });
       case 'odamlar': return R('t2_hm_odamlar_v1', { p_actor: id, p_kompaniya: komp, p_q: (q.get('q') || '').slice(0, 60) });
       case 'admin': return R('t2_hm_admin_v1', { p_actor: id, p_kompaniya: komp });
@@ -113,6 +115,10 @@ export const onRequestPost: PagesFunction<HmEnv> = async (ctx) => {
         if (!UUID.test(op)) return Response.json({ ok: false, code: 'OPERATION_ID_REQUIRED' }, { status: 400 });
         return R('t2_hm_taqdim_yarat_v1', { p_actor: id, p_nishon_turi: b.nishon_turi === 'papka' ? 'papka' : 'fayl', p_nishon_id: num(b.nishon_id), p_aloqa_id: num(b.aloqa_id), p_izoh: String(b.izoh || '').slice(0, 1000), p_operation_id: op });
       }
+      case 'yetim_kochir':
+        return komp ? yetimKochir(ctx.env, id, komp, num(b.fayl_id), num(b.loyiha_id), num(b.obyekt_id)) : Response.json({ ok: false, code: 'KOMPANIYA_KERAK' }, { status: 400 });
+      case 'yetim_ai':
+        return komp ? yetimAi(ctx.env, id, komp, (Array.isArray(b.fayl_idlar) ? b.fayl_idlar : []).map(num).filter((x: number | null): x is number => x != null).slice(0, 15)) : Response.json({ ok: false, code: 'KOMPANIYA_KERAK' }, { status: 400 });
       case 'taqdim_qaytar':
         return R('t2_hm_taqdim_qaytar_v1', { p_actor: id, p_taqdim_id: num(b.taqdim_id), p_sabab: String(b.sabab || '').slice(0, 500) });
       case 'reja': {

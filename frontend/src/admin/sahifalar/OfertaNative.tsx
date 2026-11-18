@@ -17,6 +17,7 @@ import { NAKRUTKA_STANDART, type NakrutkaQadamlar } from '../../lib/nakrutka-kas
 import { NAKRUTKA_KOEF_IZOH, NAKRUTKA_KOEF_KODLAR, t2NakrutkaKoefOl, type NakrutkaKoefKod, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { hujjatTokenBilan, xlsxYacheykaSoni } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { isZip } from '../../lib/hujjat-yozuvchi/ooxml';
 import { xlsdanXlsx } from '../../lib/hujjat-yozuvchi/kitob';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
@@ -335,7 +336,7 @@ function Sessiya() {
         hisoblangan += xlsxYacheykaSoni(svod);
         xabar = `Paket tayyor: ${natijalar.length} ta hujjat + svod (${zipNomi}).${qisman}${lrvIzoh.length ? ' ' + lrvIzoh.join(' ') : ''}`;
       }
-      const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes: fayl.bytes, hujjat: 'OFERTA', sabab: `Оферта · ${fayl.nom}`, yacheykalar: hisoblangan },
+      const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes: fayl.bytes, hujjat: 'OFERTA', ...(/\.xlsx$/i.test(fayl.nom) ? { disk: diskJoy({ tur: 'oferta', kompaniyaId: joriy.id, qism: fayl.nom.replace(/\.xlsx$/i, ''), qismNom: fayl.nom.replace(/\.xlsx$/i, ''), faylNomi: fayl.nom }) } : {}), sabab: `Оферта · ${fayl.nom}`, yacheykalar: hisoblangan },
         () => downloadBlob(fayl.bytes, fayl.nom, fayl.mime));
       if (!t.ok) { setError(t.xabar); return; }
       setMessage(xabar + (t.xabar ? ' ' + t.xabar : ''));

@@ -10,6 +10,7 @@ import { HrKpiBlok } from './HrKpiBlok';
 import { hrOylikAmal, hrTuzatmaQaror, hrTuzatmaSaqla, type HrKpi, type HrKpiQator, type HrOy, type HrTuzatma, type HrXodimlarJavob } from '../../api/t2-hr';
 import { OGOH_MATN, kpiJamlari, reyting, type ReytingMezon } from '../../lib/hr/hisob';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { yozNatija, type Qayta } from './umumiy';
 
@@ -132,7 +133,7 @@ export function HrIshHaqi({ kid, oy, kompaniyaNom, kpi, qayta }: { kid: number; 
     try {
       const { ishHaqiVedomosti } = await import('../../lib/hr/eksport');
       const x = await ishHaqiVedomosti(kpi.qatorlar, { kompaniya: kompaniyaNom, oy, tasdiqlangan: tasdiqlanganSoni > 0 && tasdiqlanganSoni === kpi.qatorlar.length });
-      const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes: x.bytes, hujjat: 'ISH_HAQI_VEDOMOST', sabab: `Ведомость начисления заработной платы · ${oy}` }, () => downloadBlob(x.bytes, x.faylNomi));
+      const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes: x.bytes, hujjat: 'ISH_HAQI_VEDOMOST', disk: diskJoy({ tur: 'ish_haqi', kompaniyaId: kid, oy, faylNomi: x.faylNomi }), sabab: `Ведомость начисления заработной платы · ${oy}` }, () => downloadBlob(x.bytes, x.faylNomi));
       toast(r.ok ? (r.xabar || t('Ведомость tayyor')) : r.xabar, r.ok ? 'ok' : 'danger');
     } catch { toast(t('Excel fayli tuzilmadi. Qayta urinib ko‘ring.'), 'danger'); }
     finally { setBand(false); }

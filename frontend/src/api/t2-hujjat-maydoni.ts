@@ -46,6 +46,13 @@ async function yoz<T = { ok: true }>(body: Record<string, unknown>): Promise<HmN
 
 export const hmRoyxat = (p: { kompaniyaId?: number | null; papkaId?: number | null; savat?: boolean }) => oqi<HmRoyxat>('royxat', { kompaniya_id: p.kompaniyaId, papka_id: p.papkaId, savat: p.savat });
 /** Eski /admin/documents?document_id= havolasi: registry hujjat id si -> Diskdagi fayl va papka. */
+/** «Biriktirilmagan» papka (Disk A4): fayllar + har biriga taklif; ko'chirish; AI taklifi (token yechiladi). */
+export type HmYetimTaklif = { faylId: number; daraja: 'aniq' | 'taxminiy' | 'yoq'; manba: 'metadata' | 'nom' | 'ai' | null; loyihaId: number | null; obyektId: number | null; loyihaNom: string | null; obyektNom: string | null; ball: number };
+export type HmYetimFayl = { id: number; nom: string; bayt: number | null; versiya: number | null; yangilandi: string | null; hujjat_turi: string | null; taklif: HmYetimTaklif };
+export type HmYetim = { ok: true; papka_id: number | null; daraja: number; fayllar: HmYetimFayl[]; obyektlar: Array<{ id: number; nom: string; loyiha_id: number; loyiha_nom: string | null }>; loyihalar: Array<{ id: number; nom: string }> };
+export const hmYetim = (kompaniyaId: number) => oqi<HmYetim>('yetim', { kompaniya_id: kompaniyaId });
+export const hmYetimKochir = (kompaniyaId: number, faylId: number, loyihaId: number | null, obyektId: number | null) => yoz<{ ok: true; fayl_id: number; papka_id: number }>({ amal: 'yetim_kochir', kompaniya_id: kompaniyaId, fayl_id: faylId, loyiha_id: loyihaId, obyekt_id: obyektId });
+export const hmYetimAi = (kompaniyaId: number, faylIdlar: number[]) => yoz<{ ok: true; takliflar: HmYetimTaklif[]; ai_chaqirildi: boolean }>({ amal: 'yetim_ai', kompaniya_id: kompaniyaId, fayl_idlar: faylIdlar });
 export const hmRegistryJoy = (registryId: number) => oqi<{ ok: true; fayl_id: number; papka_id: number | null; kompaniya_id: number | null; savatda: boolean; nom: string }>('registry_joy', { registry_id: registryId });
 export const hmUlashilgan = () => oqi<{ ok: true; royxat: HmUlashilgan[] }>('ulashilgan');
 export const hmVersiyalar = (faylId: number) => oqi<{ ok: true; versiyalar: HmVersiya[] }>('versiyalar', { fayl_id: faylId });
