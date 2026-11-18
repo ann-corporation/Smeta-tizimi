@@ -45,7 +45,7 @@ object DataModule {
     fun events() = AuthEvents()
 
     @Provides @Singleton
-    fun prefs(@ApplicationContext c: Context) = Prefs(c.getSharedPreferences("qurai_prefs", Context.MODE_PRIVATE))
+    fun prefs(@ApplicationContext c: Context) = Prefs(c.getSharedPreferences(Demo.scoped(c, "qurai_prefs"), Context.MODE_PRIVATE))
 
     @Provides @Singleton
     fun apiClient(tokens: TokenStore, events: AuthEvents, json: Json, http: OkHttpClient, tasdiq: TasdiqStore) =
@@ -60,7 +60,7 @@ object DataModule {
 
     @Provides @Singleton
     fun appLock(@ApplicationContext c: Context, repo: QulfRepository, tasdiq: TasdiqStore, client: ApiClient): AppLockController =
-        AppLockController(repo, tasdiq, LockPrefs(c.getSharedPreferences("qurai_lock", Context.MODE_PRIVATE)), DeviceKey()).also { client.stepUp = it }
+        AppLockController(repo, tasdiq, LockPrefs(c.getSharedPreferences(Demo.scoped(c, "qurai_lock"), Context.MODE_PRIVATE)), DeviceKey()).also { client.stepUp = it }
 
     @Provides @Singleton
     fun authRepository(tokens: TokenStore, json: Json, http: OkHttpClient) = AuthRepository(
@@ -68,16 +68,16 @@ object DataModule {
         deviceName = { Build.MODEL ?: "Android" }, osName = { "Android ${Build.VERSION.RELEASE}" }, base = http,
     )
 
-    /** Real network client, or (debug builds only, when the demo flag file exists) fixture-backed demo data. */
+    /** Real network client, or (when the demo flag file exists; separate files, see [Demo]) fixture-backed demo data. */
     @Provides @Singleton
     fun bffApi(caching: CachingBffApi): BffApi = caching
 
     /** Offline read copies: encrypted (Keystore), per device credential (= per signed-in user), 72 h, wiped on sign-out. Reads only; writes stay online-only. */
     @Provides @Singleton
     fun cachingBffApi(@ApplicationContext c: Context, api: ApiClient, json: Json, tasdiq: TasdiqStore, tokens: TokenStore): CachingBffApi {
-        val cache = EncryptedCache(File(c.noBackupFilesDir, "readcache"), KeystoreCipher("qurai_readcache_key"))
+        val cache = EncryptedCache(File(c.noBackupFilesDir, Demo.scoped(c, "readcache")), KeystoreCipher("qurai_readcache_key"))
         val base: BffApi = Demo.bff(c, json, { api.stepUp }, tasdiq) ?: api
-        return CachingBffApi(base, cache, { tokens.load()?.deviceId })
+        return CachingBffApi(base, cache, { if (Demo.enabled(c)) Demo.DEVICE_ID else tokens.load()?.deviceId })
     }
 
     @Provides @Singleton
@@ -91,7 +91,7 @@ object DataModule {
     fun sessionRepository(api: BffApi, json: Json) = SessionRepository(api, json)
 
     @Provides @Singleton
-    fun appDb(@ApplicationContext c: Context): AppDb = AppDb.open(c).also { db -> if (Demo.enabled(c)) kotlinx.coroutines.runBlocking { Demo.seed(c, db) } }
+    fun appDb(@ApplicationContext c: Context): AppDb = AppDb.open(c, name = Demo.scoped(c, "qurai.db")).also { db -> if (Demo.enabled(c)) kotlinx.coroutines.runBlocking { Demo.seed(c, db) } }
 
     @Provides @Singleton
     fun workContext() = WorkContext()
@@ -136,7 +136,7 @@ object DataModule {
 
     /** Downloaded documents are kept AES-GCM encrypted (own Keystore key) in the no-backup directory; cleared on sign-out. */
     @Provides @Singleton
-    fun docCache(@ApplicationContext c: Context) = DocCache(File(c.noBackupFilesDir, "docs"), KeystoreCipher("qurai_doc_key"))
+    fun docCache(@ApplicationContext c: Context) = DocCache(File(c.noBackupFilesDir, Demo.scoped(c, "docs")), KeystoreCipher("qurai_doc_key"))
 
     @Provides @Singleton
     fun f2TransitionRepository(api: BffApi) = F2TransitionRepository(api)
@@ -156,7 +156,7 @@ object DataModule {
     fun photoProcessor(@ApplicationContext c: Context) = uz.anncorp.smeta.core.media.PhotoProcessor(c)
 
     @Provides @Singleton
-    fun photoRepository(@ApplicationContext c: Context, outbox: OutboxRepository) = PhotoRepository(outbox, File(c.noBackupFilesDir, "photos"))
+    fun photoRepository(@ApplicationContext c: Context, outbox: OutboxRepository) = PhotoRepository(outbox, File(c.noBackupFilesDir, Demo.scoped(c, "photos")))
 
     @Provides @Singleton
     fun faktRepository(db: AppDb, outbox: OutboxRepository, json: Json) = FaktRepository(db, outbox, json)
@@ -181,8 +181,8 @@ object DataModule {
 
     @Provides @Singleton
     fun jarvisPendingStore(@ApplicationContext c: Context, tokens: TokenStore, json: Json): JarvisPendingStore =
-        JarvisOutbox(File(c.noBackupFilesDir, "jarvis-outbox"), KeystoreCipher("qurai_jarvis_outbox"), json) {
-            if (Demo.enabled(c)) "00000000-0000-4000-8000-000000000001" else tokens.load()?.deviceId
+        JarvisOutbox(File(c.noBackupFilesDir, Demo.scoped(c, "jarvis-outbox")), KeystoreCipher("qurai_jarvis_outbox"), json) {
+            if (Demo.enabled(c)) Demo.DEVICE_ID else tokens.load()?.deviceId
         }
 
     @Provides @Singleton
@@ -192,5 +192,5 @@ object DataModule {
     fun modulesRepository(api: BffApi, json: Json, prefs: Prefs) = ModulesRepository(api, json, prefs)
 
     @Provides @Singleton
-    fun catalogRepository(api: BffApi, json: Json, @ApplicationContext c: Context) = CatalogRepository(api, json, PrefsCatalogCache(c.getSharedPreferences("qurai_catalog", Context.MODE_PRIVATE)))
+    fun catalogRepository(api: BffApi, json: Json, @ApplicationContext c: Context) = CatalogRepository(api, json, PrefsCatalogCache(c.getSharedPreferences(Demo.scoped(c, "qurai_catalog"), Context.MODE_PRIVATE)))
 }

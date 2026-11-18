@@ -83,8 +83,8 @@ fun humanKey(k: String): String = k.replace('_', ' ').trim().replaceFirstChar { 
 
 private fun isHiddenKey(k: String) = k in HIDDEN || k.endsWith("_id") || k.endsWith("_hash") || k.startsWith("p_")
 
-/** Looks like an ISO date or timestamp; shown shortened. */
-private fun short(v: String): String = if (Regex("^\\d{4}-\\d{2}-\\d{2}T.*").matches(v)) v.substring(0, 10) else v
+/** An ISO date or timestamp from the server is shown in the ONE app date format dd.MM.yyyy (never yyyy-MM-dd). */
+internal fun short(v: String): String = if (Regex("^\\d{4}-\\d{2}-\\d{2}(T.*)?$").matches(v)) formatDate(v) else v
 
 /** Finds the row array: [listKey] first, then the usual keys, then the largest array of objects (in `natija` or at the top). */
 fun findFeedRows(body: JsonElement?, listKey: String? = null): List<JsonObject> {

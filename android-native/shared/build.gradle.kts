@@ -12,7 +12,7 @@ kotlin {
     compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) }
 }
 
-sourceSets { test { resources.srcDir("../app/src/debug/assets") } }
+sourceSets { test { resources.srcDir("../app/src/main/assets") } }
 
 dependencies {
     api(libs.okhttp)

@@ -109,6 +109,7 @@ fun LoginScreen(onSignedIn: () -> Unit, onSignUp: () -> Unit = {}, onInvite: () 
                 Text(stringResource(R.string.login_new_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
                 QButton(stringResource(R.string.login_create_account), onSignUp, Modifier.fillMaxWidth(), kind = QButtonKind.Ghost, enabled = enabled)
                 QButton(stringResource(R.string.login_have_invite), onInvite, Modifier.fillMaxWidth(), kind = QButtonKind.Ghost, enabled = enabled)
+                QButton(stringResource(R.string.login_demo), { uz.anncorp.smeta.core.demo.Demo.enter(context) }, Modifier.fillMaxWidth(), kind = QButtonKind.Ghost, enabled = enabled)
                 if (state.telegramWaiting) QCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         QSpinner(28)

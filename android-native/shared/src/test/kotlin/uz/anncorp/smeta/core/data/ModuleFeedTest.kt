@@ -12,6 +12,16 @@ class ModuleFeedTest {
     private val json = Json { ignoreUnknownKeys = true }
     private fun el(s: String) = json.parseToJsonElement(s)
 
+    @Test fun isoDatesAreShownAsDayMonthYear() {
+        assertEquals("14.11.2026", short("2026-11-14"))
+        assertEquals("14.11.2026", short("2026-11-14T08:10:00+00:00"))
+        assertEquals("2026-11", short("2026-11"))
+        assertEquals("Sement", short("Sement"))
+        val rows = parseFeed(el("""{"ok":true,"qatorlar":[{"id":5,"nom":"Sement","sana":"2026-11-14"}]}"""), FeedSource("t", table = "x"))
+        assertEquals("14.11.2026", rows[0].all.first { it.label == "Sana" }.value)
+        assertTrue(rows[0].all.none { it.value.matches(Regex("^\\d{4}-\\d{2}-\\d{2}.*")) })
+    }
+
     @Test fun tableAnswerBecomesCards() {
         val src = FeedSource("t", table = "x")
         val rows = parseFeed(el("""{"ok":true,"qatorlar":[{"id":5,"nom":"Sement","holat":"faol","summa":1500000,"telefon":"998901112233","kompaniya_id":1}]}"""), src)

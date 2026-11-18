@@ -68,6 +68,7 @@ class SettingsViewModel @Inject constructor(
     private val repo: SettingsRepository,
     private val prefs: Prefs,
     private val api: ApiClient,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
     private val tokens: TokenStore,
     private val docCache: DocCache,
     private val updates: UpdateChecker,
@@ -150,7 +151,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             when (val r = repo.signOutOthers()) {
                 is SettingsResult.Ok -> when (val v = r.value) {
-                    is SignOutOthers.Renewed -> { tokens.save(DeviceCredential(v.renewal.deviceId, v.renewal.token, v.renewal.expires)); _ui.update { it.copy(busy = false, message = SettingsMsg.OTHERS_OUT) } }
+                    is SignOutOthers.Renewed -> { if (!uz.anncorp.smeta.core.demo.Demo.enabled(appContext)) tokens.save(DeviceCredential(v.renewal.deviceId, v.renewal.token, v.renewal.expires)); _ui.update { it.copy(busy = false, message = SettingsMsg.OTHERS_OUT) } }
                     SignOutOthers.SignedOutHere -> { _ui.update { it.copy(busy = false) }; signOutNow() }
                 }
                 is SettingsResult.Err -> _ui.update { it.copy(busy = false, message = r.error.toMessage()) }
@@ -180,6 +181,6 @@ class SettingsViewModel @Inject constructor(
         workspaces.clear()
         work.set(null)
         db.clearCaches()
-        api.signOut()
+        if (uz.anncorp.smeta.core.demo.Demo.enabled(appContext)) uz.anncorp.smeta.core.demo.Demo.exit(appContext) else api.signOut()
     }
 }

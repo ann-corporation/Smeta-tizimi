@@ -128,6 +128,7 @@
     <string name="login_new_hint">New here? The Google or Telegram button creates your account.</string>
     <string name="login_create_account">Sign up with e-mail</string>
     <string name="login_have_invite">I have an invite code</string>
+    <string name="login_demo">Demo mode (sample data)</string>
     <string name="err_email_bad">Enter a valid e-mail address.</string>
     <string name="err_email_off">E-mail verification is not available yet. Sign in with Google or Telegram.</string>
     <string name="err_account_exists">An account with this e-mail already exists. Use Sign in.</string>
@@ -251,6 +252,10 @@
     <!-- P4 -->
     <string name="mod_jarvis">Jarvis (AI)</string>
     <string name="mod_jarvis_d">Ask a question, the system answers</string>
+    <string name="ja_chats_label">Chats</string>
+    <string name="ja_copy">Copy</string>
+    <string name="ja_copied">Copied</string>
+    <string name="ja_scroll_down">Down</string>
     <string name="ja_welcome">Jarvis is ready</string>
     <string name="ja_hint">Ask about objects, fact and today\'s work. Answers come from your company data.</string>
     <string name="ja_input">Your question…</string>

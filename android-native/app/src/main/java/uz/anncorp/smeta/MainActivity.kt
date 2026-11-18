@@ -118,7 +118,7 @@ class MainActivity : AppCompatActivity() {
                     AppNav(events, lock, if (uz.anncorp.smeta.core.demo.Demo.enabled(this@MainActivity)) HOME else SPLASH)
                     val stale by readCache.staleSince.collectAsStateWithLifecycle()
                     stale?.let { ts -> androidx.compose.material3.Surface(color = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh, modifier = androidx.compose.ui.Modifier.align(androidx.compose.ui.Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding().padding(bottom = 64.dp)) { androidx.compose.material3.Text(stringResource(R.string.p16_stale_banner, java.text.SimpleDateFormat("dd.MM HH:mm", java.util.Locale.getDefault()).format(java.util.Date(ts))), style = androidx.compose.material3.MaterialTheme.typography.bodySmall, color = androidx.compose.material3.MaterialTheme.colorScheme.tertiary, modifier = androidx.compose.ui.Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) } }
-                    AppLockLayer(lock, onSignOut = { lifecycleScope.launch { api.signOut() } })
+                    AppLockLayer(lock, onSignOut = { lifecycleScope.launch { if (uz.anncorp.smeta.core.demo.Demo.enabled(this@MainActivity)) uz.anncorp.smeta.core.demo.Demo.exit(this@MainActivity) else api.signOut() } })
                 }
             }
         }

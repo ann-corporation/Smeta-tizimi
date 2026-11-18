@@ -273,8 +273,9 @@ private fun OmborReport(c: Ctx, w: Warehouse) {
     val okDates = runCatching { if (dan.isNotBlank()) LocalDate.parse(dan); if (gacha.isNotBlank()) LocalDate.parse(gacha); true }.getOrDefault(false)
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            QInput(dan, { dan = it }, label = "Dan", singleLine = true, modifier = Modifier.width(150.dp))
-            QInput(gacha, { gacha = it }, label = "Gacha", singleLine = true, modifier = Modifier.width(150.dp))
+            // dd.MM.yyyy on screen, ISO only on the wire (same picker as Android).
+            uz.anncorp.qurai.ui.components.QDateField(dan.ifBlank { null }, { dan = it }, label = "Dan", modifier = Modifier.width(150.dp))
+            uz.anncorp.qurai.ui.components.QDateField(gacha.ifBlank { null }, { gacha = it }, label = "Gacha", modifier = Modifier.width(150.dp))
             QInput(q, { q = it }, label = "Material", singleLine = true, modifier = Modifier.width(200.dp))
             QSelect(op, listOf(null, "prixod", "rasxod"), { when (it) { "prixod" -> "Faqat kirim"; "rasxod" -> "Faqat chiqim"; else -> "Kirim va chiqim" } }, { op = it }, placeholder = "Kirim va chiqim")
             QPrimaryButton(onClick = { go(0) }, enabled = okDates && !busy) { Text("Ko'rsatish") }

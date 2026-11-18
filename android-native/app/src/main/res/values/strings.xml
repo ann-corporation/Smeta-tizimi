@@ -129,6 +129,7 @@
     <string name="login_new_hint">Yangi foydalanuvchimisiz? Google yoki Telegram tugmasi hisobni o\'zi ochadi.</string>
     <string name="login_create_account">E-pochta bilan ro\'yxatdan o\'tish</string>
     <string name="login_have_invite">Taklif kodim bor</string>
+    <string name="login_demo">Demo rejimi (namunaviy ma\'lumot)</string>
     <string name="err_email_bad">E-pochta manzilini to\'g\'ri kiriting.</string>
     <string name="err_email_off">E-pochta orqali tasdiqlash hozircha ishlamayapti. Google yoki Telegram bilan kiring.</string>
     <string name="err_account_exists">Bu e-pochta bilan hisob allaqachon bor. Kirish tugmasidan foydalaning.</string>
@@ -252,6 +253,10 @@
     <!-- P4: @username, company invitations, Jarvis -->
     <string name="mod_jarvis">Jarvis (AI)</string>
     <string name="mod_jarvis_d">Savol bering, tizim javob beradi</string>
+    <string name="ja_chats_label">Suhbatlar</string>
+    <string name="ja_copy">Nusxalash</string>
+    <string name="ja_copied">Nusxalandi</string>
+    <string name="ja_scroll_down">Pastga</string>
     <string name="ja_welcome">Jarvis tayyor</string>
     <string name="ja_hint">Obyekt, fakt va bugungi ishlar haqida so\'rang. Javob kompaniya ma\'lumotlaridan olinadi.</string>
     <string name="ja_input">Savolingiz\u2026</string>

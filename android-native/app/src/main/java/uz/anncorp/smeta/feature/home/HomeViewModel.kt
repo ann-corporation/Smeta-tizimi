@@ -51,6 +51,7 @@ internal fun pickWorkplace(list: List<Workplace>, savedId: Long?): Workplace? = 
 class HomeViewModel @Inject constructor(
     private val sessions: SessionRepository,
     private val api: ApiClient,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
     private val prefs: Prefs,
     private val work: uz.anncorp.smeta.core.data.WorkContext,
     private val outbox: uz.anncorp.smeta.core.data.OutboxRepository,
@@ -184,7 +185,7 @@ class HomeViewModel @Inject constructor(
         workspaces.clear()
         work.set(null)
         db.clearCaches()   // before the logout event: leaving the screen may cancel this scope
-        api.signOut()
+        if (uz.anncorp.smeta.core.demo.Demo.enabled(appContext)) uz.anncorp.smeta.core.demo.Demo.exit(appContext) else api.signOut()
     }
 }
 
