@@ -88,7 +88,7 @@ private fun statusUz(s: F2Status, raw: String?): String = when (s) {
     F2Status.REJECTED -> "Rad etilgan"; F2Status.CANCELLED -> "Bekor qilingan"; F2Status.SUPERSEDED -> "Almashtirilgan"; F2Status.UNKNOWN -> raw ?: T_DASH
 }
 
-private const val T_DASH = "вЂ”"
+private const val T_DASH = "\u2014"
 
 /** The server sum package in the owner's order: QQS bilan first, then ustamali (ITOGO-4), then ustamasiz (direct). */
 @Composable
@@ -110,18 +110,11 @@ fun ObjectsScreen(c: Ctx, onOpen: (Obj) -> Unit) {
         mny?.Banner()
         QInput(q, { q = it }, label = "Qidirish", singleLine = true, modifier = Modifier.width(360.dp))
         val rows = c.objects.filter { q.isBlank() || it.nom.contains(q, ignoreCase = true) }
-        QTable(
-            rows, listOf(
-                QCol("Obyekt", 380.dp, sort = { it.nom.lowercase() }) { it.nom },
-                QCol("Turi", 110.dp, sort = { it.tur }) { it.tur ?: T_DASH },
-                QCol("Qator", 80.dp, true, { it.rows }) { it.rows?.toString() ?: T_DASH },
-                QCol("Narxsiz", 80.dp, true, { it.unpriced }) { it.unpriced?.toString() ?: T_DASH },
-                QCol("Smeta (QQS bilan)", 170.dp, true, { m[it.id]?.smeta?.qqsBilan }) { money(m[it.id]?.smeta?.qqsBilan) },
-                QCol("Fakt %", 80.dp, true, { m[it.id]?.factPct }) { formatPercent(m[it.id]?.factPct) },
-                QCol("F-2 %", 80.dp, true, { m[it.id]?.f2Pct }) { formatPercent(m[it.id]?.f2Pct) },
-            ), modifier = Modifier.weight(1f), key = { it.id }, onClick = onOpen, selected = { it.id == c.obj?.id },
+        uz.anncorp.qurai.ui.screens.QObjectList(
+            rows.map { o -> val s = m[o.id]?.smeta; uz.anncorp.qurai.ui.screens.QObjectRow(o.id, o.nom, o.tur, o.rows, o.unpriced, s?.qqsBilan?.let(::money), s?.ustamali?.let(::money), s?.ustamasiz?.let(::money), m[o.id]?.factPct?.let { formatPercent(it) }, m[o.id]?.f2Pct?.let { formatPercent(it) }) },
+            { r -> rows.firstOrNull { it.id == r.id }?.let(onOpen) }, Modifier.weight(1f), selectedId = c.obj?.id,
         )
-    }
+   }
 }
 
 // ============================ Smeta (tree) ============================

@@ -43,7 +43,7 @@ jobs:
           Get-Command candle.exe -ErrorAction SilentlyContinue | Select-Object Source
       - name: Desktop tests
         shell: pwsh
-        run: ./gradlew.bat :shared:test :desktop:test --no-daemon
+        run: ./gradlew.bat :shared:test :ui-common:desktopTest :desktop:test --no-daemon
       - name: Build MSI (release, ProGuard)
         id: release
         shell: pwsh

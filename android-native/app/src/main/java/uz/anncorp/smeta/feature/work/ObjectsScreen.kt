@@ -45,6 +45,12 @@ import uz.anncorp.smeta.core.ui.CenterMessage
 import uz.anncorp.smeta.core.ui.TouchTarget
 import uz.anncorp.smeta.core.ui.UpdatedLine
 import uz.anncorp.smeta.core.ui.WorkCard
+import androidx.compose.ui.platform.LocalContext
+import uz.anncorp.qurai.ui.components.QSearchField
+import uz.anncorp.qurai.ui.screens.QObjectList
+import uz.anncorp.qurai.ui.screens.QObjectRow
+import uz.anncorp.qurai.ui.screens.QObjectTexts
+import uz.anncorp.smeta.core.data.formatMoneyShort
 
 /** Objects of the current workplace. [pickForFact] only changes the hint line; the tap target is decided by the caller. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,14 +58,7 @@ import uz.anncorp.smeta.core.ui.WorkCard
 fun ObjectsScreen(onOpen: (Long) -> Unit, pickForFact: Boolean = false, vm: ObjectsViewModel = hiltViewModel(key = if (pickForFact) "pick" else "browse")) {
     val ui by vm.state.collectAsStateWithLifecycle()
     Column(Modifier.fillMaxSize()) {
-        OutlinedTextField(
-            value = ui.query, onValueChange = vm::setQuery, singleLine = true,
-            placeholder = { Text(stringResource(R.string.p1_objects_search)) },
-            leadingIcon = { Icon(Icons.Filled.Search, null) },
-            trailingIcon = { if (ui.query.isNotEmpty()) IconButton(onClick = { vm.setQuery("") }) { Icon(Icons.Filled.Clear, null) } },
-            shape = RoundedCornerShape(14.dp),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).heightIn(min = TouchTarget),
-        )
+        QSearchField(ui.query, vm::setQuery, Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), placeholder = stringResource(R.string.p1_objects_search))
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
             UpdatedLine(ui.updatedAt, Modifier.weight(1f))
             if (pickForFact) Text(stringResource(R.string.p1_pick_object), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
@@ -69,10 +68,17 @@ fun ObjectsScreen(onOpen: (Long) -> Unit, pickForFact: Boolean = false, vm: Obje
                 ui.noCompany -> CenterMessage(null, stringResource(R.string.workplace_none), stringResource(R.string.workplace_none_hint))
                 ui.loading -> Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) { CircularProgressIndicator() }
                 ui.items.isEmpty() -> EmptyOrError(ui, vm)
-                else -> LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp, 8.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(ui.items, key = { it.id }) { ObjectRow(it, ui.money[it.id]) { onOpen(it.id) } }
-                }
-            }
+                else -> {
+                    val res = LocalContext.current.resources
+                    QObjectList(
+                        ui.items.map { o ->
+                            val d = displayMoney(ui.money[o.id]?.smeta, o.jami)
+                            QObjectRow(o.id, o.nom, o.tur, o.qatorSoni, o.narxsiz, formatMoneyShort(d.vatIncl), formatMoneyShort(d.withMarkup), formatMoneyShort(d.withoutMarkup))
+                        },
+                        { onOpen(it.id) }, Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp, 8.dp, 16.dp, 24.dp),
+                        texts = QObjectTexts(rowsLabel = { res.getQuantityString(R.plurals.p1_rows, it, it) }, unpricedLabel = { res.getQuantityString(R.plurals.p1_unpriced, it, it) }),
+                    )
+                }            }
         }
     }
 }
@@ -88,30 +94,3 @@ private fun EmptyOrError(ui: ObjectsUi, vm: ObjectsViewModel) {
         else -> CenterMessage(null, stringResource(R.string.p1_objects_empty), stringResource(R.string.p1_objects_empty_hint))
     }
 }
-
-@Composable
-private fun ObjectRow(o: ObyektEntity, money: ObjectMoney?, onClick: () -> Unit) {
-    WorkCard(onClick = onClick, modifier = Modifier.heightIn(min = TouchTarget)) {
-        Column(Modifier.padding(16.dp)) {
-            Text(o.nom, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, maxLines = 2)
-            o.tur?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            Spacer(Modifier.height(8.dp))
-            // Owner rule: QQS-inclusive value first, and every sum both with and without markup (server packages, never guessed here).
-            MoneyDual(displayMoney(money?.smeta, o.jami), showVat = true, short = true)
-            o.qatorSoni?.let {
-                Spacer(Modifier.height(4.dp))
-                Text(pluralStringResource(R.plurals.p1_rows, it, it), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            if ((o.narxsiz ?: 0) > 0) {
-                Spacer(Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Warning, null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.width(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(pluralStringResource(R.plurals.p1_unpriced, o.narxsiz ?: 0, o.narxsiz ?: 0), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.tertiary)
-                }
-            }
-        }
-    }
-}
-
-
