@@ -1,0 +1,8 @@
+[
+  { "nom": "f2", "kalit": "f2:5", "sql": "public._t2_disk_kalit_v1('f2', 5, 'f2_hujjat', 80, '2026-11', 'x.xlsx', null) <> 'f2:5'" },
+  { "nom": "f3", "kalit": "f3:9", "sql": "public._t2_disk_kalit_v1('forma3', 9, 'f3', 80, '2026-08', 'x.xlsx', null) <> 'f3:9'" },
+  { "nom": "nakopitelniy", "kalit": "nakopitelniy:80:2026-08", "sql": "public._t2_disk_kalit_v1(null, null, 'nakopitelniy', 80, '2026-08', 'x.xlsx', null) <> 'nakopitelniy:80:2026-08'" },
+  { "nom": "slichitelniy oysiz", "kalit": "slichitelniy:80:-", "sql": "public._t2_disk_kalit_v1(null, null, 'slichitelniy', 80, null, 'x.xlsx', null) <> 'slichitelniy:80:-'" },
+  { "nom": "vaqtincha f2", "kalit": "tmp:f2:80:36:2026-05", "sql": "public._t2_disk_vaqtincha_kalit_v1('f2_hujjat', 80, '36', null, '2026-05') <> 'tmp:f2:80:36:2026-05'" },
+  { "nom": "vaqtincha f3", "kalit": "tmp:f3:5:2026-08", "sql": "public._t2_disk_vaqtincha_kalit_v1('f3', null, null, 5, '2026-08') <> 'tmp:f3:5:2026-08'" }
+]

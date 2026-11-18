@@ -3,7 +3,7 @@
 do $$
 declare
   k bigint; a bigint; o bigint; sh bigint; l bigint; r1 bigint; r2 bigint; r3 bigint; r4 bigint; r5 bigint; r6 bigint; x jsonb; y jsonb; n integer; n0 integer; used0 bigint; kal text;
-  f1 bigint; p1 bigint; yol text; bt boolean; pid bigint; vsum bigint; k2 bigint; sha_a text := repeat('a', 64); sha_b text := repeat('b', 64); sha_c text := repeat('c', 64); sha_d text := repeat('d', 64);
+  f1 bigint; p1 bigint; yol text; bt boolean; r7 bigint; r8 bigint; r9 bigint; ft bigint; fc integer; pid bigint; vsum bigint; k2 bigint; sha_a text := repeat('a', 64); sha_b text := repeat('b', 64); sha_c text := repeat('c', 64); sha_d text := repeat('d', 64);
 begin
   -- 0. BACKFILL invarianti: har saqlangan hujjat t2_hm_versiya ga bog'langan yoki shu hujjatning bir xil sha256 li versiyasi bor; R2 ga tegilmagan
   select count(*) into n from public.t2_document_registry d where d.canonical_storage_status = 'stored'
@@ -115,5 +115,47 @@ begin
   perform public._t2_disk_tizim_yoz_ich_v1(0, d.kompaniya_id, d.id, null, null, null, null, null) from public.t2_document_registry d where d.canonical_storage_status = 'stored' and d.id not in (r1, r2, r3, r4, r5, r6);
   if (select count(*) from public.t2_hm_versiya where registry_id is not null) <> n then raise exception 'ACC8 backfill idempotent emas'; end if;
 
+  -- 9. KALIT NOMUVOFIQLIGI YO'Q: backfill A2 bilan BIR XIL kalit formatini ishlatadi; aniqlanmagan hujjat A2 da kalit kelganda O'SHA faylga versiya bo'lib ulanadi
+  -- 9a. kalit funksiyalari vektorlari (frontend/src/lib/disk-kalit-vektor.json bilan bir xil; vitest shu faylni tekshiradi)
+  if public._t2_disk_kalit_v1('f2', 5, 'f2_hujjat', 80, '2026-11', 'x.xlsx', null) <> 'f2:5' then raise exception 'ACC9 vektor f2'; end if;
+  if public._t2_disk_kalit_v1('forma3', 9, 'f3', 80, '2026-08', 'x.xlsx', null) <> 'f3:9' then raise exception 'ACC9 vektor f3'; end if;
+  if public._t2_disk_kalit_v1(null, null, 'nakopitelniy', 80, '2026-08', 'x.xlsx', null) <> 'nakopitelniy:80:2026-08' then raise exception 'ACC9 vektor nakopitelniy'; end if;
+  if public._t2_disk_kalit_v1(null, null, 'slichitelniy', 80, null, 'x.xlsx', null) <> 'slichitelniy:80:-' then raise exception 'ACC9 vektor slichitelniy'; end if;
+  if public._t2_disk_vaqtincha_kalit_v1('f2_hujjat', 80, '36', null, '2026-05') <> 'tmp:f2:80:36:2026-05' then raise exception 'ACC9 vektor tmp f2'; end if;
+  if public._t2_disk_vaqtincha_kalit_v1('f3', null, null, 5, '2026-08') <> 'tmp:f3:5:2026-08' then raise exception 'ACC9 vektor tmp f3'; end if;
+  if public._t2_disk_raqam_v1('Obyekt_' || chr(8470) || '1_AKT_F-2_' || chr(8470) || '36_2026-05.xlsx') <> '36' or public._t2_disk_raqam_v1('SINOV_F-2_2026-11.xlsx') is not null then raise exception 'ACC9 raqam'; end if;
+  -- 9b. backfill qilingan haqiqiy kalitlar akt/forma3 ga mos (aniqlanmaganlari vaqtinchalik)
+  if exists (select 1 from public.t2_hm_fayl f where f.hujjat_kalit ~ '^f2:\d+$' and (f.manba_turi <> 'f2' or not exists (select 1 from public.t2_akt a where a.id = substr(f.hujjat_kalit, 4)::bigint and a.kompaniya_id = f.kompaniya_id))) then raise exception 'ACC9 f2 kalit akt_id ga mos emas'; end if;
+  if exists (select 1 from public.t2_hm_fayl f where f.hujjat_kalit ~ '^f3:\d+$' and (f.manba_turi <> 'forma3' or not exists (select 1 from public.t2_forma3 a where a.id = substr(f.hujjat_kalit, 4)::bigint and a.kompaniya_id = f.kompaniya_id))) then raise exception 'ACC9 f3 kalit forma3_id ga mos emas'; end if;
+  -- 9c. F-2: backfill (kalit berilmaydi) aniqlay olmasa vaqtinchalik kalit; keyin A2 haqiqiy kalit bilan keladi -> shu fayl, yangi versiya, yangi fayl YO'Q
+  select count(*) into fc from public.t2_hm_fayl where kompaniya_id = k;
+  insert into public.t2_document_registry(kompaniya_id, obyekt_id, document_type, revision, original_filename, size_bytes, sha256, revision_seq, canonical_storage_status, status, finalized_at, r2_key, actor_id)
+  values (k, o, 'f2_hujjat', '2027-01', 'ACC_AKT_F-2_' || chr(8470) || '9991_2027-01.xlsx', 400, repeat('1', 64), 99201, 'stored', 'active', now() - interval '3 hour', 'docs/acc/t1', a) returning id into r7;
+  x := public._t2_disk_tizim_yoz_ich_v1(0, k, r7, null, null, null, null, null);
+  ft := (x->>'fayl_id')::bigint;
+  if x->>'kalit' <> 'tmp:f2:' || o || ':9991:2027-01' then raise exception 'ACC9 vaqtinchalik f2 kalit %', x; end if;
+  insert into public.t2_document_registry(kompaniya_id, obyekt_id, document_type, revision, original_filename, size_bytes, sha256, revision_seq, canonical_storage_status, status, finalized_at, r2_key, actor_id)
+  values (k, o, 'f2_hujjat', '2027-01', 'ACC_AKT_F-2_' || chr(8470) || '9991_2027-01.xlsx', 450, repeat('2', 64), 99202, 'stored', 'active', now() - interval '2 hour', 'docs/acc/t2', a) returning id into r8;
+  x := public.t2_disk_tizim_yoz_v1(a, k, r8, 'f2', 880001, 'f2:880001', null, null);
+  if (x->>'fayl_id')::bigint <> ft or (x->>'raqam')::int <> 2 or (x->>'yangi')::boolean is not false then raise exception 'ACC9 F-2: yangi fayl yaratildi yoki versiya bo''lib ulanmadi %', x; end if;
+  select 1 into n from public.t2_hm_fayl where id = ft and hujjat_kalit = 'f2:880001' and manba_id = 880001 and manba_turi = 'f2';
+  if n is null then raise exception 'ACC9 F-2 fayl qayta kalitlanmadi'; end if;
+  insert into public.t2_document_registry(kompaniya_id, obyekt_id, document_type, revision, original_filename, size_bytes, sha256, revision_seq, canonical_storage_status, status, finalized_at, r2_key, actor_id)
+  values (k, o, 'f2_hujjat', '2027-01', 'ACC_AKT_F-2_' || chr(8470) || '9991_2027-01.xlsx', 470, repeat('3', 64), 99203, 'stored', 'active', now() - interval '1 hour', 'docs/acc/t3', a) returning id into r9;
+  x := public.t2_disk_tizim_yoz_v1(a, k, r9, 'f2', 880001, 'f2:880001', null, null);
+  if (x->>'fayl_id')::bigint <> ft or (x->>'raqam')::int <> 3 then raise exception 'ACC9 F-2 uchinchi versiya %', x; end if;
+  if (select count(*) from public.t2_hm_fayl where kompaniya_id = k) <> fc + 1 then raise exception 'ACC9 F-2 uchun bittadan ortiq fayl yaratildi'; end if;
+  -- 9d. F-3: shartnoma bo'yicha vaqtinchalik kalit -> forma3_id bilan ulanadi
+  insert into public.t2_document_registry(kompaniya_id, obyekt_id, document_type, revision, original_filename, size_bytes, sha256, revision_seq, canonical_storage_status, status, finalized_at, r2_key, actor_id)
+  values (k, o, 'f3', '2027-01', 'acc_f3_2027-01.xlsx', 300, repeat('4', 64), 99204, 'stored', 'active', now() - interval '2 hour', 'docs/acc/t4', a) returning id into r7;
+  x := public._t2_disk_tizim_yoz_ich_v1(0, k, r7, null, null, null, null, null);
+  ft := (x->>'fayl_id')::bigint;
+  if x->>'kalit' <> 'tmp:f3:' || sh || ':2027-01' then raise exception 'ACC9 vaqtinchalik f3 kalit %', x; end if;
+  insert into public.t2_document_registry(kompaniya_id, obyekt_id, document_type, revision, original_filename, size_bytes, sha256, revision_seq, canonical_storage_status, status, finalized_at, r2_key, actor_id)
+  values (k, o, 'f3', '2027-01', 'acc_f3_2027-01_qayta.xlsx', 320, repeat('5', 64), 99205, 'stored', 'active', now() - interval '1 hour', 'docs/acc/t5', a) returning id into r8;
+  x := public.t2_disk_tizim_yoz_v1(a, k, r8, 'forma3', 880002, 'f3:880002', sh, null);
+  if (x->>'fayl_id')::bigint <> ft or (x->>'raqam')::int <> 2 then raise exception 'ACC9 F-3 forma3_id bilan ulanmadi %', x; end if;
+  select 1 into n from public.t2_hm_fayl where id = ft and hujjat_kalit = 'f3:880002' and manba_id = 880002 and manba_turi = 'forma3';
+  if n is null then raise exception 'ACC9 F-3 fayl qayta kalitlanmadi'; end if;
   raise notice 'ACC OK: t2_disk_daraxt_a1_v1 (K=%, A=%, O=%, SH=%, backfill versiyalar=%)', k, a, o, sh, n0;
 end $$;

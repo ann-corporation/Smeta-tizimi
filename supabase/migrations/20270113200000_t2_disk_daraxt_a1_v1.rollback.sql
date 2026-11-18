@@ -3,7 +3,10 @@
 delete from public.t2_hm_ulashish where nishon_turi = 'fayl' and nishon_id in (select id from public.t2_hm_fayl where hujjat_kalit is not null);
 delete from public.t2_hm_faoliyat where fayl_id in (select id from public.t2_hm_fayl where hujjat_kalit is not null);
 delete from public.t2_hm_fayl where hujjat_kalit is not null;
-delete from public.t2_fayl_papka where tizim = true and tizim_kalit is not null and not exists (select 1 from public.t2_hm_fayl f where f.papka_id = t2_fayl_papka.id);
+do $rb$ declare n integer; begin loop
+  delete from public.t2_fayl_papka p where p.tizim and not exists (select 1 from public.t2_fayl_papka c where c.ota_id = p.id) and not exists (select 1 from public.t2_hm_fayl f where f.papka_id = p.id);
+  get diagnostics n = row_count; exit when n = 0;
+end loop; end $rb$;
 update public.t2_fayl_papka set tizim = false where tizim = true;
 
 create or replace function public.t2_hm_papka_amal_v1(p_actor bigint, p_kompaniya bigint, p_amal text, p_papka_id bigint default null, p_nom text default null, p_ota_id bigint default null)
@@ -144,7 +147,12 @@ end $$;
 drop function if exists public.t2_disk_tizim_yoz_v1(bigint, bigint, bigint, text, bigint, text, bigint, text);
 drop function if exists public._t2_disk_tizim_yoz_ich_v1(bigint, bigint, bigint, text, bigint, text, bigint, text);
 drop function if exists public._t2_disk_nom_v1(public.t2_document_registry, text, text);
-drop function if exists public._t2_disk_kalit_v1(public.t2_document_registry, bigint);
+drop function if exists public._t2_disk_manba_v1(public.t2_document_registry, bigint);
+drop function if exists public._t2_disk_f3_v1(bigint, bigint, text);
+drop function if exists public._t2_disk_f2_akt_v1(bigint, bigint, text, text);
+drop function if exists public._t2_disk_raqam_v1(text);
+drop function if exists public._t2_disk_vaqtincha_kalit_v1(text, bigint, text, bigint, text);
+drop function if exists public._t2_disk_kalit_v1(text, bigint, text, bigint, text, text, text);
 drop function if exists public._t2_disk_oy_v1(public.t2_document_registry);
 drop function if exists public._t2_disk_shartnoma_v1(bigint, bigint);
 drop function if exists public._t2_disk_yol_v1(bigint, bigint, bigint, bigint, text, text, text, bigint);

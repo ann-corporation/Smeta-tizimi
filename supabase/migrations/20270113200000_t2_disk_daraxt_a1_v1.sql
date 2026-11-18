@@ -97,16 +97,68 @@ create or replace function public._t2_disk_oy_v1(d public.t2_document_registry)
 returns text language sql immutable as $$
   select case when d.revision ~ '^\d{4}-\d{2}' then left(d.revision, 7) when d.original_filename ~ '^\d{4}-\d{2}__' then left(d.original_filename, 7) end $$;
 
--- Hujjat kaliti (bir hujjat = bitta kalit). f2_akt: obyekt + akt raqami; smeta*: obyekt + slot/nom; nashr: sanasiz nom; f3: shartnoma + oy;
--- qolganlari: tur + obyekt + oy. (Yangi hujjatlar kalitni chaqiruvchidan oladi: F-2 = akt_id, F-3 = forma3_id.)
-create or replace function public._t2_disk_kalit_v1(d public.t2_document_registry, p_shartnoma bigint)
+-- ---- KALIT FORMATI (yagona manba: SQL shu yerda, TS - frontend/src/lib/disk-hujjat.ts; ikkalasi bir xil vektorlar bilan tekshiriladi) ----
+--   F-2 (generatsiya qilingan akt hujjati)  : f2:<akt_id>
+--   F-3 (shartnoma darajasidagi hujjat)     : f3:<forma3_id>
+--   oylik/obyekt hujjatlari                 : <tur>:<obyekt_id>:<YYYY-MM | ->      (nakopitelniy, m29, slichitelniy, ostatka, aosr)
+--   importlangan F-2 manba fayli            : f2_akt:<obyekt_id>:<akt raqami>
+--   smeta*                                  : <document_type>:<obyekt_id>:<slot | fayl nomi>;   nashr: nashr:<obyekt_id>:<sanasiz nom>
+--   VAQTINCHALIK (akt/forma3 aniqlanmagan)  : tmp:f2:<obyekt_id>:<raqam | ->:<YYYY-MM | ->   va   tmp:f3:<shartnoma_id | 0>:<YYYY-MM | ->
+-- Vaqtinchalik kalitli fayl A2 da haqiqiy kalit (f2:<akt_id> / f3:<forma3_id>) kelganda o'sha faylga ULANADI (qayta kalitlanadi) - yangi fayl yaratilmaydi.
+create or replace function public._t2_disk_kalit_v1(p_manba_turi text, p_manba_id bigint, p_tur text, p_obyekt bigint, p_oy text, p_nom text, p_slot text)
 returns text language sql immutable as $$
   select left(case
-    when d.document_type = 'f2_akt' and d.original_filename ~ '^\d{4}-\d{2}__[^_]' then 'f2_akt:' || coalesce(d.obyekt_id, 0) || ':' || split_part(d.original_filename, '__', 2)
-    when d.document_type in ('smeta', 'smeta_lrv', 'smeta_res') then d.document_type || ':' || coalesce(d.obyekt_id, 0) || ':' || coalesce(d.source_slot_key, d.original_filename, d.id::text)
-    when d.document_type = 'nashr' then 'nashr:' || coalesce(d.obyekt_id, 0) || ':' || regexp_replace(regexp_replace(coalesce(d.original_filename, d.id::text), '\.[A-Za-z0-9]+$', ''), '[_ -]?\d{4}-\d{2}-\d{2}', '', 'g')
-    when d.document_type = 'f3' then 'f3:sh' || coalesce(p_shartnoma, 0) || ':' || coalesce(public._t2_disk_oy_v1(d), '-')
-    else d.document_type || ':' || coalesce(d.obyekt_id, 0) || ':' || coalesce(public._t2_disk_oy_v1(d), '-') end, 240) $$;
+    when lower(coalesce(p_manba_turi, '')) = 'f2' and p_manba_id is not null then 'f2:' || p_manba_id
+    when lower(coalesce(p_manba_turi, '')) in ('forma3', 'f3') and p_manba_id is not null then 'f3:' || p_manba_id
+    when p_tur in ('nakopitelniy', 'm29', 'slichitelniy', 'ostatka', 'aosr') then p_tur || ':' || coalesce(p_obyekt, 0) || ':' || coalesce(p_oy, '-')
+    when p_tur = 'f2_akt' and p_nom ~ '^\d{4}-\d{2}__[^_]' then 'f2_akt:' || coalesce(p_obyekt, 0) || ':' || split_part(p_nom, '__', 2)
+    when p_tur in ('smeta', 'smeta_lrv', 'smeta_res') then p_tur || ':' || coalesce(p_obyekt, 0) || ':' || coalesce(p_slot, p_nom)
+    when p_tur = 'nashr' then 'nashr:' || coalesce(p_obyekt, 0) || ':' || regexp_replace(regexp_replace(coalesce(p_nom, ''), '\.[A-Za-z0-9]+$', ''), '[_ -]?\d{4}-\d{2}-\d{2}', '', 'g')
+    else p_tur || ':' || coalesce(p_obyekt, 0) || ':' || coalesce(p_oy, '-') end, 240) $$;
+
+create or replace function public._t2_disk_vaqtincha_kalit_v1(p_tur text, p_obyekt bigint, p_raqam text, p_shartnoma bigint, p_oy text)
+returns text language sql immutable as $$
+  select case p_tur when 'f2_hujjat' then 'tmp:f2:' || coalesce(p_obyekt, 0) || ':' || coalesce(nullif(p_raqam, ''), '-') || ':' || coalesce(p_oy, '-')
+                    when 'f3' then 'tmp:f3:' || coalesce(p_shartnoma, 0) || ':' || coalesce(p_oy, '-') end $$;
+
+-- Fayl nomidan F-2 akt raqami ("..._№36_2026-05.xlsx"); '№' = U+2116.
+create or replace function public._t2_disk_raqam_v1(p_nom text)
+returns text language sql immutable as $$
+  select substring(p_nom from U&'!2116([^_]+)_\d{4}-\d{2}\.[A-Za-z0-9]+$' UESCAPE '!') $$;
+
+-- Akt/forma3 ni aniqlash: FAQAT bitta mos yozuv bo'lsa; aks holda NULL (vaqtinchalik kalit).
+create or replace function public._t2_disk_f2_akt_v1(p_kompaniya bigint, p_obyekt bigint, p_raqam text, p_oy text)
+returns bigint language sql stable security definer set search_path = public, pg_temp as $$
+  select case when count(*) = 1 then min(a.id) end from public.t2_akt a
+   where a.kompaniya_id = p_kompaniya and a.obyekt_id = p_obyekt and a.tur = 'f2' and a.holat is distinct from 'bekor'
+     and (p_raqam is null or a.raqam = p_raqam) and (p_oy is null or to_char(a.oy, 'YYYY-MM') = p_oy) $$;
+
+create or replace function public._t2_disk_f3_v1(p_kompaniya bigint, p_shartnoma bigint, p_oy text)
+returns bigint language sql stable security definer set search_path = public, pg_temp as $$
+  select case when count(*) = 1 then min(f.id) end from public.t2_forma3 f
+   where f.kompaniya_id = p_kompaniya and p_shartnoma is not null and f.shartnoma_id = p_shartnoma and p_oy is not null
+     and to_char(f.davr_oxiri, 'YYYY-MM') = p_oy and f.holat is distinct from 'bekor' $$;
+
+-- Registry qatori uchun (kalit, manba_turi, manba_id): akt/forma3 aniqlansa haqiqiy kalit, aks holda vaqtinchalik.
+create or replace function public._t2_disk_manba_v1(d public.t2_document_registry, p_shartnoma bigint)
+returns jsonb language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare v_oy text := public._t2_disk_oy_v1(d); v_raqam text := public._t2_disk_raqam_v1(d.original_filename); v_id bigint;
+begin
+  if d.document_type = 'f2_hujjat' then
+    v_id := public._t2_disk_f2_akt_v1(d.kompaniya_id, d.obyekt_id, v_raqam, v_oy);
+    if v_id is not null then return jsonb_build_object('kalit', public._t2_disk_kalit_v1('f2', v_id, d.document_type, d.obyekt_id, v_oy, d.original_filename, d.source_slot_key), 'turi', 'f2', 'id', v_id); end if;
+    return jsonb_build_object('kalit', public._t2_disk_vaqtincha_kalit_v1('f2_hujjat', d.obyekt_id, v_raqam, null, v_oy), 'turi', 'f2', 'id', null);
+  elsif d.document_type = 'f3' then
+    v_id := public._t2_disk_f3_v1(d.kompaniya_id, p_shartnoma, v_oy);
+    if v_id is not null then return jsonb_build_object('kalit', public._t2_disk_kalit_v1('forma3', v_id, d.document_type, d.obyekt_id, v_oy, d.original_filename, d.source_slot_key), 'turi', 'forma3', 'id', v_id); end if;
+    return jsonb_build_object('kalit', public._t2_disk_vaqtincha_kalit_v1('f3', d.obyekt_id, null, p_shartnoma, v_oy), 'turi', 'forma3', 'id', null);
+  elsif d.document_type = 'f2_akt' then
+    v_id := public._t2_disk_f2_akt_v1(d.kompaniya_id, d.obyekt_id, nullif(ltrim(split_part(d.original_filename, '__', 2), '0'), ''), left(d.original_filename, 7));
+    return jsonb_build_object('kalit', public._t2_disk_kalit_v1(null, null, d.document_type, d.obyekt_id, v_oy, d.original_filename, d.source_slot_key), 'turi', 'f2_akt', 'id', v_id);
+  end if;
+  return jsonb_build_object('kalit', public._t2_disk_kalit_v1(null, null, d.document_type, d.obyekt_id, v_oy, d.original_filename, d.source_slot_key),
+    'turi', case d.document_type when 'smeta_lrv' then 'smeta' when 'smeta_res' then 'smeta' else left(regexp_replace(lower(d.document_type), '[^a-z0-9_]+', '_', 'g'), 40) end, 'id', null);
+end $$;
 
 -- Ko'rinadigan nom (Latin; '№' = chr(8470), '—' = chr(8212)); noma'lum tur - asl fayl nomi.
 create or replace function public._t2_disk_nom_v1(d public.t2_document_registry, p_obyekt_nom text, p_shartnoma_raqam text)
@@ -119,11 +171,13 @@ returns text language sql immutable as $$
     end, d.original_filename, 'hujjat-' || d.id), 200) $$;
 
 -- YAGONA yozuvchi (a'zolik tekshiruvisiz ichki shakl: backfill va server avtoarxiv). Qayta chaqirish xavfsiz (idempotent).
+-- Kalit berilmasa registry qatoridan aniqlanadi (_t2_disk_manba_v1). Haqiqiy kalit (f2:<akt_id> / f3:<forma3_id>) kelganda va shu kalitli fayl yo'q bo'lsa,
+-- shu hujjatning VAQTINCHALIK kalitli (tmp:...) fayli qidiriladi va bo'lsa o'sha faylga ULANADI (qayta kalitlanadi): yangi fayl yaratilmaydi.
 create or replace function public._t2_disk_tizim_yoz_ich_v1(p_actor bigint, p_kompaniya bigint, p_registry_id bigint, p_manba_turi text, p_manba_id bigint,
   p_hujjat_kalit text, p_shartnoma_id bigint, p_nom text)
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
-declare d public.t2_document_registry%rowtype; f public.t2_hm_fayl%rowtype; v public.t2_hm_versiya%rowtype; v_sh bigint; v_kalit text; v_tur text; v_daraja text; v_leaf bigint;
-  v_onom text; v_shraqam text; v_nom text; v_sha text; v_bayt bigint; v_raqam integer; v_yangi boolean := false; v_mime text;
+declare d public.t2_document_registry%rowtype; f public.t2_hm_fayl%rowtype; v public.t2_hm_versiya%rowtype; v_sh bigint; v_kalit text; v_tur text; v_mid bigint; v_daraja text; v_leaf bigint;
+  v_onom text; v_shraqam text; v_nom text; v_sha text; v_bayt bigint; v_raqam integer; v_yangi boolean := false; v_mime text; v_man jsonb; v_tmp text; v_oy text;
 begin
   select * into d from public.t2_document_registry where id = p_registry_id and kompaniya_id = p_kompaniya and canonical_storage_status = 'stored';
   if not found then return jsonb_build_object('ok', false, 'code', 'HUJJAT_TOPILMADI'); end if;
@@ -135,29 +189,40 @@ begin
   if v_sh is null and d.obyekt_id is not null then v_sh := public._t2_disk_shartnoma_v1(p_kompaniya, d.obyekt_id); end if;
   select o.nom into v_onom from public.t2_obyekt o where o.id = d.obyekt_id and o.kompaniya_id = p_kompaniya;
   select s.raqam into v_shraqam from public.t2_shartnoma s where s.id = v_sh;
-  v_kalit := coalesce(nullif(btrim(coalesce(p_hujjat_kalit, '')), ''), public._t2_disk_kalit_v1(d, v_sh));
-  v_tur := coalesce(nullif(lower(btrim(coalesce(p_manba_turi, ''))), ''),
-                    case d.document_type when 'f2_hujjat' then 'f2' when 'f3' then 'forma3' when 'smeta_lrv' then 'smeta' when 'smeta_res' then 'smeta'
-                      else left(regexp_replace(lower(d.document_type), '[^a-z0-9_]+', '_', 'g'), 40) end);
+  v_oy := public._t2_disk_oy_v1(d);
+  v_man := public._t2_disk_manba_v1(d, v_sh);
+  v_kalit := coalesce(nullif(btrim(coalesce(p_hujjat_kalit, '')), ''), v_man->>'kalit');
+  v_tur := coalesce(nullif(lower(btrim(coalesce(p_manba_turi, ''))), ''), v_man->>'turi');
+  v_mid := coalesce(p_manba_id, nullif(v_man->>'id', '')::bigint);
   v_daraja := case when v_tur in ('forma3', 'f3', 'sverka', 'oylik_paket', 'shartnoma_oylik_paket', 'shartnoma_svod') or d.document_type in ('f3', 'sverka', 'shartnoma_oylik_paket') then 'shartnoma' else 'obyekt' end;
 
   select * into f from public.t2_hm_fayl where kompaniya_id = p_kompaniya and hujjat_kalit = v_kalit for update;
+  if not found and v_kalit !~ '^tmp:' then
+    -- haqiqiy kalit keldi: shu hujjatning vaqtinchalik kalitli fayli bormi? (A1 backfill aniqlay olmagan hujjat) - o'shanga ulanamiz
+    v_tmp := public._t2_disk_vaqtincha_kalit_v1(d.document_type, d.obyekt_id, public._t2_disk_raqam_v1(d.original_filename), v_sh, v_oy);
+    if v_tmp is not null then
+      select * into f from public.t2_hm_fayl where kompaniya_id = p_kompaniya and hujjat_kalit = v_tmp for update;
+      if found then
+        update public.t2_hm_fayl set hujjat_kalit = v_kalit, manba_id = coalesce(v_mid, manba_id), manba_turi = coalesce(v_tur, manba_turi) where id = f.id returning * into f;
+      end if;
+    end if;
+  end if;
   v_sha := case when d.sha256 ~ '^[0-9a-f]{64}$' then d.sha256 else encode(sha256(convert_to(coalesce(d.blob_key, d.r2_key, d.id::text), 'UTF8')), 'hex') end;
   v_bayt := greatest(coalesce(nullif(d.size_bytes, 0), nullif(d.expected_size_bytes, 0), 1), 1);
   v_mime := coalesce(nullif(btrim(d.mime_type), ''), 'application/octet-stream');
-  if found then
+  if f.id is not null then
     -- bir xil mazmun allaqachon shu hujjatning versiyasi: yangi versiya qo'shilmaydi
     if exists (select 1 from public.t2_hm_versiya x where x.fayl_id = f.id and x.sha256 = v_sha) then
       return jsonb_build_object('ok', true, 'takror', true, 'fayl_id', f.id, 'dedup', true);
     end if;
   else
-    v_leaf := public._t2_disk_yol_v1(p_kompaniya, d.loyiha_id, v_sh, d.obyekt_id, v_daraja, d.document_type, public._t2_disk_oy_v1(d), p_actor);
+    v_leaf := public._t2_disk_yol_v1(p_kompaniya, d.loyiha_id, v_sh, d.obyekt_id, v_daraja, d.document_type, v_oy, p_actor);
     v_nom := left(coalesce(nullif(btrim(coalesce(p_nom, '')), ''), public._t2_disk_nom_v1(d, v_onom, v_shraqam)), 200);
     if exists (select 1 from public.t2_hm_fayl x where x.kompaniya_id = p_kompaniya and x.papka_id is not distinct from v_leaf and lower(x.nom) = lower(v_nom) and x.savatda is null) then
       v_nom := left(v_nom, 180) || ' (#' || d.id || ')';
     end if;
     insert into public.t2_hm_fayl(kompaniya_id, papka_id, nom, mime, yaratdi_id, yaratildi, yangilandi, manba_turi, manba_id, hujjat_kalit)
-    values (p_kompaniya, v_leaf, v_nom, v_mime, coalesce(nullif(p_actor, 0), d.actor_id, 0), coalesce(d.finalized_at, d.created_at, now()), coalesce(d.finalized_at, d.created_at, now()), v_tur, p_manba_id, v_kalit)
+    values (p_kompaniya, v_leaf, v_nom, v_mime, coalesce(nullif(p_actor, 0), d.actor_id, 0), coalesce(d.finalized_at, d.created_at, now()), coalesce(d.finalized_at, d.created_at, now()), v_tur, v_mid, v_kalit)
     returning * into f;
     v_yangi := true;
   end if;
@@ -166,12 +231,12 @@ begin
   values (f.id, v_raqam, coalesce(d.blob_key, d.r2_key, 'registry/' || d.id), v_bayt, v_sha, v_mime, 'tayyor', coalesce(d.actor_id, nullif(p_actor, 0), 0), coalesce(d.finalized_at, d.created_at, now()), true, d.id)
   returning * into v;
   update public.t2_hm_fayl set joriy_versiya_id = v.id, mime = v_mime, yangilandi = now(),
-         manba_turi = coalesce(manba_turi, v_tur), manba_id = coalesce(p_manba_id, manba_id)
+         manba_turi = coalesce(manba_turi, v_tur), manba_id = coalesce(v_mid, manba_id)
    where id = f.id;
   if p_actor > 0 then
     perform public._t2_hm_log_v1(p_kompaniya, null, f.id, p_actor, case when v_yangi then 'tizim_hujjat' else 'yangi_versiya' end, left(f.nom, 200) || ' v' || v_raqam);
   end if;
-  return jsonb_build_object('ok', true, 'fayl_id', f.id, 'versiya_id', v.id, 'raqam', v_raqam, 'papka_id', f.papka_id, 'yangi', v_yangi);
+  return jsonb_build_object('ok', true, 'fayl_id', f.id, 'versiya_id', v.id, 'raqam', v_raqam, 'papka_id', f.papka_id, 'yangi', v_yangi, 'kalit', (select hujjat_kalit from public.t2_hm_fayl where id = f.id));
 end $$;
 
 -- Tashqi shakl (server avtoarxiv): a'zolik tekshiriladi.
@@ -332,7 +397,7 @@ begin
   -- Eski fayl menejeridagi foydalanuvchi o'zgarishlari (nom, o'z papkasi, savat) yo'qolmasin.
   for j in select jj.*, d as dd from public.t2_fayl_joy jj join public.t2_document_registry d on d.id = jj.document_id and d.canonical_storage_status = 'stored' loop
     select f.id into v_f from public.t2_hm_fayl f where f.kompaniya_id = j.kompaniya_id
-       and f.hujjat_kalit = public._t2_disk_kalit_v1(j.dd, public._t2_disk_shartnoma_v1(j.kompaniya_id, (j.dd).obyekt_id));
+       and f.hujjat_kalit = public._t2_disk_manba_v1(j.dd, public._t2_disk_shartnoma_v1(j.kompaniya_id, (j.dd).obyekt_id))->>'kalit';
     continue when v_f is null;
     begin if j.nom is not null then update public.t2_hm_fayl set nom = left(j.nom, 200) where id = v_f; end if;
     exception when unique_violation then null; end;
@@ -345,7 +410,7 @@ end $bf$;
 do $g$ declare s text; begin
   foreach s in array array['_t2_disk_tur_nom_v1(text)', '_t2_disk_papka_v1(bigint, bigint, text, text, bigint)',
     '_t2_disk_yol_v1(bigint, bigint, bigint, bigint, text, text, text, bigint)', '_t2_disk_shartnoma_v1(bigint, bigint)', '_t2_disk_oy_v1(t2_document_registry)',
-    '_t2_disk_kalit_v1(t2_document_registry, bigint)', '_t2_disk_nom_v1(t2_document_registry, text, text)',
+    '_t2_disk_kalit_v1(text, bigint, text, bigint, text, text, text)', '_t2_disk_vaqtincha_kalit_v1(text, bigint, text, bigint, text)', '_t2_disk_raqam_v1(text)', '_t2_disk_f2_akt_v1(bigint, bigint, text, text)', '_t2_disk_f3_v1(bigint, bigint, text)', '_t2_disk_manba_v1(t2_document_registry, bigint)', '_t2_disk_nom_v1(t2_document_registry, text, text)',
     '_t2_disk_tizim_yoz_ich_v1(bigint, bigint, bigint, text, bigint, text, bigint, text)', 't2_disk_tizim_yoz_v1(bigint, bigint, bigint, text, bigint, text, bigint, text)',
     't2_hm_papka_amal_v1(bigint, bigint, text, bigint, text, bigint)', 't2_hm_royxat_v1(bigint, bigint, bigint, boolean)',
     't2_hm_tozala_ol_v1(bigint, bigint, integer)', 't2_hm_bosh_ol_v1(bigint, bigint, text)'] loop
