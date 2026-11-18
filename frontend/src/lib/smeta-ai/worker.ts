@@ -266,7 +266,7 @@ export function avtoTanlov(k: AiKatalog, ish: Pick<IshNiyati, 'qidiruv' | 'birli
  */
 export function kichikNomzodlar(ish: Pick<AiIsh, 'nomzodlar' | 'tanlangan'>, max = 3): TanlovNomzodi[] {
   const chosen = ish.tanlangan ? ish.nomzodlar.find(n => n.id === ish.tanlangan!.workId) : null;
-  const rest = ish.nomzodlar.filter(n => n.id !== chosen?.id && n.ishonch != null);
+  const rest = ish.nomzodlar.filter(n => n.id !== chosen?.id && (n.ishonch != null || n.shnq));
   return [...(chosen ? [chosen] : []), ...rest].slice(0, max);
 }
 
@@ -350,7 +350,9 @@ export type QoshishNatija = { commands: StudioCommand[]; qoshildi: string[]; otk
 export function tanlovDalili(ish: AiIsh, k: AiKatalog): string | null {
   const n = ish.tanlangan;
   if (!n) return null;
+  const shnq = ish.nomzodlar.find(candidate => candidate.id === n.workId)?.shnq;
   return [`Katalog: ${k.manifest.revision}; norma: ${n.kod}; birlik: ${n.birlik ?? 'noma’lum'}.`,
+    ...(shnq ? [`ShNQ: ${shnq.code}, ${shnq.table}${shnq.page ? `, PDF ${shnq.page}` : ''}.`] : []),
     `Ish: ${n.nom}. Qidiruv: ${ish.qidiruv.join('; ')}.`,
     ish.material ? `Talab qilingan material: ${ish.material}.` : 'Material xarakteristikasi ko‘rsatilmagan.',
     n.sabab ? `Tanlash sababi: ${n.sabab}.` : 'Tanlash sababi berilmagan — qo‘lda tekshiring.',
