@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from '../umumiy/ui/Toast';
+import { tasdiqSora } from '../umumiy/ui/Tasdiq';
 import { t } from '../i18n/til';
 import { hmAdmin, hmBosh, hmHajm, hmSozlama, hmSozlamaYoz, type HmAdmin } from '../api/t2-hujjat-maydoni';
 
@@ -22,7 +23,7 @@ export function AdminPanel({ kompaniyaId }: { kompaniyaId: number }) {
   if (xato) return <p className="text-[13px]" role="alert">{xato}</p>;
   if (!a) return <p className="text-[12px] text-text-mute">{t('Yuklanmoqda…')}</p>;
   const bosh = async (tur: 'savat' | 'eski_versiyalar') => {
-    if (!window.confirm(tur === 'savat' ? t('Savat butunlay bo‘shatilsinmi? Bu qaytarilmaydi.') : t('Eski versiyalar o‘chirilsinmi? Faqat joriy versiyalar qoladi.'))) return;
+    if (!(await tasdiqSora({ matn: tur === 'savat' ? t('Savat butunlay bo‘shatilsinmi? Bu qaytarilmaydi.') : t('Eski versiyalar o‘chirilsinmi? Faqat joriy versiyalar qoladi.') }))) return;
     const r = await hmBosh(kompaniyaId, tur); if (!r.ok) toast(r.xato ?? r.code, 'danger'); else { toast(t('Joy bo‘shatildi'), 'ok'); void yangila(); }
   };
   const sozYoz = async (p: { havolaRuxsat?: boolean; ortiqcha?: boolean }) => { const r = await hmSozlamaYoz(kompaniyaId, p); if (!r.ok) toast(r.xato ?? r.code, 'danger'); else void yangila(); };

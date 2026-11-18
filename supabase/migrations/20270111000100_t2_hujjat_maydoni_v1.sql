@@ -1047,6 +1047,11 @@ begin
   return jsonb_build_object('ok', true, 'tg_file_id', k.tg_file_id, 'nom', k.nom, 'mime', k.mime, 'bayt', k.bayt);
 end $$;
 
+-- Saqlash siyosati reyestri (TS: functions/_shared/arxiv-siyosat.ts bilan mos bo'lishi shart)
+insert into public.t2_arxiv_siyosat (jadval, rejim, saqlash_kun, kalit, kalit_tur, vaqt, shart_ustun, shart_emas, format, tiklash, izoh) values
+  ('t2_hm_versiya', 'saqlanadi', null, null, null, null, null, null, '-', '-', 'Hujjat maydoni fayl versiyalari: faqat metama''lumot (baytlar R2 da); foydalanuvchi versiyani o''chirguncha yoki fayl savatda 30 kun turgach tozalanadi - sovuq arxivga o''tkazilmaydi')
+on conflict (jadval) do nothing;
+
 -- ---------------------------------------------------------------- huquqlar
 do $g$ declare s text; begin
   foreach s in array array[

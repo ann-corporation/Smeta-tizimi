@@ -44,4 +44,4 @@ delete from public.t2_fayl_papka where egasi_foydalanuvchi_id is not null;
 alter table public.t2_fayl_papka drop constraint if exists t2_fayl_papka_egasi_chk;
 drop index if exists public.t2_fayl_papka_shaxsiy_nom_uq;
 alter table public.t2_fayl_papka drop column if exists egasi_foydalanuvchi_id;
-alter table public.t2_fayl_papka alter column kompaniya_id set not null;
+alter table public.t2_fayl_papka alter column kompaniya_id set not null;delete from public.t2_arxiv_siyosat where jadval = 't2_hm_versiya';

@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Lock, Unlock, X } from 'lucide-react';
 import { toast } from '../umumiy/ui/Toast';
+import { matnSora } from '../umumiy/ui/Tasdiq';
 import { t, tilLocale } from '../i18n/til';
 import {
   hmDarajaNomi, hmFaoliyat, type FaylOp, hmFaylAmal, hmHajm, hmIzohlar, hmIzohYoz, hmOdamlar, hmOlUrl, hmUlash, hmUlashBekor, hmUlashRoyxat, hmVersiyalar,
@@ -45,7 +46,7 @@ export function FaylYon(p: {
     const r = await hmFaylAmal(fayl.id, op, q);
     if (!r.ok) toast(r.code === 'QULFLANGAN' ? t('Fayl boshqa foydalanuvchi tomonidan tahrir uchun qulflangan.') : xm(r), 'danger'); else { p.onOzgardi(); void yukla(); }
   };
-  const nomla = () => { const n = window.prompt(t('Yangi nom'), fayl.nom); if (n && n !== fayl.nom) void amal('nomla', { nom: n }); };
+  const nomla = async () => { const n = await matnSora({ matn: t('Yangi nom'), boshlangich: fayl.nom, majburiy: true }); if (n && n !== fayl.nom) void amal('nomla', { nom: n }); };
   const yozaOladi = daraja >= 3;
   const izohYoz = async () => {
     if (!matn.trim()) return;
@@ -65,7 +66,7 @@ export function FaylYon(p: {
         <button type="button" aria-label={t('Yopish')} onClick={p.onYop}><X size={16} /></button></div>
       {yozaOladi && (
         <div className="mt-2 flex flex-wrap gap-1.5">
-          <button type="button" className="fz-btn" onClick={nomla}>{t('Nomlash')}</button>
+          <button type="button" className="fz-btn" onClick={() => void nomla()}>{t('Nomlash')}</button>
           {fayl.qulf_ism
             ? <button type="button" className="fz-btn" onClick={() => void amal('qulf_och')}><Unlock size={13} /> {t('Qulfni ochish')}</button>
             : <button type="button" className="fz-btn" title={t('Faylni yuklab olib o‘z kompyuteringizda tahrirlash uchun qulflang; yangi versiyani yuklaganingizda qulf ochiladi.')} onClick={() => void amal('qulf')}><Lock size={13} /> {t('Tahrir uchun qulflash')}</button>}

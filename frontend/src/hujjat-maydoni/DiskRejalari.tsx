@@ -4,6 +4,7 @@
  */
 import { useState } from 'react';
 import { toast } from '../umumiy/ui/Toast';
+import { tasdiqSora } from '../umumiy/ui/Tasdiq';
 import { t, tilLocale } from '../i18n/til';
 import { hmHajm, hmRejaOl } from '../api/t2-hujjat-maydoni';
 import type { TokenHolat } from '../api/t2-token';
@@ -13,7 +14,7 @@ export function DiskRejalari({ h, kompaniyaId, onOzgardi }: { h: TokenHolat; kom
   const [band, setBand] = useState(false);
   const tokenSom = h.sozlama.token_som || 1;
   const sotib = async (kod: string, nom: string) => {
-    if (!window.confirm(t('{nom} rejasi {n} oyga sotib olinsinmi? Tokenlardan yechiladi.', { nom, n: oylar }))) return;
+    if (!(await tasdiqSora({ matn: t('{nom} rejasi {n} oyga sotib olinsinmi? Tokenlardan yechiladi.', { nom, n: oylar }) }))) return;
     setBand(true);
     const r = await hmRejaOl(kompaniyaId, kod, oylar);
     setBand(false);

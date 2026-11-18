@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import { Download, Eye, FileText, Folder, FolderPlus, Lock, Search, Trash2, Upload, X } from 'lucide-react';
 import { Sahifa } from '../umumiy/ui/Sahifa';
 import { toast } from '../umumiy/ui/Toast';
+import { matnSora, tasdiqSora } from '../umumiy/ui/Tasdiq';
 import { useKompaniya } from '../umumiy/kontekst/KompaniyaKontekst';
 import { HujjatKorinish } from '../umumiy/hujjat/HujjatKorinish';
 import { t, tilLocale } from '../i18n/til';
@@ -102,7 +103,7 @@ export default function HujjatMaydoni() {
     await yangila();
   };
   const yangiPapka = async () => {
-    const nom = window.prompt(t('Papka nomi'));
+    const nom = await matnSora({ matn: t('Papka nomi'), majburiy: true });
     if (!nom) return;
     const r = await hmPapka(joy === 'kompaniya' ? kompId : null, 'yarat', { nom, otaId: papkaId });
     if (!r.ok) toast(xatoMatni(r), 'danger'); else await yangila();
@@ -199,13 +200,13 @@ export default function HujjatMaydoni() {
         {joy === 'savat' && data && (
           <div>
             <p className="mb-2 text-[12px] text-text-mute">{t('Savatdagi fayllar 30 kundan keyin o‘zi o‘chadi. Ular disk hajmiga kiradi.')}</p>
-            {data.daraja >= 4 && data.fayllar.length > 0 && <button type="button" className="fz-btn mb-2" onClick={async () => { if (!window.confirm(t('Savat butunlay bo‘shatilsinmi? Bu qaytarilmaydi.'))) return; const r = await hmBosh(null, 'savat'); if (!r.ok) toast(xatoMatni(r), 'danger'); else await yangila(); }}>{t('Savatni bo‘shatish')}</button>}
+            {data.daraja >= 4 && data.fayllar.length > 0 && <button type="button" className="fz-btn mb-2" onClick={async () => { if (!(await tasdiqSora({ matn: t('Savat butunlay bo‘shatilsinmi? Bu qaytarilmaydi.'), xavfli: true }))) return; const r = await hmBosh(null, 'savat'); if (!r.ok) toast(xatoMatni(r), 'danger'); else await yangila(); }}>{t('Savatni bo‘shatish')}</button>}
             <table className="fz-table"><tbody>
               {data.fayllar.map((f) => (
                 <tr key={f.id}><td>{f.nom}</td><td className="fz-c-num">{hmHajm(f.bayt)}</td>
                   <td className="text-right whitespace-nowrap">
                     <button type="button" className="fz-btn" onClick={async () => { const r = await hmFaylAmal(f.id, 'tikla'); if (!r.ok) toast(xatoMatni(r), 'danger'); else await yangila(); }}>{t('Tiklash')}</button>{' '}
-                    <button type="button" className="fz-btn" onClick={async () => { if (!window.confirm(t('Fayl butunlay o‘chirilsinmi?'))) return; const r = await hmAbadiy(f.id); if (!r.ok) toast(xatoMatni(r), 'danger'); else await yangila(); }}>{t('Butunlay o‘chirish')}</button></td></tr>
+                    <button type="button" className="fz-btn" onClick={async () => { if (!(await tasdiqSora({ matn: t('Fayl butunlay o‘chirilsinmi?'), xavfli: true }))) return; const r = await hmAbadiy(f.id); if (!r.ok) toast(xatoMatni(r), 'danger'); else await yangila(); }}>{t('Butunlay o‘chirish')}</button></td></tr>
               ))}
               {!data.fayllar.length && <tr><td className="py-6 text-center text-text-mute">{t('Savat bo‘sh.')}</td></tr>}
             </tbody></table>

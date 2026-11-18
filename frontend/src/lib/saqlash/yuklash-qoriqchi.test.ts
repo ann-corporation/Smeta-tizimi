@@ -33,7 +33,7 @@ describe('yagona R2 saqlash qoriqchisi', () => {
 
   // Bo'shliq ro'yxati BO'SH: har type=\"file\" komponenti asl faylni R2 ga saqlaydi (egasi qarori 2026-11-15). Yangi element QO'SHILMAYDI.
   const BOSHLIQ = new Set<string>();
-  const SAQLAYDI = /t2-asl-fayl|hujjat-yukla|t2-hujjat-canonical|t2-hujjat-arxiv|hujjatYukla|aslFaylSaqla|fotoYukla|t2-yuk-tashish|HujjatYuklash|bzRasmYukla/;
+  const SAQLAYDI = /t2-asl-fayl|hujjat-yukla|t2-hujjat-canonical|t2-hujjat-arxiv|hujjatYukla|aslFaylSaqla|t2-hujjat-maydoni|fotoYukla|t2-yuk-tashish|HujjatYuklash|bzRasmYukla/;
 
   it('type="file" komponentlari asl faylni R2 ga saqlaydi (yoki ma\'lum bo\'shliq ro\'yxatida)', () => {
     const yangi: string[] = []; const tuzalgan: string[] = [];
