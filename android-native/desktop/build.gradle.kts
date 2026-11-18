@@ -16,7 +16,7 @@ kotlin {
     compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) }
 }
 
-val appVersion = "0.2.5"
+val appVersion = "0.2.6"
 val apiBase = (project.findProperty("apiBase") as String?) ?: "https://qurai.uz"
 
 // Build-time constants (no secrets): app version and the canonical API host.

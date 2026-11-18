@@ -147,10 +147,10 @@ private fun letterLabel(h: String): String = stringResource(when (h) { "olindi" 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HujjatScreen(onBack: () -> Unit, onOpenChain: (Long) -> Unit, onOpenModule: (String, Long?) -> Unit = { _, _ -> }, vm: HujjatViewModel = hiltViewModel()) {
+fun HujjatScreen(onBack: () -> Unit, onOpenChain: (Long) -> Unit, onOpenModule: (String, Long?) -> Unit = { _, _ -> }, flowOnly: Boolean = false, vm: HujjatViewModel = hiltViewModel()) {
     val ui by vm.state.collectAsStateWithLifecycle()
     var chainMode by rememberSaveable { mutableStateOf("all") }
-    var section by rememberSaveable { mutableStateOf("mine") }
+    var section by rememberSaveable { mutableStateOf(if (flowOnly) "flow" else "mine") }
     val diskUi by vm.disk.state.collectAsStateWithLifecycle()
     val today = LocalDate.now()
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -171,13 +171,13 @@ fun HujjatScreen(onBack: () -> Unit, onOpenChain: (Long) -> Unit, onOpenModule: 
     androidx.compose.runtime.LaunchedEffect(host) { vm.disk.host = host }
     val tabs = listOf(
         QDiskTab("mine", stringResource(R.string.qa2_disk_mine)), QDiskTab("company", stringResource(R.string.qa2_disk_company)), QDiskTab("shared", stringResource(R.string.qa2_disk_shared)),
-        QDiskTab("trash", stringResource(R.string.qa2_disk_trash)), QDiskTab("flow", stringResource(R.string.qa3_disk_flow_short)),
+        QDiskTab("trash", stringResource(R.string.qa2_disk_trash)),
     )
 
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-        // The website calls this section "Disk" (QA 2026-11-18); the old document workflow stays as its last tab.
-        WorkTopBar(stringResource(R.string.qa2_disk_title), onBack)
-        QDiskTabs(tabs, section, { id ->
+        // Same structure as the website: "Disk" = exactly 4 tabs; the approval queue is its own page "Hujjat aylanishi" (flowOnly), not a Disk tab.
+        WorkTopBar(stringResource(if (flowOnly) R.string.dl_doc_title else R.string.qa2_disk_title), onBack)
+        if (!flowOnly) QDiskTabs(tabs, section, { id ->
             section = id
             when (id) { "mine" -> vm.disk.select(DiskTab.MINE); "company" -> vm.disk.select(DiskTab.COMPANY); "shared" -> vm.disk.select(DiskTab.SHARED); "trash" -> vm.disk.select(DiskTab.TRASH) }
         })

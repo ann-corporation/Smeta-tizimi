@@ -212,8 +212,8 @@
     <string name="mod_fact_d">Record completed work</string>
     <string name="mod_photo">Photo evidence</string>
     <string name="mod_photo_d">Attach a photo to a row</string>
-    <string name="mod_approval">Approvals</string>
-    <string name="mod_approval_d">Your approval queue</string>
+    <string name="mod_approval">Document workflow</string>
+    <string name="mod_approval_d">Approval queue, letters and chains</string>
     <string name="mod_today">Today</string>
     <string name="mod_today_d">Today\'s tasks and notices</string>
     <string name="mod_warehouse">Warehouse</string>

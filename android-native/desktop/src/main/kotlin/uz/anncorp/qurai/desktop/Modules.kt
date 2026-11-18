@@ -469,7 +469,7 @@ fun MoneyScreen(c: Ctx) {
 
 // ============================ Disk ============================
 
-/** "Disk" (website: Mening diskim | Kompaniya diski | Ulashilgan | Savat) + the old document workflow as the last tab. Same state machine as Android (shared DiskController). */
+/** "Disk" (website: Mening diskim | Kompaniya diski | Ulashilgan | Savat) (4 tabs only; the approval queue is its own page "Hujjat aylanishi"). Same state machine as Android (shared DiskController). */
 @Composable
 fun DiskScreen(c: Ctx, onOpenModule: (String, Long?) -> Unit = { _, _ -> }) {
     val scope = rememberCoroutineScope()
@@ -490,7 +490,6 @@ fun DiskScreen(c: Ctx, onOpenModule: (String, Long?) -> Unit = { _, _ -> }) {
     val tabs = listOf(
         uz.anncorp.qurai.ui.screens.QDiskTab("mine", I18n.s("qa2_disk_mine", "Mening diskim")), uz.anncorp.qurai.ui.screens.QDiskTab("company", I18n.s("qa2_disk_company", "Kompaniya diski")),
         uz.anncorp.qurai.ui.screens.QDiskTab("shared", I18n.s("qa2_disk_shared", "Ulashilgan")), uz.anncorp.qurai.ui.screens.QDiskTab("trash", I18n.s("qa2_disk_trash", "Savat")),
-        uz.anncorp.qurai.ui.screens.QDiskTab("flow", I18n.s("qa3_disk_flow_short", "Aylanish")),
     )
     Column(Modifier.fillMaxSize()) {
         Text(I18n.s("qa2_disk_title", "Disk"), style = Q.type.titleLarge, color = Q.colors.text, modifier = Modifier.padding(bottom = 6.dp))
@@ -501,7 +500,7 @@ fun DiskScreen(c: Ctx, onOpenModule: (String, Long?) -> Unit = { _, _ -> }) {
                 "shared" -> ctl.select(uz.anncorp.smeta.feature.disk.DiskTab.SHARED); "trash" -> ctl.select(uz.anncorp.smeta.feature.disk.DiskTab.TRASH)
             }
         })
-        if (section == "flow") DocsScreen(c) else uz.anncorp.qurai.ui.screens.QDiskList(
+        uz.anncorp.qurai.ui.screens.QDiskList(
             rows = st.rows.map { uz.anncorp.qurai.ui.screens.QDiskRow(it.key, it.folder, it.name, it.sub, it.meta) },
             state = when (st.status) {
                 uz.anncorp.smeta.feature.disk.DiskController.Status.LOADING -> uz.anncorp.qurai.ui.screens.QDiskState.Loading
