@@ -146,5 +146,33 @@
   "Hisobot tayyor": {
     "ru": "Отчёт готов",
     "en": "Report ready"
+  },
+  "Jadval": {
+    "ru": "Таблица",
+    "en": "Table"
+  },
+  "Asl ko‘rinish": {
+    "ru": "Как в файле",
+    "en": "Original view"
+  },
+  "Ko‘rinish": {
+    "ru": "Вид",
+    "en": "View"
+  },
+  "Faqat belgilangan": {
+    "ru": "Только отмеченные",
+    "en": "Marked only"
+  },
+  "Izoh bor": {
+    "ru": "Есть примечание",
+    "en": "Has note"
+  },
+  "Katak izohi": {
+    "ru": "Примечание ячейки",
+    "en": "Cell note"
+  },
+  "Yana {n} qator": {
+    "ru": "Ещё {n} строк",
+    "en": "{n} more rows"
   }
 }
