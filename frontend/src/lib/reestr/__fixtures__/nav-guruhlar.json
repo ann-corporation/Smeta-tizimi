@@ -454,16 +454,9 @@
         "sahifalar": [
           {
             "yol": "/admin/documents",
-            "ilova": "hujjat",
+            "ilova": "yadro",
             "nom": "Disk",
-            "ruxsat": [
-              "control.company.read",
-              "project.read",
-              "document.write",
-              "financial.write"
-            ],
-            "modul": "module.loyiha",
-            "scope": "COMPANY_SCOPED"
+            "ruxsat": []
           },
           {
             "yol": "/admin/hujjat-nazorat",

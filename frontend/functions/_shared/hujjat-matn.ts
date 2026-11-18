@@ -165,7 +165,7 @@ export function matnAjrat(nom: string, mime: string, bayt: Uint8Array): string {
     else if (/\.xlsx$/i.test(nom)) t = xlsx(bayt);
     else if (/\.pptx$/i.test(nom)) t = pptx(bayt);
     else if (/\.pdf$/i.test(nom) || /^application\/pdf$/i.test(mime)) t = pdf(bayt);
-    else if (MATN_KENGAYTMA.test(nom) || /^text\//i.test(mime)) t = new TextDecoder('utf-8', { fatal: false }).decode(bayt.subarray(0, MATN_MAX_CHIQISH * 2));
+    else if (MATN_KENGAYTMA.test(nom) || /^text\//i.test(mime)) t = new TextDecoder('utf-8', { fatal: false, ignoreBOM: false }).decode(bayt.subarray(0, MATN_MAX_CHIQISH * 2));
     else return '';
     // boshqaruv belgilari -> bo'sh joy, takroriy bo'shliqlar siqiladi
     // eslint-disable-next-line no-control-regex

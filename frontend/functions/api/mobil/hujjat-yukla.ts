@@ -20,7 +20,7 @@ export const MOBIL_HM_BIR_MARTA_MAX = 25 * 1024 * 1024;
 const NO_STORE = { 'Cache-Control': 'no-store' };
 const json = (b: unknown, status: number) => Response.json(b, { status, headers: NO_STORE });
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const son = (v: FormDataEntryValue | null) => { const n = Number(v); return Number.isSafeInteger(n) && n > 0 ? n : null; };
+const son = (v: unknown) => { const n = Number(v); return Number.isSafeInteger(n) && n > 0 ? n : null; };
 
 async function actor(ctx: { request: Request; env: Env }): Promise<number | Response> {
   const sess = await sessiyaOl(ctx.request, ctx.env);

@@ -17,7 +17,7 @@ function r2() {
   const u8 = (v: unknown) => (typeof v === 'string' ? new TextEncoder().encode(v) : v as Uint8Array);
   const bucket = {
     put: vi.fn(async (k: string, v: unknown) => { objs.set(k, u8(v)); }),
-    get: vi.fn(async (k: string) => { const o = objs.get(k); return o ? { body: new Blob([o as BlobPart]).stream(), text: async () => new TextDecoder().decode(o), arrayBuffer: async () => o.buffer } : null; }),
+    get: vi.fn(async (k: string) => { const o = objs.get(k); return o ? { body: new Blob([o as unknown as ArrayBuffer]).stream(), text: async () => new TextDecoder().decode(o), arrayBuffer: async () => o.buffer } : null; }),
     head: vi.fn(), delete: vi.fn(async (k: string) => { objs.delete(k); }),
     createMultipartUpload: vi.fn(async () => { const id = 'up' + ++n; parts.set(id, new Map()); return { uploadId: id }; }),
     resumeMultipartUpload: (k: string, id: string) => ({
@@ -111,7 +111,7 @@ describe('matn indeksi va qidiruv', () => {
   const docx = zipSync({ 'word/document.xml': strToU8('<w:document><w:p><w:r><w:t>Poydevor uchun armatura va beton yetkazib berish shartnomasi</w:t></w:r></w:p></w:document>') });
   it('yuklashdan keyin matn R2 ga (.txt) va ixcham indeks RPC ga yoziladi; eski matn obyekti o‘chadi', async () => {
     const c = rpcMock({ t2_hm_yuklash_reserve_v1: RESERVE, t2_hm_yuklash_tasdiq_v1: { ok: true, fayl_id: 1, raqam: 1 }, t2_hm_matn_yoz_v1: { ok: true, eski_kalit: 'docs/17/0/0/f1/r0.txt' } });
-    const s = r2(); const f = new FormData(); f.set('fayl', new File([docx as BlobPart], 'shartnoma.docx')); f.set('operation_id', UUID); f.set('kompaniya_id', '17');
+    const s = r2(); const f = new FormData(); f.set('fayl', new File([docx as unknown as ArrayBuffer], 'shartnoma.docx')); f.set('operation_id', UUID); f.set('kompaniya_id', '17');
     const res = await yukla({ request: new Request('https://x/api/hujjat-maydoni-yukla', { method: 'POST', headers: { Cookie: await kuki() }, body: f }), env: ENV(s.bucket) } as never);
     expect((await res.json() as any).ok).toBe(true);
     const m = c.find((x) => x.nom === 't2_hm_matn_yoz_v1')!.args;
@@ -122,7 +122,7 @@ describe('matn indeksi va qidiruv', () => {
   });
   it('indeks RPC rad etsa matn obyekti qoldirilmaydi; yuklash baribir muvaffaqiyatli', async () => {
     rpcMock({ t2_hm_yuklash_reserve_v1: RESERVE, t2_hm_yuklash_tasdiq_v1: { ok: true, fayl_id: 1, raqam: 1 }, t2_hm_matn_yoz_v1: { ok: false, code: 'RUXSAT_YOQ' } });
-    const s = r2(); const f = new FormData(); f.set('fayl', new File([docx as BlobPart], 'shartnoma.docx')); f.set('operation_id', UUID);
+    const s = r2(); const f = new FormData(); f.set('fayl', new File([docx as unknown as ArrayBuffer], 'shartnoma.docx')); f.set('operation_id', UUID);
     const res = await yukla({ request: new Request('https://x/api/hujjat-maydoni-yukla', { method: 'POST', headers: { Cookie: await kuki() }, body: f }), env: ENV(s.bucket) } as never);
     expect((await res.json() as any).ok).toBe(true); expect(s.objs.has('docs/17/0/0/f1/r1.txt')).toBe(false);
   });
