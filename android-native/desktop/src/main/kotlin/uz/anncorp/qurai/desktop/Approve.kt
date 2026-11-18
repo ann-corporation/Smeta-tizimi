@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import uz.anncorp.smeta.core.data.ApprovalDetail
+import uz.anncorp.smeta.core.data.formatDate
 import uz.anncorp.smeta.core.data.ApprovalDoc
 import uz.anncorp.smeta.core.data.ApprovalItem
 import uz.anncorp.smeta.core.data.ApprovalsRepository
@@ -57,9 +58,12 @@ fun ApprovalDialog(c: Ctx, item: ApprovalItem, onClose: (changed: Boolean) -> Un
     var msg by remember { mutableStateOf<String?>(null) }
     var reload by remember { mutableStateOf(0) }
     var seen by remember { mutableStateOf<String?>(null) }
+    // The same rule as Android (canSeeActAmounts in :shared): without f2.read the amount line is not drawn.
+    var showAmount by remember { mutableStateOf(true) }
 
     LaunchedEffect(item.id, reload) {
         loading = true
+        showAmount = uz.anncorp.smeta.core.data.ActAmountAccess(c.sv.api).canSee(c.place.companyId)
         val (r, d, dc) = repo.detail(c.place.companyId, item.id)
         detail = d; doc = dc; seen = d?.stepToken
         failed = if (r is SyncResult.Ok) null else if (r is SyncResult.Offline) Tx.offlineWrite else "Yuklab bo'lmadi"
@@ -95,8 +99,8 @@ fun ApprovalDialog(c: Ctx, item: ApprovalItem, onClose: (changed: Boolean) -> Un
                 if (loading) QLoading()
                 failed?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 doc?.let { d ->
-                    QKv("Turi", d.tur); QKv("Raqam", d.raqam ?: Tx.dash); QKv("Obyekt", d.obyekt ?: Tx.dash); QKv("Sana", d.sana ?: Tx.dash)
-                    QKv("Jami (QQS siz)", money(d.jami))
+                    QKv("Turi", d.tur); QKv("Raqam", d.raqam ?: Tx.dash); QKv("Obyekt", d.obyekt ?: Tx.dash); QKv("Sana", formatDate(d.sana))
+                    if (showAmount) QKv("Jami (QQS siz)", money(d.jami))
                 }
                 dt?.steps?.forEach { s -> QKv("${s.tartib}. ${s.rol}", s.holat + (if (s.men) " (siz)" else "")) }
                 if (dt != null && !dt.myTurn) Text(serverErrorText("NAVBAT_EMAS"), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -143,8 +147,11 @@ fun F2StepBar(c: Ctx, act: F2Act, onChanged: () -> Unit) {
 @Composable
 fun AktSummaStrip(c: Ctx, aktId: Long) {
     val repo = remember(c.sv) { uz.anncorp.smeta.core.data.AktSummaRepository(c.sv.api) }
+    val access = remember(c.sv.api) { uz.anncorp.smeta.core.data.ActAmountAccess(c.sv.api) }
     var res by remember(aktId) { mutableStateOf<uz.anncorp.smeta.core.data.AktSumma?>(null) }
-    LaunchedEffect(aktId) { res = null; res = repo.load(aktId) }
+    var allowed by remember(aktId) { mutableStateOf<Boolean?>(null) }
+    LaunchedEffect(aktId) { res = null; allowed = access.canSee(c.place.companyId); if (allowed == true) res = repo.load(aktId) }
+    if (allowed == false) return   // no f2.read: the amount is hidden everywhere (Android shows the same)
     when (val r = res) {
         null -> QHint("Akt summasi yuklanmoqda...")
         is uz.anncorp.smeta.core.data.AktSumma.Known -> {

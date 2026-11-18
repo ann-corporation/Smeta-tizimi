@@ -17,9 +17,9 @@ android {
         minSdk = 26
         targetSdk = 35
         // Tauri Android build: major*1e6+minor*1e3+patch (0.1.1 -> 1001). Start above it so a native release upgrades it in place.
-        versionCode = 2_000_019
+        versionCode = 2_000_020
         // Format must match the server's ilovaVersiya() regex: d{1,4}.d{1,4}.d{1,6}
-        versionName = "0.1.19"
+        versionName = "0.1.20"
         // Domain move (qurai.uz): ONE source for the API host. Canonical host first; the fallback list (comma separated, tried in order
         // on a network failure, see core/data/HostFallback.kt) keeps old/other hosts reachable. Override: -PapiBase=... -PapiFallbacks=...
         val apiBase = (project.findProperty("apiBase") as String?) ?: "https://qurai.uz"
@@ -45,8 +45,8 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
-        // Release-like build for measurements only (R8-minified, not debuggable, debug-signed) that still carries the debug demo fixtures
-        // (src/debug): `./gradlew assembleBench`. Never shipped: the real release uses src/release, where the demo mode does not exist.
+        // Release-like build for measurements only (R8-minified, not debuggable, debug-signed) for the demo fixtures
+        // (src/main/assets/demo): `./gradlew assembleBench`. Never shipped (measurements only).
         create("bench") {
             initWith(getByName("release"))
             applicationIdSuffix = ".bench"
@@ -69,8 +69,7 @@ android {
         unitTests.isIncludeAndroidResources = true
     }
     sourceSets {
-        getByName("test").resources.srcDir("src/debug/assets")
-        getByName("bench") { java.srcDir("src/debug/java"); assets.srcDir("src/debug/assets") }
+        getByName("test").resources.srcDir("src/main/assets")
     }
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"

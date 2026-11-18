@@ -1,0 +1,10 @@
+{
+  "sana": "2026-11-18",
+  "sarlavha": "QURAI Android 0.1.20 va Windows 0.2.5 - demo rejimi, Jarvis chat, bir xil sana va ruxsat",
+  "bandlar": [
+    "Android: kirish ekranida «Demo rejimi» tugmasi (haqiqiy ilovada ham) - namunaviy ma'lumot, haqiqiy hisob, kesh va tokenlarga tegmaydi; chiqqanda demo ma'lumoti tozalanadi.",
+    "Android va Windows: Jarvis chat bir xil - javobni nusxalash, uzun javobda «Pastga» tugmasi, tezkor savollar kesilmay qatorga o'raladi; Androidda ekran tepasidagi ortiqcha bo'sh joy yo'qoldi.",
+    "Windows: F-2 tasdiq ekranida summa Androiddagi bilan bir xil ruxsat qoidasida (f2.read bo'lmasa ko'rinmaydi).",
+    "Windows: ombor hisobotida sana tanlash kalendar bilan; hamma joyda sana kun.oy.yil ko'rinishida."
+  ]
+}

@@ -110,6 +110,7 @@ fun QInput(
     error: String? = null, hint: String? = null, singleLine: Boolean = true, enabled: Boolean = true, leading: ImageVector? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default, keyboardActions: KeyboardActions = KeyboardActions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None, minLines: Int = 1, trailing: (@Composable () -> Unit)? = null, isError: Boolean = false,
+    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
 ) {
     val c = Q.colors
     val src = remember { MutableInteractionSource() }
@@ -118,7 +119,7 @@ fun QInput(
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         if (label != null) Text(label, style = Q.type.labelMedium, color = c.textDim)
         BasicTextField(
-            value, onValue, enabled = enabled, singleLine = singleLine, minLines = minLines, interactionSource = src,
+            value, onValue, enabled = enabled, singleLine = singleLine, minLines = minLines, maxLines = maxLines, interactionSource = src,
             textStyle = Q.type.bodyMedium.merge(TextStyle(color = c.text)), cursorBrush = SolidColor(c.accent),
             keyboardOptions = keyboardOptions, keyboardActions = keyboardActions, visualTransformation = visualTransformation,
             modifier = Modifier.fillMaxWidth(),

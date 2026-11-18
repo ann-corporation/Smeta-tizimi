@@ -64,11 +64,12 @@ fun formatStamp(ms: Long?): String? = ms?.let { StampFormat.format(Instant.ofEpo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WorkTopBar(title: String, onBack: () -> Unit, actions: @Composable () -> Unit = {}) {
+fun WorkTopBar(title: String, onBack: () -> Unit, insets: Boolean = true, actions: @Composable () -> Unit = {}) {
     TopAppBar(
         title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         navigationIcon = { IconButton(onClick = onBack, modifier = Modifier.height(TouchTarget).width(TouchTarget)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.p1_back)) } },
         actions = { actions() },
+        windowInsets = if (insets) TopAppBarDefaults.windowInsets else androidx.compose.foundation.layout.WindowInsets(0),
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background, titleContentColor = MaterialTheme.colorScheme.onBackground),
     )
 }

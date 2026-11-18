@@ -127,8 +127,7 @@ class ModulesRepository(private val api: BffApi, private val json: Json, private
     suspend fun access(companyId: Long): Access = loadAccess(companyId).also { last = companyId to it }
 
     private suspend fun loadAccess(companyId: Long): Access {
-        val me = api.bff("/api/company?me=1")
-        val perms: Set<String>? = if (me.ok) permissionsFrom(me.body, companyId) else null
+        val perms: Set<String>? = fetchPermissions(api, companyId)
         val off = api.bff("/api/sb", "POST", buildJsonObject { put("soro", "modul_holat_v1"); put("kompaniya_id", companyId) })
         return Access(perms, if (off.ok) offModulesFrom(off.body) else emptySet())
     }
@@ -166,12 +165,7 @@ class ModulesRepository(private val api: BffApi, private val json: Json, private
         (e as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content } ?: emptyList()
 
     companion object {
-        fun permissionsFrom(body: kotlinx.serialization.json.JsonElement?, companyId: Long): Set<String>? {
-            val list = (body as? JsonObject)?.get("context_kompaniyalar") as? JsonArray ?: return null
-            val entry = list.map { it.jsonObject }.firstOrNull { it["kompaniya_id"]?.jsonPrimitive?.longOrNull == companyId } ?: return null
-            val perms = entry["permissions"] as? JsonArray ?: return null
-            return perms.mapNotNull { (it as? JsonPrimitive)?.content }.toSet()
-        }
+        fun permissionsFrom(body: kotlinx.serialization.json.JsonElement?, companyId: Long): Set<String>? = uz.anncorp.smeta.core.data.permissionsFrom(body, companyId)
         fun offModulesFrom(body: kotlinx.serialization.json.JsonElement?): Set<String> {
             val mods = ((body as? JsonObject)?.get("natija") as? JsonObject)?.get("modullar") as? JsonArray ?: return emptySet()
             return mods.map { it.jsonObject }.filter { it["holat"]?.jsonPrimitive?.content == "off" }.mapNotNull { it["kod"]?.jsonPrimitive?.content }.toSet()

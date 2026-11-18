@@ -128,6 +128,7 @@
     <string name="login_new_hint">Впервые здесь? Кнопка Google или Telegram сама создаст аккаунт.</string>
     <string name="login_create_account">Регистрация по e-mail</string>
     <string name="login_have_invite">У меня есть код приглашения</string>
+    <string name="login_demo">Демо-режим (пример данных)</string>
     <string name="err_email_bad">Введите корректный e-mail.</string>
     <string name="err_email_off">Подтверждение по e-mail пока недоступно. Войдите через Google или Telegram.</string>
     <string name="err_account_exists">Аккаунт с этим e-mail уже есть. Нажмите «Войти».</string>
@@ -251,6 +252,10 @@
     <!-- P4 -->
     <string name="mod_jarvis">Jarvis (AI)</string>
     <string name="mod_jarvis_d">Задайте вопрос — система ответит</string>
+    <string name="ja_chats_label">Чаты</string>
+    <string name="ja_copy">Копировать</string>
+    <string name="ja_copied">Скопировано</string>
+    <string name="ja_scroll_down">Вниз</string>
     <string name="ja_welcome">Jarvis готов</string>
     <string name="ja_hint">Спросите про объект, факт и работы на сегодня. Ответ строится по данным компании.</string>
     <string name="ja_input">Ваш вопрос…</string>

@@ -1,36 +1,19 @@
 package uz.anncorp.smeta.feature.jarvis
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -40,11 +23,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -82,6 +63,10 @@ import uz.anncorp.smeta.core.data.PendingJarvisWrite
 import uz.anncorp.smeta.core.data.ObjectsRepository
 import uz.anncorp.smeta.core.data.WorkContext
 import uz.anncorp.smeta.core.demo.Demo
+import uz.anncorp.qurai.ui.screens.QBubble
+import uz.anncorp.qurai.ui.screens.QChatItem
+import uz.anncorp.qurai.ui.screens.QJarvisChat
+import uz.anncorp.qurai.ui.screens.QJarvisTexts
 import uz.anncorp.smeta.core.ui.WorkTopBar
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -457,12 +442,11 @@ class JarvisViewModel @Inject constructor(
 }
 
 @Composable
-fun JarvisScreen(onBack: () -> Unit, vm: JarvisViewModel = hiltViewModel()) {
+fun JarvisScreen(onBack: () -> Unit, vm: JarvisViewModel = hiltViewModel(), embedded: Boolean = false) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     var text by remember(ui.chatId) { mutableStateOf("") }
     var confirmDiscard by remember(ui.chatId) { mutableStateOf(false) }
     val currentText by rememberUpdatedState(text)
-    val list = rememberLazyListState()
     val owner = LocalLifecycleOwner.current
     val appContext = LocalContext.current.applicationContext
     val connectivity = remember(appContext) { ConnectivityMonitor(appContext) { Demo.forcedOffline(appContext) } }
@@ -473,7 +457,6 @@ fun JarvisScreen(onBack: () -> Unit, vm: JarvisViewModel = hiltViewModel()) {
             }
         }
     }
-    LaunchedEffect(ui.bubbles.size, ui.busy) { if (ui.bubbles.isNotEmpty()) list.animateScrollToItem(ui.bubbles.size) }
     val send = { val t = text; text = ""; vm.ask(t) }
     if (confirmDiscard) AlertDialog(
         onDismissRequest = { confirmDiscard = false },
@@ -509,122 +492,66 @@ fun JarvisScreen(onBack: () -> Unit, vm: JarvisViewModel = hiltViewModel()) {
             },
         )
     }
-    Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
-        WorkTopBar(stringResource(R.string.mod_jarvis), onBack)
-        val objName by vm.objectName.collectAsStateWithLifecycle()
-        if (vm.scoped) Text(
-            stringResource(R.string.ja_object_scope) + (objName?.let { ": $it" } ?: ""),
-            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-        )
-        Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SuggestionChip(onClick = {
-                if (ui.saveIssue == null && text.isBlank()) vm.newChat() else confirmDiscard = true
-            }, enabled = !ui.busy && !ui.outboxUnreadable, label = { Text(stringResource(R.string.ja_new_chat)) })
-            SuggestionChip(onClick = { vm.toggleList() }, label = { Text(stringResource(R.string.ja_chats, ui.chats.size)) })
+    val objName by vm.objectName.collectAsStateWithLifecycle()
+    val q1 = stringResource(if (vm.scoped) R.string.ja_q_money_obj_text else R.string.ja_q_money_text)
+    val q2 = stringResource(R.string.ja_q_today_text)
+    val q3 = stringResource(R.string.ja_q_fact_text)
+    val budgetTitle = stringResource(R.string.ja_budget_title); val budgetBody = stringResource(R.string.ja_budget_body); val budgetHint = stringResource(R.string.ja_budget_hint)
+    val errNetwork = stringResource(R.string.err_network); val errServer = stringResource(R.string.err_server)
+    // The conversation is drawn by the ONE chat UI shared with Windows (QJarvisChat); this screen only brings Android's sync / history / unsaved-chat logic.
+    val bubbles = ui.bubbles.map { b ->
+        when (b) {
+            is Bubble.Mine -> QBubble.Mine(b.text)
+            is Bubble.Jarvis -> QBubble.Jarvis(b.text)
+            is Bubble.Budget -> QBubble.Budget(budgetTitle, b.message ?: budgetBody, budgetHint)
+            is Bubble.Problem -> QBubble.Problem(b.message?.takeIf { b.kind != Bubble.Kind.NETWORK } ?: if (b.kind == Bubble.Kind.NETWORK) errNetwork else errServer)
         }
-        if (!ui.showList && ui.chats.any { it.id == ui.chatId }) {
-            Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val canEdit = ui.canSend && text.isBlank()
-                SuggestionChip(onClick = { vm.startEdit(ChatEditAction.RENAME) }, enabled = canEdit, label = { Text(stringResource(R.string.ja_rename)) })
-                SuggestionChip(onClick = { vm.startEdit(ChatEditAction.DELETE) }, enabled = canEdit, label = { Text(stringResource(R.string.ja_delete)) })
-            }
-        }
-        if (ui.editIssue == ChatSaveIssue.STALE) {
-            Text(stringResource(R.string.ja_edit_stale), color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 16.dp))
-        }
-        ui.saveIssue?.let { issue ->
-            Text(stringResource(if (issue == ChatSaveIssue.RETRY) R.string.ja_save_failed else R.string.ja_save_stale),
-                color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 16.dp))
-            if (issue == ChatSaveIssue.RETRY) SuggestionChip(
-                onClick = vm::retrySave, label = { Text(stringResource(R.string.ja_save_retry)) },
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
-        }
-        if (ui.outboxUnreadable) {
-            Text(stringResource(R.string.ja_outbox_unreadable), color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(horizontal = 16.dp))
-            SuggestionChip(onClick = vm::retrySave, enabled = !ui.busy,
-                label = { Text(stringResource(R.string.ja_save_retry)) }, modifier = Modifier.padding(horizontal = 16.dp))
-        }
-        if (ui.showList) {
-            LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (ui.chats.isEmpty()) item { Text(stringResource(R.string.ja_chats_empty), color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                items(ui.chats, key = { it.id }) { c ->
-                    Surface(color = if (c.id == ui.chatId) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier.fillMaxWidth().clickable(enabled = ui.canSend && text.isBlank()) { vm.open(c) }) {
-                        Text(c.title.ifBlank { "—" }, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(12.dp), maxLines = 2)
+    }
+    val texts = QJarvisTexts(
+        title = "", welcome = stringResource(R.string.ja_welcome), hint = stringResource(R.string.ja_hint), thinking = stringResource(R.string.ja_thinking),
+        input = stringResource(R.string.ja_input), send = stringResource(R.string.ja_send), newChat = stringResource(R.string.ja_new_chat), chats = stringResource(R.string.ja_chats_label),
+        noChats = stringResource(R.string.ja_chats_empty), copy = stringResource(R.string.ja_copy), copied = stringResource(R.string.ja_copied), scrollDown = stringResource(R.string.ja_scroll_down),
+    )
+    // Inside the bottom sheet the sheet already sits below the status bar: no second inset (that was the ~170 px empty band on top).
+    Column(Modifier.fillMaxSize().then(if (embedded) Modifier else Modifier.statusBarsPadding()).navigationBarsPadding().imePadding()) {
+        WorkTopBar(stringResource(R.string.mod_jarvis), onBack, insets = !embedded)
+        QJarvisChat(
+            bubbles = bubbles, busy = ui.busy, input = text, onInput = { text = it }, onSend = send, texts = texts,
+            scope = if (vm.scoped) stringResource(R.string.ja_object_scope) + (objName?.let { ": $it" } ?: "") else null,
+            quick = listOf(stringResource(R.string.ja_q_money) to q1, stringResource(R.string.ja_q_today) to q2, stringResource(R.string.ja_q_fact) to q3),
+            onQuick = { vm.ask(it) },
+            chats = ui.chats.map { QChatItem(it.id, it.title) }, activeChat = ui.chatId, showChats = ui.showList,
+            onToggleChats = { vm.toggleList() },
+            onNewChat = { if (!ui.busy && !ui.outboxUnreadable) { if (ui.saveIssue == null && text.isBlank()) vm.newChat() else confirmDiscard = true } },
+            onOpenChat = { qc -> if (ui.canSend && text.isBlank()) ui.chats.firstOrNull { it.id == qc.id }?.let(vm::open) },
+            maxInput = JarvisRepository.MAX_QUESTION, canSend = ui.canSend,
+            belowHeader = {
+                Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (!ui.showList && ui.chats.any { it.id == ui.chatId }) {
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            val canEdit = ui.canSend && text.isBlank()
+                            SuggestionChip(onClick = { vm.startEdit(ChatEditAction.RENAME) }, enabled = canEdit, label = { Text(stringResource(R.string.ja_rename)) })
+                            SuggestionChip(onClick = { vm.startEdit(ChatEditAction.DELETE) }, enabled = canEdit, label = { Text(stringResource(R.string.ja_delete)) })
+                        }
+                    }
+                    if (ui.editIssue == ChatSaveIssue.STALE) Text(stringResource(R.string.ja_edit_stale), color = MaterialTheme.colorScheme.error)
+                    ui.saveIssue?.let { issue ->
+                        Text(stringResource(if (issue == ChatSaveIssue.RETRY) R.string.ja_save_failed else R.string.ja_save_stale), color = MaterialTheme.colorScheme.error)
+                        if (issue == ChatSaveIssue.RETRY) SuggestionChip(onClick = vm::retrySave, label = { Text(stringResource(R.string.ja_save_retry)) })
+                    }
+                    if (ui.outboxUnreadable) {
+                        Text(stringResource(R.string.ja_outbox_unreadable), color = MaterialTheme.colorScheme.error)
+                        SuggestionChip(onClick = vm::retrySave, enabled = !ui.busy, label = { Text(stringResource(R.string.ja_save_retry)) })
                     }
                 }
-                if (ui.hasMoreHistory) item {
+            },
+            listFooter = {
+                if (ui.hasMoreHistory) Column {
                     if (ui.historyFailed) Text(stringResource(R.string.ja_history_failed), color = MaterialTheme.colorScheme.error)
-                    SuggestionChip(onClick = vm::loadOlderChats, enabled = !ui.historyLoading && ui.canSend && text.isBlank(),
-                        label = { Text(stringResource(R.string.ja_history_older)) })
+                    SuggestionChip(onClick = vm::loadOlderChats, enabled = !ui.historyLoading && ui.canSend && text.isBlank(), label = { Text(stringResource(R.string.ja_history_older)) })
                 }
-            }
-        } else LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = list, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (ui.bubbles.isEmpty()) item {
-                Column(Modifier.fillMaxWidth().padding(vertical = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(stringResource(R.string.ja_welcome), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
-                    Spacer(Modifier.height(6.dp))
-                    Text(stringResource(R.string.ja_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            items(ui.bubbles) { b -> BubbleView(b) }
-            if (ui.busy) item {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                    Text(stringResource(R.string.ja_thinking), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-        val q1 = stringResource(if (vm.scoped) R.string.ja_q_money_obj_text else R.string.ja_q_money_text)
-        val q2 = stringResource(R.string.ja_q_today_text)
-        val q3 = stringResource(R.string.ja_q_fact_text)
-        Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SuggestionChip(onClick = { vm.ask(q1) }, enabled = ui.canSend, label = { Text(stringResource(R.string.ja_q_money)) })
-            SuggestionChip(onClick = { vm.ask(q2) }, enabled = ui.canSend, label = { Text(stringResource(R.string.ja_q_today)) })
-            SuggestionChip(onClick = { vm.ask(q3) }, enabled = ui.canSend, label = { Text(stringResource(R.string.ja_q_fact)) })
-        }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                text, { text = it.take(JarvisRepository.MAX_QUESTION) }, Modifier.weight(1f), placeholder = { Text(stringResource(R.string.ja_input)) }, maxLines = 4,
-                enabled = !ui.busy, shape = MaterialTheme.shapes.large, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-            )
-            IconButton(onClick = send, enabled = text.isNotBlank() && ui.canSend) {
-                Icon(Icons.Filled.Send, contentDescription = stringResource(R.string.ja_send), tint = if (text.isNotBlank() && ui.canSend) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
+            },
+        )
     }
 }
-
 private const val POLL_MS = 3_000L
-@Composable
-private fun BubbleView(b: Bubble) {
-    when (b) {
-        is Bubble.Mine -> Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-            Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.large, modifier = Modifier.widthIn(max = 300.dp)) {
-                Text(b.text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.padding(12.dp))
-            }
-        }
-        is Bubble.Jarvis -> Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
-            Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.large, modifier = Modifier.widthIn(max = 340.dp)) {
-                Column(Modifier.padding(12.dp)) {
-                    uz.anncorp.qurai.ui.markdown.QMarkdown(b.text)
-                }
-            }
-        }
-        is Bubble.Budget -> Surface(color = MaterialTheme.colorScheme.errorContainer, shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(14.dp)) {
-                Text(stringResource(R.string.ja_budget_title), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onErrorContainer)
-                Text(b.message ?: stringResource(R.string.ja_budget_body), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.padding(top = 4.dp))
-                Text(stringResource(R.string.ja_budget_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.padding(top = 6.dp))
-            }
-        }
-        is Bubble.Problem -> Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
-            Text(
-                b.message?.takeIf { b.kind != Bubble.Kind.NETWORK } ?: stringResource(if (b.kind == Bubble.Kind.NETWORK) R.string.err_network else R.string.err_server),
-                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(12.dp),
-            )
-        }
-    }
-}

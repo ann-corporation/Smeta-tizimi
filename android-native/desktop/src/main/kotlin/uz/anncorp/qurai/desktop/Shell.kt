@@ -230,7 +230,7 @@ fun JarvisPanel(sv: Services, p: Workplace, obj: Obj?, st: JarvisState, focusTic
         QJarvisChat(
             bubbles, st.busy, st.input, { st.input = it }, { send(st.input) },
             scope = obj?.nom?.let { "Obyekt: $it" },
-            quick = listOf("Pul holati" to "Shu obyekt bo'yicha pul holati qanday?", "Bugun" to "Bugun nima qilishim kerak?", "Fakt" to "Oxirgi fakt qanday?"),
+            quick = uz.anncorp.qurai.ui.screens.JARVIS_QUICK_UZ,
             onQuick = { send(it) },
             chats = st.chats.map { QChatItem(it.id, it.title) }, activeChat = st.chatId, showChats = st.showChats,
             onToggleChats = { st.showChats = !st.showChats; if (st.showChats) scope.launch { st.chats = sv.jarvis.syncChats(p.companyId)?.chats.orEmpty() } },

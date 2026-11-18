@@ -76,7 +76,7 @@ fun JarvisOverlay(visible: Boolean, epoch: Int, scrollHidden: Boolean = false) {
     if (open) {
         val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ModalBottomSheet(onDismissRequest = { open = false }, sheetState = sheet, contentWindowInsets = { WindowInsets(0) }) {
-            JarvisScreen(onBack = { open = false }, vm = hiltViewModel<JarvisViewModel>(key = "jarvis-overlay-$epoch"))
+            JarvisScreen(onBack = { open = false }, vm = hiltViewModel<JarvisViewModel>(key = "jarvis-overlay-$epoch"), embedded = true)
         }
     }
 }

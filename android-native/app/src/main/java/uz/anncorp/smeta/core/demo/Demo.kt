@@ -21,13 +21,52 @@ import uz.anncorp.smeta.core.security.TasdiqStore
 import java.io.File
 
 /**
- * DEBUG BUILDS ONLY (this file lives in src/debug; src/release has an inert stub). Demo mode serves bundled fixtures
- * instead of the network so every screen can be shown without a login. Switched on by an empty file `files/demo.flag`
+ * Demo mode serves bundled fixtures instead of the network so every screen can be shown without a login (debug, bench AND release).
+ * Switched on by the "Demo" button on the login screen ([enter]) or, in debug builds, by an empty file `files/demo.flag`
  * (`adb shell run-as <debug app id> touch files/demo.flag`); `files/offline.flag` additionally forces the offline banner.
+ *
+ * The demo NEVER touches the real session: it has its own database, read cache, document cache, outbox, photo and preference files
+ * ([scoped]); the token store is not read or written; leaving the demo ([exit]) deletes all of it and restarts into the login screen.
  */
 object Demo {
+    const val FLAG = "demo.flag"
+    private const val SUFFIX = "-demo"
+
     // The release-like `bench` build (measurements only) has no run-as access to write the flag, so it is always in demo mode.
-    fun enabled(context: Context): Boolean = uz.anncorp.smeta.BuildConfig.BUILD_TYPE == "bench" || File(context.filesDir, "demo.flag").exists()
+    fun enabled(context: Context): Boolean = uz.anncorp.smeta.BuildConfig.BUILD_TYPE == "bench" || File(context.filesDir, FLAG).exists()
+
+    /** Name of a database / directory / preference file: the demo has its own, the real one is never opened by the demo. */
+    fun scoped(context: Context, name: String): String = if (enabled(context)) name + SUFFIX else name
+
+    /** Device id used instead of the real credential's while the demo is on (read cache and Jarvis outbox keys). */
+    const val DEVICE_ID = "00000000-0000-4000-8000-000000000001"
+
+    /** Login screen "Demo": switches the flag on and restarts the process, so every singleton is rebuilt on the demo files. */
+    fun enter(context: Context) {
+        File(context.filesDir, FLAG).writeText("1")
+        restart(context)
+    }
+
+    /** Demo sign-out: wipes everything the demo wrote (never the real session) and restarts into the login screen. */
+    fun exit(context: Context) {
+        wipe(context)
+        restart(context)
+    }
+
+    internal fun wipe(context: Context) {
+        File(context.filesDir, FLAG).delete()
+        context.filesDir.listFiles { f -> f.name.endsWith(".flag") }?.forEach { it.delete() }
+        context.noBackupFilesDir.listFiles { f -> f.name.endsWith(SUFFIX) }?.forEach { it.deleteRecursively() }
+        context.getDatabasePath("qurai.db$SUFFIX").let { f -> listOf(f, File(f.path + "-wal"), File(f.path + "-shm"), File(f.path + "-journal")).forEach { it.delete() } }
+        listOf("qurai_prefs", "qurai_lock", "qurai_catalog").forEach { context.deleteSharedPreferences(it + SUFFIX) }
+    }
+
+    private fun restart(context: Context) {
+        val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        if (intent != null) context.startActivity(intent)
+        android.os.Process.killProcess(android.os.Process.myPid())
+    }
+
     fun forcedOffline(context: Context): Boolean? = if (enabled(context) && File(context.filesDir, "offline.flag").exists()) true else null
     fun bff(context: Context, json: Json, stepUp: () -> StepUpHandler? = { null }, tasdiq: TasdiqStore? = null): BffApi? =
         if (enabled(context)) DemoStepUpBff(DemoBff(context, json, tasdiq), stepUp) else null
