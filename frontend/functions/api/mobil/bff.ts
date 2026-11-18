@@ -94,7 +94,7 @@ const yukTashishAmalRuxsat = (body: unknown): boolean => {
   try { const o = typeof body === 'string' ? JSON.parse(body) : body; return !!o && typeof o === 'object' && yukTashishAmalmi((o as { amal?: unknown }).amal); } catch { return false; }
 };
 /** /api/agent-ish also hosts admin/superadmin actions (models, budgets, rules, rivojlanish...): the device may reach ONLY the Jarvis chat (kasb_savol, same aiHisobli charging) and the server-side chat list/save (t2_jarvis_suhbat), identical to web. */
-export const MOBIL_AGENT_AMAL: ReadonlySet<string> = new Set(['kasb_savol','suhbat_royxat','suhbat_ol','suhbat_saqla','suhbat_ochir']);
+export const MOBIL_AGENT_AMAL: ReadonlySet<string> = new Set(['kasb_savol','suhbat_sync','suhbat_page','suhbat_mutate','suhbat_royxat','suhbat_ol','suhbat_saqla','suhbat_ochir']);
 export const MOBIL_BFF_MAX_BYTES = 2 * 1024 * 1024;
 
 /** Per-path action gate on top of the path allow-list. GET /api/profil and GET /api/telegram are read-only own-account status. */
@@ -163,7 +163,8 @@ async function boundedBody(request: Request): Promise<string> {
  * External Cookie/headers/actor/authority are never forwarded. */
 export const onRequestPost: PagesFunction<Env> = async ctx => {
   const sess = await sessiyaOl(ctx.request, ctx.env);
-  if (!sess || !verifiedDesktopDevice(ctx.request)) return desktopFail(401, desktopDenyCode(ctx.request));
+  const device = verifiedDesktopDevice(ctx.request);
+  if (!sess || !device) return desktopFail(401, desktopDenyCode(ctx.request));
   let b: Record<string, unknown>;
   try { b = JSON.parse(await boundedBody(ctx.request)); }
   catch (err) { return desktopFail(err instanceof Error && err.message === 'BODY_TOO_LARGE' ? 413 : 400, 'BODY_INVALID'); }
@@ -174,6 +175,12 @@ export const onRequestPost: PagesFunction<Env> = async ctx => {
   const handler = Object.hasOwn(handlers, target.pathname) ? handlers[target.pathname][b.method] : undefined;
   if (!handler || !yolRuxsat(target, b.method, b.body) || (b.method === 'GET' && b.body != null) ||
     (b.etag != null && (typeof b.etag !== 'string' || b.etag.length > 512 || /[\x00-\x1f\x7f]/.test(b.etag)))) return desktopFail(400, 'TARGET_INVALID');
+  if (target.pathname === '/api/agent-ish' && b.body && typeof b.body === 'object' && Object.hasOwn(b.body, 'jarvis_device_id')) {
+    const { jarvis_device_id: expected, ...payload } = b.body as Record<string, unknown>;
+    if (payload.amal !== 'suhbat_mutate' || (payload.harakat !== 'create' && payload.harakat !== 'append') ||
+      expected !== device.device_id) return desktopFail(403, 'JARVIS_DEVICE_SCOPE');
+    b.body = payload;
+  }
   try {
     const cookie = await imzola({ rol: sess.rol, foydalanuvchi_id: sess.foydalanuvchi_id }, ctx.env.SESSIYA_KALIT, sess.exp - SESSIYA_MUDDAT_MS);
     const headers = new Headers({ Cookie: 'sess=' + cookie, Origin: target.origin, 'Sec-Fetch-Site': 'same-origin' });

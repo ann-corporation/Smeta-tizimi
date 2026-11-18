@@ -6,6 +6,8 @@ import { mdBolaklar } from '../../lib/yordamchi/jadval';
 import { ArrowRight, Bot, Mic, MicOff, Send, Square, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { kasbSavolOqim, niyatLlmOl, suhbatRoyxatOl, suhbatServerdanOl, suhbatServerga, type ServerSuhbat, tizimYordamSavol, type KasbIshchi, type KasbYakun, type Qadam, type SahifaIshora } from '../../api/t2-agent-ish';
+import { appendJarvisMessages, jarvisConversationPage, mutateJarvisConversation, syncJarvisConversation, type ConversationPageCursor } from '../../api/jarvis-suhbat-sync';
+import { jarvisOutboxRead, jarvisOutboxRemove, jarvisOutboxStore, type JarvisQueuedWrite } from '../../lib/jarvis/conversation-outbox';
 import { jarvisKichikGap } from '../../lib/jarvis/intent';
 import { katalogKonteksti, narxSavolimi, vaqtBilan, type KatalogKontekst } from '../../lib/jarvis/katalog-kontekst';
 import { t } from '../../i18n/til';
@@ -65,6 +67,16 @@ function tarixYoz(kalit: string, x: readonly Xabar[]) {
 
 /** AI ko'rsatgan sahifalarga o'tish tugmalari (yo'llar serverda katalog bilan tekshirilgan). */
 function xabarImzo(a: { rol: string; matn: string }[]): string { return a.map((x) => `${x.rol}:${x.matn}`).join('\u0001'); }
+function suhbatXabarlari(xabarlar: Xabar[]) {
+  return xabarlar.flatMap(x => {
+    const m = x.matn;
+    return m.trim() ? [{ r: x.rol, m }] : [];
+  });
+}
+const queuedPreview = (xabarlar: Xabar[]) => xabarlar.slice(-12).flatMap(x => {
+  const m = x.matn;
+  return m.trim() ? [{ r: x.rol, m }] : [];
+});
 
 function OtishTugmalari({ royxat, ochish }: { royxat?: SahifaIshora[]; ochish: (yol: string) => void }) {
   if (!royxat?.length) return null;
@@ -107,30 +119,71 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const [tarixEga, setTarixEga] = useState<string | null>(null);
   /** Yuklangan/tanlangan suhbat tarkibi imzosi: shu o'zgarmaguncha (haqiqiy yangi xabar yo'q) serverga/arxivga yozilmaydi va yangilandi ko'tarilmaydi. */
   const yuklanganImzo = useRef('');
+  const remoteAnchor = useRef<{
+    id: string; etag: string | null; count: number; base: Array<{ r: 'user' | 'ai'; m: string }>;
+  } | null>(null);
+  const appendPending = useRef<typeof remoteAnchor.current>(null);
+  const appendRetry = useRef<{
+    anchor: NonNullable<typeof remoteAnchor.current>; etag: string; operationId: string;
+    delta: ReturnType<typeof suhbatXabarlari>; count: number; signature: string; stale?: boolean;
+  } | null>(null);
+  const yangiServerSuhbat = useRef<{
+    id: string; start: number; sending?: boolean; stale?: boolean;
+    first?: { title: string; messages: ReturnType<typeof suhbatXabarlari>; count: number; signature: string };
+  } | null>(null);
+  const [saqlashQadami, setSaqlashQadami] = useState(0);
+  const [outboxScope, setOutboxScope] = useState<string | null>(null);
+  const [discardPending, setDiscardPending] = useState(false);
+  const discardingPending = useRef(false);
+  const outboxOwner = foydalanuvchiId != null && kompaniyaId != null ? { actor: foydalanuvchiId, company: kompaniyaId } : null;
+  const outboxLoading = !!yordamchi && !!outboxOwner && outboxScope !== scope;
   /** Serverdan faqat qisqartma sifatida yuklangan suhbat id si: yangi xabar qo'shilganda asl nusxa ustiga yozilmaydi, yangi suhbat (fork) bo'ladi. */
   const qisqartmaDan = useRef<string | null>(null);
   const yuklashNomer = useRef(0);
   const [yuklanayotgan, setYuklanayotgan] = useState<string | null>(null);
+  const [suhbatTahriri, setSuhbatTahriri] = useState<{
+    id: string; avlod: string; etag: string; amal: 'rename' | 'delete'; nom: string;
+  } | null>(null);
+  const tahrirVersiya = useRef(0);
+  const tahrirSorov = useRef<string | null>(null);
+  const [tahrirBand, setTahrirBand] = useState(false);
   const suhbatToxtat = () => {
+    remoteAnchor.current = null;
+    appendRetry.current = null;
+    yangiServerSuhbat.current = null;
+    setDiscardPending(false);
+    setSuhbatTahriri(null);
     setYuklanayotgan(null); yuklashNomer.current++; suhbatAvlod.current++; gen.current = `${scope}|${suhbatAvlod.current}`;
     abort.current?.abort(); busy.current = false; kutish.current = null; davomRef.current = null;
     setBand(false); setMatn(''); setSaqlashHolati('idle');
   };
-  useEffect(() => { setYuklanayotgan(null); setTarixEga(tarixKalit); kutish.current = null; const tiklangan = tarixKalit ? tarixOqi(tarixKalit) : []; yuklanganImzo.current = xabarImzo(tiklangan); qisqartmaDan.current = null; setXabarlar(tiklangan); setMatn(''); setBand(false); busy.current = false; davomRef.current = null; abort.current?.abort();
+  useEffect(() => { setYuklanayotgan(null); setTarixEga(tarixKalit); kutish.current = null; const tiklangan = tarixKalit ? tarixOqi(tarixKalit) : []; yuklanganImzo.current = xabarImzo(tiklangan); remoteAnchor.current = null; appendRetry.current = null; qisqartmaDan.current = null; setXabarlar(tiklangan); setMatn(''); setBand(false); busy.current = false; davomRef.current = null; abort.current?.abort();
     return () => { abort.current?.abort(); };
   }, [scope, tarixKalit]);
   useEffect(() => { if (tarixKalit && tarixEga === tarixKalit) {
-    if (qisqartmaDan.current && xabarImzo(xabarlar) !== yuklanganImzo.current) { suhbatId.current = crypto.randomUUID(); qisqartmaDan.current = null; }
+    if (qisqartmaDan.current && xabarImzo(xabarlar) !== yuklanganImzo.current) {
+      suhbatId.current = crypto.randomUUID();
+      yangiServerSuhbat.current = { id: suhbatId.current, start: remoteAnchor.current?.count ?? 0 };
+      qisqartmaDan.current = null;
+    }
+    if (remoteAnchor.current && remoteAnchor.current.id !== suhbatId.current) remoteAnchor.current = null;
+    if (remoteAnchor.current || yangiServerSuhbat.current?.id === suhbatId.current) return;
     tarixYoz(tarixKalit, xabarlar);
     try { sessionStorage.setItem(tarixKalit + ':id', suhbatId.current); } catch { /* xotira yopiq */ }
   } }, [xabarlar, tarixKalit, tarixEga]);
   useEffect(() => { oxir.current?.scrollIntoView?.({ behavior: 'smooth' }); }, [xabarlar]);
   /* «Yangi suhbat»: tarix tozalanadi (sarlavhadagi tugma `ai:yangi-suhbat` hodisasini yuboradi). */
   useEffect(() => {
-    const f = () => { suhbatToxtat(); yuklanganImzo.current = ''; qisqartmaDan.current = null; setXabarlar([]); suhbatId.current = crypto.randomUUID(); if (tarixKalit) { try { sessionStorage.removeItem(tarixKalit); } catch { /* xotira yopiq */ } } };
+    const f = () => {
+      if (outboxLoading || appendRetry.current || yangiServerSuhbat.current?.first) return;
+      suhbatToxtat(); yuklanganImzo.current = ''; qisqartmaDan.current = null; setXabarlar([]);
+      suhbatId.current = crypto.randomUUID();
+      if (kompaniyaId != null) yangiServerSuhbat.current = { id: suhbatId.current, start: 0 };
+      if (tarixKalit) { try { sessionStorage.removeItem(tarixKalit); sessionStorage.removeItem(tarixKalit + ':id'); } catch { /* xotira yopiq */ } }
+    };
     window.addEventListener('ai:yangi-suhbat', f);
     return () => window.removeEventListener('ai:yangi-suhbat', f);
-  }, [tarixKalit, scope]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tarixKalit, scope, outboxLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* AI ishchi natijasi tayyor bo'lganda (panel ochiq, yengil polling — useIshchiNatija) chatda xabar: sarlavha + qisqa xulosa + inbox havolasi. */
   useEffect(() => {
@@ -144,8 +197,14 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     return () => window.removeEventListener(ISHCHI_HODISA, f);
   }, [!!yordamchi]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { if (tayyorSavol?.matn) { void yubor(tayyorSavol.matn); onOqildi?.(); } /* faqat yangi hodisada */ // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tayyorSavol?.id]);
+  const tayyorSavolOqildi = useRef<number | null>(null);
+  useEffect(() => {
+    if (tayyorSavol?.matn && !outboxLoading && tayyorSavolOqildi.current !== tayyorSavol.id) {
+      tayyorSavolOqildi.current = tayyorSavol.id;
+      void yubor(tayyorSavol.matn);
+      onOqildi?.();
+    }
+  }, [tayyorSavol?.id, outboxScope, scope]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* SUHBATLAR RO'YXATI: joriy suhbat har yakunlanganda ixcham arxivlanadi (brauzerda, 30 kun); bo'sh oynada oxirgilari ko'rinadi va davom ettiriladi. */
   const arxivKalit = suhbatKaliti(foydalanuvchiId, kompaniyaId);
@@ -155,14 +214,156 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     setArxiv(foydalanuvchiId != null ? suhbatOqi(arxivKalit) : []);
     let oldId: string | null = null;
     try { oldId = tarixKalit ? sessionStorage.getItem(tarixKalit + ':id') : null; } catch { /* xotira yopiq */ }
-    suhbatId.current = oldId && /^[a-zA-Z0-9-]{1,100}$/.test(oldId) ? oldId : crypto.randomUUID();
-  }, [arxivKalit, foydalanuvchiId, tarixKalit]);
+    const restored = oldId && /^[a-zA-Z0-9-]{1,100}$/.test(oldId) ? oldId : null;
+    suhbatId.current = restored ?? crypto.randomUUID();
+    yangiServerSuhbat.current = !restored && kompaniyaId != null ? { id: suhbatId.current, start: 0 } : null;
+  }, [arxivKalit, foydalanuvchiId, tarixKalit, kompaniyaId]);
+  useEffect(() => {
+    if (!yordamchi || !outboxOwner) return;
+    const avlod = gen.current;
+    let alive = true;
+    void jarvisOutboxRead(outboxOwner).then(queued => {
+      if (!alive || !queued || gen.current !== avlod || busy.current) return;
+      suhbatToxtat();
+      suhbatId.current = queued.id;
+      qisqartmaDan.current = null;
+      const view = queued.preview.map((x, i) => ({
+        id: `${queued.id}-pending-${i}`, rol: x.r, matn: x.m, jarvis: x.r === 'ai',
+      }));
+      const signature = xabarImzo(view);
+      yuklanganImzo.current = '';
+      if (queued.kind === 'create') {
+        yangiServerSuhbat.current = { id: queued.id, start: 0, stale: queued.stale,
+          first: { title: queued.title, messages: queued.turns, count: view.length, signature } };
+      } else {
+        const anchor = { id: queued.id, etag: queued.etag, count: 0, base: [] };
+        remoteAnchor.current = anchor;
+        appendRetry.current = { anchor, etag: queued.etag, operationId: queued.operation, delta: queued.turns,
+          count: view.length, signature, stale: queued.stale };
+      }
+      setXabarlar(view);
+    }).catch(() => {
+      if (alive && gen.current === avlod) toast(t('Saqlanmagan xabarlarni tiklab bo‘lmadi.'), 'warn');
+    }).finally(() => { if (alive) setOutboxScope(scope); });
+    return () => { alive = false; };
+  }, [scope, !!yordamchi]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const online = () => {
+      if ((appendRetry.current && !appendRetry.current.stale) ||
+          (yangiServerSuhbat.current?.first && !yangiServerSuhbat.current.stale)) setSaqlashQadami(i => i + 1);
+    };
+    window.addEventListener('online', online);
+    return () => window.removeEventListener('online', online);
+  }, []);
   useEffect(() => {
     if (!yordamchi || !tarixKalit || tarixEga !== tarixKalit || !xabarlar.length) return;
+    if (outboxOwner && outboxScope !== scope) return;
     /* Javob oqayotgan paytda oldingi saqlash bekor bo'ladi: yorliq «saqlanmoqda» bo'lib qotib qolmasin. */
     if (xabarlar.some((x) => x.jonli)) { setSaqlashHolati('idle'); return; }
     /* Faqat ochilgan/tanlangan suhbat (yangi xabar yo'q): arxivga/serverga yozilmaydi. */
     if (xabarImzo(xabarlar) === yuklanganImzo.current) return;
+    const anchor = remoteAnchor.current;
+    if (anchor && anchor.id === suhbatId.current) {
+      if (kompaniyaId == null) return;
+      const avlod = gen.current;
+      const stillCurrent = () => gen.current === avlod && remoteAnchor.current === anchor;
+      const retry = appendRetry.current?.anchor === anchor ? appendRetry.current : null;
+      const until = Math.min(xabarlar.length, anchor.count + 12);
+      const delta = suhbatXabarlari(xabarlar.slice(anchor.count, until));
+      if (retry?.stale || (!retry && !delta.length)) { setSaqlashHolati('local'); return; }
+      setSaqlashHolati('saving');
+      const save = async () => {
+        if (!stillCurrent() || appendPending.current === anchor || discardingPending.current) return;
+        appendPending.current = anchor;
+        try {
+          let etag = retry?.etag ?? anchor.etag;
+          if (!etag) {
+            const result = await syncJarvisConversation(kompaniyaId, { id: anchor.id, etag: null }, AbortSignal.timeout(8000));
+            const snapshot = result?.suhbat;
+            if (snapshot?.holat === 'changed' && snapshot.xabarlar?.length === anchor.base.length &&
+                snapshot.xabarlar.every((x, i) => x.r === anchor.base[i].r && x.m === anchor.base[i].m)) etag = snapshot.etag;
+          }
+          if (!stillCurrent()) return;
+          if (!etag) { setSaqlashHolati('local'); return; }
+          const batch: NonNullable<typeof appendRetry.current> = retry ?? {
+            anchor, etag, delta, operationId: crypto.randomUUID(), count: until,
+            signature: xabarImzo(xabarlar.slice(0, until)),
+          };
+          appendRetry.current = batch;
+          const queued: JarvisQueuedWrite = { kind: 'append', id: anchor.id, operation: batch.operationId,
+            etag: batch.etag, turns: batch.delta, preview: queuedPreview(xabarlar.slice(0, batch.count)) };
+          if (outboxOwner && !await jarvisOutboxStore(outboxOwner, queued)) { if (stillCurrent()) setSaqlashHolati('local'); return; }
+          if (!stillCurrent()) return;
+          const result = await appendJarvisMessages(kompaniyaId, anchor.id, batch.etag, batch.delta, batch.operationId, outboxOwner?.actor);
+          if (outboxOwner && result && 'etag' in result && !await jarvisOutboxRemove(outboxOwner, queued.operation)) {
+            if (stillCurrent()) setSaqlashHolati('local');
+            return;
+          }
+          if (outboxOwner && result && 'stale' in result) await jarvisOutboxStore(outboxOwner, { ...queued, stale: true });
+          if (!stillCurrent()) return;
+          if (!result || 'stale' in result) {
+            batch.stale = !!result;
+            if (batch.stale) toast(t('Suhbat boshqa qurilmada o‘zgargan. Yangilangan suhbatni tekshiring.'), 'warn');
+            setSaqlashHolati('local');
+            return;
+          }
+          appendRetry.current = null;
+          remoteAnchor.current = { ...anchor, etag: result.etag, count: batch.count };
+          yuklanganImzo.current = batch.signature;
+          setSaqlashHolati('saved');
+          if (xabarlarRef.current.length > batch.count) setSaqlashQadami(i => i + 1);
+        } finally {
+          if (appendPending.current === anchor) appendPending.current = null;
+        }
+      };
+      const timer = setTimeout(() => { void save(); }, 1000);
+      return () => clearTimeout(timer);
+    }
+    const fresh = yangiServerSuhbat.current;
+    if (fresh?.id === suhbatId.current && kompaniyaId != null) {
+      if (fresh.stale) { setSaqlashHolati('local'); return; }
+      setSaqlashHolati('saving');
+      const avlod = gen.current;
+      const save = async () => {
+        if (fresh.sending || discardingPending.current || gen.current !== avlod || yangiServerSuhbat.current !== fresh) return;
+        const messages = suhbatXabarlari(xabarlar.slice(fresh.start));
+        if (!fresh.first) {
+          if (!messages.length || messages.length > 12) { setSaqlashHolati('local'); return; }
+          const title = (messages.find(x => x.r === 'user') ?? messages[0]).m.replace(/\s+/g, ' ').slice(0, 80).trim();
+          fresh.first = { title, messages, count: xabarlar.length, signature: xabarImzo(xabarlar) };
+        }
+        const first = fresh.first;
+        fresh.sending = true;
+        const stillCurrent = () => gen.current === avlod && yangiServerSuhbat.current === fresh;
+        try {
+          const queued: JarvisQueuedWrite = { kind: 'create', id: fresh.id, operation: fresh.id, title: first.title,
+            turns: first.messages, preview: queuedPreview(xabarlar.slice(0, first.count)) };
+          if (outboxOwner && !await jarvisOutboxStore(outboxOwner, queued)) { if (stillCurrent()) setSaqlashHolati('local'); return; }
+          if (!stillCurrent()) return;
+          const result = await mutateJarvisConversation(kompaniyaId, fresh.id, null,
+            { harakat: 'create', sarlavha: first.title, xabarlar: first.messages }, outboxOwner?.actor);
+          if (outboxOwner && result.status === 'saved' && !await jarvisOutboxRemove(outboxOwner, queued.operation)) {
+            if (stillCurrent()) setSaqlashHolati('local');
+            return;
+          }
+          if (outboxOwner && result.status === 'stale') await jarvisOutboxStore(outboxOwner, { ...queued, stale: true });
+          if (!stillCurrent()) return;
+          if (result.status !== 'saved') {
+            fresh.stale = result.status === 'stale';
+            if (fresh.stale) toast(t('Suhbat boshqa qurilmada o‘zgargan. Yangilangan suhbatni tekshiring.'), 'warn');
+            setSaqlashHolati('local');
+            return;
+          }
+          remoteAnchor.current = { id: fresh.id, etag: result.etag, count: first.count, base: first.messages };
+          yangiServerSuhbat.current = null;
+          yuklanganImzo.current = first.signature;
+          setSaqlashHolati('saved');
+          setSaqlashQadami(i => i + 1);
+        } finally { fresh.sending = false; }
+      };
+      const timer = setTimeout(() => { void save(); }, 1000);
+      return () => clearTimeout(timer);
+    }
     const yangi = suhbatArxivla(suhbatOqi(arxivKalit), suhbatId.current, xabarlar.map((x) => ({ rol: x.rol, matn: x.matn, jonli: x.jonli })));
     suhbatYoz(arxivKalit, yangi); setArxiv(yangi);
     /* Serverga (qurilmalar orasida): 1.5 s kutib, xato bo'lsa jim — brauzer nusxasi zaxira. */
@@ -175,15 +376,194 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
       if (tirik && gen.current === avlod && suhbatId.current === id) setSaqlashHolati(r?.ok ? 'saved' : 'local');
     }).catch(() => { if (tirik && gen.current === avlod && suhbatId.current === id) setSaqlashHolati('local'); }); }, 1500);
     return () => { tirik = false; clearTimeout(tm); };
-  }, [xabarlar, arxivKalit, yordamchi, tarixKalit, tarixEga]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [xabarlar, arxivKalit, yordamchi, tarixKalit, tarixEga, saqlashQadami, outboxScope, scope]); // eslint-disable-line react-hooks/exhaustive-deps
   const [serverRoyxat, setServerRoyxat] = useState<ServerSuhbat[]>([]);
-  useEffect(() => { let tirik = true; setServerRoyxat([]); if (kompaniyaId != null && foydalanuvchiId != null && yordamchi) void suhbatRoyxatOl(kompaniyaId).then((r) => { if (tirik && r) setServerRoyxat(r); }); return () => { tirik = false; }; }, [kompaniyaId, foydalanuvchiId, !!yordamchi]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [extraHistory, setExtraHistory] = useState<{ owner: string; rows: ServerSuhbat[]; next: ConversationPageCursor | null } | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const historyRequest = useRef<object | null>(null);
+  const history = extraHistory?.owner === tarixKalit ? extraHistory : null;
+  const loadOlderChats = async () => {
+    if (kompaniyaId == null || !tarixKalit || historyRequest.current || tahrirSorov.current || (history && !history.next)) return;
+    const marker = {};
+    const avlod = gen.current;
+    const oldVersion = tahrirVersiya.current;
+    historyRequest.current = marker;
+    setHistoryLoading(true);
+    try {
+      const first = await jarvisConversationPage(kompaniyaId, history?.next ?? null);
+      if (gen.current !== avlod || tahrirVersiya.current !== oldVersion) return;
+      if (!first) { toast(t('Eski suhbatlarni yuklab bo‘lmadi.'), 'warn'); return; }
+      const rows = new Map((history?.rows ?? []).map(row => [row.id, row]));
+      const latest = new Set(serverRoyxat.map(row => row.id));
+      let page = first;
+      if (!history && page.keyingi && page.royxat.every(row => latest.has(row.id))) {
+        const older = await jarvisConversationPage(kompaniyaId, page.keyingi);
+        if (gen.current !== avlod || tahrirVersiya.current !== oldVersion) return;
+        if (!older) { toast(t('Eski suhbatlarni yuklab bo‘lmadi.'), 'warn'); return; }
+        page = older;
+      }
+      for (const row of page.royxat) rows.set(row.id, row);
+      setExtraHistory({ owner: tarixKalit, rows: [...rows.values()], next: page.keyingi });
+    } finally {
+      if (historyRequest.current === marker) {
+        historyRequest.current = null;
+        setHistoryLoading(false);
+      }
+    }
+  };
+  const syncListed = useRef(false);
+  useEffect(() => {
+    let tirik = true;
+    syncListed.current = false;
+    setServerRoyxat([]);
+    setExtraHistory(null);
+    historyRequest.current = null;
+    setHistoryLoading(false);
+    if (kompaniyaId != null && foydalanuvchiId != null && yordamchi) {
+      void suhbatRoyxatOl(kompaniyaId).then((r) => { if (tirik && r && !syncListed.current) setServerRoyxat(r); });
+    }
+    return () => { tirik = false; };
+  }, [kompaniyaId, foydalanuvchiId, !!yordamchi]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Only an untouched server-opened conversation accepts remote messages. A local or in-flight
+  // change stays on this device until the versioned write path can reconcile it.
+  const readPoll = useRef(async (_signal: AbortSignal) => false);
+  const pollBlocked = useRef(false);
+  pollBlocked.current = !!matn.trim() || yuklanayotgan !== null || saqlashHolati === 'saving' || saqlashHolati === 'local';
+  const suhbatSof = () => !busy.current && !pollBlocked.current && xabarImzo(xabarlarRef.current) === yuklanganImzo.current;
+  readPoll.current = async (signal) => {
+    if (kompaniyaId == null) return false;
+    if (tahrirSorov.current !== null) return true;
+    const versiya = tahrirVersiya.current;
+    const avlod = gen.current;
+    const loadNumber = yuklashNomer.current;
+    const requestId = suhbatId.current;
+    const anchor = remoteAnchor.current;
+    const cursor = anchor?.id === requestId && suhbatSof() ? { id: anchor.id, etag: anchor.etag } : null;
+    const sync = await syncJarvisConversation(kompaniyaId, cursor, signal);
+    if (!sync || signal.aborted || gen.current !== avlod || tahrirVersiya.current !== versiya) return !!sync;
+    syncListed.current = true;
+    setServerRoyxat(current => current.length === sync.royxat.length && current.every((row, i) => {
+      const fresh = sync.royxat[i];
+      return row.id === fresh.id && row.sarlavha === fresh.sarlavha && row.yangilandi === fresh.yangilandi && row.toliq === fresh.toliq;
+    }) ? current : sync.royxat);
+    const remote = sync.suhbat;
+    if (!remote || !cursor || remoteAnchor.current !== anchor || suhbatId.current !== requestId ||
+        yuklashNomer.current !== loadNumber || !suhbatSof()) return true;
+    if (remote.holat === 'same') return true;
+    davomRef.current = null;
+    if (remote.holat === 'missing') {
+      setExtraHistory(items => items?.rows.some(row => row.id === requestId) ? { ...items, rows: items.rows.filter(row => row.id !== requestId) } : items);
+      remoteAnchor.current = null;
+      qisqartmaDan.current = null;
+      suhbatId.current = crypto.randomUUID();
+      yangiServerSuhbat.current = { id: suhbatId.current, start: 0 };
+      yuklanganImzo.current = xabarImzo([]);
+      setXabarlar([]);
+      return true;
+    }
+    setExtraHistory(items => items?.rows.some(row => row.id === requestId && row.sarlavha !== remote.sarlavha) ?
+      { ...items, rows: items.rows.map(row => row.id === requestId ? { ...row, sarlavha: remote.sarlavha } : row) } : items);
+    const messages = remote.xabarlar ?? (remote.qisqartma ? [{ r: 'ai' as const, m: t('Eski suhbat (qisqartma)') + ': ' + remote.qisqartma }] : []);
+    const next = messages.map((x, i) => ({ id: requestId + '-' + i, rol: x.r, matn: x.m, jarvis: x.r === 'ai' }));
+    if (remote.xabarlar === null || remote.arxivlangan) qisqartmaDan.current = requestId;
+    else qisqartmaDan.current = null;
+    remoteAnchor.current = { id: requestId, etag: remote.etag, count: next.length, base: remote.xabarlar ?? [] };
+    yuklanganImzo.current = xabarImzo(next);
+    setXabarlar(next);
+    return true;
+  };
+  useEffect(() => {
+    if (!tarixKalit || kompaniyaId == null) return;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
+    let request: AbortController | null = null;
+    let refreshAfterRequest = false;
+    const schedule = (ms: number) => { if (!stopped) timer = setTimeout(() => { void poll(); }, ms); };
+    async function poll() {
+      if (document.visibilityState === 'hidden') { schedule(3000); return; }
+      const active = new AbortController();
+      request = active;
+      const timeout = setTimeout(() => active.abort(), 8000);
+      let ok = false;
+      try {
+        ok = await readPoll.current(active.signal);
+      } finally {
+        clearTimeout(timeout);
+        request = null;
+        schedule(refreshAfterRequest ? 0 : ok ? 3000 : 30000);
+        refreshAfterRequest = false;
+      }
+    }
+    const refreshNow = () => {
+      if (document.visibilityState === 'hidden') return;
+      if (request) { refreshAfterRequest = true; return; }
+      clearTimeout(timer);
+      schedule(0);
+    };
+    schedule(3000);
+    window.addEventListener('online', refreshNow);
+    document.addEventListener('visibilitychange', refreshNow);
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+      request?.abort();
+      window.removeEventListener('online', refreshNow);
+      document.removeEventListener('visibilitychange', refreshNow);
+    };
+  }, [tarixKalit, kompaniyaId, scope]);
   /* Ko'rinadigan ro'yxat: brauzer nusxasi + faqat serverda bor (boshqa qurilma) suhbatlar. */
+  const allServerRows = useMemo(() => [...new Map([...(history?.rows ?? []), ...serverRoyxat].map(row => [row.id, row])).values()],
+    [history, serverRoyxat]);
   const korinadigan = useMemo(() => {
     const bor = new Set(arxiv.map((s) => s.id));
-    const sv = serverRoyxat.filter((s) => !bor.has(s.id)).map((s) => ({ id: s.id, sarlavha: s.sarlavha, yangilandi: Date.parse(s.yangilandi) || 0, xabarlar: [] as Suhbat['xabarlar'], server: true as const }));
+    const sv = allServerRows.filter((s) => !bor.has(s.id)).map((s) => ({ id: s.id, sarlavha: s.sarlavha, yangilandi: Date.parse(s.yangilandi) || 0, xabarlar: [] as Suhbat['xabarlar'], server: true as const }));
     return [...arxiv.map((s) => ({ ...s, server: false as const })), ...sv].sort((a, b) => b.yangilandi - a.yangilandi);
-  }, [arxiv, serverRoyxat]);
+  }, [arxiv, allServerRows]);
+  const serverSuhbat = allServerRows.find(s => s.id === suhbatId.current && s.id === remoteAnchor.current?.id);
+  const faolTahrir = suhbatTahriri?.avlod === gen.current && suhbatTahriri.id === serverSuhbat?.id ? suhbatTahriri : null;
+  const tahrirMumkin = serverSuhbat && remoteAnchor.current?.etag && suhbatSof() && !tahrirBand;
+  const tahrirOch = (amal: 'rename' | 'delete') => {
+    const etag = remoteAnchor.current?.etag;
+    if (!tahrirMumkin || !serverSuhbat || !etag) return;
+    setSuhbatTahriri({ id: serverSuhbat.id, avlod: gen.current, etag, amal, nom: serverSuhbat.sarlavha });
+  };
+  const tahrirSaqlash = async () => {
+    const draft = faolTahrir;
+    if (!draft || kompaniyaId == null || !suhbatSof() || tahrirSorov.current !== null) return;
+    const anchor = remoteAnchor.current;
+    const name = draft.nom.trim();
+    if (draft.amal === 'rename' && !name) return;
+    if (anchor?.id !== draft.id || anchor.etag !== draft.etag) {
+      setSuhbatTahriri(null);
+      toast(t('Suhbat boshqa qurilmada o‘zgargan. Yangilangan suhbatni tekshiring.'), 'warn');
+      return;
+    }
+    tahrirSorov.current = draft.avlod;
+    tahrirVersiya.current++;
+    setTahrirBand(true);
+    const result = await mutateJarvisConversation(kompaniyaId, draft.id, draft.etag,
+      draft.amal === 'delete' ? { harakat: 'delete' } : { harakat: 'rename', sarlavha: name });
+    tahrirSorov.current = null;
+    setTahrirBand(false);
+    if (gen.current !== draft.avlod || remoteAnchor.current !== anchor) return;
+    if (result.status === 'failed') { toast(t('Suhbatdagi o‘zgarish saqlanmadi.'), 'warn'); return; }
+    setSuhbatTahriri(null);
+    if (result.status === 'stale') { toast(t('Suhbat boshqa qurilmada o‘zgargan. Yangilangan suhbatni tekshiring.'), 'warn'); return; }
+    if (result.status === 'saved') {
+      remoteAnchor.current = { ...anchor, etag: result.etag };
+      setServerRoyxat(rows => rows.map(row => row.id === draft.id ? { ...row, sarlavha: name } : row));
+      setExtraHistory(items => items?.owner === tarixKalit ? { ...items, rows: items.rows.map(row => row.id === draft.id ? { ...row, sarlavha: name } : row) } : items);
+    } else {
+      setServerRoyxat(rows => rows.filter(row => row.id !== draft.id));
+      setExtraHistory(items => items?.owner === tarixKalit ? { ...items, rows: items.rows.filter(row => row.id !== draft.id) } : items);
+      suhbatToxtat();
+      qisqartmaDan.current = null;
+      suhbatId.current = crypto.randomUUID();
+      yangiServerSuhbat.current = { id: suhbatId.current, start: 0 };
+      yuklanganImzo.current = xabarImzo([]);
+      setXabarlar([]);
+    }
+  };
   const serverdanDavom = async (s: Suhbat) => {
     /* Avval yuklaymiz: xato bo'lsa joriy (oqayotgan) javob bekor qilinmaydi. */
     const boshlangich = gen.current; const nomer = ++yuklashNomer.current;
@@ -197,12 +577,17 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     const toLiq = !!r.xabarlar;
     const x = r.xabarlar ?? (r.qisqartma ? [{ r: 'ai' as const, m: `${t('Eski suhbat (qisqartma)')}: ${r.qisqartma}` }] : []);
     suhbatToxtat();
-    suhbatId.current = s.id; qisqartmaDan.current = toLiq || !x.length ? null : s.id;
+    suhbatId.current = s.id; qisqartmaDan.current = r.arxivlangan || (!toLiq && x.length) ? s.id : null;
+    remoteAnchor.current = { id: s.id, etag: null, count: x.length, base: r.xabarlar ?? [] };
+    if (tarixKalit) {
+      try { sessionStorage.removeItem(tarixKalit); sessionStorage.removeItem(tarixKalit + ':id'); } catch { /* storage off */ }
+    }
     const yangi = x.map((q, i) => ({ id: `${s.id}-${i}`, rol: q.r, matn: q.m, jarvis: q.r === 'ai' }));
     yuklanganImzo.current = xabarImzo(yangi);
     setXabarlar(yangi);
   };
   const suhbatDavom = (s: Suhbat & { server?: boolean }) => {
+    if (outboxLoading || appendRetry.current || yangiServerSuhbat.current?.first) return;
     if (s.server) { void serverdanDavom(s); return; }
     suhbatToxtat(); suhbatId.current = s.id; qisqartmaDan.current = null;
     const yangi = s.xabarlar.map((x, i) => ({ id: `${s.id}-${i}`, rol: x.rol, matn: x.matn, jarvis: x.rol === 'ai' }));
@@ -211,13 +596,27 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   /* QURILMA ALMASHGANDA: bu qurilmada tarix yo'q (brauzer arxivi va joriy chat bo'sh), serverda esa oxirgi 48 soatdagi suhbat bor — o'zi tiklanadi (bir marta). */
   const tiklandi = useRef<string | null>(null);
   useEffect(() => {
-    if (!yordamchi || tiklandi.current === arxivKalit || xabarlarRef.current.length || arxiv.length || !serverRoyxat.length) return;
+    if (!yordamchi || (outboxOwner && outboxScope !== scope) || tiklandi.current === arxivKalit ||
+        xabarlarRef.current.length || arxiv.length || !serverRoyxat.length) return;
     const s = [...serverRoyxat].sort((a, b) => Date.parse(b.yangilandi) - Date.parse(a.yangilandi))[0];
     const vaqt = Date.parse(s.yangilandi);
     if (!Number.isFinite(vaqt) || Date.now() - vaqt > 48 * 3_600_000) return;
     tiklandi.current = arxivKalit;
     void serverdanDavom({ id: s.id, sarlavha: s.sarlavha, yangilandi: vaqt, xabarlar: [] });
-  }, [serverRoyxat, arxiv.length, arxivKalit, !!yordamchi]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [serverRoyxat, arxiv.length, arxivKalit, !!yordamchi, outboxScope, scope]); // eslint-disable-line react-hooks/exhaustive-deps
+  const pendingWrite = appendRetry.current?.operationId ?? (yangiServerSuhbat.current?.first ? yangiServerSuhbat.current.id : null);
+  const clearPendingWrite = async () => {
+    if (!pendingWrite || !outboxOwner || saqlashHolati !== 'local' ||
+        discardingPending.current || appendPending.current || yangiServerSuhbat.current?.sending) return;
+    const avlod = gen.current;
+    discardingPending.current = true;
+    try {
+      if (!await jarvisOutboxRemove(outboxOwner, pendingWrite) || gen.current !== avlod) return;
+      appendRetry.current = null;
+      yangiServerSuhbat.current = null;
+      window.dispatchEvent(new Event('ai:yangi-suhbat'));
+    } finally { discardingPending.current = false; }
+  };
   const ochish = (yol: string) => { navigate(yol); onOtish?.(); };
   /* Javobdagi ichki havolalar (/admin/...) sahifani qayta yuklamay, router orqali ochiladi; tashqilari yangi oynada. */
   const markdownBogla = useMemo(() => ({
@@ -245,7 +644,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
 
   const yubor = async (savol: string, davom?: { id: string }) => {
     const s = savol.trim();
-    if (!s || (busy.current && !davom)) return;
+    if (!s || outboxLoading || tahrirSorov.current === gen.current || (busy.current && !davom)) return;
     const boshlangich = gen.current;
     const id = davom?.id ?? Date.now().toString();
     if (!davom) setMatn('');
@@ -367,10 +766,11 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const tinglov = useRef<{ toxtat: () => void } | null>(null);
   useEffect(() => () => { tinglov.current?.toxtat(); }, []);
   function mikrofon() {
+    if (tahrirSorov.current === gen.current) return;
     if (tinglayapti) { tinglov.current?.toxtat(); return; }
     const bosh = matn.trim();
     const hd = ovozBoshla(ovozTil, {
-      natija: (m) => setMatn(bosh ? `${bosh} ${m}` : m),
+      natija: (m) => { if (tahrirSorov.current !== gen.current) setMatn(bosh ? `${bosh} ${m}` : m); },
       xato: (kod) => { setTinglayapti(false); toast(kod === 'not-allowed' || kod === 'service-not-allowed' ? t('Mikrofonga ruxsat berilmagan — matn bilan yozing.') : t('Ovoz tanilmadi — qayta urinib ko‘ring yoki matn bilan yozing.'), 'warn'); },
       tugadi: () => setTinglayapti(false),
     });
@@ -380,20 +780,53 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   return (
     <>
       {foydalanuvchiId && kompaniyaId && yordamchi?.joriyObyekt && yordamchi.vosita && <JarvisVazifa key={foydalanuvchiId+':'+kompaniyaId+':'+yordamchi.joriyObyekt.id} scope={{actorId:foydalanuvchiId,companyId:kompaniyaId,objectId:yordamchi.joriyObyekt.id}} api={yordamchi.vosita.api} />}
-      {yordamchi && <div className={`border-b border-border bg-surface-2 px-4 ${ixcham ? 'py-1' : 'py-2'}`} data-testid="jarvis-conversation-bar">
+      {yordamchi && <div className={`border-b border-border bg-surface-2 px-4 ${ixcham ? 'py-1' : 'py-2'}`} data-testid="jarvis-conversation-bar" aria-busy={outboxLoading}>
         <div className="flex items-center gap-2">
-          <select aria-label={t('Suhbatni tanlash')} value="" onChange={(e) => { const selected = korinadigan.find((q) => q.id === e.target.value); if (selected) suhbatDavom(selected); }} className="min-w-0 flex-1 rounded border border-border bg-surface px-2 py-1 text-sm">
+          <select aria-label={t('Suhbatni tanlash')} value="" disabled={outboxLoading || !!pendingWrite} onChange={(e) => { const selected = korinadigan.find((q) => q.id === e.target.value); if (selected) suhbatDavom(selected); }} className="min-w-0 flex-1 rounded border border-border bg-surface px-2 py-1 text-sm">
             <option value="">{korinadigan.find((q) => q.id === suhbatId.current)?.sarlavha ?? t('Suhbatni tanlash')}</option>
             {korinadigan.map((q) => <option key={q.id} value={q.id}>{q.sarlavha}</option>)}
           </select>
-          {!ixcham && <button type="button" onClick={() => window.dispatchEvent(new Event('ai:yangi-suhbat'))} className="rounded border border-border px-2 py-1 text-sm">{t('Yangi suhbat')}</button>}
+          {!ixcham && <button type="button" disabled={outboxLoading || !!pendingWrite} onClick={() => window.dispatchEvent(new Event('ai:yangi-suhbat'))} className="rounded border border-border px-2 py-1 text-sm">{t('Yangi suhbat')}</button>}
         </div>
+        {tarixKalit && kompaniyaId != null && (!history || history.next) && <button type="button"
+          disabled={historyLoading || outboxLoading || tahrirBand || !!pendingWrite} onClick={() => void loadOlderChats()}
+          className="mt-1 rounded border border-border px-2 py-1 text-xs disabled:opacity-50">
+          {t('Eski suhbatlarni ko‘rish')}
+        </button>}
+        {serverSuhbat && !faolTahrir && <div className="mt-1 flex flex-wrap gap-1.5 text-xs">
+          <button type="button" disabled={!tahrirMumkin || tinglayapti} onClick={() => tahrirOch('rename')} className="rounded border border-border px-2 py-1 disabled:opacity-50">{t('Suhbat nomini o‘zgartirish')}</button>
+          <button type="button" disabled={!tahrirMumkin || tinglayapti} onClick={() => tahrirOch('delete')} className="rounded border border-border px-2 py-1 disabled:opacity-50">{t('Suhbatni o‘chirish')}</button>
+        </div>}
+        {faolTahrir && <form className="mt-1 flex flex-wrap items-center gap-1.5 text-xs" onSubmit={e => { e.preventDefault(); void tahrirSaqlash(); }} aria-busy={tahrirBand}>
+          {faolTahrir.amal === 'rename' ? <input
+            aria-label={t('Suhbat nomi')} maxLength={80} value={faolTahrir.nom} disabled={tahrirBand}
+            onChange={e => setSuhbatTahriri({ ...faolTahrir, nom: e.target.value })}
+            className="min-w-24 flex-1 rounded border border-border bg-surface px-2 py-1"
+          /> : <span className="flex-1">{t('Serverdagi «{nom}» suhbatini o‘chirasizmi?', { nom: faolTahrir.nom })}</span>}
+          <button type="submit" disabled={!tahrirMumkin || tinglayapti || (faolTahrir.amal === 'rename' && !faolTahrir.nom.trim())} className="rounded border border-border px-2 py-1 disabled:opacity-50">
+            {faolTahrir.amal === 'rename' ? t('Saqlash') : t('O‘chirishni tasdiqlash')}
+          </button>
+          <button type="button" disabled={tahrirBand} onClick={() => setSuhbatTahriri(null)} className="rounded border border-border px-2 py-1 disabled:opacity-50">{t('Bekor qilish')}</button>
+        </form>}
         {!ixcham && <p className="mt-1 text-xs text-text-dim">{kompaniyaId == null ? t('Kontekst: umumiy suhbat') : t('Kontekst: kompaniya #{id}', { id: String(kompaniyaId) })}{yordamchi.joriyObyekt ? ' · ' + yordamchi.joriyObyekt.nom : ''}</p>}
         {yuklanayotgan !== null && <div className="mt-1 flex items-center gap-2 text-xs" data-testid="jarvis-conversation-loading">
           <span role="status">{t('Suhbat yuklanmoqda: {nom}', {nom: yuklanayotgan})}</span>
           <button type="button" onClick={() => { yuklashNomer.current++; setYuklanayotgan(null); }} className="rounded border border-border px-2 py-1">{t('Suhbat yuklashni bekor qilish')}</button>
         </div>}
-        {saqlashHolati !== 'idle' && <p role="status" className="mt-1 text-xs text-text-dim">{saqlashHolati === 'saving' ? t('Suhbat serverga saqlanmoqda…') : saqlashHolati === 'saved' ? t('Suhbatning ixcham nusxasi serverga saqlandi') : t('Serverga saqlanmadi — bu oynani yopmang')}</p>}
+        {saqlashHolati !== 'idle' && <p role="status" className="mt-1 text-xs text-text-dim">{saqlashHolati === 'saving' ? t('Suhbat serverga saqlanmoqda…') : saqlashHolati === 'saved' ? t('Suhbat serverga saqlandi') : t('Serverga saqlanmadi — bu oynani yopmang')}</p>}
+        {saqlashHolati === 'local' && ((yangiServerSuhbat.current?.first && !yangiServerSuhbat.current.stale) ||
+          (appendRetry.current && !appendRetry.current.stale)) && <button type="button"
+          onClick={() => setSaqlashQadami(i => i + 1)} className="mt-1 rounded border border-border px-2 py-1 text-xs">
+          {t('Qayta urinish')}
+        </button>}
+        {saqlashHolati === 'local' && pendingWrite && (!discardPending ? <button type="button"
+          onClick={() => setDiscardPending(true)} className="ml-2 mt-1 rounded border border-border px-2 py-1 text-xs">
+          {t('Yuborilmagan xabarlarni bekor qilish')}
+        </button> : <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+          <span>{t('Mahalliy navbatdagi xabarlar o‘chirilsinmi?')}</span>
+          <button type="button" onClick={() => void clearPendingWrite()} className="rounded border border-border px-2 py-1">{t('O‘chirishni tasdiqlash')}</button>
+          <button type="button" onClick={() => setDiscardPending(false)} className="rounded border border-border px-2 py-1">{t('Bekor qilish')}</button>
+        </div>)}
       </div>}
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4" aria-live="polite">
         {studioScope && kasb?.kategoriyalar.includes('smeta_pul') && <p className="rounded-lg border border-border p-2 text-xs text-text-dim">{t('Jarvis joriy qoralamani o‘qiydi; u hali tasdiqlangan hujjat emas.')}</p>}
@@ -472,7 +905,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
       </div>
       <div className="shrink-0 border-t border-border bg-surface-2 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="relative">
-          <textarea value={matn} onChange={(e) => setMatn(e.target.value)} rows={2} id="jarvis-kirish" data-testid="jarvis-kirish" autoFocus={!!yordamchi && !ixcham && !sensorliQurilma()}
+          <textarea readOnly={tahrirBand || outboxLoading} value={matn} onChange={(e) => setMatn(e.target.value)} rows={2} id="jarvis-kirish" data-testid="jarvis-kirish" autoFocus={!!yordamchi && !ixcham && !sensorliQurilma()}
             placeholder={yordamchi ? t('Masalan: «mindmapni och», «narxsiz qatorlar», «Yevropa 1 F2»') : t('Xabaringizni yozing...')}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void yubor(matn); } }}
             className={`max-h-[40vh] min-h-[72px] w-full resize-none [field-sizing:content] rounded-xl border border-border bg-surface py-3 pl-4 text-sm text-text focus:border-accent focus:outline-none ${ovozBor ? 'pr-28' : 'pr-12'}`} />
@@ -486,7 +919,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
           {band ? (
             <button type="button" onClick={() => abort.current?.abort()} aria-label={t('To‘xtatish')} title={t('To‘xtatish')} className="fz-btn fz-btn--danger fz-btn--icon absolute bottom-2 right-2"><Square size={14} /></button>
           ) : (
-            <button type="button" onClick={() => void yubor(matn)} disabled={!matn.trim()} aria-label={t('Yuborish')} title={t('Yuborish')}
+            <button type="button" onClick={() => void yubor(matn)} disabled={!matn.trim() || outboxLoading} aria-label={t('Yuborish')} title={t('Yuborish')}
               className="fz-btn fz-btn--primary fz-btn--icon absolute bottom-2 right-2"><Send size={16} /></button>
           )}
         </div>

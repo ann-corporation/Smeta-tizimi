@@ -34,8 +34,10 @@ import { baholash, javobNarxi, openrouterModellar, tavsiyaEtilgan, TALAB } from 
 import { openrouterBalans } from '../_shared/openrouter-balans';
 import { AI_TIZIM_AMALLAR, aiJavobTozala, platformaSuperadminmi } from '../_shared/tizim-maxfiy';
 import { mijozNarxParam, modellarMijozga, orQatorMijozga } from '../_shared/ai-mijoz-narx';
+import { jarvisArchiveRead } from '../_shared/jarvis-conversation-archive';
+import { JARVIS_MAX_MUTATION_BYTES, legacyJarvisTurns, validJarvisTurn } from '../../src/lib/jarvis/conversation-contract';
 
-type Env = AiEnv & { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; KUZATUV_KALIT?: string; KUZATUV_ACTOR_ID?: string; AGENT_ISH_YOQILGAN?: string; GITHUB_AGENT_TOKEN?: string; GITHUB_REPO?: string };
+type Env = AiEnv & { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; KUZATUV_KALIT?: string; KUZATUV_ACTOR_ID?: string; AGENT_ISH_YOQILGAN?: string; GITHUB_AGENT_TOKEN?: string; GITHUB_REPO?: string; R2_CANONICAL?: R2Bucket };
 
 const JAVOB = { headers: { 'Cache-Control': 'no-store' } };
 const sonmi = (v: unknown) => v != null && v !== '' && Number.isSafeInteger(Number(v)) && Number(v) > 0;
@@ -45,6 +47,8 @@ const PROFIL = /^[a-z_]{3,40}$/;
 /** Model chaqiradigan (token sarflaydigan) amallar. */
 const AI_AMALLAR = new Set(['vazifa_reja', 'savol', 'kasb_savol', 'jarvis_niyat', 'veb_tahlil', 'veb_ol', 'rivojlanish_tahlil', 'qadam_taklif', 'bilim_yigish']);
 const chiqar = (r: RpcNatija) => Response.json(r.data, { status: r.status, ...JAVOB });
+const archiveFailure = () => Response.json({ ok: false, code: 'JARVIS_ARCHIVE_UNAVAILABLE' }, { status: 503, ...JAVOB });
+const archivedSnapshot = (value: unknown) => value && typeof value === 'object' ? value as Record<string, unknown> : null;
 const xato = (m: string, status = 400) => Response.json({ ok: false, error: m }, { status, ...JAVOB });
 
 /** Davriy kalit bilan ruxsat etilgan yagona amallar: me'yor sahifalarini tekshirish va signallardan rivojlanish takliflari (ikkalasi ham faqat TAKLIF yaratadi). */
@@ -445,12 +449,97 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
     return chiqar(await rpcData(env,'t2_jarvis_vazifa_saqla_v1',{...params,p_id:id,p_expected_revision:so.expected_revision,p_task:task}));
   }
   /* JARVIS SUHBATLARI (serverda, t2_jarvis_suhbat): faqat egasi o'qiydi; actor sessiyadan, a'zolik bazada (scope_guard); model chaqirilmaydi. */
+  if (amal === 'suhbat_page') {
+    if (kid == null) return xato('Kompaniyani tanlang', 422);
+    const { before_at: at, before_row: row } = so;
+    if ((at == null) !== (row == null) || (at != null &&
+      (typeof at !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(at) ||
+        !Number.isFinite(Date.parse(at)) || typeof row !== 'string' || !/^[1-9]\d{0,18}$/.test(row) ||
+        BigInt(row) > 9223372036854775807n))) return xato('Suhbat sahifasi noto‘g‘ri');
+    return chiqar(await rpcData(env, 't2_jarvis_suhbat_page_v1', {
+      p_actor_id: k.actor, p_kompaniya_id: kid, p_before_at: at ?? null, p_before_id: row ?? null,
+    }));
+  }
+  if (amal === 'suhbat_sync') {
+    if (kid == null) return xato('Kompaniyani tanlang', 422);
+    const id = so.klient_id;
+    const etag = so.etag;
+    if ((id != null && (typeof id !== 'string' || !/^[A-Za-z0-9_.-]{1,40}$/.test(id))) ||
+        (etag != null && (id == null || typeof etag !== 'string' || !/^[a-f0-9]{32}$/.test(etag)))) {
+      return xato('Suhbat sinxronlash so‘rovi noto‘g‘ri');
+    }
+    const result = await rpcData(env, 't2_jarvis_suhbat_sync_v1', {
+      p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: id ?? null, p_etag: etag ?? null,
+    });
+    const active = archivedSnapshot(result.data.suhbat);
+    if (!result.ok || !active || !Object.hasOwn(active, 'archive')) return chiqar(result);
+    const { archive, ...visible } = active;
+    if (archive != null) {
+      if (visible.id !== id || visible.holat !== 'changed' || visible.xabarlar !== null) return archiveFailure();
+      try {
+        visible.xabarlar = await jarvisArchiveRead(env.R2_CANONICAL, archive);
+        visible.arxivlangan = true;
+      } catch { return archiveFailure(); }
+    }
+    if (so.full_history !== true && Object.hasOwn(visible, 'xabarlar')) visible.xabarlar = legacyJarvisTurns(visible.xabarlar);
+    return chiqar({ ...result, data: { ...result.data, suhbat: visible } });
+  }
+  if (amal === 'suhbat_mutate') {
+    if (kid == null) return xato('Kompaniyani tanlang', 422);
+    const { klient_id: id, etag, harakat, sarlavha, xabarlar, operation_id: operation } = so;
+    if (so.outbox_actor != null &&
+        ((harakat !== 'create' && harakat !== 'append') || so.outbox_actor !== k.actor)) {
+      return Response.json({ ok: false, code: 'JARVIS_ACTOR_SCOPE' }, { status: 403, ...JAVOB });
+    }
+    if (typeof id !== 'string' || !/^[A-Za-z0-9_.-]{1,40}$/.test(id) ||
+        (harakat === 'create' ? etag != null : typeof etag !== 'string' || !/^[a-f0-9]{32}$/.test(etag)) ||
+        (harakat !== 'create' && harakat !== 'append' && harakat !== 'rename' && harakat !== 'delete')) return xato('Suhbat o‘zgarishi noto‘g‘ri');
+    if (operation != null && (harakat !== 'append' || typeof operation !== 'string' ||
+        !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(operation))) return xato('operation_id noto‘g‘ri');
+    if (harakat === 'rename' || harakat === 'create' ? typeof sarlavha !== 'string' || !sarlavha.trim() || sarlavha.length > 80 : sarlavha != null) {
+      return xato('Suhbat sarlavhasi noto‘g‘ri');
+    }
+    if (harakat === 'append' || harakat === 'create') {
+      if (!Array.isArray(xabarlar) || xabarlar.length < 1 || xabarlar.length > 12 || !xabarlar.every(validJarvisTurn) ||
+          new TextEncoder().encode(JSON.stringify(xabarlar.map(({ r, m }) => ({ r, m })))).byteLength > JARVIS_MAX_MUTATION_BYTES - 256) {
+        return xato('Suhbat xabarlari noto‘g‘ri');
+      }
+    } else if (xabarlar != null) return xato('Bu amal xabarlarni o‘zgartirmaydi');
+    const result = await rpcData(env, 't2_jarvis_suhbat_mutate_v1', {
+      p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: id, p_etag: etag ?? null, p_amal: harakat,
+      p_sarlavha: sarlavha ?? null,
+      p_xabarlar: Array.isArray(xabarlar) ? xabarlar.map(x => ({ r: x.r, m: x.m })) : null,
+      ...(operation ? { p_operation_id: operation } : {}),
+    });
+    if (result.data.code === 'SUHBAT_CONFLICT') return Response.json(result.data, { status: 409, ...JAVOB });
+    if (result.data.code === 'SUHBAT_FULL') return Response.json(result.data, { status: 413, ...JAVOB });
+    if (result.data.code === 'SUHBAT_NOT_FOUND') return Response.json(result.data, { status: 404, ...JAVOB });
+    return chiqar(result);
+  }
   if (amal === 'suhbat_royxat' || amal === 'suhbat_ol' || amal === 'suhbat_saqla' || amal === 'suhbat_ochir') {
     if (kid == null) return xato('Kompaniyani tanlang', 422);
     const klient = String(so.klient_id ?? '');
-    if (amal === 'suhbat_royxat') return chiqar(await rpcData(env, 't2_jarvis_suhbat_royxat_v1', { p_actor_id: k.actor, p_kompaniya_id: kid }));
+    if (amal === 'suhbat_royxat') {
+      const key = { p_actor_id: k.actor, p_kompaniya_id: kid };
+      const result = await rpcData(env, 't2_jarvis_suhbat_sync_v1', { ...key, p_klient_id: null, p_etag: null });
+      if (result.ok) return chiqar(result);
+      return chiqar(await rpcData(env, 't2_jarvis_suhbat_royxat_v1', key));
+    }
     if (!/^[A-Za-z0-9_.-]{1,40}$/.test(klient)) return xato('klient_id notoвЂgвЂri');
-    if (amal === 'suhbat_ol') return chiqar(await rpcData(env, 't2_jarvis_suhbat_ol_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: klient }));
+    if (amal === 'suhbat_ol') {
+      const key = { p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: klient };
+      const result = await rpcData(env, 't2_jarvis_suhbat_ol_v1', key);
+      if (!result.ok) return chiqar(result);
+      if (result.data.xabarlar !== null) return chiqar({ ...result, data: { ...result.data, xabarlar: legacyJarvisTurns(result.data.xabarlar) } });
+      const snapshot = await rpcData(env, 't2_jarvis_suhbat_sync_v1', { ...key, p_etag: null });
+      const active = archivedSnapshot(snapshot.data.suhbat);
+      if (!snapshot.ok || !active || active.archive == null) return chiqar(result);
+      if (active.id !== klient || active.holat !== 'changed' || active.xabarlar !== null) return archiveFailure();
+      try {
+        const xabarlar = await jarvisArchiveRead(env.R2_CANONICAL, active.archive);
+        return chiqar({ ...result, data: { ...result.data, xabarlar: legacyJarvisTurns(xabarlar), arxivlangan: true } });
+      } catch { return archiveFailure(); }
+    }
     if (amal === 'suhbat_ochir') return chiqar(await rpcData(env, 't2_jarvis_suhbat_ochir_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: klient }));
     const xabarlar = (Array.isArray(so.xabarlar) ? so.xabarlar : []).slice(-60).map((x) => { const r = (x ?? {}) as Record<string, unknown>; return { r: r.r === 'user' ? 'user' : 'ai', m: matn(r.m, 400) ?? '' }; }).filter((x) => x.m);
     return chiqar(await rpcData(env, 't2_jarvis_suhbat_saqla_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: klient, p_sarlavha: matn(so.sarlavha, 80) ?? '', p_xabarlar: xabarlar }));
