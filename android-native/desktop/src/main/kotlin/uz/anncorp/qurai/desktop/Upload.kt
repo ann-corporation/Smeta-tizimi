@@ -1,5 +1,7 @@
 package uz.anncorp.qurai.desktop
 
+import uz.anncorp.qurai.ui.components.*
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Button
@@ -44,8 +46,8 @@ fun UploadBar(c: Ctx, objectId: Long, onUploaded: () -> Unit = {}) {
         }
     }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-        Button(onClick = { run(true) }, enabled = !busy) { Text("Foto yuklash") }
-        OutlinedButton(onClick = { run(false) }, enabled = !busy) { Text("Fayl yuklash") }
+        QPrimaryButton(onClick = { run(true) }, enabled = !busy) { Text("Foto yuklash") }
+        QSecondaryButton(onClick = { run(false) }, enabled = !busy) { Text("Fayl yuklash") }
         if (busy) Text("Yuklanmoqda...", style = MaterialTheme.typography.labelMedium)
         msg?.let { Text(it, color = if (ok) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelMedium) }
     }

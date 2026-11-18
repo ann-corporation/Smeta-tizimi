@@ -232,7 +232,7 @@ export default function HujjatMaydoni() {
         )}
 
         {joy === 'taqdim' && kompId && <TaqdimPanel kompaniyaId={kompId} />}
-        {joy === 'tizim' && kompId && <FaylMenejer kompaniyaId={kompId} faqatTizim documentId={docId} />}
+        {joy === 'tizim' && kompId && <FaylMenejer kompaniyaId={kompId} faqatTizim documentId={docId ?? undefined} />}
 
         {joy === 'faoliyat' && (
           <ul className="space-y-1 text-[13px]">

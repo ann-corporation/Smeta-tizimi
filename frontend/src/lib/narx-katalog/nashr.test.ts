@@ -62,6 +62,7 @@ describe('ko‘p nashrli indeks', () => {
     const r1 = await reviziyaQur(b, [], 'x'), r2 = await reviziyaQur(nashrlarniBirlashtir([eski, yangi]), [], 'y');
     expect(r1.revision).toMatch(/^[a-f0-9]{16}$/);
     expect(r1.revision).toBe(r2.revision);
+    expect(r1.manifest.files).toMatchObject({ search: expect.arrayContaining([expect.objectContaining({ path: expect.stringMatching(/^s\/[0-3][a-f0-9]\.json$/) })]) });
     expect(indeksdanNashrlar(b.dict, b.rows).map(n => n.qatorlar.length)).toEqual([1, 1]);
   });
   it('prays-list: QQS bilan bo‘lsa ÷ 1,12, birliksiz/narxsiz pozitsiya olinmaydi', () => {

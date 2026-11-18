@@ -1,42 +1,16 @@
 package uz.anncorp.qurai.desktop
 
-import uz.anncorp.smeta.feature.common.*
-
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.size
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.BitmapPainter
-import androidx.compose.ui.res.loadImageBitmap
-import androidx.compose.ui.res.useResource
-import uz.anncorp.smeta.core.ui.QuraiTokens
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -49,18 +23,26 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import uz.anncorp.qurai.ui.components.QButton
+import uz.anncorp.qurai.ui.components.QButtonKind
+import uz.anncorp.qurai.ui.components.QLoading
+import uz.anncorp.qurai.ui.components.QSelect
+import uz.anncorp.qurai.ui.icons.QIcons
+import uz.anncorp.qurai.ui.nav.QAppShell
+import uz.anncorp.qurai.ui.nav.QNav
+import uz.anncorp.qurai.ui.screens.QBubble
+import uz.anncorp.qurai.ui.screens.QChatItem
+import uz.anncorp.qurai.ui.screens.QJarvisChat
+import uz.anncorp.qurai.ui.theme.Q
 import uz.anncorp.smeta.core.data.ChatCursor
 import uz.anncorp.smeta.core.data.ChatInfo
 import uz.anncorp.smeta.core.data.ChatSnapshot
@@ -73,6 +55,7 @@ import uz.anncorp.smeta.core.data.Workplace
 import uz.anncorp.smeta.core.data.arr
 import uz.anncorp.smeta.core.data.num
 import uz.anncorp.smeta.core.data.str
+import uz.anncorp.smeta.feature.common.*
 import java.util.UUID
 
 /** Window-level shortcuts: the Window forwards key events here, the shell installs the handler while it is on screen. */
@@ -81,9 +64,11 @@ object Shortcuts {
     fun dispatch(e: KeyEvent): Boolean = handler?.invoke(e) ?: false
 }
 
-enum class Mod(val title: String, val needsObject: Boolean) {
-    Objects("Obyektlar", false), Smeta("Smeta", true), F2("F2 va Nakopitelniy", true), Fakt("Fakt", true), Nakop("Nakopitelniy va F3", true),
-    Narx("Narx manbalari", false), Ombor("Ta'minot va sklad", false), Money("Moliya va shartnomalar", false), Docs("Hujjatlar", true), Notif("Bildirishnomalar", false), Settings("Sozlamalar", false),
+/** The pages this app implements: ids are those of the ONE navigation model ([QNav]) shared with Android and the website. */
+enum class Mod(val id: String, val needsObject: Boolean) {
+    Objects("obyektlar", false), Smeta("smeta", true), F2("f2", true), Fakt("fakt", true), Nakop("nakop", true),
+    Narx("narx", false), Ombor("ombor", false), Money("moliya", false), Docs("hujjat", true), Notif("bildirish", false), Settings("sozlama", false);
+    companion object { val ids: Set<String> = entries.map { it.id }.toSet(); fun of(id: String): Mod = entries.first { it.id == id } }
 }
 
 /** Jarvis chat state lives in the shell so the conversation survives switching modules and hiding the panel. */
@@ -93,7 +78,9 @@ class JarvisState {
     var busy by mutableStateOf(false)
     var chats by mutableStateOf<List<ChatInfo>>(emptyList())
     var etag by mutableStateOf<String?>(null)
-    fun reset() { msgs.clear(); chatId = UUID.randomUUID().toString(); etag = null }
+    var showChats by mutableStateOf(false)
+    var input by mutableStateOf("")
+    fun reset() { msgs.clear(); chatId = UUID.randomUUID().toString(); etag = null; showChats = false }
 }
 
 @Composable
@@ -108,6 +95,8 @@ fun MainScreen(sv: Services, me: SessionUser) {
     var objId by remember { mutableStateOf<Long?>(null) }
     var unread by remember { mutableStateOf(0) }
     val jarvis = remember { JarvisState() }
+    val sections = remember { QNav.visible(Mod.ids) }
+    val order = remember(sections) { sections.flatMap { s -> s.items.map { it.id } } }
 
     LaunchedEffect(Unit) {
         val r = sv.read("joylarim", { sv.api.bff("/api/ish-joyi?bolim=joylarim") }) { b ->
@@ -119,14 +108,14 @@ fun MainScreen(sv: Services, me: SessionUser) {
         places = r.valueOrNull().orEmpty()
         place = place ?: places.firstOrNull()
     }
-    DisposableEffect(Unit) {
+    DisposableEffect(order) {
         Shortcuts.handler = h@{ e ->
             if (e.type != KeyEventType.KeyDown) return@h false
             when {
                 e.isCtrlPressed && e.key == Key.K -> { jarvisOpen = !jarvisOpen; if (jarvisOpen) focusTick++; true }
                 e.isCtrlPressed && e.key == Key.E -> { jarvisOpen = true; focusTick++; true }
                 e.key == Key.F5 -> { tick++; true }
-                e.isCtrlPressed && e.key.keyCode in digitKeys.keys -> { digitKeys[e.key.keyCode]?.let { i -> Mod.entries.getOrNull(i)?.let { mod = it } }; true }
+                e.isCtrlPressed && e.key.keyCode in digitKeys.keys -> { digitKeys[e.key.keyCode]?.let { i -> order.getOrNull(i)?.let { mod = Mod.of(it); jarvisOpen = false } }; true }
                 else -> false
             }
         }
@@ -142,64 +131,59 @@ fun MainScreen(sv: Services, me: SessionUser) {
     val list = objects.valueOrNull().orEmpty()
     val obj = list.firstOrNull { it.id == objId } ?: list.firstOrNull()
 
-    Row(Modifier.fillMaxSize()) {
-        val borderColor = MaterialTheme.colorScheme.outlineVariant
-        Column(Modifier.width(QuraiTokens.SIDEBAR_OPEN.dp).fillMaxHeight().background(MaterialTheme.colorScheme.surfaceContainerLow).drawBehind { drawLine(borderColor, Offset(size.width, 0f), Offset(size.width, size.height), 1f) }.padding(QuraiTokens.SPACE_3.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(QuraiTokens.SPACE_2.dp), modifier = Modifier.padding(bottom = QuraiTokens.SPACE_3.dp)) {
-                Image(BitmapPainter(useResource("qurai-icon.png", ::loadImageBitmap)), null, Modifier.size(28.dp))
-                Text("QURAI", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+    val jarvisPanel: @Composable () -> Unit = {
+        if (p != null) JarvisPanel(sv, p, obj, jarvis, focusTick) { jarvisOpen = false }
+    }
+    QAppShell(
+        sections, mod.id, { id -> mod = Mod.of(id); jarvisOpen = false },
+        badges = mapOf("bildirish" to unread), hints = order.take(9).withIndex().associate { (i, id) -> id to "Ctrl+${i + 1}" },
+        sidebarHeader = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 4.dp)) {
+                BrandMark(28)
+                Text("QURAI", style = Q.type.titleMedium, color = Q.colors.text)
             }
-            Mod.entries.forEachIndexed { i, m ->
-                val sel = m == mod
-                val label = if (m == Mod.Notif && unread > 0) "${m.title} ($unread)" else m.title
-                Row(
-                    Modifier.fillMaxWidth().height(QuraiTokens.CONTROL_LG.dp).background(if (sel) Color(QuraiTokens.dark.accentSoft) else Color.Transparent, MaterialTheme.shapes.small).clickable { mod = m }.padding(horizontal = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(label, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Normal, color = if (sel) Color(QuraiTokens.dark.accentText) else MaterialTheme.colorScheme.onSurface, maxLines = 1)
-                    if (i < 9) Text("Ctrl+${i + 1}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+        },
+        sidebarFooter = {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(me.email, style = Q.type.labelSmall, color = Q.colors.textMute, maxLines = 1)
+                if (me.offline) Text(Tx.off, style = Q.type.labelSmall, color = Q.colors.danger)
+                Text("v${BuildInfo.VERSION}", style = Q.type.labelSmall, color = Q.colors.textMute)
             }
-            Spacer(Modifier.weight(1f))
-            Text(me.email, style = MaterialTheme.typography.labelSmall, maxLines = 1)
-            if (me.offline) Text(Tx.off, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
-            Text("v${BuildInfo.VERSION}", style = MaterialTheme.typography.labelSmall)
-        }
-        Column(Modifier.weight(1f).fillMaxHeight()) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Picker(place, places, "Kompaniya tanlang", { it.nom.ifBlank { "Kompaniya" } + " (${it.rol})" }, { place = it; objId = null })
-                if (mod.needsObject) Picker(obj, list, "Obyekt tanlang", { it.nom }, { objId = it.id })
-                Spacer(Modifier.weight(1f))
-                OutlinedButton(onClick = { tick++ }) { Text("Yangilash (F5)") }
-                if (jarvisOpen) Button(onClick = { jarvisOpen = false }) { Text("Jarvis (Ctrl+K)") } else OutlinedButton(onClick = { jarvisOpen = true; focusTick++ }) { Text("Jarvis (Ctrl+K)") }
+        },
+        topBar = {
+            Row(Modifier.fillMaxWidth().padding(horizontal = Q.layout.gutter, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                QSelect(place, places, { it.nom.ifBlank { "Kompaniya" } + " (${it.rol})" }, { place = it; objId = null }, placeholder = "Kompaniya tanlang", minWidth = if (Q.layout.wide) 220 else 120, modifier = Modifier.weight(1f, fill = false))
+                if (mod.needsObject) QSelect(obj, list, { it.nom }, { objId = it.id }, placeholder = "Obyekt tanlang", minWidth = if (Q.layout.wide) 240 else 120, modifier = Modifier.weight(1f, fill = false))
+                Box(Modifier.weight(1f))
+                QButton(if (Q.layout.wide) "Yangilash (F5)" else "", { tick++ }, icon = QIcons.RefreshCw)
+                QButton(if (Q.layout.wide) "Jarvis (Ctrl+K)" else "", { jarvisOpen = !jarvisOpen; if (jarvisOpen) focusTick++ }, kind = if (jarvisOpen) QButtonKind.Primary else QButtonKind.Secondary, icon = QIcons.Sparkles)
             }
+        },
+        sidePanel = if (jarvisOpen && p != null && Q.layout.wide) ({
+            Column(Modifier.width(420.dp).fillMaxHeight().background(Q.colors.surface)) { jarvisPanel() }
+        }) else null,
+    ) {
+        Column(Modifier.fillMaxSize()) {
             objects?.Banner()
-            HorizontalDivider()
-            Surface(Modifier.fillMaxSize()) {
-                if (p == null) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Kompaniya yuklanmoqda...") }
-                else Box(Modifier.fillMaxSize().padding(16.dp)) {
-                    if (objects == null && mod != Mod.Settings) Loading() else {
-                        val ctx = Ctx(sv, repo, me, p, list, obj, tick)
-                        when (mod) {
-                            Mod.Objects -> ObjectsScreen(ctx) { objId = it.id; mod = Mod.Smeta }
-                            Mod.Smeta -> SmetaScreen(ctx)
-                            Mod.F2 -> F2Screen(ctx)
-                            Mod.Fakt -> FaktScreen(ctx)
-                            Mod.Nakop -> NakopScreen(ctx)
-                            Mod.Narx -> NarxScreen(ctx)
-                            Mod.Ombor -> OmborScreen(ctx)
-                            Mod.Money -> MoneyScreen(ctx)
-                            Mod.Docs -> DocsScreen(ctx)
-                            Mod.Notif -> NotifScreen(ctx) { unread = 0 }
-                            Mod.Settings -> SettingsScreen(ctx)
-                        }
+            if (jarvisOpen && p != null && !Q.layout.wide) jarvisPanel()
+            else if (p == null) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { QLoading(text = "Kompaniya yuklanmoqda...") }
+            else Box(Modifier.fillMaxSize().padding(Q.layout.gutter)) {
+                if (objects == null && mod != Mod.Settings) QLoading() else {
+                    val ctx = Ctx(sv, repo, me, p, list, obj, tick)
+                    when (mod) {
+                        Mod.Objects -> ObjectsScreen(ctx) { objId = it.id; mod = Mod.Smeta }
+                        Mod.Smeta -> SmetaScreen(ctx)
+                        Mod.F2 -> F2Screen(ctx)
+                        Mod.Fakt -> FaktScreen(ctx)
+                        Mod.Nakop -> NakopScreen(ctx)
+                        Mod.Narx -> NarxScreen(ctx)
+                        Mod.Ombor -> OmborScreen(ctx)
+                        Mod.Money -> MoneyScreen(ctx)
+                        Mod.Docs -> DocsScreen(ctx)
+                        Mod.Notif -> NotifScreen(ctx) { unread = 0 }
+                        Mod.Settings -> SettingsScreen(ctx)
                     }
                 }
-            }
-        }
-        if (jarvisOpen && p != null) {
-            Column(Modifier.width(400.dp).fillMaxHeight().background(MaterialTheme.colorScheme.surfaceVariant).padding(12.dp)) {
-                JarvisPanel(sv, p, obj, jarvis, focusTick) { jarvisOpen = false }
             }
         }
     }
@@ -207,21 +191,17 @@ fun MainScreen(sv: Services, me: SessionUser) {
 
 private val digitKeys: Map<Long, Int> = listOf(Key.One, Key.Two, Key.Three, Key.Four, Key.Five, Key.Six, Key.Seven, Key.Eight, Key.Nine).mapIndexed { i, k -> k.keyCode to i }.toMap()
 
-/** Jarvis side panel: the same server brain as the web and Android (shared [JarvisRepository]); chats are saved on the server like everywhere else. */
+/** Jarvis panel: the same server brain as the web and Android (shared [uz.anncorp.smeta.core.data.JarvisRepository]) and the SAME chat UI as Android ([QJarvisChat]). */
 @Composable
-fun androidx.compose.foundation.layout.ColumnScope.JarvisPanel(sv: Services, p: Workplace, obj: Obj?, st: JarvisState, focusTick: Int, onClose: () -> Unit) {
-    var input by remember { mutableStateOf("") }
-    var menu by remember { mutableStateOf(false) }
+fun JarvisPanel(sv: Services, p: Workplace, obj: Obj?, st: JarvisState, focusTick: Int, onClose: () -> Unit) {
     val scope = rememberCoroutineScope()
-    val ls = rememberLazyListState()
     val focus = remember { FocusRequester() }
     LaunchedEffect(focusTick) { runCatching { focus.requestFocus() } }
-    LaunchedEffect(st.msgs.size) { if (st.msgs.isNotEmpty()) ls.animateScrollToItem(st.msgs.size - 1) }
-    fun send() {
-        val q = input.trim()
+    fun send(text: String) {
+        val q = text.trim()
         if (q.isEmpty() || st.busy) return
         val history = st.msgs.toList()
-        st.msgs.add(ChatMsg(true, q)); input = ""; st.busy = true
+        st.msgs.add(ChatMsg(true, q)); st.input = ""; st.busy = true; st.showChats = false
         scope.launch {
             val res = sv.jarvis.ask(q, p.companyId, history, obj?.id)
             Log.i("jarvis ${res::class.simpleName}")
@@ -243,42 +223,19 @@ fun androidx.compose.foundation.layout.ColumnScope.JarvisPanel(sv: Services, p: 
             }
         }
     }
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("Jarvis", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-        Box {
-            TextButton(onClick = { menu = true; scope.launch { st.chats = sv.jarvis.syncChats(p.companyId)?.chats.orEmpty() } }) { Text("Tarix") }
-            androidx.compose.material3.DropdownMenu(menu, { menu = false }) {
-                if (st.chats.isEmpty()) androidx.compose.material3.DropdownMenuItem(text = { Text("Saqlangan suhbat yo'q") }, onClick = { menu = false })
-                st.chats.take(15).forEach { ch ->
-                    androidx.compose.material3.DropdownMenuItem(text = { Text(ch.title.ifBlank { "Suhbat" }, maxLines = 1) }, onClick = {
-                        menu = false
-                        scope.launch { (sv.jarvis.syncChats(p.companyId, ChatCursor(ch.id))?.active as? ChatSnapshot.Changed)?.let { s -> st.msgs.clear(); st.msgs.addAll(s.messages.orEmpty()); st.chatId = ch.id; st.etag = s.etag } }
-                    })
-                }
-            }
-        }
-        TextButton(onClick = { st.reset() }) { Text("Yangi") }
-        TextButton(onClick = onClose) { Text("✕") }
-    }
-    obj?.let { Hint("Obyekt: ${it.nom}") }
-    LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = ls, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (st.msgs.isEmpty()) item { Hint("Savol bering: obyektlar, qoldiq, F-2, narxlar haqida. Ctrl+K bilan istalgan bo'limda oching.") }
-        items(st.msgs.size) { i ->
-            val m = st.msgs[i]
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = if (m.mine) Arrangement.End else Arrangement.Start) {
-                androidx.compose.foundation.text.selection.SelectionContainer {
-                    Text(
-                        m.text, color = if (m.mine) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.background(if (m.mine) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface, MaterialTheme.shapes.medium).padding(10.dp).width(320.dp),
-                    )
-                }
-            }
-        }
-        if (st.busy) item { Hint("Jarvis o'ylayapti...") }
-    }
-    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-        OutlinedTextField(input, { input = it }, label = { Text("Savol") }, modifier = Modifier.weight(1f).focusRequester(focus), singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send), keyboardActions = KeyboardActions(onSend = { send() }))
-        Button(onClick = { send() }, enabled = !st.busy && input.isNotBlank()) { Text("Yuborish") }
+    val bubbles = st.msgs.map { if (it.mine) QBubble.Mine(it.text) else QBubble.Jarvis(it.text) }
+    Column(Modifier.fillMaxSize()) {
+        QJarvisChat(
+            bubbles, st.busy, st.input, { st.input = it }, { send(st.input) },
+            scope = obj?.nom?.let { "Obyekt: $it" },
+            quick = listOf("Pul holati" to "Shu obyekt bo'yicha pul holati qanday?", "Bugun" to "Bugun nima qilishim kerak?", "Fakt" to "Oxirgi fakt qanday?"),
+            onQuick = { send(it) },
+            chats = st.chats.map { QChatItem(it.id, it.title) }, activeChat = st.chatId, showChats = st.showChats,
+            onToggleChats = { st.showChats = !st.showChats; if (st.showChats) scope.launch { st.chats = sv.jarvis.syncChats(p.companyId)?.chats.orEmpty() } },
+            onNewChat = { st.reset() },
+            onOpenChat = { ch -> scope.launch { (sv.jarvis.syncChats(p.companyId, ChatCursor(ch.id))?.active as? ChatSnapshot.Changed)?.let { s -> st.msgs.clear(); st.msgs.addAll(s.messages.orEmpty()); st.chatId = ch.id; st.etag = s.etag; st.showChats = false } } },
+            headerExtra = { QButton("", onClose, kind = QButtonKind.Ghost, icon = QIcons.X) },
+            focus = focus,
+        )
     }
 }

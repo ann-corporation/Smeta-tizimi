@@ -53,7 +53,7 @@ jobs:
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platforms;android-35" "build-tools;${ANDROID_BUILD_TOOLS}" "platform-tools"
       - name: Unit tests, lint, release build
-        run: ./gradlew --no-daemon :shared:test testDebugUnitTest lintDebug assembleRelease
+        run: ./gradlew --no-daemon :shared:test :ui-common:desktopTest testDebugUnitTest lintDebug assembleRelease
       - name: Upload test and lint reports
         if: failure()
         uses: actions/upload-artifact@v4

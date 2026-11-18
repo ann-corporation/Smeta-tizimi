@@ -1,4 +1,4 @@
-﻿plugins {
+plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
@@ -17,9 +17,9 @@ android {
         minSdk = 26
         targetSdk = 35
         // Tauri Android build: major*1e6+minor*1e3+patch (0.1.1 -> 1001). Start above it so a native release upgrades it in place.
-        versionCode = 2_000_016
+        versionCode = 2_000_018
         // Format must match the server's ilovaVersiya() regex: d{1,4}.d{1,4}.d{1,6}
-        versionName = "0.1.16"
+        versionName = "0.1.18"
         // Domain move (qurai.uz): ONE source for the API host. Canonical host first; the fallback list (comma separated, tried in order
         // on a network failure, see core/data/HostFallback.kt) keeps old/other hosts reachable. Override: -PapiBase=... -PapiFallbacks=...
         val apiBase = (project.findProperty("apiBase") as String?) ?: "https://qurai.uz"
@@ -79,6 +79,7 @@ android {
 
 dependencies {
     implementation(project(":shared"))
+    implementation(project(":ui-common"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.biometric)

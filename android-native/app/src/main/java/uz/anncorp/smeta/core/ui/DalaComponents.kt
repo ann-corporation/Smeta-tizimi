@@ -26,6 +26,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import uz.anncorp.smeta.core.db.ObyektEntity
+import uz.anncorp.qurai.ui.components.QChip
+import uz.anncorp.qurai.ui.components.QSelect
+import uz.anncorp.qurai.ui.components.QTone
 
 /** Colour role of a status pill. */
 enum class Tone { NEUTRAL, GOOD, WARN, BAD, INFO }
@@ -39,13 +42,10 @@ fun toneColor(t: Tone): Color = when (t) {
     Tone.NEUTRAL -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
-/** Small rounded status pill (state is always also written as text, never colour alone). */
+/** Status pill: the website's .fz-chip (shared QChip); state is always also written as text, never colour alone. */
 @Composable
 fun StatusChip(text: String, tone: Tone, modifier: Modifier = Modifier) {
-    val c = toneColor(tone)
-    Surface(shape = RoundedCornerShape(50), color = c.copy(alpha = 0.16f), modifier = modifier) {
-        Text(text, style = MaterialTheme.typography.labelMedium, color = c, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), maxLines = 1)
-    }
+    QChip(text, modifier, when (tone) { Tone.GOOD -> QTone.Ok; Tone.WARN -> QTone.Warn; Tone.BAD -> QTone.Danger; Tone.INFO -> QTone.Accent; Tone.NEUTRAL -> QTone.Neutral })
 }
 
 @Composable
@@ -59,18 +59,9 @@ fun ChipRow(content: @Composable RowScope.() -> Unit) {
     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically, content = content)
 }
 
-/** Dropdown that picks one of the company's objects (null selection = [allLabel] when given, else the placeholder). */
+/** Dropdown that picks one of the company's objects (null selection = [allLabel] when given, else the placeholder). Shared QSelect. */
 @Composable
 fun ObjectDropdown(objects: List<ObyektEntity>, selectedId: Long?, placeholder: String, onPick: (Long?) -> Unit, allLabel: String? = null, modifier: Modifier = Modifier) {
-    var open by remember { mutableStateOf(false) }
-    val chosen = objects.firstOrNull { it.id == selectedId }
-    Box(modifier) {
-        OutlinedButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) {
-            Text(chosen?.nom ?: allLabel ?: placeholder, maxLines = 1)
-        }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            if (allLabel != null) DropdownMenuItem(text = { Text(allLabel) }, onClick = { onPick(null); open = false }, modifier = Modifier.heightIn(min = 48.dp))
-            objects.forEach { o -> DropdownMenuItem(text = { Text(o.nom) }, onClick = { onPick(o.id); open = false }, modifier = Modifier.heightIn(min = 48.dp)) }
-        }
-    }
+    val opts: List<ObyektEntity?> = if (allLabel != null) listOf<ObyektEntity?>(null) + objects else objects
+    QSelect(objects.firstOrNull { it.id == selectedId } ?: if (allLabel != null) null else null, opts, { it?.nom ?: allLabel.orEmpty() }, { onPick(it?.id) }, modifier, placeholder = allLabel ?: placeholder, fill = true)
 }

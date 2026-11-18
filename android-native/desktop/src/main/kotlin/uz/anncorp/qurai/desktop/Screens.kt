@@ -1,5 +1,7 @@
 package uz.anncorp.qurai.desktop
 
+import uz.anncorp.qurai.ui.components.*
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -84,10 +86,10 @@ private object S {
 }
 
 @Composable
-fun BootScreen() = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+fun BootScreen() = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { QLoading() }
 
 @Composable
-fun LoginScreen(sv: Services, onDone: (SessionUser) -> Unit) {
+fun LoginScreen(sv: Services, onDemo: () -> Unit, onDone: (SessionUser) -> Unit) {
     var login by remember { mutableStateOf("") }
     var pass by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
@@ -116,21 +118,28 @@ fun LoginScreen(sv: Services, onDone: (SessionUser) -> Unit) {
             }
         }
     }
+    uz.anncorp.qurai.ui.screens.QLoginScreen(
+        login, { login = it }, pass, { pass = it }, busy, err, { submit() },
+        texts = uz.anncorp.qurai.ui.screens.QLoginTexts(login = S.loginLabel, password = S.pass, signIn = S.login, version = "v${BuildInfo.VERSION}"),
+        logo = { BrandMark(64) },
+        extras = { QButton("Demo rejimi (namunaviy ma'lumot)", onDemo, Modifier.fillMaxWidth(), kind = QButtonKind.Ghost, enabled = !busy) },
+    )
+}
+
+/**
+ * A saved session exists: the app never enters it silently. Continue with that account, sign in with another one, or try the demo
+ * (sample data, nothing real is touched).
+ */
+@Composable
+fun ChooseScreen(email: String, onContinue: () -> Unit, onOther: () -> Unit, onDemo: () -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(Modifier.width(380.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("QURAI", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-            OutlinedTextField(login, { login = it }, label = { Text(S.loginLabel) }, singleLine = true, modifier = Modifier.fillMaxWidth(), enabled = !busy)
-            OutlinedTextField(
-                pass, { pass = it }, label = { Text(S.pass) }, singleLine = true, visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done), keyboardActions = KeyboardActions(onDone = { submit() }),
-                modifier = Modifier.fillMaxWidth(), enabled = !busy,
-            )
-            err?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            Button(onClick = { submit() }, enabled = !busy && login.isNotBlank() && pass.isNotEmpty(), modifier = Modifier.fillMaxWidth().height(44.dp)) {
-                if (busy) CircularProgressIndicator(Modifier.height(20.dp), strokeWidth = 2.dp) else Text(S.login)
-            }
-            Text("v${BuildInfo.VERSION}", style = MaterialTheme.typography.labelSmall)
+        Column(Modifier.width(380.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            BrandMark(64)
+            Text("QURAI", style = uz.anncorp.qurai.ui.theme.Q.type.headlineMedium, color = uz.anncorp.qurai.ui.theme.Q.colors.text)
+            QHint("Saqlangan hisob: $email")
+            QButton("Davom etish", onContinue, Modifier.fillMaxWidth(), kind = QButtonKind.Primary)
+            QButton("Boshqa hisob", onOther, Modifier.fillMaxWidth())
+            QButton("Demo rejimi", onDemo, Modifier.fillMaxWidth(), kind = QButtonKind.Ghost)
         }
     }
 }
-

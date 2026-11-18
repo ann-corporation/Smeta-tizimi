@@ -67,6 +67,8 @@ internal fun CommandBar(ui: OmborUi, vm: OmborViewModel) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
                 value = text, onValueChange = { text = it }, singleLine = true, modifier = Modifier.weight(1f).heightIn(min = TouchTarget),
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Send),
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSend = { if (text.isNotBlank() && !c.working) { vm.sendCommand(text); text = "" } }),
                 placeholder = { Text(stringResource(if (c.recording) R.string.ombor_cmd_recording else R.string.ombor_cmd_hint), maxLines = 1) },
                 trailingIcon = {
                     if (c.working) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)

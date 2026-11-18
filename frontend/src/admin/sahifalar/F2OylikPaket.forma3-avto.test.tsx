@@ -11,15 +11,11 @@ vi.mock('../../api/f2-oylik-paket', () => ({
   portfelObyektOl: vi.fn(async () => ({ smeta: [], tafsilot: [], kontekst: { imzo: {}, shartnoma: null, nakrutka: null, podval: null }, aktQatorlar: new Map(), podvallar: new Map() })),
   f3SvodOl: vi.fn(async () => m.svod),
 }));
-// Akt summasi (yadro) — sintetik: QQS bilan 1 120 000,35.
-vi.mock('../../lib/f2-oylik-paket/portfel', async (asl) => ({
-  ...(await asl<typeof import('../../lib/f2-oylik-paket/portfel')>()),
-  paketAktHisobi: () => ({ moliya: { ustamasiz: 900_000, ustamali: 1_000_000.31, nds: 120_000.04, jami: 1_120_000.35, taxminiy: false, narxsizQator: 0, qatorSoni: 1, sabab: null }, uchastkalar: 0 }),
-  paketAktExcel: () => null,
-}));
+// Summa FAQAT serverdan (yagona yadro): sintetik server javobi.
+vi.mock('../../api/t2-f2-portfel', () => ({ aktSummalarParallel: vi.fn(async (_k: number, ids: number[], tayyor: (x: Map<number, unknown>, n: number) => void) => { tayyor(new Map(ids.map((id) => [id, { qqs_bilan: 1_120_000.35, qqs: 120_000.04, ustamali: 1_000_000.31, ustamasiz: 900_000, narxsiz_soni: 0, qator_soni: 1 }])), ids.length); }) }));
 vi.mock('../../api/t2-token', () => ({ tokenBilan: vi.fn(), mazmunXeshi: vi.fn() }));
 vi.mock('../../api/t2-shartnoma-oylik-paket', () => ({
-  oyFaktSoni: vi.fn(async () => 0), oyM29Holati: vi.fn(async () => 'yoq'), oylikPaketlarRoyxati: vi.fn(async () => ({ ok: true, paketlar: [] })),
+  oylikPaketOl: vi.fn(async () => [{ id: 1, nom: 'Alfa', faktSoni: 0, m29: 'yoq', aktlar: [] }]), oylikPaketlarRoyxati: vi.fn(async () => ({ ok: true, paketlar: [] })),
   oylikPaketniTopshir: vi.fn(), paketZipniSaqla: vi.fn(), saqlanganZipniOl: vi.fn(), yangiTopshirishId: () => 'op',
 }));
 vi.mock('../../lib/oylik-hujjat/paket', () => ({ obyektHujjatlariniYigish: vi.fn(async () => ({ fayllar: [], kataklar: {}, otkazilgan: [] })) }));

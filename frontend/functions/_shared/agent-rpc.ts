@@ -19,8 +19,9 @@ const KOD_MATNI: Record<string, string> = {
   TOPILMADI: 'Topilmadi',
 };
 
-export async function rpcData(env: AgentRpcEnv, nom: string, yuk: Yuk): Promise<RpcNatija> {
+export async function rpcData(env: AgentRpcEnv, nom: string, yuk: Yuk, signal?: AbortSignal): Promise<RpcNatija> {
   const r = await fetch(supabaseBaseUrl(env.SUPABASE_URL!) + '/rest/v1/rpc/' + nom, {
+    ...(signal ? { signal } : {}),
     method: 'POST', headers: { apikey: env.SUPABASE_KEY!, Authorization: 'Bearer ' + env.SUPABASE_KEY!, 'Content-Type': 'application/json' }, body: JSON.stringify(yuk),
   });
   const text = await r.text();

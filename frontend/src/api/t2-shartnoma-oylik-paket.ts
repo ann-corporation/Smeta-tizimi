@@ -86,7 +86,24 @@ export const yangiTopshirishId = yangiOperationId;
 
 /* ───────────── tayyorgarlik uchun obyekt ma'lumotlari ───────────── */
 
-/** Obyektning shu oydagi fakt aktlari soni (bekor qilinmaganlar). O'qib bo'lmasa null (✗ emas - «noma'lum»). */
+export type OylikPaketObyekt = { id: number; nom: string; faktSoni: number | null; m29: M29Holat; aktlar: Array<{ id: number; raqam: string | null; holat: string; hujjat_jami: number | null }> };
+
+/**
+ * Sahifa ochilishi: BITTA server so'rovi (`f2_oylik_paket_v1`) - shartnoma obyektlari, har birining shu oydagi fakt aktlari soni, M-29 holati va F2 aktlari.
+ * Summa YO'Q (u `f2_portfel_summa_v1` dan, serverning yagona yadrosidan). Xato - null (tayyorgarlik «noma'lum», sahifa ishlayveradi).
+ */
+export async function oylikPaketOl(p: { kompaniyaId: number; shartnomaId: number; oy: string }): Promise<OylikPaketObyekt[] | null> {
+  const r = await oqi<{ ok?: boolean; obyektlar?: Array<{ id: number; nom: string; fakt_soni: number | string | null; m29: string; aktlar?: OylikPaketObyekt['aktlar'] }> }>({
+    soro: 'f2_oylik_paket_v1', kompaniya_id: p.kompaniyaId, shartnoma_id: p.shartnomaId, oy: p.oy,
+  });
+  if (!r.ok || r.natija.ok !== true) return null;
+  return (r.natija.obyektlar ?? []).map((o) => ({
+    id: Number(o.id), nom: String(o.nom ?? ''), faktSoni: o.fakt_soni == null ? null : Number(o.fakt_soni),
+    m29: o.m29 === 'bajarildi' ? 'bajarildi' : 'yoq', aktlar: Array.isArray(o.aktlar) ? o.aktlar : [],
+  }));
+}
+
+/** Obyektning shu oydagi fakt aktlari soni (bekor qilinmaganlar). O'qib bo'lmasa null (✗ emas - «noma'lum»). Eski yo'l - faqat boshqa sahifalar uchun. */
 export async function oyFaktSoni(obyektId: number, oy: string): Promise<number | null> {
   const r = await sbOqi<{ id: number; oy: string | null; sana: string | null }>({
     jadval: 't2_akt', filtr: `obyekt_id=eq.${obyektId}&tur=eq.fakt&holat=neq.bekor`, ustunlar: 'id,oy,sana', limit: 5000,

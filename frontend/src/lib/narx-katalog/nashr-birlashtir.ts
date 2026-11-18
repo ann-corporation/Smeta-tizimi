@@ -13,8 +13,9 @@ import { yaxlit2 } from '../hisob-yadro';
 import { birlikKalit, nomKalit } from './kalit';
 import { hududAniqla, nashrSarlavhasi, type ManbaTuri, type Nashr } from './manba-xls';
 import { PRICE_LOOKUP_ROWS, PRICE_ROWS_PER_FILE, PRICE_SHARD_SCHEMA, type PriceDict, type PriceManba, type PriceRow } from './price-shards';
+import { buildCatalogSearch } from './catalog-search';
 
-export const MULTI_BUILD_FORMAT = 4;
+export const MULTI_BUILD_FORMAT = 5;
 const sha256 = async (b: Uint8Array) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', b as BufferSource))].map(x => x.toString(16).padStart(2, '0')).join('');
 export const ID_QADAM = 1_000_000;
 /** A source registered in the index: the edition's identity without its rows. */
@@ -104,14 +105,15 @@ export async function reviziyaQur(b: BirlashtirNatija, nashrlar: NashrMeta[], bu
     const part = b.rows.slice(i * PRICE_LOOKUP_ROWS, (i + 1) * PRICE_LOOKUP_ROWS);
     lookup.push({ ...(await fayl(`i/${String(i).padStart(4, '0')}.json`, JSON.stringify({ rows: part }))), from: part[0][0], to: part[part.length - 1][0] });
   }
-  files.push(...rowFiles, ...lookup);
+  const search = await Promise.all([...buildCatalogSearch(b.rows)].map(([path, text]) => fayl(path, text)));
+  files.push(...rowFiles, ...lookup, ...search);
   const meta = (f: QurilganFayl) => ({ path: f.path, sha256: f.sha256, bytes: f.bytes });
   // Revision = content hash of every shard (same editions → same revision; nothing time-dependent).
   const revisionText = PRICE_SHARD_SCHEMA + '\nformat:' + MULTI_BUILD_FORMAT + '\n' + files.map(f => f.path + ':' + f.sha256).join('\n');
   const revision = (await sha256(enc.encode(revisionText))).slice(0, 16);
   const manifest = { schema: PRICE_SHARD_SCHEMA, format: MULTI_BUILD_FORMAT, revision, status: 'REFERENCE', builtAt, policy: 'VAT_FREE_ONLY_MAX_PER_EDITION_NEWEST_EDITION_WINS',
     source: { manba: b.dict.manba, nashrlar: nashrlar.map(n => ({ ...n })) }, counts: { ...b.counts, rows: b.rows.length },
-    files: { dict: meta(files[0]), rows: rowFiles.map(meta), lookup: lookup.map(l => ({ ...meta(l), from: l.from, to: l.to })) } };
+    files: { dict: meta(files[0]), rows: rowFiles.map(meta), lookup: lookup.map(l => ({ ...meta(l), from: l.from, to: l.to })), search: search.map(meta) } };
   return { revision, manifest, files };
 }
 

@@ -320,6 +320,8 @@ export const onRequestPost: PagesFunction<{
         /* F2 portfeli (tez): shartnoma -> obyekt -> akt jadvali bitta so'rovda + aktlarning o'z summa paketi (yadro). `stable`; a'zolik + f2.read ichida. */
         f2_portfel_v1: 'kompaniya_actor',
         f2_portfel_summa_v1: 'kompaniya_actor',
+        /* Shartnoma oylik paketi (sahifa ochilishi): oy aktlari + fakt/M-29 bayroqlari. Summa YO'Q (u f2_portfel_summa_v1 dan). `stable`; a'zolik + f2.read ichida. */
+        f2_oylik_paket_v1: 'kompaniya_actor',
         /* Direktor pulti (V3): 6 plitka — «tayyor hisoblar» (t2_obyekt_kesh) orqali tez. `stable`; a'zolik + financial.read ichida. */
         rahbar_pult_v1: 'kompaniya_actor',
         /* Moslash qutisi (2026-11-14): kunlik avtomat tekshiruvlar bitta ro'yxatda. FAQAT O'QISH; `stable`; a'zolik + financial.read ichida. */
@@ -653,6 +655,13 @@ export const onRequestPost: PagesFunction<{
           return Response.json({ ok: false, error: "akt_idlar noto'g'ri (1-12 ta musbat butun son)" });
         }
         q.set('p_akt_ids', `{${idlar.join(',')}}`);
+      }
+      if (so.soro === 'f2_oylik_paket_v1') {
+        const sh = Number((so as Record<string, unknown>).shartnoma_id);
+        if (!Number.isSafeInteger(sh) || sh <= 0) return Response.json({ ok: false, error: 'shartnoma_id majburiy' });
+        const oy = (so as Record<string, unknown>).oy;
+        if (typeof oy !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])(-\d{2})?$/.test(oy)) return Response.json({ ok: false, error: "oy noto'g'ri" });
+        q.set('p_shartnoma_id', String(sh)); q.set('p_oy', oy.length === 7 ? `${oy}-01` : oy);
       }
       if (so.soro === 'pul_tahlil_v1' || so.soro === 'pul_tahlil_v2') {
         for (const [kalit, param] of [['obyekt_id', 'p_obyekt_id'], ['shartnoma_id', 'p_shartnoma_id']] as const) {

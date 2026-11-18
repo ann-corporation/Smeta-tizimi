@@ -27,8 +27,11 @@ fun formatMoney(v: Double?, decimals: Int = 2): String {
     return (if (neg) "-" else "") + group(i) + if (f.isEmpty()) "" else ",$f"
 }
 
-/** Money without kopecks for big headline figures. */
-fun formatMoneyShort(v: Double?): String = formatMoney(v, 0)
+/**
+ * Headline money. ONE core for every list and card (QA 2026-11-18: the object list showed whole sums while the card showed kopecks,
+ * so one amount looked 1 so'm different): never rounds away the kopecks, identical to [formatMoney] with 2 decimals.
+ */
+fun formatMoneyShort(v: Double?): String = formatMoney(v, 2)
 
 /** Volume: up to [VOLUME_DECIMALS] decimals, trailing zeros trimmed, comma decimal mark. */
 fun formatVolume(v: Double?): String {
@@ -92,6 +95,14 @@ fun formatPercent(p: Double?): String {
 // No QQS / markup arithmetic on the client: ustamali and QQS bilan come ONLY from the server (_t2_summa_paket_v1).
 
 /** ISO date or timestamp from the server ("2026-11-14T08:10:00+00:00") as "14.11.2026 08:10" (date only when no time part); anything unparsable is returned unchanged. */
+/** The ONE date format of every screen (website too): dd.MM.yyyy. Accepts ISO dates / timestamps; unknown text is returned as is, null is an em dash. */
+fun formatDate(s: String?): String {
+    if (s.isNullOrBlank()) return "\u2014"
+    val m = Regex("^(\\d{4})-(\\d{2})-(\\d{2})").find(s.trim()) ?: return s
+    val (y, mo, d) = m.destructured
+    return "$d.$mo.$y"
+}
+
 fun formatIsoStamp(s: String): String {
     val m = Regex("^(\\d{4})-(\\d{2})-(\\d{2})(?:[T ](\\d{2}):(\\d{2}))?").find(s.trim()) ?: return s
     val (y, mo, d, h, mi) = m.destructured

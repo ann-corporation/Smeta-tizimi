@@ -10,10 +10,12 @@
  */
 import { superadminActor, type SuperadminEnv } from '../_shared/superadmin';
 import { r2Yoz } from '../_shared/r2-saqlash';
+import { catalogSearchPath } from '../../src/lib/narx-katalog/catalog-search';
 
 type Env = SuperadminEnv & { R2_CANONICAL: R2Bucket };
 const REVISION = /^[a-f0-9]{16}$/;
 const PATH = /^(dict\.json|[ri]\/\d{4}\.json)$/;
+const storedPath = (path: string) => PATH.test(path) || catalogSearchPath.test(path);
 const MAX_BODY = 40 * 1024 * 1024;
 const fail = (code: string, status = 400) => Response.json({ ok: false, code }, { status, headers: { 'Cache-Control': 'no-store' } });
 const hex = (b: ArrayBuffer) => [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
@@ -23,10 +25,13 @@ async function gzip(bytes: Uint8Array): Promise<ArrayBuffer> {
 }
 type FileMeta = { path: string; sha256: string; bytes: number };
 export function manifestFiles(m: unknown): FileMeta[] | null {
-  const f = (m as { files?: { dict?: FileMeta; rows?: FileMeta[]; lookup?: FileMeta[] } } | null)?.files;
+  const f = (m as { files?: { dict?: FileMeta; rows?: FileMeta[]; lookup?: FileMeta[]; search?: FileMeta[] } } | null)?.files;
   if (!f?.dict || !Array.isArray(f.rows) || !f.rows.length) return null;
-  const all = [f.dict, ...f.rows, ...(f.lookup ?? [])];
-  return all.every(x => x && PATH.test(x.path) && /^[a-f0-9]{64}$/.test(x.sha256) && Number.isSafeInteger(x.bytes)) ? all : null;
+  if ((f.lookup != null && !Array.isArray(f.lookup)) ||
+      (f.search != null && (!Array.isArray(f.search) || f.search.length > 64 || !f.search.every(x => x && catalogSearchPath.test(x.path))))) return null;
+  const all = [f.dict, ...f.rows, ...(f.lookup ?? []), ...(f.search ?? [])];
+  return all.every(x => x && storedPath(x.path) && /^[a-f0-9]{64}$/.test(x.sha256) && Number.isSafeInteger(x.bytes)) &&
+    new Set(all.map(x => x.path)).size === all.length ? all : null;
 }
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
@@ -46,7 +51,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     if (!files.length || files.length > 300) return fail('FILES_INVALID');
     let yozildi = 0;
     for (const f of files) {
-      if (typeof f.path !== 'string' || !PATH.test(f.path) || typeof f.sha256 !== 'string' || typeof f.text !== 'string') return fail('FILES_INVALID');
+      if (typeof f.path !== 'string' || !storedPath(f.path) || typeof f.sha256 !== 'string' || typeof f.text !== 'string') return fail('FILES_INVALID');
       const bytes = new TextEncoder().encode(f.text);
       const sha = hex(await crypto.subtle.digest('SHA-256', bytes));
       if (sha !== f.sha256) return fail('SHA_MISMATCH');

@@ -31,13 +31,13 @@ const sanaMatni = (s: string) => (s ? new Date(s).toLocaleString('ru-RU', { date
 
 /**
  * faqatTizim: Hujjatlar sahifasidagi «Tizim hujjatlari» ko'rinishi - faqat tizim papkalari daraxti + ZIP; o'z papkalari/savat yaratilmaydi
- * (ular Kompaniya diskida). Eski o'z papkalari/savat bo'lsa - yo'qolmaydi, o'qish uchun ko'rinadi. documentId: shu hujjat papkasi ochiladi.
+ * (ular Kompaniya diskida). Eski o'z papkalari/savat bo'lsa - yo'qolmaydi, o'qish uchun ko'rinadi. documentId: shu hujjat ochiladi (yuqoridagi linked mantig'i).
  */
-export function FaylMenejer({ kompaniyaId, faqatTizim = false, documentId = null }: { kompaniyaId: number; faqatTizim?: boolean; documentId?: number | null }) {
+export function FaylMenejer({ kompaniyaId, faqatTizim = false, documentId }: { kompaniyaId: number; faqatTizim?: boolean; documentId?: number }) {
   return <CompanyFileManager key={kompaniyaId} kompaniyaId={kompaniyaId} faqatTizim={faqatTizim} documentId={documentId} />;
 }
 
-function CompanyFileManager({ kompaniyaId, faqatTizim, documentId }: { kompaniyaId: number; faqatTizim: boolean; documentId: number | null }) {
+function CompanyFileManager({ kompaniyaId, faqatTizim, documentId }: { kompaniyaId: number; faqatTizim: boolean; documentId?: number }) {
   const { t } = useTil();
   const [storedData, setData] = useState<FaylExplorer | null>(null);
   const data = storedData?.kompaniya_id === kompaniyaId ? storedData : null;
@@ -119,13 +119,6 @@ function CompanyFileManager({ kompaniyaId, faqatTizim, documentId }: { kompaniya
   );
   const joriy = useMemo(() => papkaTop(ildiz, joriyKalit) ?? ildiz, [ildiz, joriyKalit]);
   const eskiBor = menPapkalar.length > 0 || savat.length > 0;
-  const manzilOchildi = useRef<number | null>(null);
-  useEffect(() => {
-    if (!documentId || !data || manzilOchildi.current === documentId) return;
-    const top = (p: ReturnType<typeof faylDaraxti>): string | null => { if (p.fayllar.some((f) => f.id === documentId)) return p.kalit; for (const b of p.bolalar) { const r = top(b); if (r != null) return r; } return null; };
-    const k = top(ildiz); manzilOchildi.current = documentId;
-    if (k) { setBolim('tizim'); setJoriyKalit(k); setOchiq((s) => { const n = new Set(s); k.split('/').forEach((_, i, a) => n.add(a.slice(0, i + 1).join('/'))); return n; }); }
-  }, [documentId, data, ildiz]);
   const qidiruvNatija = useMemo(() => {
     const q = qidiruv.trim().toLowerCase();
     if (!q) return null;
@@ -313,9 +306,16 @@ function CompanyFileManager({ kompaniyaId, faqatTizim, documentId }: { kompaniya
   const turlar = faylTurTaqsimot(bolim === 'savat' ? savat : bolim === 'mening' ? menFayllar : papkaFayllari(joriy));
   const royxat = qidiruvNatija ?? joriy.fayllar;
   const papkalar = qidiruvNatija ? [] : joriy.bolalar;
+  const linked = documentId === undefined ? undefined : fayllar.find(f => f.id === documentId);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
+      {linked && <section className="fz-card flex flex-wrap items-center gap-2 p-3" aria-label={linked.nom}>
+        <span className="mr-auto min-w-0 break-all font-semibold">{linked.nom}</span>
+        <button type="button" disabled={!!band} onClick={() => void korish(linked)} className="fz-btn"><Eye size={14} />{t('Ko‘rish')}</button>
+        <button type="button" disabled={!!band} onClick={() => void yuklabOl(linked)} className="fz-btn"><Download size={14} />{t('Yuklab olish')}</button>
+      </section>}
+      {documentId !== undefined && data && !linked && <div role="status" className="fz-card p-3">{t('Hech narsa topilmadi')}</div>}
       <section className="fz-card flex flex-wrap items-center gap-2 p-3">
         <div className="mr-2 min-w-0">
           <div className="truncate text-[15px] font-semibold text-text" style={{ fontFamily: 'var(--font-display)' }}>{data?.kompaniya ?? '…'}</div>

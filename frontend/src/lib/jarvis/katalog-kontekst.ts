@@ -6,7 +6,7 @@
  */
 import { qidiruvSozlari } from './qidiruv-sozlari';
 
-export type KatalogKontekst = { nom: string; birlik: string | null; narx: number; manba: string; hudud: string | null };
+export type KatalogKontekst = { id: number; revision: string };
 
 // Only explicit price words: "qancha"/"сколько" alone asks for a quantity ("Omborda sement qancha?"), not a price.
 const NARX_SAVOLI = /narx|necha\s*pul|qanchadan|turadi|stoim|цен[аыуе]|стоим|стои[тл]|стоят|почём|почем|katalog|каталог|birja|бирж/i;
@@ -24,12 +24,10 @@ export async function katalogKonteksti(savol: string): Promise<KatalogKontekst[]
   const seen = new Set<string>();
   return m.candidates.flatMap(c => {
     const r = c.row;
-    if (r.narx == null || r.nds_holati === 'nds_bilan') return [];
-    const davr = r.manba_sana ?? (r.yil ? `${r.yil}${r.kvartal ? ` ${r.kvartal}-chorak` : ''}` : null);
-    const manba = [r.manba_nom, davr, r.ishlab_chiqaruvchi].filter(Boolean).join(', ').slice(0, 160);
-    const k = `${r.nom}|${r.birlik}|${r.narx}|${manba}`;
+    if (r.narx == null || r.nds_holati !== 'nds_siz') return [];
+    const k = `${r.nom}|${r.birlik}|${r.narx}|${r.manba_id}|${r.hudud}`;
     if (seen.has(k)) return [];
     seen.add(k);
-    return [{ nom: r.nom.slice(0, 200), birlik: r.birlik, narx: r.narx, manba, hudud: r.hudud }];
+    return [{ id: r.id, revision: cat.manifest.revision }];
   }).slice(0, 6);
 }
