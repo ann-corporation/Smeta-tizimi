@@ -18,7 +18,7 @@ if (!/^[a-f0-9]{16}$/.test(manifest.revision)) throw new Error('REVISION_INVALID
 const prefix = `narx-katalog/${manifest.revision}/`;
 const logPath = join(dir, 'upload-log.json');
 const log = existsSync(logPath) ? JSON.parse(readFileSync(logPath, 'utf8')) : {};
-const files = [manifest.files.dict, ...manifest.files.rows, ...(manifest.files.lookup ?? [])];
+const files = [manifest.files.dict, ...manifest.files.rows, ...(manifest.files.lookup ?? []), ...(manifest.files.search ?? [])];
 
 async function put(key, body) {
   const url = `https://api.cloudflare.com/client/v4/accounts/${account}/r2/buckets/smeta-tizimi-canonical/objects/${key.split('/').map(encodeURIComponent).join('/')}`;
