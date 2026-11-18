@@ -57,16 +57,15 @@ console.log('\n── Transport + page ──');
 must('registry fn takes actor from session, not body', /tekshir\(ctx\.request\.headers\.get\('Cookie'\)/.test(fn) && /foydalanuvchi_id/.test(fn) && !/body[\s\S]{0,20}actor/i.test(nocomment(fn)));
 must('registry fn maps membership failure -> 403', /42501[\s\S]{0,40}403|403[\s\S]{0,40}42501/.test(fn) || /membership/i.test(fn) && /403/.test(fn));
 must('client hujjatRoyxatOl hits /api/hujjat-royxat only', /fetch\('\/api\/hujjat-royxat/.test(client));
-/* 2026-10-02 (egasi: "R2 ni fayl explorer darajasida"): /admin/documents endi FAYL MENEJERI — real ma'lumot
-   (fayl_explorer_v1, a'zolik serverda), yuklab olish/ko'rish — kanonik R2 (/api/hujjat-ol), demo yo'q. */
-const menejer = R('frontend', 'src', 'admin', 'sahifalar', 'FaylMenejer.tsx');
-const faylApi = R('frontend', 'src', 'api', 't2-fayl.ts');
-must('Disk sahifasi (/admin/documents) renders the real FaylMenejer (no demo dataset)',
-  /<FaylMenejer/.test(page) && !/demoData|DEMO_DATA|makeDemo|demoDocuments/.test(nocomment(page) + nocomment(menejer)));
-must('FaylMenejer feeds on real data from fayl_explorer_v1 via /api/sb', /faylExplorerOl/.test(menejer) && /soro: 'fayl_explorer_v1'/.test(faylApi));
-must('FaylMenejer download/preview goes to canonical R2 url', /\/api\/hujjat-ol\?id=/.test(faylApi) && /faylBaytlari/.test(menejer));
-must('FaylMenejer: no Drive/GAS on the canonical path', !/DriveApp|drive\.google|\/api\/gas/i.test(nocomment(menejer) + nocomment(faylApi)));
-
+/* 2026-10-02 (egasi: "R2 ni fayl explorer darajasida"): /admin/documents - real ma'lumot, a'zolik serverda, demo yo'q.
+   2027-01-13 (Disk A3): eski FaylMenejer olib tashlandi; endi Kompaniya diski daraxti (t2_hm_royxat_v1, /api/hujjat-maydoni) - yagona ko'rinish. */
+const diskApi = R('frontend', 'src', 'api', 't2-hujjat-maydoni.ts');
+const diskZip = R('frontend', 'src', 'hujjat-maydoni', 'diskZip.ts');
+must('Disk sahifasi (/admin/documents) real Disk daraxtini ko\'rsatadi (hmRoyxat), demo yo\'q',
+  /hmRoyxat\(/.test(page) && /BoshqaruvBolim/.test(page) && !/FaylMenejer/.test(nocomment(page)) && !/demoData|DEMO_DATA|makeDemo|demoDocuments/.test(nocomment(page)));
+must('Disk daraxti real ma\'lumot: /api/hujjat-maydoni royxat (t2_hm_royxat_v1)', /URL_ = '\/api\/hujjat-maydoni'/.test(diskApi) && /'royxat'/.test(diskApi));
+must('Disk yuklab olish/ko\'rish kanonik R2 yo\'li (/api/hujjat-maydoni-ol)', /\/api\/hujjat-maydoni-ol\?/.test(diskApi) && /hmBaytlar/.test(page + diskZip));
+must('Disk: Drive/GAS yo\'q', !/DriveApp|drive\.google|\/api\/gas/i.test(nocomment(page) + nocomment(diskApi) + nocomment(diskZip)));
 console.log('\n── Migration hygiene ──');
 must('rollback drops the function', /drop function if exists public\.t2_document_registry_v1/.test(roll));
 must('acceptance raises a PASS sentinel', /DOCUMENT_REGISTRY_ACCEPTANCE_PASS/.test(acc));

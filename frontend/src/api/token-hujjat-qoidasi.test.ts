@@ -14,7 +14,7 @@ const ILDIZ = join(process.cwd(), 'src');   // vitest frontend/ papkasidan ishga
 const BEPUL: Record<string, string> = {
   'lib/construction-document-control/export/download-helper.ts': 'yuklab berish yordamchisining o‘zi',
   'umumiy/hujjat/HujjatKorinish.tsx': 'ko‘rish oynasi — bu baytlar ochilishdan oldin token bilan to‘langan',
-  'admin/sahifalar/FaylMenejer.tsx': 'foydalanuvchining o‘zi yuklagan fayllari (uning mulki)',
+  'hujjat-maydoni/HujjatMaydoni.tsx': 'Diskdagi foydalanuvchi va tizim fayllarini ZIP qilish (allaqachon to‘langan/uning mulki); saqlangan baytlar, qayta hisob yo‘q',
   'admin/sahifalar/NormSmetaWorkbench.tsx': 'ichki review JSON (katalog tekshiruvi), hujjat emas',
   'components/imzo/ImzoUi.tsx': 'imzolangan nusxa (IMZO varag‘i qo‘shilgan) — avval to‘langan hujjatning qayta yuklanishi; takror yechilmaydi (egasi 2026-11-13), imzolashning o‘zi token yechadi (t2-imzo.ts, hujjat: IMZO)',
   'components/ombor/OmborIshJoyi.tsx': 'ostatka Excel: token SERVERDA yechiladi (/api/ombor-buyruq eksport -> serverSarfla, mazmun xeshi bo‘yicha; qayta yuklash bepul) — klientda ikkinchi marta yechilmaydi',

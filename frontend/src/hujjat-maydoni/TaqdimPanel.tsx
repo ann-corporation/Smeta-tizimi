@@ -57,9 +57,8 @@ export function TaqdimDialog(p: { kompaniyaId: number; nishonTuri: 'fayl' | 'pap
   );
 }
 
-/** «Taqdimlar» bo'limi: kelgan / yuborilgan, tafsilot, yuklab olish, qaytarish. */
-export function TaqdimPanel({ kompaniyaId }: { kompaniyaId: number }) {
-  const [yonalish, setYonalish] = useState<'kelgan' | 'yuborilgan'>('kelgan');
+/** «Ulashilgan» tabidagi taqdimlar: kelgan (menga taqdim qilinganlar) / yuborilgan (men taqdim qilganlar); tafsilot, yuklab olish, qaytarish. */
+export function TaqdimPanel({ kompaniyaId, yonalish }: { kompaniyaId: number; yonalish: 'kelgan' | 'yuborilgan' }) {
   const [royxat, setRoyxat] = useState<HmTaqdim[] | null>(null);
   const [tanlangan, setTanlangan] = useState<HmTaqdimTafsilot | null>(null);
   const yukla = useCallback(async () => {
@@ -77,10 +76,6 @@ export function TaqdimPanel({ kompaniyaId }: { kompaniyaId: number }) {
   };
   return (
     <div>
-      <div className="mb-2 flex gap-1" role="tablist" aria-label={t('Taqdim yo‘nalishi')}>
-        {(['kelgan', 'yuborilgan'] as const).map((k) => (
-          <button key={k} type="button" role="tab" aria-selected={yonalish === k} onClick={() => setYonalish(k)} className={`rounded px-3 py-1 text-[12px] ${yonalish === k ? 'bg-accent/15 font-semibold' : 'text-text-dim hover:bg-surface-2'}`}>{t(k === 'kelgan' ? 'Kelgan' : 'Yuborilgan')}</button>))}
-      </div>
       <div className="flex flex-col gap-3 lg:flex-row">
         <table className="fz-table min-w-0 flex-1"><thead><tr><th>{t('Nomi')}</th><th>{yonalish === 'kelgan' ? t('Kimdan') : t('Kimga')}</th><th>{t('Sana')}</th><th>{t('Holat')}</th></tr></thead><tbody>
           {(royxat ?? []).map((x) => (

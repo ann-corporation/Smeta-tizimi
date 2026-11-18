@@ -6,8 +6,11 @@ import { vaqtliOqish } from './vaqtli-fetch';
 import { HM_KATTA_CHEGARA, hmYuklaKatta } from './t2-hujjat-maydoni-2';
 
 export type Kvota = { ishlatilgan: number; limit: number; chegara: number; ortiqcha: boolean; foiz: number | null };
-export type HmPapka = { id: number; nom: string };
-export type HmFayl = { id: number; nom: string; mime: string; bayt: number | null; versiya: number | null; yangilandi: string; savatda: string | null; qulf_kim: number | null; qulf_ism: string | null; izohlar: number };
+/** 	izim - tizim papkasi (o'chirib/ko'chirib/nomlab bo'lmaydi; server majburlaydi: TIZIM_PAPKA). */
+export type HmPapka = { id: number; nom: string; tizim?: boolean };
+export type HmFayl = { id: number; nom: string; mime: string; bayt: number | null; versiya: number | null; yangilandi: string; savatda: string | null; qulf_kim: number | null; qulf_ism: string | null; izohlar: number;
+  /** Tizim hujjati (F-2, F-3, nakopitelniy ...): manba - qayerdan yasalgani (Tizimda ochish). */
+  tizim_hujjat?: boolean; manba_turi?: string | null; manba_id?: number | null; hujjat_kalit?: string | null; obyekt_id?: number | null; shartnoma_id?: number | null };
 export type HmRoyxat = { ok: true; daraja: number; kompaniya_id: number | null; shaxsiy: boolean; yol: HmPapka[]; papkalar: HmPapka[]; fayllar: HmFayl[]; kvota: Kvota };
 export type HmVersiya = { raqam: number; bayt: number; mime: string; yaratildi: string; kim: string | null; joriy: boolean };
 export type HmIzoh = { id: number; muallif_id: number; ism: string | null; matn: string; eslatilgan: number[]; yaratildi: string };
@@ -42,6 +45,8 @@ async function yoz<T = { ok: true }>(body: Record<string, unknown>): Promise<HmN
 }
 
 export const hmRoyxat = (p: { kompaniyaId?: number | null; papkaId?: number | null; savat?: boolean }) => oqi<HmRoyxat>('royxat', { kompaniya_id: p.kompaniyaId, papka_id: p.papkaId, savat: p.savat });
+/** Eski /admin/documents?document_id= havolasi: registry hujjat id si -> Diskdagi fayl va papka. */
+export const hmRegistryJoy = (registryId: number) => oqi<{ ok: true; fayl_id: number; papka_id: number | null; kompaniya_id: number | null; savatda: boolean; nom: string }>('registry_joy', { registry_id: registryId });
 export const hmUlashilgan = () => oqi<{ ok: true; royxat: HmUlashilgan[] }>('ulashilgan');
 export const hmVersiyalar = (faylId: number) => oqi<{ ok: true; versiyalar: HmVersiya[] }>('versiyalar', { fayl_id: faylId });
 export const hmIzohlar = (faylId: number) => oqi<{ ok: true; izohlar: HmIzoh[] }>('izoh', { fayl_id: faylId });

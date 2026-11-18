@@ -116,6 +116,9 @@ const protectedPages = dashboard + documents + participants + workbench;
 must('company-scoped production pages use a professional context-required surface',
   /CompanyContextRequired|company context|required|Kompaniya konteksti/i.test(protectedPages),
   'context yo‘q holatda professional selection/onboarding state bo‘lishi kerak');
+must('Disk sahifasi kompaniya talab qiladigan bo‘limda professional KompaniyaKerak yuzasidan foydalanadi',
+  /<KompaniyaKerak/.test(documents) && !/Error\.message/.test(documents),
+  'Disk: kompaniyasiz holat KompaniyaKerak bilan hal qilinishi kerak');
 must('production pages do not expose raw Error.message in context error UI',
   !/String\(\(q\.error as any\)\?\.message/.test(protectedPages),
   'raw backend message userga chiqmasligi kerak');
