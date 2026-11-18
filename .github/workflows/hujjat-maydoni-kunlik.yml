@@ -1,0 +1,33 @@
+name: hujjat-maydoni-kunlik
+
+# Hujjat maydoni: kunlik xotira/trafik hisobi (tokenda, idempotent), 80%/95% ogohlantirish, savat 30 kun tozalash (R2).
+# Sirlar telegram-kunlik/arxiv-tungi bilan bir xil: BILDIRISHNOMA_CRON_KALIT + repo o'zgaruvchisi PROD_URL. Sozlanmasa jim o'tkazib yuboriladi.
+on:
+  schedule:
+    - cron: '20 20 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hujjat-maydoni-kunlik
+  cancel-in-progress: false
+
+jobs:
+  kunlik:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BILDIRISHNOMA_CRON_KALIT: ${{ secrets.BILDIRISHNOMA_CRON_KALIT }}
+      PROD_URL: ${{ vars.PROD_URL }}
+    steps:
+      - name: Hisob va tozalash
+        run: |
+          if [ -z "$BILDIRISHNOMA_CRON_KALIT" ] || [ -z "$PROD_URL" ]; then
+            echo "BILDIRISHNOMA_CRON_KALIT yoki PROD_URL sozlanmagan - o'tkazib yuborildi."; exit 0
+          fi
+          code=$(curl -sS -o resp.json -w '%{http_code}' -X POST "$PROD_URL/api/hujjat-maydoni-tozala" \
+            -H 'Content-Type: application/json' -H "X-Cron-Kalit: $BILDIRISHNOMA_CRON_KALIT" --data '{}' --max-time 120 || echo 000)
+          echo "HTTP $code"; head -c 300 resp.json; echo
+          if [ "$code" != "200" ]; then echo "::warning::hujjat-maydoni-kunlik muvaffaqiyatsiz (HTTP $code)"; fi

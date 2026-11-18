@@ -1,0 +1,570 @@
+{
+  "Disk hajmi": {
+    "ru": "Объём диска",
+    "en": "Disk usage"
+  },
+  "Kompaniya diski": {
+    "ru": "Диск компании",
+    "en": "Company drive"
+  },
+  "Shaxsiy disk": {
+    "ru": "Личный диск",
+    "en": "Personal drive"
+  },
+  "Tarif va disk rejalari": {
+    "ru": "Тарифы и планы диска",
+    "en": "Plans and disk tiers"
+  },
+  "Disk to‘ldi: yangi fayl yuklab bo‘lmaydi, mavjud fayllarni ochish va yuklab olish davom etadi.": {
+    "ru": "Диск заполнен: новые файлы загрузить нельзя, открытие и скачивание существующих продолжает работать.",
+    "en": "Drive is full: new uploads are blocked; opening and downloading existing files keeps working."
+  },
+  "Disk deyarli to‘ldi ({f}%). Joy bo‘shating yoki rejani oshiring.": {
+    "ru": "Диск почти заполнен ({f}%). Освободите место или повысьте план.",
+    "en": "Drive is almost full ({f}%). Free up space or upgrade the plan."
+  },
+  "Tarif sahifasiga o‘tish": {
+    "ru": "Перейти к тарифам",
+    "en": "Go to plans"
+  },
+  "Mazmun o‘zgarmagan: {nom}": {
+    "ru": "Содержимое не изменилось: {nom}",
+    "en": "Content unchanged: {nom}"
+  },
+  "Yangi versiya yuklandi: {nom}": {
+    "ru": "Загружена новая версия: {nom}",
+    "en": "New version uploaded: {nom}"
+  },
+  "Yuklandi: {nom}": {
+    "ru": "Загружено: {nom}",
+    "en": "Uploaded: {nom}"
+  },
+  "Papka nomi": {
+    "ru": "Название папки",
+    "en": "Folder name"
+  },
+  "Faylni ochib bo‘lmadi": {
+    "ru": "Не удалось открыть файл",
+    "en": "Could not open the file"
+  },
+  "Hujjatlarim": {
+    "ru": "Мои документы",
+    "en": "My documents"
+  },
+  "Shaxsiy va kompaniya fayllari: papkalar, versiyalar, izohlar, ulashish. Fayllar xavfsiz saqlanadi; versiyalar va savat disk hajmiga kiradi.": {
+    "ru": "Личные и корпоративные файлы: папки, версии, комментарии, доступ. Файлы хранятся безопасно; версии и корзина входят в объём диска.",
+    "en": "Personal and company files: folders, versions, comments, sharing. Files are stored securely; versions and trash count toward disk usage."
+  },
+  "Bo‘limlar": {
+    "ru": "Разделы",
+    "en": "Sections"
+  },
+  "Papka yo‘li": {
+    "ru": "Путь к папке",
+    "en": "Folder path"
+  },
+  "Fayl nomi bo‘yicha qidirish": {
+    "ru": "Поиск по имени файла",
+    "en": "Search by file name"
+  },
+  "Qidirish": {
+    "ru": "Поиск",
+    "en": "Search"
+  },
+  "Yangi papka": {
+    "ru": "Новая папка",
+    "en": "New folder"
+  },
+  "Yuklash": {
+    "ru": "Загрузить",
+    "en": "Upload"
+  },
+  "Fayl tanlash": {
+    "ru": "Выбрать файл",
+    "en": "Choose file"
+  },
+  "Qidiruv natijasi": {
+    "ru": "Результат поиска",
+    "en": "Search results"
+  },
+  "Hech narsa topilmadi": {
+    "ru": "Ничего не найдено",
+    "en": "Nothing found"
+  },
+  "Nomi": {
+    "ru": "Название",
+    "en": "Name"
+  },
+  "Hajmi": {
+    "ru": "Размер",
+    "en": "Size"
+  },
+  "Versiya": {
+    "ru": "Версия",
+    "en": "Version"
+  },
+  "O‘zgargan": {
+    "ru": "Изменён",
+    "en": "Modified"
+  },
+  "Papkani o‘chirish": {
+    "ru": "Удалить папку",
+    "en": "Delete folder"
+  },
+  "Qulflagan: {kim}": {
+    "ru": "Заблокировал: {kim}",
+    "en": "Locked by: {kim}"
+  },
+  "Ko‘rish": {
+    "ru": "Просмотр",
+    "en": "View"
+  },
+  "Yuklab olish": {
+    "ru": "Скачать",
+    "en": "Download"
+  },
+  "Savatga": {
+    "ru": "В корзину",
+    "en": "To trash"
+  },
+  "Bu papka bo‘sh. Fayl yuklang yoki papka yarating.": {
+    "ru": "Папка пуста. Загрузите файл или создайте папку.",
+    "en": "This folder is empty. Upload a file or create a folder."
+  },
+  "Savatdagi fayllar 30 kundan keyin o‘zi o‘chadi. Ular disk hajmiga kiradi.": {
+    "ru": "Файлы в корзине удаляются через 30 дней. Они входят в объём диска.",
+    "en": "Files in trash are deleted after 30 days. They count toward disk usage."
+  },
+  "Savat butunlay bo‘shatilsinmi? Bu qaytarilmaydi.": {
+    "ru": "Очистить корзину полностью? Это необратимо.",
+    "en": "Empty the trash completely? This cannot be undone."
+  },
+  "Savatni bo‘shatish": {
+    "ru": "Очистить корзину",
+    "en": "Empty trash"
+  },
+  "Tiklash": {
+    "ru": "Восстановить",
+    "en": "Restore"
+  },
+  "Fayl butunlay o‘chirilsinmi?": {
+    "ru": "Удалить файл навсегда?",
+    "en": "Delete the file permanently?"
+  },
+  "Butunlay o‘chirish": {
+    "ru": "Удалить навсегда",
+    "en": "Delete permanently"
+  },
+  "Savat bo‘sh.": {
+    "ru": "Корзина пуста.",
+    "en": "Trash is empty."
+  },
+  "Daraja": {
+    "ru": "Уровень",
+    "en": "Level"
+  },
+  "Kim ulashdi": {
+    "ru": "Кто поделился",
+    "en": "Shared by"
+  },
+  "Hali hech kim fayl ulashmagan.": {
+    "ru": "Пока никто не поделился файлами.",
+    "en": "Nobody has shared files with you yet."
+  },
+  "F-2, АОСР, smeta eksportlari: faqat o‘qish. Har hujjat chiqarilgan paytdagi nusxa; «oxirgi» belgisi eng yangi versiyani bildiradi.": {
+    "ru": "Ф-2, АОСР, экспорт смет: только чтение. Каждый документ — копия на момент выпуска; метка «последний» означает самую новую версию.",
+    "en": "F-2, AOSR, estimate exports: read-only. Each document is a snapshot at issue time; the \"latest\" tag marks the newest version."
+  },
+  "Turi": {
+    "ru": "Тип",
+    "en": "Type"
+  },
+  "Sana": {
+    "ru": "Дата",
+    "en": "Date"
+  },
+  "oxirgi": {
+    "ru": "последний",
+    "en": "latest"
+  },
+  "Tizim hujjatlari hali yo‘q.": {
+    "ru": "Системных документов пока нет.",
+    "en": "No system documents yet."
+  },
+  "Faoliyat yo‘q.": {
+    "ru": "Активности нет.",
+    "en": "No activity."
+  },
+  "Yuklanmoqda…": {
+    "ru": "Загрузка…",
+    "en": "Loading…"
+  },
+  "Yopish": {
+    "ru": "Закрыть",
+    "en": "Close"
+  },
+  "Yuklandi": {
+    "ru": "Загружен",
+    "en": "Uploaded"
+  },
+  "Yangi versiya": {
+    "ru": "Новая версия",
+    "en": "New version"
+  },
+  "Nomi o‘zgardi": {
+    "ru": "Переименован",
+    "en": "Renamed"
+  },
+  "Ko‘chirildi": {
+    "ru": "Перемещён",
+    "en": "Moved"
+  },
+  "Savatga olindi": {
+    "ru": "Перемещён в корзину",
+    "en": "Moved to trash"
+  },
+  "Tiklandi": {
+    "ru": "Восстановлен",
+    "en": "Restored"
+  },
+  "Qulflandi": {
+    "ru": "Заблокирован",
+    "en": "Locked"
+  },
+  "Qulf ochildi": {
+    "ru": "Разблокирован",
+    "en": "Unlocked"
+  },
+  "Versiyaga qaytarildi": {
+    "ru": "Возврат к версии",
+    "en": "Reverted to version"
+  },
+  "Izoh": {
+    "ru": "Комментарий",
+    "en": "Comment"
+  },
+  "Ulashildi": {
+    "ru": "Доступ предоставлен",
+    "en": "Shared"
+  },
+  "Ulashish bekor qilindi": {
+    "ru": "Доступ отозван",
+    "en": "Sharing revoked"
+  },
+  "Papka yaratildi": {
+    "ru": "Папка создана",
+    "en": "Folder created"
+  },
+  "Papka nomi o‘zgardi": {
+    "ru": "Папка переименована",
+    "en": "Folder renamed"
+  },
+  "Papka ko‘chirildi": {
+    "ru": "Папка перемещена",
+    "en": "Folder moved"
+  },
+  "Papka o‘chirildi": {
+    "ru": "Папка удалена",
+    "en": "Folder deleted"
+  },
+  "Sozlama": {
+    "ru": "Настройка",
+    "en": "Setting"
+  },
+  "Disk rejasi": {
+    "ru": "План диска",
+    "en": "Disk plan"
+  },
+  "Disk to‘ldi. Joy bo‘shating yoki Tokenlar va obuna sahifasida disk rejasini oshiring.": {
+    "ru": "Диск заполнен. Освободите место или повысьте план диска на странице «Токены и подписка».",
+    "en": "Drive is full. Free up space or upgrade the disk plan on the Tokens and subscription page."
+  },
+  "Fayl boshqa foydalanuvchi tomonidan tahrir uchun qulflangan.": {
+    "ru": "Файл заблокирован другим пользователем для редактирования.",
+    "en": "The file is locked for editing by another user."
+  },
+  "Bu amal uchun ruxsat yo‘q.": {
+    "ru": "Нет прав на это действие.",
+    "en": "You do not have permission for this action."
+  },
+  "Shu joyda bunday nom bor.": {
+    "ru": "Такое имя здесь уже есть.",
+    "en": "This name already exists here."
+  },
+  "Papka bo‘sh emas.": {
+    "ru": "Папка не пуста.",
+    "en": "The folder is not empty."
+  },
+  "Fayl juda katta (100 MB gacha).": {
+    "ru": "Файл слишком большой (до 100 МБ).",
+    "en": "File is too large (up to 100 MB)."
+  },
+  "Bu turdagi faylni yuklab bo‘lmaydi.": {
+    "ru": "Файл этого типа загрузить нельзя.",
+    "en": "This file type cannot be uploaded."
+  },
+  "Menga ulashilgan": {
+    "ru": "Доступно мне",
+    "en": "Shared with me"
+  },
+  "Tizim hujjatlari": {
+    "ru": "Системные документы",
+    "en": "System documents"
+  },
+  "Savat": {
+    "ru": "Корзина",
+    "en": "Trash"
+  },
+  "Faoliyat": {
+    "ru": "Активность",
+    "en": "Activity"
+  },
+  "Disk boshqaruvi": {
+    "ru": "Управление диском",
+    "en": "Drive admin"
+  },
+  "Yangi nom": {
+    "ru": "Новое имя",
+    "en": "New name"
+  },
+  "Fayl tafsilotlari": {
+    "ru": "Сведения о файле",
+    "en": "File details"
+  },
+  "Nomlash": {
+    "ru": "Переименовать",
+    "en": "Rename"
+  },
+  "Qulfni ochish": {
+    "ru": "Снять блокировку",
+    "en": "Unlock"
+  },
+  "Faylni yuklab olib o‘z kompyuteringizda tahrirlash uchun qulflang; yangi versiyani yuklaganingizda qulf ochiladi.": {
+    "ru": "Заблокируйте файл, чтобы отредактировать его на своём компьютере; блокировка снимется при загрузке новой версии.",
+    "en": "Lock the file to edit it on your computer; the lock is released when you upload the new version."
+  },
+  "Tahrir uchun qulflash": {
+    "ru": "Заблокировать для правки",
+    "en": "Lock for editing"
+  },
+  "Yangi versiya yuklash": {
+    "ru": "Загрузить новую версию",
+    "en": "Upload new version"
+  },
+  "Yangi versiya yuklandi": {
+    "ru": "Новая версия загружена",
+    "en": "New version uploaded"
+  },
+  "Ko‘chirish": {
+    "ru": "Переместить",
+    "en": "Move"
+  },
+  "Ko‘chirish…": {
+    "ru": "Переместить…",
+    "en": "Move…"
+  },
+  "Ildiz": {
+    "ru": "Корень",
+    "en": "Root"
+  },
+  "joriy": {
+    "ru": "текущая",
+    "en": "current"
+  },
+  "Qaytarish": {
+    "ru": "Вернуть",
+    "en": "Restore"
+  },
+  "Izoh yo‘q.": {
+    "ru": "Комментариев нет.",
+    "en": "No comments."
+  },
+  "Izoh yozing…": {
+    "ru": "Напишите комментарий…",
+    "en": "Write a comment…"
+  },
+  "Eslatish (@):": {
+    "ru": "Упомянуть (@):",
+    "en": "Mention (@):"
+  },
+  "Yuborish": {
+    "ru": "Отправить",
+    "en": "Send"
+  },
+  "Ulashish faqat egasi yoki boshqaruvchi uchun.": {
+    "ru": "Делиться может только владелец или администратор.",
+    "en": "Only the owner or an admin can share."
+  },
+  "Ism yoki login": {
+    "ru": "Имя или логин",
+    "en": "Name or login"
+  },
+  "Odam qidirish": {
+    "ru": "Поиск человека",
+    "en": "Find a person"
+  },
+  "Ulashish": {
+    "ru": "Поделиться",
+    "en": "Share"
+  },
+  "Tashqi havola kompaniyada yoqilmagan (Disk boshqaruvi).": {
+    "ru": "Внешние ссылки в компании не включены (Управление диском).",
+    "en": "External links are not enabled for the company (Drive admin)."
+  },
+  "Tashqi havola (7 kun, faqat ko‘rish)": {
+    "ru": "Внешняя ссылка (7 дней, только просмотр)",
+    "en": "External link (7 days, view only)"
+  },
+  "Havola faqat hozir ko‘rsatiladi:": {
+    "ru": "Ссылка показывается только сейчас:",
+    "en": "The link is shown only now:"
+  },
+  "Havola": {
+    "ru": "Ссылка",
+    "en": "Link"
+  },
+  "Tashqi havola": {
+    "ru": "Внешняя ссылка",
+    "en": "External link"
+  },
+  "Bekor qilish": {
+    "ru": "Отозвать",
+    "en": "Revoke"
+  },
+  "Disk boshqaruvi faqat kompaniya boshqaruvchisi uchun.": {
+    "ru": "Управление диском доступно только администратору компании.",
+    "en": "Drive admin is only for company admins."
+  },
+  "Eski versiyalar o‘chirilsinmi? Faqat joriy versiyalar qoladi.": {
+    "ru": "Удалить старые версии? Останутся только текущие.",
+    "en": "Delete old versions? Only current versions remain."
+  },
+  "Joy bo‘shatildi": {
+    "ru": "Место освобождено",
+    "en": "Space freed"
+  },
+  "gacha": {
+    "ru": "до",
+    "en": "until"
+  },
+  "Bepul reja": {
+    "ru": "Бесплатный план",
+    "en": "Free plan"
+  },
+  "Eski versiyalar": {
+    "ru": "Старые версии",
+    "en": "Old versions"
+  },
+  "Eski versiyalarni o‘chirish": {
+    "ru": "Удалить старые версии",
+    "en": "Delete old versions"
+  },
+  "Disk rejasini oshirish": {
+    "ru": "Повысить план диска",
+    "en": "Upgrade disk plan"
+  },
+  "Eng katta papkalar": {
+    "ru": "Самые большие папки",
+    "en": "Largest folders"
+  },
+  "Trafik (shu oy)": {
+    "ru": "Трафик (этот месяц)",
+    "en": "Traffic (this month)"
+  },
+  "Yuklab olingan": {
+    "ru": "Скачано",
+    "en": "Downloaded"
+  },
+  "bepul": {
+    "ru": "бесплатно",
+    "en": "free"
+  },
+  "Yuklangan": {
+    "ru": "Загружено",
+    "en": "Uploaded"
+  },
+  "Bepul trafikdan oshgani tokenda hisoblanadi; yuklab olish hech qachon to‘xtatilmaydi.": {
+    "ru": "Превышение бесплатного трафика списывается токенами; скачивание никогда не блокируется.",
+    "en": "Traffic above the free allowance is charged in tokens; downloads are never blocked."
+  },
+  "Sozlamalar": {
+    "ru": "Настройки",
+    "en": "Settings"
+  },
+  "Tashqi havola orqali ulashishga ruxsat (faqat ko‘rish, muddatli)": {
+    "ru": "Разрешить внешние ссылки (только просмотр, с сроком)",
+    "en": "Allow external links (view only, time-limited)"
+  },
+  "Limitdan oshganda xotira tokenda hisoblansin (aks holda yuklash bloklanadi)": {
+    "ru": "При превышении лимита списывать хранение токенами (иначе загрузка блокируется)",
+    "en": "Charge storage above the limit in tokens (otherwise uploads are blocked)"
+  },
+  "So‘nggi hisoblar": {
+    "ru": "Последние начисления",
+    "en": "Recent charges"
+  },
+  "{nom} rejasi {n} oyga sotib olinsinmi? Tokenlardan yechiladi.": {
+    "ru": "Купить план {nom} на {n} мес.? Спишется с токенов.",
+    "en": "Buy the {nom} plan for {n} month(s)? It will be charged in tokens."
+  },
+  "Tokenlar yetarli emas.": {
+    "ru": "Недостаточно токенов.",
+    "en": "Not enough tokens."
+  },
+  "Disk rejasi yoqildi": {
+    "ru": "План диска включён",
+    "en": "Disk plan activated"
+  },
+  "Disk (hujjat maydoni)": {
+    "ru": "Диск (хранилище документов)",
+    "en": "Drive (document space)"
+  },
+  "Ishlatilgan": {
+    "ru": "Использовано",
+    "en": "Used"
+  },
+  "reja {kod} gacha {sana}": {
+    "ru": "план {kod} до {sana}",
+    "en": "plan {kod} until {sana}"
+  },
+  "bepul reja": {
+    "ru": "бесплатный план",
+    "en": "free plan"
+  },
+  "Limitdan oshganda yuklash bloklanadi (yuklab olish ishlayveradi). Disk boshqaruvida «limitdan oshganda tokenda hisoblash»ni yoqsangiz, ortiqcha xotira kunlik tokenda hisoblanadi.": {
+    "ru": "При превышении лимита загрузка блокируется (скачивание работает). Если включить в управлении диском «списывать токенами при превышении», лишнее хранение списывается ежедневно токенами.",
+    "en": "Above the limit uploads are blocked (downloads keep working). If you enable \"charge in tokens above the limit\" in Drive admin, extra storage is charged daily in tokens."
+  },
+  "Muddat": {
+    "ru": "Срок",
+    "en": "Term"
+  },
+  "Muddat (oy)": {
+    "ru": "Срок (мес.)",
+    "en": "Term (months)"
+  },
+  "oy": {
+    "ru": "мес.",
+    "en": "mo"
+  },
+  "soʻm / oy": {
+    "ru": "сум / мес.",
+    "en": "UZS / mo"
+  },
+  "token": {
+    "ru": "токенов",
+    "en": "tokens"
+  },
+  "Sotib olish": {
+    "ru": "Купить",
+    "en": "Buy"
+  },
+  "Aloqa xatosi.": {
+    "ru": "Ошибка связи.",
+    "en": "Connection error."
+  },
+  "Hujjatlarim (disk)": {
+    "ru": "Мои документы (диск)",
+    "en": "My documents (drive)"
+  }
+}

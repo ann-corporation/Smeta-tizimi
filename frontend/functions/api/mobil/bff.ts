@@ -18,6 +18,9 @@ import { onRequestPost as agentIshPost } from '../agent-ish';
 import { onRequestGet as qulfGet, onRequestPost as qulfPost } from '../qulf';
 import { onRequestGet as hujjatRoyxatGet } from '../hujjat-royxat';
 import { onRequestGet as hujjatOlGet } from '../hujjat-ol';
+import { onRequestGet as hujjatMaydoniGet, onRequestPost as hujjatMaydoniPost } from '../hujjat-maydoni';
+import { onRequestGet as hujjatMaydoniOlGet } from '../hujjat-maydoni-ol';
+import { onRequestPost as hujjatBuyruqPost } from '../hujjat-buyruq';
 import { onRequestPost as hujjatYaratPost } from '../hujjat-yarat';
 import { onRequestGet as tomonGet, onRequestPost as tomonPost } from '../tomon';
 import { onRequestGet as telegramGet, onRequestPost as telegramPost } from '../telegram/index';
@@ -48,6 +51,10 @@ const handlers: Record<string, Record<string, PagesFunction<Env>>> = {
   // P6 documents: canonical registry list + binary download (F-2 PDF/Excel, drawings). GET only; same authorization as the web, bytes stream through unchanged.
   '/api/hujjat-royxat': { GET: hujjatRoyxatGet },
   '/api/hujjat-ol': { GET: hujjatOlGet },
+  // Hujjat maydoni (Disk): ro'yxat/amallar JSON, yuklab olish; yuklash (multipart) ilova uchun keyingi bosqich (mobil/yukla naqshi).
+  '/api/hujjat-maydoni': { GET: hujjatMaydoniGet, POST: hujjatMaydoniPost },
+  '/api/hujjat-maydoni-ol': { GET: hujjatMaydoniOlGet },
+  '/api/hujjat-buyruq': { POST: hujjatBuyruqPost },
   // Yagona hujjat dvigateli: server tayyor XLSX/PDF qaytaradi (ro'yxat ham serverdan); ilovada shablon yo'q.
   '/api/hujjat-yarat': { POST: hujjatYaratPost },
   // P10: texnadzor acceptance (tomon: nazorat sections + decision) and notification preferences (telegram: holat + sozlama). Allow-listed below.
@@ -58,7 +65,7 @@ const handlers: Record<string, Record<string, PagesFunction<Env>>> = {
   // Jarvis F2/fakt vositalari (smeta MCP o'qish + yozish): yozish faqat server dry_run preview + tasdiq tokeni bilan; ruxsat/aktor/token serverda.
   '/api/f2-buyruq': { POST: f2BuyruqPost },
 } as never;
-export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|obyekt-tugun-summa|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol|agent-ish|qulf|hujjat-royxat|hujjat-ol|hujjat-yarat|tomon|telegram|ombor-buyruq|f2-buyruq)(?:\?[^#\s]*)?$/;
+export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|obyekt-tugun-summa|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol|agent-ish|qulf|hujjat-royxat|hujjat-ol|hujjat-maydoni|hujjat-maydoni-ol|hujjat-buyruq|hujjat-yarat|tomon|telegram|ombor-buyruq|f2-buyruq)(?:\?[^#\s]*)?$/;
 /** /api/profil also hosts account-security actions (parol, google/telegram ulash, hisob_birlashtir, usul_uz, birlashtir_*): the native device token may NOT reach them.
  *  Exposed: GET (own profile + session window), the @username / people-search / invite-answer actions (USERNAME_V1), `yangila` (name, phone, language, avatar colour)
  *  and `boshqa_sessiyalar_chiqish` (sign out everywhere; the BFF re-enrols THIS device so it stays signed in, see reissueDevice). */

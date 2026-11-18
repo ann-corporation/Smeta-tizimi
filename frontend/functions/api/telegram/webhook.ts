@@ -17,9 +17,10 @@ import { startTugmalari } from '../../_shared/telegram-tugma';
 import { omborBuyruq, omborCallback } from '../../_shared/telegram-ombor';
 import { NONCE_PREFIKS, kalitYaroqli, nonceYaroqli, xesh, yoqilgan } from '../../_shared/kirish-emailsiz';
 import { type KanalEnv, kanalCallback, kanalCallbackmi, kanalTahrirJavobi, tahrirBelgisi } from '../../_shared/telegram-kanal';
+import { DISK_CB, type TgHujjat, diskCallback, diskFayl } from '../../_shared/telegram-disk';
 import { menUsernameQatori, taklifJavobi, usernameCallback, usernameJavobi, usernameTaklifi } from '../../_shared/telegram-username';
 
-type Xabar = { message_id?: number; reply_to_message?: { from?: { is_bot?: boolean }; text?: string }; text?: string; caption?: string; photo?: TgRasm[]; voice?: { file_id?: string; file_size?: number }; audio?: { file_id?: string; file_size?: number }; contact?: { phone_number?: string; user_id?: number }; chat?: { id?: number; type?: string }; from?: { id?: number; is_bot?: boolean; language_code?: string; username?: string } };
+type Xabar = { message_id?: number; reply_to_message?: { from?: { is_bot?: boolean }; text?: string }; text?: string; caption?: string; photo?: TgRasm[]; document?: TgHujjat; voice?: { file_id?: string; file_size?: number }; audio?: { file_id?: string; file_size?: number }; contact?: { phone_number?: string; user_id?: number }; chat?: { id?: number; type?: string }; from?: { id?: number; is_bot?: boolean; language_code?: string; username?: string } };
 export type Update = { update_id?: number; message?: Xabar; edited_message?: Xabar; callback_query?: Callback };
 
 const ROL_NOMI: Record<string, string> = {
@@ -58,6 +59,13 @@ async function callbackAjrat(env: TgEnv, cb: Callback, tgId: number | undefined)
     if (u.xabar) await xabarYubor(env, chat.id as number, u.xabar.matn);
     if (Number.isSafeInteger(cb.message?.message_id)) await tgApi(env, 'editMessageReplyMarkup', { chat_id: chat.id, message_id: cb.message?.message_id, reply_markup: { inline_keyboard: [] } });
     return 'cb:' + u.amal;
+  }
+  if (typeof cb.data === 'string' && DISK_CB.test(cb.data)) {
+    /* HUJJAT MAYDONI: Telegram fayli -> shaxsiy papka (faqat shaxsiy chat; kvota/ruxsat serverda). */
+    const d = await diskCallback(env, a.foydalanuvchi_id, til, cb.data, chat.id as number);
+    await javobBer(d.toast || undefined);
+    if (Number.isSafeInteger(cb.message?.message_id)) await tgApi(env, 'editMessageReplyMarkup', { chat_id: chat.id, message_id: cb.message?.message_id, reply_markup: { inline_keyboard: [] } });
+    return d.amal;
   }
   if (kanalCallbackmi(cb.data)) {
     /* KANAL-BOSHQARUV: kanalga chiqarish/o'chirish FAQAT egasi (superadmin) shu tugmani bosganda; qoralama egasi va rol qayta tekshiriladi. */
@@ -155,6 +163,9 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
     if (j) { await yubor(env, chatId, j); return ovoz ? 'ombor_ovoz' : 'ombor_matn'; }
     if (ovoz) { await xabarYubor(env, chatId, tgT('Ovozli buyruq faqat omborchilar uchun.', til)); return 'ovoz_ruxsatsiz'; }
   }
+
+  // Fayl (document) -> Hujjat maydoni: bot "qaysi papkaga?" deb so'raydi (guruhlar yuqorida rad etilgan).
+  if (msg.document?.file_id) return diskFayl(env, uid, til, chatId, msg.document);
 
   // Rasm (izoh bilan yoki izohsiz) → foto-dalil (umumiy, faktga biriktirilmagan). Fakt summasi/hajmi yozilmaydi.
   if (Array.isArray(msg.photo) && msg.photo.length) {
