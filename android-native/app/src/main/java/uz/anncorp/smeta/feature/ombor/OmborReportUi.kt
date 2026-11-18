@@ -134,7 +134,7 @@ internal fun OmborReportPanel(skladId: Long?, query: String, vm: OmborReportView
             listOf(R.string.t14_op_all, R.string.t14_op_in, R.string.t14_op_out).forEachIndexed { i, res ->
                 FilterChip(selected = date == null && op == i, onClick = { date = null; op = i }, label = { Text(stringResource(res)) })
             }
-            AssistChip(onClick = { dateDialog = true }, label = { Text(date?.let { stringResource(R.string.t14_balance_on, it) } ?: stringResource(R.string.t14_balance_date)) }, leadingIcon = { Icon(Icons.Filled.CalendarMonth, null) })
+            AssistChip(onClick = { dateDialog = true }, label = { Text(date?.let { stringResource(R.string.t14_balance_on, uz.anncorp.smeta.core.data.formatDate(it)) } ?: stringResource(R.string.t14_balance_date)) }, leadingIcon = { Icon(Icons.Filled.CalendarMonth, null) })
         }
         when {
             skladId == null -> CenterMessage(Icons.Filled.Warning, stringResource(R.string.ombor_cmd_m_nowarehouse))
@@ -176,15 +176,15 @@ internal fun OmborReportPanel(skladId: Long?, query: String, vm: OmborReportView
 
 @Composable
 private fun DateRows(date: String, rows: List<DateBalanceRow>) {
-    if (rows.isEmpty()) { CenterMessage(Icons.Filled.CalendarMonth, stringResource(R.string.t14_balance_empty, date)); return }
+    if (rows.isEmpty()) { CenterMessage(Icons.Filled.CalendarMonth, stringResource(R.string.t14_balance_empty, uz.anncorp.smeta.core.data.formatDate(date))); return }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp, 4.dp, 16.dp, 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        item { Text(stringResource(R.string.t14_balance_head, date), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface) }
+        item { Text(stringResource(R.string.t14_balance_head, uz.anncorp.smeta.core.data.formatDate(date)), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface) }
         items(rows, key = { it.name + "|" + it.unit }) { r ->
             WorkCard(modifier = Modifier.heightIn(min = TouchTarget)) {
                 Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(r.name, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, maxLines = 3)
-                        r.lastDate?.let { Text(stringResource(R.string.ombor_last_movement, it.take(10)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        r.lastDate?.let { Text(stringResource(R.string.ombor_last_movement, uz.anncorp.smeta.core.data.formatDate(it)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     }
                     Text(formatQty(r.qty) + " " + r.unit, style = MaterialTheme.typography.titleMedium, color = if ((r.qty ?: 0.0) < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
                 }
@@ -203,7 +203,7 @@ private fun ReportBody(r: Report) {
                 Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(row.name, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, maxLines = 3)
-                        Text(listOfNotNull(row.date, row.party, row.objectName).joinToString("  ·  "), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
+                        Text(listOfNotNull(row.date?.let { uz.anncorp.smeta.core.data.formatDate(it) }, row.party, row.objectName).joinToString("  ·  "), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
                         if (row.sum != null) Text(stringResource(R.string.t14_sum_both, formatMoney(row.sum), formatMoney(row.sumVat)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Text((if (row.income) "+" else "−") + formatQty(row.qty) + " " + row.unit, style = MaterialTheme.typography.titleSmall, color = if (row.income) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary)

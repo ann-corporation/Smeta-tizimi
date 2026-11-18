@@ -57,7 +57,7 @@ import java.time.format.DateTimeFormatter
 /** Minimum touch target for field use (gloves, sun): 56 dp. */
 val TouchTarget = 56.dp
 
-private val StampFormat = DateTimeFormatter.ofPattern("dd.MM HH:mm")
+private val StampFormat = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")
 fun formatStamp(ms: Long?): String? = ms?.let { StampFormat.format(Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())) }
 
 @OptIn(ExperimentalMaterial3Api::class)

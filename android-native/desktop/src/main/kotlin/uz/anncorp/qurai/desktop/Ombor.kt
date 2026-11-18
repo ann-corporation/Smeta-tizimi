@@ -1,5 +1,7 @@
 package uz.anncorp.qurai.desktop
 
+import uz.anncorp.smeta.core.data.formatDate
+
 import uz.anncorp.qurai.ui.components.*
 
 import uz.anncorp.smeta.feature.common.*
@@ -238,7 +240,7 @@ private fun OmborStock(c: Ctx, w: Warehouse) {
                 QCol("Qoldiq", 130.dp, true, { it.qoldiq }) { omborFmt(it.qoldiq) },
                 QCol("Kirim", 130.dp, true, { it.kirim }) { omborFmt(it.kirim) },
                 QCol("Chiqim", 130.dp, true, { it.chiqim }) { omborFmt(it.chiqim) },
-                QCol("Oxirgi harakat", 130.dp, sort = { it.oxirgi }) { it.oxirgi?.take(10) ?: "" },
+                QCol("Oxirgi harakat", 130.dp, sort = { it.oxirgi }) { formatDate(it.oxirgi) },
             ),
         )
     }
@@ -296,7 +298,7 @@ private fun OmborReport(c: Ctx, w: Warehouse) {
             }
             QTable(
                 s.first, listOf(
-                    QCol("Sana", 100.dp, sort = { it.sana }) { it.sana.take(10) },
+                    QCol("Sana", 100.dp, sort = { it.sana }) { formatDate(it.sana) },
                     QCol("Amal", 70.dp, sort = { it.op }) { it.op },
                     QCol("Material", 340.dp, sort = { it.nomi.lowercase() }) { it.nomi },
                     QCol("Birlik", 70.dp) { it.birligi },
@@ -331,7 +333,7 @@ private fun OmborObjects(c: Ctx) {
                 QCol("Obyekt", 300.dp, sort = { (it.obyektId?.let { id -> names[id] } ?: "").lowercase() }) { it.obyektId?.let { id -> names[id] } ?: "#${it.obyektId}" },
                 QCol("Material", 420.dp, sort = { it.nomi.lowercase() }) { it.nomi },
                 QCol("Qoldiq", 130.dp, true, { it.qoldiq }) { "${formatQty(it.qoldiq)} ${it.birligi}" },
-                QCol("Oxirgi", 110.dp, sort = { it.oxirgi }) { it.oxirgi?.take(10) ?: "" },
+                QCol("Oxirgi", 110.dp, sort = { it.oxirgi }) { formatDate(it.oxirgi) },
             ),
         )
     }

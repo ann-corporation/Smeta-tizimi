@@ -1,0 +1,7 @@
+{"ok":true,"soni":5,"jamiServerda":5,"toliq":true,"qatorlar":[
+ {"qator_id":3001,"tur":"mat","kat":"\u041C\u0410\u0422","kod":"101-0001","nom":"Sement M400 (qop 50 kg)","birlik":"t","smeta_hajm":24,"smeta_summa":19200000,"f2_hajm":10,"f2_summa":8000000,"qoldiq_hajm":14,"qoldiq_summa":11200000},
+ {"qator_id":3002,"tur":"mat","kat":"\u041C\u0410\u0422","kod":"101-0001","nom":"Sement M400 (qop 50 kg)","birlik":"t","smeta_hajm":6,"smeta_summa":4800000,"f2_hajm":6,"f2_summa":4800000,"qoldiq_hajm":0,"qoldiq_summa":0},
+ {"qator_id":3003,"tur":"mat","kat":"\u041C\u0410\u0422","kod":"101-0420","nom":"Armatura A500C d12","birlik":"t","smeta_hajm":3.5,"smeta_summa":null,"f2_hajm":0,"f2_summa":0,"qoldiq_hajm":3.5,"qoldiq_summa":0},
+ {"qator_id":3004,"tur":"rs","kat":"\u0427\u0415\u041B","kod":"1-100-40","nom":"Betonchi 4 razryad","birlik":"odam-soat","smeta_hajm":420,"smeta_summa":6300000,"f2_hajm":120,"f2_summa":1800000,"qoldiq_hajm":300,"qoldiq_summa":4500000},
+ {"qator_id":3005,"tur":"rs","kat":"\u041C\u0410\u0428","kod":"91.05","nom":"Avtokran 16 t","birlik":"mashina-soat","smeta_hajm":60,"smeta_summa":9000000,"f2_hajm":20,"f2_summa":3000000,"qoldiq_hajm":40,"qoldiq_summa":6000000}
+]}

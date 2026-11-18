@@ -89,7 +89,7 @@ private object S {
 fun BootScreen() = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { QLoading() }
 
 @Composable
-fun LoginScreen(sv: Services, onDone: (SessionUser) -> Unit) {
+fun LoginScreen(sv: Services, onDemo: () -> Unit, onDone: (SessionUser) -> Unit) {
     var login by remember { mutableStateOf("") }
     var pass by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
@@ -122,5 +122,24 @@ fun LoginScreen(sv: Services, onDone: (SessionUser) -> Unit) {
         login, { login = it }, pass, { pass = it }, busy, err, { submit() },
         texts = uz.anncorp.qurai.ui.screens.QLoginTexts(login = S.loginLabel, password = S.pass, signIn = S.login, version = "v${BuildInfo.VERSION}"),
         logo = { BrandMark(64) },
+        extras = { QButton("Demo rejimi (namunaviy ma'lumot)", onDemo, Modifier.fillMaxWidth(), kind = QButtonKind.Ghost, enabled = !busy) },
     )
+}
+
+/**
+ * A saved session exists: the app never enters it silently. Continue with that account, sign in with another one, or try the demo
+ * (sample data, nothing real is touched).
+ */
+@Composable
+fun ChooseScreen(email: String, onContinue: () -> Unit, onOther: () -> Unit, onDemo: () -> Unit) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(Modifier.width(380.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            BrandMark(64)
+            Text("QURAI", style = uz.anncorp.qurai.ui.theme.Q.type.headlineMedium, color = uz.anncorp.qurai.ui.theme.Q.colors.text)
+            QHint("Saqlangan hisob: $email")
+            QButton("Davom etish", onContinue, Modifier.fillMaxWidth(), kind = QButtonKind.Primary)
+            QButton("Boshqa hisob", onOther, Modifier.fillMaxWidth())
+            QButton("Demo rejimi", onDemo, Modifier.fillMaxWidth(), kind = QButtonKind.Ghost)
+        }
+    }
 }

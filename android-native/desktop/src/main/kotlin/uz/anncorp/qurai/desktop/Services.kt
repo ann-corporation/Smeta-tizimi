@@ -28,15 +28,28 @@ class Services(apiBase: String = System.getenv("QURAI_API_BASE") ?: BuildInfo.AP
     private val http = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS).readTimeout(45, TimeUnit.SECONDS).callTimeout(60, TimeUnit.SECONDS).build()
 
-    val api = ApiClient(base, tokens, events, json, BuildInfo.VERSION, http)
+    private val realApi = ApiClient(base, tokens, events, json, BuildInfo.VERSION, http)
+    /** The API in use: the real one, or [DesktopDemoApi] while the demo is on (the saved real session is never touched by the demo). */
+    var api: uz.anncorp.smeta.core.data.BffApi = realApi; private set
+    var demo = false; private set
     val auth = AuthRepository(
         base, tokens, json, BuildInfo.VERSION,
         deviceName = { System.getenv("COMPUTERNAME") ?: "Windows" },
         osName = { System.getProperty("os.name") ?: "Windows" },
         base = http,
     )
-    val session = SessionRepository(api, json)
-    val jarvis = JarvisRepository(api)
+    var session = SessionRepository(realApi, json); private set
+    var jarvis = JarvisRepository(realApi); private set
+
+    fun enterDemo() {
+        demo = true
+        val d = DesktopDemoApi(json)
+        api = d; session = SessionRepository(d, json); jarvis = JarvisRepository(d)
+        cache.scope(-1L); Log.i("demo on")
+    }
+    private fun leaveDemo() {
+        demo = false; api = realApi; session = SessionRepository(realApi, json); jarvis = JarvisRepository(realApi); Log.i("demo off")
+    }
 
     /** Server read with an encrypted offline copy: fresh answer is stored, a network failure falls back to the stored copy (72 h). */
     suspend fun <T> read(key: String, call: suspend () -> ApiResult, parse: (JsonElement?) -> T?): Loaded<T> {
@@ -64,6 +77,7 @@ class Services(apiBase: String = System.getenv("QURAI_API_BASE") ?: BuildInfo.AP
     fun loadLastUser(): String? = runCatching { String(cipher.decrypt(lastUserFile.readBytes())) }.getOrNull()
 
     fun signOut() {
+        if (demo) { leaveDemo(); events.emitLogout(); return }
         tokens.clear(); cache.wipe(); lastUserFile.delete(); events.emitLogout(); Log.i("signed out")
     }
 }

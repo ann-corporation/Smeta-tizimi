@@ -1,0 +1,11 @@
+{
+  "sana": "2026-11-18",
+  "sarlavha": "Android 0.1.18 va Windows 0.2.3: demo rejimi, mavzu, bir xil sana va summa",
+  "bandlar": [
+    "Windows: saqlangan hisob bo\u0027lsa ilova endi o\u0027zi kirmaydi, \u00abDavom etish / Boshqa hisob / Demo\u00bb tanlovi chiqadi; kirish ekranida ham \u00abDemo rejimi\u00bb tugmasi bor (namunaviy ma\u0027lumot, haqiqiy hisobga tegmaydi).",
+    "Windows: Sozlamalarda Qorong\u0027i/Yorug\u0027 mavzu tanlovi.",
+    "Summalar ro\u0027yxatda ham kartada ham tiyini bilan bir xil ko\u0027rinadi (1 so\u0027m farq yo\u0027qoldi).",
+    "Sanalar ombor hisobotlarida va Windows jadvallarida kun.oy.yil ko\u0027rinishida.",
+    "Android Ombor: klaviaturadagi yuborish tugmasi buyruqni yuboradi."
+  ]
+}

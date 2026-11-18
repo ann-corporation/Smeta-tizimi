@@ -1,5 +1,7 @@
 package uz.anncorp.qurai.desktop
 
+import uz.anncorp.smeta.core.data.formatDate
+
 import uz.anncorp.qurai.ui.components.*
 
 import uz.anncorp.smeta.core.data.Loaded
@@ -454,7 +456,7 @@ fun MoneyScreen(c: Ctx) {
                     QCol("F-3 sotuv", 150.dp, true, { it.f3Sale }) { money(it.f3Sale) },
                     QCol("To'langan", 150.dp, true, { it.paid }) { money(it.paid) },
                     QCol("Qarz", 150.dp, true, { it.debt }) { money(it.debt) },
-                    QCol("Oxirgi to'lov", 110.dp, sort = { it.lastPayment }) { it.lastPayment?.take(10) ?: "" },
+                    QCol("Oxirgi to'lov", 110.dp, sort = { it.lastPayment }) { formatDate(it.lastPayment) },
                 ), modifier = Modifier.weight(1f),
             )
         }
@@ -502,7 +504,7 @@ fun DocsScreen(c: Ctx) = NeedObject(c) { o ->
                     QCol("Sarlavha", 360.dp, sort = { it.sarlavha }) { it.sarlavha },
                     QCol("Turi", 110.dp, sort = { it.tur }) { it.tur },
                     QCol("Rol", 110.dp) { it.rol ?: "" },
-                    QCol("Muddat", 120.dp, sort = { it.muddat }) { it.muddat?.take(10) ?: "" },
+                    QCol("Muddat", 120.dp, sort = { it.muddat }) { formatDate(it.muddat) },
                     QCol("Kechikkan", 90.dp) { if (it.kechikkan) "ha" else "" },
                 ), modifier = Modifier.weight(1f), key = { it.id }, onClick = { openItem = it },
             )
@@ -583,6 +585,8 @@ fun SettingsScreen(c: Ctx) {
             Text("QURAI Windows v${BuildInfo.VERSION}")
             Text("Server: ${BuildInfo.API_BASE}")
             Text("Ma'lumotlar: ${AppPaths.root.absolutePath}")
+            Text("Mavzu", fontWeight = FontWeight.SemiBold)
+            QFilterBar(listOf(true, false), DesktopPrefs.dark, { if (it) "Qorong'i" else "Yorug'" }, { DesktopPrefs.chooseDark(it) })
             QHint("Oflayn nusxa shifrlangan (Windows DPAPI), 72 soat saqlanadi.")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 QSecondaryButton(onClick = { c.sv.cache.wipe(); c.sv.cache.scope(c.me.id); msg = "Oflayn nusxa tozalandi" }) { Text("Oflayn nusxani tozalash") }
