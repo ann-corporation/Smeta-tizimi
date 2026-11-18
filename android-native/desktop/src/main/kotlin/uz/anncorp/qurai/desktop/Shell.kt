@@ -52,7 +52,11 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import uz.anncorp.smeta.core.data.ChatCursor
 import uz.anncorp.smeta.core.data.ChatInfo
+import uz.anncorp.smeta.core.data.ChatSnapshot
+import uz.anncorp.smeta.core.data.ChatWrite
+import uz.anncorp.smeta.core.data.JarvisRepository
 import uz.anncorp.smeta.core.data.ChatMsg
 import uz.anncorp.smeta.core.data.JarvisResult
 import uz.anncorp.smeta.core.data.TodayRepository
@@ -79,7 +83,8 @@ class JarvisState {
     var chatId by mutableStateOf(UUID.randomUUID().toString())
     var busy by mutableStateOf(false)
     var chats by mutableStateOf<List<ChatInfo>>(emptyList())
-    fun reset() { msgs.clear(); chatId = UUID.randomUUID().toString() }
+    var etag by mutableStateOf<String?>(null)
+    fun reset() { msgs.clear(); chatId = UUID.randomUUID().toString(); etag = null }
 }
 
 @Composable
@@ -216,19 +221,26 @@ fun androidx.compose.foundation.layout.ColumnScope.JarvisPanel(sv: Services, p: 
                 is JarvisResult.Server -> res.message ?: "Server xatosi"
             }))
             st.busy = false
-            runCatching { sv.jarvis.saveChat(p.companyId, st.chatId, st.msgs.toList()) }
+            runCatching {
+                val all = st.msgs.toList()
+                val tag = st.etag
+                val cursor = ChatCursor(st.chatId, tag)
+                val write = if (tag == null) sv.jarvis.writeMessages(p.companyId, cursor, JarvisRepository.chatTitle(all), all.takeLast(JarvisRepository.MAX_SAVED))
+                else sv.jarvis.writeMessages(p.companyId, cursor, null, all.takeLast(2), UUID.randomUUID().toString())
+                if (write is ChatWrite.Saved) st.etag = write.etag
+            }
         }
     }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Text("Jarvis", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
         Box {
-            TextButton(onClick = { menu = true; scope.launch { st.chats = sv.jarvis.chats(p.companyId).orEmpty() } }) { Text("Tarix") }
+            TextButton(onClick = { menu = true; scope.launch { st.chats = sv.jarvis.syncChats(p.companyId)?.chats.orEmpty() } }) { Text("Tarix") }
             androidx.compose.material3.DropdownMenu(menu, { menu = false }) {
                 if (st.chats.isEmpty()) androidx.compose.material3.DropdownMenuItem(text = { Text("Saqlangan suhbat yo'q") }, onClick = { menu = false })
                 st.chats.take(15).forEach { ch ->
                     androidx.compose.material3.DropdownMenuItem(text = { Text(ch.title.ifBlank { "Suhbat" }, maxLines = 1) }, onClick = {
                         menu = false
-                        scope.launch { sv.jarvis.openChat(p.companyId, ch.id)?.let { m -> st.msgs.clear(); st.msgs.addAll(m); st.chatId = ch.id } }
+                        scope.launch { (sv.jarvis.syncChats(p.companyId, ChatCursor(ch.id))?.active as? ChatSnapshot.Changed)?.let { s -> st.msgs.clear(); st.msgs.addAll(s.messages.orEmpty()); st.chatId = ch.id; st.etag = s.etag } }
                     })
                 }
             }
