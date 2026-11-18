@@ -111,6 +111,12 @@ describe('qoralamaTahrirYuki', () => {
     const t2 = qoralamaTahrirYuki(mav2, { ozgartir: [{ qator_id: 3, narx: 11 }] });
     expect(t2.yuk[2].raw_snapshot.qolTahrir).toEqual({ hajm: true, narx: true });
   });
+  it('olib tashlash: ota ish qatorida qolTahrir.olib (tombstone) yoziladi; ota aktda yo\'q bo\'lsa — yozilmaydi', () => {
+    const t = qoralamaTahrirYuki(mav, { olibTashla: [3], ota: new Map([[3, 1]]) });
+    expect(t.yuk.find((y) => y.qator_id === 1)!.raw_snapshot.qolTahrir).toEqual({ olib: [3] });
+    const t2 = qoralamaTahrirYuki(mav, { olibTashla: [3], ota: new Map([[3, 99]]) });
+    expect(t2.yuk.some((y) => y.raw_snapshot.qolTahrir)).toBe(false);
+  });
   it('ongli narxsiz; olib tashlash; storno/yo\'q qatorga tegish — xato', () => {
     const t = qoralamaTahrirYuki(mav, { ozgartir: [{ qator_id: 2, narxsiz: true }], olibTashla: [1] });
     expect(t.yuk.map((q) => q.qator_id)).toEqual([2, 3, 3]);

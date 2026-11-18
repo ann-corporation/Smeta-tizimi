@@ -255,7 +255,7 @@ export function mavjudYuk(q: MavjudAktQator): F2YukQator & { manba_akt_qator_id?
 export type QatorOzgarish = { qator_id: number; hajm?: number; narx?: number; narxsiz?: boolean };
 
 /** Qoralama qatorlarini o'zgartirish: ozgartir / olib_tashla / qo'shish (mumkin qatorlardan). Storno qatorlar tegilmaydi. */
-export function qoralamaTahrirYuki(mavjud: readonly MavjudAktQator[], o: { ozgartir?: readonly QatorOzgarish[]; olibTashla?: readonly number[]; qosh?: readonly F2YukQator[] }) {
+export function qoralamaTahrirYuki(mavjud: readonly MavjudAktQator[], o: { ozgartir?: readonly QatorOzgarish[]; olibTashla?: readonly number[]; qosh?: readonly F2YukQator[]; /** qator_id → ota_id (tombstone uchun) */ ota?: ReadonlyMap<number, number | null> }) {
   const xato: string[] = [];
   const oddiy = new Map<number, MavjudAktQator>();
   for (const q of mavjud) if (!stornomi(q)) oddiy.set(q.qator_id, q);
@@ -306,6 +306,20 @@ export function qoralamaTahrirYuki(mavjud: readonly MavjudAktQator[], o: { ozgar
   for (const q of o.qosh ?? []) {
     if (oddiy.has(q.qator_id) && !olib.has(q.qator_id)) { xato.push(`#${q.qator_id}: qoralamada allaqachon bor — ozgartir bilan tahrirlang`); continue; }
     yuk.push(q);
+  }
+  // Tombstone: olib tashlangan avtomatik resurs ota ish qatorida qolsa — F2 tayyorlash «yangilash» uni qayta qo'shmasin (lib/f2-akt-kiritma, qolTahrir.olib).
+  if (o.ota) {
+    const qaytdi = new Set((o.qosh ?? []).map((x) => x.qator_id));
+    for (const id of olib) {
+      const ota = o.ota.get(id);
+      if (ota == null || !oddiy.has(id) || qaytdi.has(id)) continue;
+      const bor = yuk.find((y) => y.qator_id === ota && !y.manba_akt_qator_id);
+      if (!bor) continue;
+      const qb: Record<string, unknown> = bor.raw_snapshot?.qolTahrir && typeof bor.raw_snapshot.qolTahrir === 'object' ? { ...(bor.raw_snapshot.qolTahrir as Record<string, unknown>) } : {};
+      const eski = Array.isArray(qb.olib) ? (qb.olib as unknown[]).map(Number) : [];
+      qb.olib = [...new Set([...eski, id])].sort((a, b) => a - b);
+      bor.raw_snapshot = { ...bor.raw_snapshot, qolTahrir: qb };
+    }
   }
   if (!yuk.length) xato.push('qoralamada birorta qator qolmaydi — F2 ni bekor qiling (f2_holat cancelled)');
   return { yuk, xato, ozgardi, olindi: [...olib].filter((id) => oddiy.has(id)).length, qoshildi: (o.qosh ?? []).length };

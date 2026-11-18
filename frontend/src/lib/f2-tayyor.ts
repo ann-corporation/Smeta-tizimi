@@ -269,8 +269,25 @@ export type F2Kiritma = {
   qolNorma?: Record<number, number>;
   /** Narxi qo'lda belgilangan qatorlar: narx taklif narxiga tenglashib qolsa ham kiritmada SAQLANADI (qoralama qayta ochilganda). */
   qolNarx?: Record<number, boolean>;
+  /** Qoralamadan ongli olib tashlangan avtomatik resurslar (tombstone): ish hajmi bo'lsa ham F2 ga qayta tushmaydi. «Qaytarish» olib tashlaydi. */
+  qolOlib?: Record<number, boolean>;
 };
 export const bosKiritma = (): F2Kiritma => ({ hajm: {}, narx: {}, summa: {}, narxsiz: {} });
+
+/** «Qaytarish»: tombstone olib tashlanadi — resurs yana ish hajmi × norma bo'yicha F2 ga tushadi. */
+export function olibniQaytar(k: F2Kiritma, ids: readonly number[]): F2Kiritma {
+  if (!k.qolOlib || !ids.length) return k;
+  const s = new Set(ids);
+  return { ...k, qolOlib: Object.fromEntries(Object.entries(k.qolOlib).filter(([id]) => !s.has(Number(id)))) as Record<number, boolean> };
+}
+
+/** UI ro'yxati: ongli olib tashlangan (tombstone) avtomatik resurslar — nomi va qaysi ishniki. */
+export function olibTashlanganlar(bolimlar: readonly F2Bolim[], k: F2Kiritma): Array<{ id: number; nom: string; ishNom: string; birlik: string | null }> {
+  if (!k.qolOlib) return [];
+  const out: Array<{ id: number; nom: string; ishNom: string; birlik: string | null }> = [];
+  for (const b of bolimlar) for (const i of b.ishlar) for (const r of i.resurslar) if (k.qolOlib[r.id]) out.push({ id: r.id, nom: r.nom, ishNom: i.nom, birlik: r.birlik });
+  return out;
+}
 
 /**
  * «Smeta normasiga qaytarish»: shu qatorlarning qo'lda norma nisbati va qo'lda narxi kiritmadan olib tashlanadi —
@@ -307,7 +324,11 @@ export type F2Qator = {
 };
 
 /** `raw_snapshot.qolTahrir` — qoralama yangilanganda qo'lda qiymat smeta qiymatiga qaytib ketmasligi uchun belgi. */
-export type QolTahrir = { hajm?: true; narx?: true; /** resurs hajmi / ish hajmi (qo'lda nisbat) */ norma?: number };
+export type QolTahrir = {
+  hajm?: true; narx?: true; /** resurs hajmi / ish hajmi (qo'lda nisbat) */ norma?: number;
+  /** OTA ISH (bl) qatorida: shu ishning qoralamadan ONGLI olib tashlangan avtomatik resurslari (tombstone) — yangilashda qayta paydo bo'lmaydi. */
+  olib?: number[];
+};
 
 /** Kiritilgan hajm qoldiqdan oshsa - faqat ogohlantirish kodi (blok emas). */
 function oshOgoh(v: number, x: { mumkin: number; qoralama?: number; erkin?: boolean }): F2Qator['ogoh'] {
@@ -371,6 +392,8 @@ export function f2Qatorlar(bolimlar: F2Bolim[], k: F2Kiritma): F2Qator[] {
           const bl: F2Qator = { id: ish.id, ishId: null, tur: 'bl', kat: null, nom: ish.nom, birlik: ish.birlik, hajm: v, narx: null, summa: null, manba: 'yoq', narxsiz: true };
           if (ish.smeta != null && (ish.smeta < 0 ? ish.olingan + v < ish.smeta - 1e-9 : ish.olingan + (ish.qoralama ?? 0) + v > ish.smeta + 1e-9)) bl.ogoh = 'SMETADAN_OSHDI';
           else bl.ogoh = oshOgoh(v, ish);
+          const olibIds = ish.resurslar.filter((r) => k.qolOlib?.[r.id]).map((r) => r.id);
+          if (olibIds.length) bl.qol = { olib: olibIds };
           out.push(bl);
           // Ish hajmi qoldiqdan oshgan bo'lsa (ongli) - resurslar normadan to'liq; aks holda fakt qoldig'i bilan cheklanadi.
           const ustida = ish.mumkin < 0 ? v < ish.mumkin - 1e-9 : v > ish.mumkin + 1e-9;
@@ -380,6 +403,7 @@ export function f2Qatorlar(bolimlar: F2Bolim[], k: F2Kiritma): F2Qator[] {
             const qolN = k.qolNorma?.[r.id];
             const qolBor = qolN != null && Number.isFinite(qolN) && qolN !== 0;
             if (!r.avto || r.chiqarilgan || r.norma == null || r.norma <= 0) continue;
+            if (k.qolOlib?.[r.id]) continue; // ongli olib tashlangan (tombstone)
             if (!qolBor && !minus && r.mumkin + (r.qoralama ?? 0) <= 0 && !r.erkin) continue;
             const talab = y6(v * (qolBor ? qolN : r.norma));
             const hajm = qolBor || r.erkin || ustida || minus ? talab : Math.min(talab, r.mumkin);
