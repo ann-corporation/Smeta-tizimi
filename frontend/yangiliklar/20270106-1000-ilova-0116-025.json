@@ -1,0 +1,12 @@
+{
+  "sana": "2026-11-18",
+  "sarlavha": "QURAI Android 0.1.16 va Windows 0.2.1 - sayt bilan bir xil ko'rinish, tasdiqlash va oflayn nusxa",
+  "bandlar": [
+    "Android va Windows ilovalari endi saytning rang, burchak va oraliq qoidalari bilan bir xil ko'rinishda (qorong'i mavzu birinchi); Windows yorlig'i va oynasida QURAI logotipi.",
+    "Windows: Hujjatlar bo'limida tasdiqlash kutayotgan hujjatni ochib tasdiqlash, qaytarish yoki rad etish (sabab bilan) mumkin; F2 aktni keyingi bosqichga o'tkazish va rad etish ham bor. Xato sabablari o'zbekcha ko'rsatiladi.",
+    "Android: F2 akt kartochkasida keyingi bosqich tugmasi va rad etish; server xatolari (narxsiz qator, resurs tushmagan, vazifalar ajratilishi) o'zbekcha.",
+    "Windows: foto va fayllarni obyektga yuklash (Fakt va Hujjatlar bo'limlari).",
+    "Android: obyektlar, F2 ro'yxati, ombor qoldig'i va bildirishnomalar endi internetsiz ham oxirgi saqlangan nusxadan ko'rinadi (shifrlangan, 72 soat, chiqishda o'chadi); yozish va tasdiqlash faqat onlayn.",
+    "Har akt uchun QQS bilan, ustamali va ustamasiz jami (serverdan, ilovada hisoblanmaydi)."
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "sana": "2026-11-18",
+  "sarlavha": "F2 portfeli (shartnoma bo'yicha) endi bir zumda ochiladi",
+  "bandlar": [
+    "Shartnoma bo'yicha portfel bir soniyada ochiladi: Akt №, oy, obyekt, holat, ustamasiz, ustamali va QQS bilan summalar bitta jadvalda, tepada shartnoma jami.",
+    "Jami summa endi faqat serverdagi yagona hisobdan keladi — jadvaldagi aktlar yig'indisi bilan har doim bir xil; farq bo'lsa ekran ogohlantiradi.",
+    "Fayllar «Paketni yuklab olish» bosilganda tayyorlanadi: «3/12 akt tayyor» ko'rsatkichi bilan, token bitta yechim bilan olinadi. Oy, holat va obyekt bo'yicha filtr qo'shildi."
+  ]
+}

@@ -2,7 +2,16 @@ package uz.anncorp.qurai.desktop
 
 import uz.anncorp.smeta.feature.common.*
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.res.loadImageBitmap
+import androidx.compose.ui.res.useResource
+import uz.anncorp.smeta.core.ui.QuraiTokens
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -73,8 +82,8 @@ object Shortcuts {
 }
 
 enum class Mod(val title: String, val needsObject: Boolean) {
-    Objects("Obyektlar", false), Smeta("Smeta", true), F2("F-2 aktlar", true), Fakt("Fakt", true), Nakop("Nakopitelniy / Slichitelniy", true),
-    Narx("Narx / katalog", false), Ombor("Ombor", false), Money("Moliya", false), Docs("Hujjatlar", true), Notif("Bildirishnomalar", false), Settings("Sozlamalar", false),
+    Objects("Obyektlar", false), Smeta("Smeta", true), F2("F2 va Nakopitelniy", true), Fakt("Fakt", true), Nakop("Nakopitelniy va F3", true),
+    Narx("Narx manbalari", false), Ombor("Ta'minot va sklad", false), Money("Moliya va shartnomalar", false), Docs("Hujjatlar", true), Notif("Bildirishnomalar", false), Settings("Sozlamalar", false),
 }
 
 /** Jarvis chat state lives in the shell so the conversation survives switching modules and hiding the panel. */
@@ -134,18 +143,21 @@ fun MainScreen(sv: Services, me: SessionUser) {
     val obj = list.firstOrNull { it.id == objId } ?: list.firstOrNull()
 
     Row(Modifier.fillMaxSize()) {
-        Column(Modifier.width(220.dp).fillMaxHeight().background(MaterialTheme.colorScheme.surfaceVariant).padding(12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text("QURAI", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(6.dp))
+        val borderColor = MaterialTheme.colorScheme.outlineVariant
+        Column(Modifier.width(QuraiTokens.SIDEBAR_OPEN.dp).fillMaxHeight().background(MaterialTheme.colorScheme.surfaceContainerLow).drawBehind { drawLine(borderColor, Offset(size.width, 0f), Offset(size.width, size.height), 1f) }.padding(QuraiTokens.SPACE_3.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(QuraiTokens.SPACE_2.dp), modifier = Modifier.padding(bottom = QuraiTokens.SPACE_3.dp)) {
+                Image(BitmapPainter(useResource("qurai-icon.png", ::loadImageBitmap)), null, Modifier.size(28.dp))
+                Text("QURAI", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            }
             Mod.entries.forEachIndexed { i, m ->
                 val sel = m == mod
                 val label = if (m == Mod.Notif && unread > 0) "${m.title} ($unread)" else m.title
                 Row(
-                    Modifier.fillMaxWidth().background(if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small).clickable { mod = m }.padding(horizontal = 10.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    Modifier.fillMaxWidth().height(QuraiTokens.CONTROL_LG.dp).background(if (sel) Color(QuraiTokens.dark.accentSoft) else Color.Transparent, MaterialTheme.shapes.small).clickable { mod = m }.padding(horizontal = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(label, fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal, color = if (sel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface, maxLines = 1)
-                    if (i < 9) Text("${i + 1}", style = MaterialTheme.typography.labelSmall, color = if (sel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(label, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Normal, color = if (sel) Color(QuraiTokens.dark.accentText) else MaterialTheme.colorScheme.onSurface, maxLines = 1)
+                    if (i < 9) Text("Ctrl+${i + 1}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             Spacer(Modifier.weight(1f))

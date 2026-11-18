@@ -25,11 +25,13 @@ export function agentRegister(nom: string, fn: Handler): () => void {
   return () => { if (handlers.get(nom) === fn) handlers.delete(nom); };
 }
 /** Calls a step's handler; switches to that step first and waits for it to mount (≤ 8 s). */
-export async function agentChaqir(nom: string, amal: AgentAmal, ochish: () => void): Promise<string> {
+export async function agentChaqir(nom: string, amal: AgentAmal, ochish: () => void, active: () => boolean = () => true): Promise<string> {
+  if (!active()) throw new Error('AGENT_CANCELLED');
   if (!handlers.has(nom)) {
     ochish();
-    for (let i = 0; i < 40 && !handlers.has(nom); i++) await new Promise(r => setTimeout(r, 200));
+    for (let i = 0; i < 40 && active() && !handlers.has(nom); i++) await new Promise(r => setTimeout(r, 200));
   }
+  if (!active()) throw new Error('AGENT_CANCELLED');
   const h = handlers.get(nom);
   if (!h) throw new Error('AGENT_STEP_UNAVAILABLE');
   return h(amal.qiymat, amal);
