@@ -207,10 +207,10 @@
     <string name="hub_web_open_browser">Open in browser</string>
     <string name="mod_objects">Objects</string>
     <string name="mod_objects_d">Objects and their status</string>
-    <string name="mod_fact">Fact</string>
+    <string name="mod_fact">Enter actual</string>
     <string name="mod_fact_d">Record completed work</string>
-    <string name="mod_photo">Photo</string>
-    <string name="mod_photo_d">Send photo evidence</string>
+    <string name="mod_photo">Photo evidence</string>
+    <string name="mod_photo_d">Attach a photo to a row</string>
     <string name="mod_approval">Approvals</string>
     <string name="mod_approval_d">Your approval queue</string>
     <string name="mod_today">Today</string>
@@ -231,8 +231,8 @@
     <string name="mod_finance_d">Payments and expenses</string>
     <string name="mod_accounting">Accounting</string>
     <string name="mod_accounting_d">Journal and settlements</string>
-    <string name="mod_documents">Documents</string>
-    <string name="mod_documents_d">Document flow</string>
+    <string name="mod_documents">Disk</string>
+    <string name="mod_documents_d">Files, sharing, document flow</string>
     <string name="mod_aosr">AOSR</string>
     <string name="mod_aosr_d">Hidden works act</string>
     <string name="mod_tender">Tender</string>

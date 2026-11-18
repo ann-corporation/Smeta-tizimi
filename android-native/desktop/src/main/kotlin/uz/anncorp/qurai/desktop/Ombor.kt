@@ -225,8 +225,8 @@ private fun OmborStock(c: Ctx, w: Warehouse) {
     val bad = date.isNotBlank() && runCatching { LocalDate.parse(date) }.isFailure
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            QInput(date, { date = it }, label = "Sana (YYYY-MM-DD), bo'sh = bugun", singleLine = true, isError = bad, modifier = Modifier.width(260.dp))
-            QPrimaryButton(onClick = { applied = date.ifBlank { null } }, enabled = !bad) { Text("Ko'rsatish") }
+            uz.anncorp.qurai.ui.components.QDateField(date.ifBlank { null }, { date = it; applied = it }, label = "Sana (bo'sh = bugun)", modifier = Modifier.width(220.dp))
+            QSecondaryButton(onClick = { date = ""; applied = null }, enabled = date.isNotBlank()) { Text("Bugun") }
             QInput(q, { q = it }, label = "Material qidirish", singleLine = true, modifier = Modifier.width(260.dp))
         }
         if (st == null) { QLoading(); return@Column }
@@ -236,7 +236,7 @@ private fun OmborStock(c: Ctx, w: Warehouse) {
         QTable(
             rows, listOf(
                 QCol("Material", 420.dp, sort = { it.nomi.lowercase() }) { it.nomi },
-                QCol("Birlik", 80.dp, sort = { it.birligi }) { it.birligi },
+                QCol("Birlik", 80.dp, sort = { it.birligi }) { uz.anncorp.smeta.core.data.displayUnit(it.birligi) },
                 QCol("Qoldiq", 130.dp, true, { it.qoldiq }) { omborFmt(it.qoldiq) },
                 QCol("Kirim", 130.dp, true, { it.kirim }) { omborFmt(it.kirim) },
                 QCol("Chiqim", 130.dp, true, { it.chiqim }) { omborFmt(it.chiqim) },
@@ -301,7 +301,7 @@ private fun OmborReport(c: Ctx, w: Warehouse) {
                     QCol("Sana", 100.dp, sort = { it.sana }) { formatDate(it.sana) },
                     QCol("Amal", 70.dp, sort = { it.op }) { it.op },
                     QCol("Material", 340.dp, sort = { it.nomi.lowercase() }) { it.nomi },
-                    QCol("Birlik", 70.dp) { it.birligi },
+                    QCol("Birlik", 70.dp) { uz.anncorp.smeta.core.data.displayUnit(it.birligi) },
                     QCol("Miqdor", 110.dp, true, { it.miqdor }) { omborFmt(it.miqdor) },
                     QCol("Kontragent", 220.dp, sort = { it.kontragent }) { it.kontragent ?: "" },
                     QCol("Obyekt", 200.dp, sort = { it.obyekt }) { it.obyekt ?: "" },
@@ -332,7 +332,7 @@ private fun OmborObjects(c: Ctx) {
             rows, listOf(
                 QCol("Obyekt", 300.dp, sort = { (it.obyektId?.let { id -> names[id] } ?: "").lowercase() }) { it.obyektId?.let { id -> names[id] } ?: "#${it.obyektId}" },
                 QCol("Material", 420.dp, sort = { it.nomi.lowercase() }) { it.nomi },
-                QCol("Qoldiq", 130.dp, true, { it.qoldiq }) { "${formatQty(it.qoldiq)} ${it.birligi}" },
+                QCol("Qoldiq", 130.dp, true, { it.qoldiq }) { "${formatQty(it.qoldiq)} ${uz.anncorp.smeta.core.data.displayUnit(it.birligi)}" },
                 QCol("Oxirgi", 110.dp, sort = { it.oxirgi }) { formatDate(it.oxirgi) },
             ),
         )

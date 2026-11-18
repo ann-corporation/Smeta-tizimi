@@ -133,7 +133,7 @@ fun FaktScreen(onBack: () -> Unit, onDraft: (Long) -> Unit, onOutbox: () -> Unit
 
     editing?.let { row ->
         VolumeDialog(
-            title = row.nom, kod = row.kod, unit = row.birlik, smeta = row.smetaHajm, fakt = row.faktHajm, left = row.qoldiq,
+            title = row.nom, kod = row.kod, unit = uz.anncorp.smeta.core.data.displayUnit(row.birlik), smeta = row.smetaHajm, fakt = row.faktHajm, left = row.qoldiq,
             initial = ui.drafted[row.qatorId]?.hajm,
             f2 = row.f2Hajm, almashtirilgan = row.almashtirilgan,
             onDismiss = { editing = null },
@@ -164,7 +164,7 @@ private fun RowCard(row: QatorEntity, draft: DraftEntity?, onClick: () -> Unit) 
                 }
                 row.birlik?.takeIf { it.isNotBlank() }?.let {
                     Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surfaceContainerHighest, modifier = Modifier.padding(start = 8.dp)) {
-                        Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
+                        Text(uz.anncorp.smeta.core.data.displayUnit(it), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
                     }
                 }
             }

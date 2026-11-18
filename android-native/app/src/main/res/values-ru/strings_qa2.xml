@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- QA round 2 strings (ru). -->
+<resources>
+    <string name="am_extra_group">Другие модули</string>
+    <string name="m_markup_forbidden">Нет права на просмотр суммы с наценкой.</string>
+    <string name="m_markup_pending">Сумма с наценкой ещё не получена от сервера.</string>
+    <string name="qa2_add_photo">Добавить фото</string>
+    <plurals name="qa2_photos_n"><item quantity="one">Прикреплено %d фото</item><item quantity="few">Прикреплено %d фото</item><item quantity="many">Прикреплено %d фото</item><item quantity="other">Прикреплено %d фото</item></plurals>
+    <string name="qa2_note">Заметка (к фото и факту, необязательно)</string>
+    <string name="qa2_bn_failed">Отклонено: %1$d</string>
+    <string name="qa2_bn_queued">В очереди: %1$d</string>
+    <string name="qa2_bn_offline">Офлайн</string>
+    <string name="qa2_bn_sending">Отправка: %1$d</string>
+    <string name="qa2_bn_open">Открыть</string>
+    <string name="qa2_bn_expand">Подробнее</string>
+    <string name="qa2_disk_title">Диск</string>
+    <string name="qa2_disk_mine">Мой диск</string>
+    <string name="qa2_disk_company">Диск компании</string>
+    <string name="qa2_disk_shared">Доступные мне</string>
+    <string name="qa2_disk_trash">Корзина</string>
+    <string name="qa2_disk_empty">Здесь пока ничего нет</string>
+    <string name="qa2_disk_forbidden">Нет права на просмотр этого диска</string>
+    <string name="qa2_theme">Тема</string>
+    <string name="qa2_theme_dark">Тёмная</string>
+    <string name="qa2_theme_light">Светлая</string>
+</resources>

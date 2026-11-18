@@ -90,6 +90,7 @@ class F2ListViewModel @Inject constructor(
     handle: SavedStateHandle, objects: ObjectsRepository, private val repo: F2Repository, money: MoneyRepository,
     private val transitions: uz.anncorp.smeta.core.data.F2TransitionRepository, private val ctx: uz.anncorp.smeta.core.data.WorkContext,
     private val api: uz.anncorp.smeta.core.data.BffApi,
+    private val modules: uz.anncorp.smeta.core.data.ModulesRepository,
 ) : ViewModel() {
     /** Result text of the last approval step ("OK" = done); online only, nothing is queued. */
     val stepMsg = MutableStateFlow<String?>(null)
@@ -98,7 +99,11 @@ class F2ListViewModel @Inject constructor(
     val summa = MutableStateFlow<Pair<Long, uz.anncorp.smeta.core.data.AktSumma?>?>(null)
     fun loadSumma(aktId: Long) {
         summa.value = aktId to null
-        viewModelScope.launch { summa.value = aktId to uz.anncorp.smeta.core.data.AktSummaRepository(api).load(aktId) }
+        viewModelScope.launch {
+            // One rule with the approval screen: without f2.read the amount is simply not shown (no "no permission" line on one screen and a figure on the other).
+            val allowed = ctx.current.value?.companyId?.let { modules.canSeeAmounts(it) } ?: true
+            summa.value = aktId to (if (allowed) uz.anncorp.smeta.core.data.AktSummaRepository(api).load(aktId) else uz.anncorp.smeta.core.data.AktSumma.Unknown("HIDDEN"))
+        }
     }
     fun step(a: F2Act, to: F2Status, reason: String?) {
         val w = ctx.current.value ?: return
@@ -285,7 +290,7 @@ private fun DetailSheet(a: F2Act, onDocs: () -> Unit, vm: F2ListViewModel, onDon
                     MoneyDual(displayMoney(s.pack, null), showVat = true)
                     if ((s.unpriced ?: 0) > 0) Text(stringResource(R.string.f2_unpriced) + ": " + s.unpriced, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
                 }
-                is uz.anncorp.smeta.core.data.AktSumma.Unknown -> Text(uz.anncorp.smeta.core.data.aktSummaUnknownText(s.code), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                is uz.anncorp.smeta.core.data.AktSumma.Unknown -> uz.anncorp.smeta.core.data.aktSummaUnknownText(s.code)?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
         }
         uz.anncorp.smeta.core.data.f2StepLabel(a.state)?.let { label ->

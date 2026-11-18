@@ -27,6 +27,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -99,33 +100,28 @@ fun ObjectCardScreen(
                     }
                 }
             }
-            Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp)) {
-                Button(onClick = { onEnterFakt(vm.id) }, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) {
-                    Icon(Icons.Filled.Create, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.p1_card_enter_fakt), style = MaterialTheme.typography.titleSmall)
+            // Compact action bar (<= ~15 % of the screen): the main action on top, the four others as icon + short label in ONE row.
+            Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 6.dp)) {
+                Button(onClick = { onEnterFakt(vm.id) }, modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp)) {
+                    Icon(Icons.Filled.Create, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.p1_card_enter_fakt), style = MaterialTheme.typography.titleSmall)
                 }
-                Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { onPhoto(vm.id) }, modifier = Modifier.weight(1f).heightIn(min = TouchTarget), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)) {
-                        Icon(Icons.Filled.CameraAlt, null, Modifier.size(20.dp)); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.p5_btn_photo), style = MaterialTheme.typography.labelLarge, maxLines = 1)
-                    }
-                    OutlinedButton(onClick = { onSmeta(vm.id) }, modifier = Modifier.weight(1f).heightIn(min = TouchTarget), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)) {
-                        Icon(Icons.Outlined.AccountTree, null, Modifier.size(20.dp)); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.p5_btn_smeta), style = MaterialTheme.typography.labelLarge, maxLines = 1)
-                    }
-                    OutlinedButton(onClick = { onF2(vm.id) }, modifier = Modifier.weight(1f).heightIn(min = TouchTarget), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)) {
-                        Icon(Icons.Outlined.Description, null, Modifier.size(20.dp)); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.p5_btn_f2), style = MaterialTheme.typography.labelLarge, maxLines = 1)
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { onDocs(vm.id) }, modifier = Modifier.weight(1f).heightIn(min = TouchTarget), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)) {
-                        Icon(Icons.Outlined.Folder, null, Modifier.size(20.dp)); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.docs_button), style = MaterialTheme.typography.labelLarge, maxLines = 1)
-                    }
-                    OutlinedButton(onClick = { onJarvis(vm.id) }, modifier = Modifier.weight(1f).heightIn(min = TouchTarget), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)) {
-                        Icon(Icons.Filled.AutoAwesome, null, Modifier.size(20.dp)); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.mod_jarvis), style = MaterialTheme.typography.labelLarge, maxLines = 1)
-                    }
+                Row(Modifier.fillMaxWidth().padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    QuickAction(Icons.Filled.CameraAlt, stringResource(R.string.p5_btn_photo), Modifier.weight(1f)) { onPhoto(vm.id) }
+                    QuickAction(Icons.Outlined.AccountTree, stringResource(R.string.p5_btn_smeta), Modifier.weight(1f)) { onSmeta(vm.id) }
+                    QuickAction(Icons.Outlined.Description, stringResource(R.string.p5_btn_f2), Modifier.weight(1f)) { onF2(vm.id) }
+                    QuickAction(Icons.Outlined.Folder, stringResource(R.string.docs_button), Modifier.weight(1f)) { onDocs(vm.id) }
+                    QuickAction(Icons.Filled.AutoAwesome, stringResource(R.string.mod_jarvis), Modifier.weight(1f)) { onJarvis(vm.id) }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun QuickAction(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, modifier: Modifier, onClick: () -> Unit) {
+    Column(modifier.heightIn(min = 48.dp).clickable(onClick = onClick).padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Icon(icon, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
     }
 }
 
@@ -140,7 +136,7 @@ private fun ValueCard(ui: CardUi) {
             Spacer(Modifier.height(2.dp))
             // QQS-inclusive first, then with / without markup. All three come from the server package; without it only the
             // markup-free figure is known (the object list total), the rest stays a dash.
-            MoneyDual(displayMoney(ui.money?.smeta, ui.obyekt?.jami), showVat = true, hint = true)
+            MoneyDual(displayMoney(ui.money?.smeta, ui.obyekt?.jami), showVat = true, hint = true, loading = ui.moneyResult == null, forbidden = ui.moneyResult is SyncResult.Forbidden)
             if ((ui.obyekt?.narxsiz ?: 0) > 0) {
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -181,9 +177,9 @@ private fun ProgressCard(ui: CardUi) {
                 }
             }
             Spacer(Modifier.height(14.dp))
-            ProgressRow(stringResource(R.string.p1_card_fakt), factPct, ui.money?.fakt, t?.fakt, ChartColors.fact, stringResource(R.string.tip_fakt_t), stringResource(R.string.tip_fakt_b))
+            ProgressRow(stringResource(R.string.p1_card_fakt), factPct, ui.money?.fakt, t?.fakt, ChartColors.fact, stringResource(R.string.tip_fakt_t), stringResource(R.string.tip_fakt_b), ui.moneyResult == null)
             Spacer(Modifier.height(16.dp))
-            ProgressRow(stringResource(R.string.p1_card_f2), f2Pct, ui.money?.f2, t?.f2, ChartColors.f2, stringResource(R.string.tip_f2_t), stringResource(R.string.tip_f2_b))
+            ProgressRow(stringResource(R.string.p1_card_f2), f2Pct, ui.money?.f2, t?.f2, ChartColors.f2, stringResource(R.string.tip_f2_t), stringResource(R.string.tip_f2_b), ui.moneyResult == null)
             if (t != null) {
                 Spacer(Modifier.height(10.dp))
                 Text(pluralStringResource(R.plurals.p1_rows, t.rows, t.rows), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -194,13 +190,13 @@ private fun ProgressCard(ui: CardUi) {
 
 /** Fact / F-2 line: percent + bar, then the amount both with and without markup (server package; cached-rows sum as the markup-free fallback). */
 @Composable
-private fun ProgressRow(label: String, percent: Double?, pack: uz.anncorp.smeta.core.data.SumPack?, plainFallback: Double?, color: androidx.compose.ui.graphics.Color, tipTitle: String, tipBody: String) {
+private fun ProgressRow(label: String, percent: Double?, pack: uz.anncorp.smeta.core.data.SumPack?, plainFallback: Double?, color: androidx.compose.ui.graphics.Color, tipTitle: String, tipBody: String, loading: Boolean = false) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         PercentBar(label, percent, color, Modifier.weight(1f))
         InfoTip(tipTitle, tipBody, Modifier.size(32.dp))
     }
     Spacer(Modifier.height(6.dp))
-    MoneyDual(displayMoney(pack, plainFallback))
+    MoneyDual(displayMoney(pack, plainFallback), loading = loading)
 }
 
 /** Progress per section (bo'lim): fact and F-2 percent of each section's estimate, estimate order; top sections first, the rest on demand. */

@@ -156,7 +156,7 @@ fun OmborEntryDialog(op: OmborOp, ui: OmborUi, preset: StockRow?, vm: OmborViewM
                         WorkCard(onClick = { name = s.nomi; unit = s.birligi }, modifier = Modifier.heightIn(min = 48.dp)) {
                             Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Text(s.nomi, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, maxLines = 2)
-                                Text("${formatQty(s.qoldiq)} ${s.birligi}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("${formatQty(s.qoldiq)} ${uz.anncorp.smeta.core.data.displayUnit(s.birligi)}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
@@ -172,10 +172,10 @@ fun OmborEntryDialog(op: OmborOp, ui: OmborUi, preset: StockRow?, vm: OmborViewM
                         isError = tried && EntryError.UNIT in errors, modifier = Modifier.weight(1f),
                     )
                 }
-                if (picked != null) Text(stringResource(R.string.ombor_stock_here, formatQty(picked.qoldiq), picked.birligi), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (over) Text(stringResource(R.string.ombor_over_stock, formatQty(picked?.qoldiq), picked?.birligi.orEmpty()), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
+                if (picked != null) Text(stringResource(R.string.ombor_stock_here, formatQty(picked.qoldiq), uz.anncorp.smeta.core.data.displayUnit(picked.birligi)), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (over) Text(stringResource(R.string.ombor_over_stock, formatQty(picked?.qoldiq), uz.anncorp.smeta.core.data.displayUnit(picked?.birligi)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
 
-                PickerField(stringResource(R.string.ombor_field_date), date, tried && EntryError.DATE in errors) { datePicking = true }
+                PickerField(stringResource(R.string.ombor_field_date), uz.anncorp.smeta.core.data.formatDate(date), tried && EntryError.DATE in errors) { datePicking = true }
 
                 OutlinedTextField(
                     value = party, onValueChange = { party = it }, singleLine = true,
@@ -215,12 +215,7 @@ fun OmborEntryDialog(op: OmborOp, ui: OmborUi, preset: StockRow?, vm: OmborViewM
     }
 
     if (datePicking) {
-        val st = rememberDatePickerState(initialSelectedDateMillis = runCatching { LocalDate.parse(date).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() }.getOrNull())
-        DatePickerDialog(
-            onDismissRequest = { datePicking = false },
-            confirmButton = { TextButton(onClick = { st.selectedDateMillis?.let { date = Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate().toString() }; datePicking = false }) { Text("OK") } },
-            dismissButton = { TextButton(onClick = { datePicking = false }) { Text(stringResource(R.string.ombor_close)) } },
-        ) { DatePicker(st) }
+        uz.anncorp.qurai.ui.components.QDatePickerDialog(initialIso = date, onDismiss = { datePicking = false }, onPick = { date = it }, cancelText = stringResource(R.string.ombor_close))
     }
     when (choosing) {
         "source" -> PickerDialog(

@@ -178,7 +178,7 @@ private fun StockCard(row: StockRow, objectName: String?, showObject: Boolean, o
             Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = 12.dp)) {
                 val neg = (row.qoldiq ?: 0.0) < 0
                 Text(formatQty(row.qoldiq), style = MaterialTheme.typography.titleMedium, color = if (neg) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
-                if (row.birligi.isNotBlank()) Text(row.birligi, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (row.birligi.isNotBlank()) Text(uz.anncorp.smeta.core.data.displayUnit(row.birligi), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

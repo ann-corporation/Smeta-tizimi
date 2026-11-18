@@ -208,10 +208,10 @@
     <string name="hub_web_open_browser">Brauzerda ochish</string>
     <string name="mod_objects">Obyektlar</string>
     <string name="mod_objects_d">Obyektlar va ularning holati</string>
-    <string name="mod_fact">Fakt</string>
+    <string name="mod_fact">Fakt kiritish</string>
     <string name="mod_fact_d">Bajarilgan ishni kiritish</string>
-    <string name="mod_photo">Foto</string>
-    <string name="mod_photo_d">Foto dalil yuborish</string>
+    <string name="mod_photo">Foto dalil</string>
+    <string name="mod_photo_d">Qatorga foto biriktirish</string>
     <string name="mod_approval">Tasdiq</string>
     <string name="mod_approval_d">Tasdiqlash navbatingiz</string>
     <string name="mod_today">Bugun</string>
@@ -232,8 +232,8 @@
     <string name="mod_finance_d">To\'lov va xarajatlar</string>
     <string name="mod_accounting">Buxgalteriya</string>
     <string name="mod_accounting_d">Provodka, hisob-kitob</string>
-    <string name="mod_documents">Hujjatlar</string>
-    <string name="mod_documents_d">Hujjat aylanishi</string>
+    <string name="mod_documents">Disk</string>
+    <string name="mod_documents_d">Fayllar, ulashish, hujjat aylanishi</string>
     <string name="mod_aosr">AOSR</string>
     <string name="mod_aosr_d">Yashirin ishlar akti</string>
     <string name="mod_tender">Tender</string>

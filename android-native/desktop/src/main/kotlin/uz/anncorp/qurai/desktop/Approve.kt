@@ -151,6 +151,6 @@ fun AktSummaStrip(c: Ctx, aktId: Long) {
             PackStrip("Akt summasi (server)", r.pack)
             if ((r.unpriced ?: 0) > 0) QHint("Narxsiz qatorlar: ${r.unpriced} - ularning summasi jamiga kirmagan.")
         }
-        is uz.anncorp.smeta.core.data.AktSumma.Unknown -> QHint(uz.anncorp.smeta.core.data.aktSummaUnknownText(r.code))
+        is uz.anncorp.smeta.core.data.AktSumma.Unknown -> uz.anncorp.smeta.core.data.aktSummaUnknownText(r.code)?.let { QHint(it) }
     }
 }

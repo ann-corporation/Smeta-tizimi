@@ -79,7 +79,12 @@ import uz.anncorp.smeta.core.data.CatalogItem
 import uz.anncorp.smeta.core.data.CatalogOpen
 import uz.anncorp.smeta.core.data.CatalogRepository
 import uz.anncorp.smeta.core.data.CatalogResult
+import uz.anncorp.smeta.core.data.ModuleCatalog
+import uz.anncorp.smeta.core.data.ModuleDef
 import uz.anncorp.smeta.core.data.NativeTarget
+import uz.anncorp.smeta.core.data.native
+import uz.anncorp.smeta.core.data.nativeTarget
+import uz.anncorp.smeta.core.data.withExtraModules
 import uz.anncorp.smeta.core.data.WorkContext
 import uz.anncorp.smeta.core.data.open
 import uz.anncorp.smeta.core.data.search
@@ -164,11 +169,17 @@ internal fun openItem(item: CatalogItem, onNative: (NativeTarget) -> Unit) {
 
 /** "Barcha modullar": every page this user may open in the selected workplace, grouped like the website menu, searchable. */
 @Composable
-fun AllModulesScreen(onNative: (NativeTarget) -> Unit, vm: AllModulesViewModel = hiltViewModel()) {
+fun AllModulesScreen(onNative: (NativeTarget) -> Unit, visible: List<ModuleDef> = emptyList(), vm: AllModulesViewModel = hiltViewModel()) {
     val ui by vm.state.collectAsStateWithLifecycle()
     val query by vm.query.collectAsStateWithLifecycle()
     val lang = remember { uiLang() }
-    val catalog = ui.catalog
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val catalog = remember(ui.catalog, visible) {
+        ui.catalog?.let { c ->
+            val missing = ModuleCatalog.missingFrom(c.native().mapNotNull { it.nativeTarget() }.toSet(), visible)
+            c.withExtraModules(ctx.getString(R.string.am_extra_group), missing.map { Triple(it, ctx.getString(it.title), ctx.getString(it.desc)) })
+        }
+    }
     val hits = remember(catalog, query) { catalog?.search(query).orEmpty() }
     val sections = remember(catalog, hits) { catalog?.sections(hits).orEmpty() }
 

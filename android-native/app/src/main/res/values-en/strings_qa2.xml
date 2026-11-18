@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- QA round 2 strings (en). -->
+<resources>
+    <string name="am_extra_group">Other modules</string>
+    <string name="m_markup_forbidden">You have no permission to see the marked-up total.</string>
+    <string name="m_markup_pending">The marked-up total has not been received from the server yet.</string>
+    <string name="qa2_add_photo">Add photo</string>
+    <plurals name="qa2_photos_n"><item quantity="one">%d photo attached</item><item quantity="other">%d photos attached</item></plurals>
+    <string name="qa2_note">Note (for the photo and fact, optional)</string>
+    <string name="qa2_bn_failed">Rejected: %1$d</string>
+    <string name="qa2_bn_queued">Queued: %1$d</string>
+    <string name="qa2_bn_offline">Offline</string>
+    <string name="qa2_bn_sending">Sending: %1$d</string>
+    <string name="qa2_bn_open">Open</string>
+    <string name="qa2_bn_expand">Details</string>
+    <string name="qa2_disk_title">Disk</string>
+    <string name="qa2_disk_mine">My disk</string>
+    <string name="qa2_disk_company">Company disk</string>
+    <string name="qa2_disk_shared">Shared with me</string>
+    <string name="qa2_disk_trash">Trash</string>
+    <string name="qa2_disk_empty">Nothing here yet</string>
+    <string name="qa2_disk_forbidden">You have no permission to view this disk</string>
+    <string name="qa2_theme">Theme</string>
+    <string name="qa2_theme_dark">Dark</string>
+    <string name="qa2_theme_light">Light</string>
+</resources>

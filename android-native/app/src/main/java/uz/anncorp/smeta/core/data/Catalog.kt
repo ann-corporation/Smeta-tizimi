@@ -121,6 +121,17 @@ fun Catalog.sections(items: List<CatalogItem> = this.native()): List<CatalogSect
     return groups.mapNotNull { g -> by[g.id]?.takeIf { it.isNotEmpty() }?.let { CatalogSection(g, it) } }
 }
 
+/**
+ * The catalogue plus allowed modules the server does not list (the warehouse tab, ...), shown in one extra group: the search finds every module the
+ * hub shows, from the same access rule ([ModuleCatalog.allowed]).
+ */
+fun Catalog.withExtraModules(groupTitle: String, modules: List<Triple<ModuleDef, String, String>>): Catalog {
+    if (modules.isEmpty()) return this
+    val gid = "_modules"
+    val extra = modules.map { (m, title, desc) -> CatalogItem("m:${m.code}", L3(title, title, title), gid, L3(desc, desc, desc), "", "/admin/${m.code}", m.code, true, "tayyor", false) }
+    return copy(groups = groups + CatalogGroup(gid, L3(groupTitle, groupTitle, groupTitle), "Box", ""), items = items + extra)
+}
+
 /** Offline copy of the last good catalogue per company. */
 interface CatalogCache {
     fun catalogGet(companyId: Long): String?

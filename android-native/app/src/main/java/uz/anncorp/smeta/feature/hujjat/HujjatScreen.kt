@@ -51,6 +51,13 @@ import uz.anncorp.smeta.core.data.SyncResult
 import uz.anncorp.smeta.core.data.WorkContext
 import uz.anncorp.smeta.core.data.formatIsoStamp
 import uz.anncorp.smeta.core.data.syncFailure
+import uz.anncorp.qurai.ui.screens.QDiskList
+import uz.anncorp.qurai.ui.screens.QDiskRow
+import uz.anncorp.qurai.ui.screens.QDiskState
+import uz.anncorp.qurai.ui.screens.QDiskTab
+import uz.anncorp.qurai.ui.screens.QDiskTabs
+import uz.anncorp.smeta.feature.disk.DiskController
+import uz.anncorp.smeta.feature.disk.DiskTab
 import uz.anncorp.smeta.core.ui.CenterMessage
 import uz.anncorp.smeta.core.ui.ChipRow
 import uz.anncorp.smeta.core.ui.SectionTitle
@@ -76,7 +83,10 @@ class HujjatViewModel @Inject constructor(private val api: BffApi, private val a
     /** Deep link from a notification: open this letter once loaded. */
     val startLetter: Long? = handle.get<Long>("xat")?.takeIf { it > 0 }
 
-    init { load(); startLetter?.let { openLetter(it) } }
+    /** The Disk part of this screen (Mening diskim / Kompaniya diski / Ulashilgan / Savat): the same state machine the Windows app uses. */
+    val disk = uz.anncorp.smeta.feature.disk.DiskController(uz.anncorp.smeta.feature.disk.DiskRepository(api), viewModelScope) { ctx.current.value?.companyId }
+
+    init { load(); disk.reload(); startLetter?.let { openLetter(it) } }
 
     fun tab(t: String) = _state.update { it.copy(tab = t) }
 
@@ -137,11 +147,31 @@ private fun letterLabel(h: String): String = stringResource(when (h) { "olindi" 
 fun HujjatScreen(onBack: () -> Unit, onOpenChain: (Long) -> Unit, vm: HujjatViewModel = hiltViewModel()) {
     val ui by vm.state.collectAsStateWithLifecycle()
     var chainMode by rememberSaveable { mutableStateOf("all") }
+    var section by rememberSaveable { mutableStateOf("mine") }
+    val diskUi by vm.disk.state.collectAsStateWithLifecycle()
     val today = LocalDate.now()
+    val tabs = listOf(
+        QDiskTab("mine", stringResource(R.string.qa2_disk_mine)), QDiskTab("company", stringResource(R.string.qa2_disk_company)), QDiskTab("shared", stringResource(R.string.qa2_disk_shared)),
+        QDiskTab("trash", stringResource(R.string.qa2_disk_trash)), QDiskTab("flow", stringResource(R.string.dl_doc_title)),
+    )
 
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-        WorkTopBar(stringResource(R.string.dl_doc_title), onBack)
-        when {
+        // The website calls this section "Disk" (QA 2026-11-18); the old document workflow stays as its last tab.
+        WorkTopBar(stringResource(R.string.qa2_disk_title), onBack)
+        QDiskTabs(tabs, section, { id ->
+            section = id
+            when (id) { "mine" -> vm.disk.select(DiskTab.MINE); "company" -> vm.disk.select(DiskTab.COMPANY); "shared" -> vm.disk.select(DiskTab.SHARED); "trash" -> vm.disk.select(DiskTab.TRASH) }
+        })
+        if (section != "flow") QDiskList(
+            rows = diskUi.rows.map { QDiskRow(it.key, it.folder, it.name, it.sub, it.meta) },
+            state = when (diskUi.status) { DiskController.Status.LOADING -> QDiskState.Loading; DiskController.Status.READY -> QDiskState.Ready; DiskController.Status.FAILED -> QDiskState.Failed },
+            onRow = { r -> diskUi.rows.firstOrNull { it.key == r.key }?.let { m -> if (m.folder && (section == "mine" || section == "company")) vm.disk.openFolder(m.id, m.name) } },
+            crumbs = diskUi.stack.takeIf { it.isNotEmpty() }?.joinToString(" / ") { it.name },
+            onUp = if (diskUi.canGoUp) ({ vm.disk.up() }) else null, upLabel = stringResource(R.string.p1_back),
+            emptyText = stringResource(R.string.qa2_disk_empty),
+            errorText = stringResource(if (diskUi.offline) R.string.err_network else if (diskUi.forbidden) R.string.qa2_disk_forbidden else R.string.dl_load_failed),
+            onRetry = { vm.disk.reload() },
+        ) else when {
             ui.loading && ui.waiting.isEmpty() && ui.toMe.isEmpty() && ui.fromMe.isEmpty() && ui.letters.isEmpty() -> SkeletonList(4)
             ui.failed -> CenterMessage(null, stringResource(R.string.dl_load_failed), null, stringResource(R.string.retry)) { vm.load() }
             else -> PullToRefreshBox(isRefreshing = ui.loading, onRefresh = vm::load, modifier = Modifier.fillMaxSize()) {

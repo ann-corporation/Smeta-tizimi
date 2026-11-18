@@ -48,32 +48,29 @@ fun JarvisOverlay(visible: Boolean, epoch: Int, scrollHidden: Boolean = false) {
     var open by rememberSaveable { mutableStateOf(false) }
     // The dragged position is remembered across launches (offsets from the resting place, in px).
     val prefs = androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("jarvis_fab", android.content.Context.MODE_PRIVATE)
-    var dx by rememberSaveable { mutableFloatStateOf(prefs.getFloat("dx", 0f)) }
     var dy by rememberSaveable { mutableFloatStateOf(prefs.getFloat("dy", 0f)) }
     val imeOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val w = constraints.maxWidth.toFloat(); val h = constraints.maxHeight.toFloat()
         val size = with(LocalDensity.current) { 40.dp.toPx() }
-        // Resting place: bottom-right, just above the bottom navigation. Small and slightly transparent; it hides while the user scrolls down or types
-        // (so it never covers a field or a list) and comes back when scrolling up. The drag is kept on screen and remembered.
+        // QA 2026-11-18: the round button sat on top of numbers, lists and the save button. It is now a slim edge handle (22 dp, inside the 16 dp screen gutter
+        // plus the card edge), centred on the right edge: it never covers content, hides while scrolling down or typing, and can still be dragged up/down (remembered).
         androidx.compose.animation.AnimatedVisibility(
-            visible = !imeOpen && !open && !scrollHidden, modifier = Modifier.align(Alignment.BottomEnd),
+            visible = !imeOpen && !open && !scrollHidden, modifier = Modifier.align(Alignment.CenterEnd),
             enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut(),
         ) { Surface(
-            shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.88f), contentColor = MaterialTheme.colorScheme.onPrimary, shadowElevation = 4.dp,
-            modifier = Modifier.padding(end = 10.dp, bottom = 96.dp)
-                .offset { IntOffset(dx.roundToInt(), dy.roundToInt()) }
-                .size(40.dp)
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 14.dp, bottomStart = 14.dp), color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f), contentColor = MaterialTheme.colorScheme.onPrimary, shadowElevation = 2.dp,
+            modifier = Modifier.offset { IntOffset(0, dy.roundToInt()) }
+                .size(width = 20.dp, height = 56.dp)
                 .pointerInput(w, h) {
-                    detectDragGestures(onDragEnd = { prefs.edit().putFloat("dx", dx).putFloat("dy", dy).apply() }) { change, drag ->
+                    detectDragGestures(onDragEnd = { prefs.edit().putFloat("dy", dy).apply() }) { change, drag ->
                         change.consume()
-                        dx = (dx + drag.x).coerceIn(-(w - size - 16f), 0f)
-                        dy = (dy + drag.y).coerceIn(-(h - size - 200f), 0f)
+                        dy = (dy + drag.y).coerceIn(-(h / 2f - size - 120f), h / 2f - size - 220f)
                     }
                 }
                 .clickable { open = true },
-        ) { Icon(Icons.Filled.AutoAwesome, stringResource(R.string.mod_jarvis), Modifier.padding(10.dp)) } }
+        ) { Icon(Icons.Filled.AutoAwesome, stringResource(R.string.mod_jarvis), Modifier.padding(start = 2.dp, top = 20.dp, bottom = 20.dp, end = 2.dp)) } }
     }
 
     if (open) {

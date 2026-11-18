@@ -88,10 +88,24 @@ private fun ActionButton(a: WsAction, big: Boolean, primary: Boolean, onAction: 
         Column(Modifier.padding(14.dp)) {
             Icon(iconFor(a.icon), null, tint = if (primary) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary, modifier = Modifier.size(if (big) 34.dp else 24.dp))
             Spacer(Modifier.size(if (big) 10.dp else 6.dp))
-            Text(a.title, style = if (big) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleSmall, color = if (primary) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(actionTitle(a), style = if (big) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleSmall, color = if (primary) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
     }
 }
+
+/** One name for the same thing on every screen (QA 2026-11-18: «Fakt yozish / Fakt kiritish / Fakt»): the shared module names win over the server's free text. */
+@Composable
+private fun actionTitle(a: WsAction): String = when {
+    !a.target.native -> a.title
+    a.target.code == "fakt" -> stringResource(R.string.mod_fact)
+    a.target.code == "foto" -> stringResource(R.string.mod_photo)
+    else -> a.title
+}
+
+/** Module codes the workspace already draws as quick-action buttons: the module grid below does not repeat them (QA: Fakt / Foto showed three times). */
+internal fun shownAsActions(ws: Workspace?): Set<String> = ws?.let { w ->
+    renderable(w).filter { it.type == WsSectionType.ACTIONS }.flatMap { it.actionIds }.mapNotNull { w.action(it) }.filter { it.target.native && it.open() != null }.map { it.target.code }.toSet()
+}.orEmpty()
 
 @Composable
 private fun PlaceRow(o: ObyektEntity, onClick: () -> Unit) {

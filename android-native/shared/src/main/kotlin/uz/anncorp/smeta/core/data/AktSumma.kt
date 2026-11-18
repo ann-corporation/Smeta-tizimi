@@ -39,9 +39,9 @@ class AktSummaRepository(private val api: BffApi) {
     }
 }
 
-/** Uzbek note when the figure is unavailable. */
-fun aktSummaUnknownText(code: String?): String = when (code) {
+/** Uzbek note when the figure is unavailable; null = show nothing (no permission: the amount is hidden everywhere, see [canSeeActAmounts]). */
+fun aktSummaUnknownText(code: String?): String? = when (code) {
     "OFFLINE" -> "Summa oflayn: serverdan olinmadi."
-    "PERMISSION_DENIED", "HTTP 403" -> "Summani ko'rishga ruxsat yo'q."
+    "PERMISSION_DENIED", "HTTP 403", "HIDDEN" -> null
     else -> "Summa serverda hali hisoblanmagan yoki mavjud emas."
 }

@@ -73,6 +73,7 @@ import uz.anncorp.smeta.R
 import uz.anncorp.smeta.core.data.open
 import uz.anncorp.smeta.core.data.Arranged
 import uz.anncorp.smeta.core.data.ModuleCatalog
+import uz.anncorp.smeta.core.data.grantedModules
 import uz.anncorp.smeta.core.data.ModuleDef
 import uz.anncorp.smeta.core.data.ModuleKind
 import uz.anncorp.smeta.core.data.NativeTarget
@@ -128,8 +129,13 @@ fun HubScreen(
 ) {
     val ui by vm.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val visible = remember(ui.permissions, ui.offModules) { ModuleCatalog.visible(ui.permissions, ui.offModules) }
-    val arranged = remember(visible, ui.picks, ui.query) { arrange(visible, ui.picks, ui.query) { context.getString(it.title) } }
+    val granted = remember(ui.workspace) { ui.workspace?.grantedModules().orEmpty() }
+    val visible = remember(ui.permissions, ui.offModules, granted) { ModuleCatalog.visible(ui.permissions, ui.offModules, granted) }
+    val duplicates = remember(ui.workspace) { shownAsActions(ui.workspace) }
+    // Searching lists everything; the plain grid skips modules the workspace already shows as buttons.
+    val arranged = remember(visible, ui.picks, ui.query, duplicates) {
+        arrange(if (ui.query.trim().length >= 2) visible else visible.filter { it.code !in duplicates }, ui.picks, ui.query) { context.getString(it.title) }
+    }
     val openAction: (uz.anncorp.smeta.core.data.WsAction) -> Unit = { a ->
         when (val o = a.open()) {
             is uz.anncorp.smeta.core.data.WsOpen.Native -> onNative(o.target)
@@ -160,7 +166,7 @@ fun HubScreen(
                 IconButton(onClick = { allMode = false }, modifier = Modifier.size(TouchTarget)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.p1_back)) }
                 Text(stringResource(R.string.hub_all_modules), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
             }
-            AllModulesScreen(onNative = onNative, vm = catalogVm)
+            AllModulesScreen(onNative = onNative, visible = visible, vm = catalogVm)
         }
         return
     }
@@ -226,7 +232,6 @@ private fun HubGrid(
         }
         // Server-driven role workspace first (the cabinet's sections and quick actions); the plain module launcher stays below as "all apps".
         ui.workspace?.let { ws ->
-            if (ws.fieldMode && ws.field?.offline == true) item(span = { span }) { Text(stringResource(R.string.ws_field_offline), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.tertiary) }
             workspaceItems(ws, ui.places, openAction, onObject, ui.kpi)
         }
         if (ui.workspace == null && ui.recent.isNotEmpty()) {

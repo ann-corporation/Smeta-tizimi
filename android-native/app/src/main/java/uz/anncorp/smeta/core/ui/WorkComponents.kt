@@ -28,6 +28,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -75,17 +77,30 @@ fun WorkTopBar(title: String, onBack: () -> Unit, actions: @Composable () -> Uni
 @Composable
 fun OutboxBanner(state: BannerState, onClick: () -> Unit, modifier: Modifier = Modifier) {
     if (!state.visible) return
+    // QA 2026-11-18: the full-width coloured line sat on every screen. Collapsed = one slim line (icon + short label + chevron);
+    // a tap expands the detail (the long sentence and the "open" action), a second tap collapses it.
+    var expanded by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
     val (icon, text, color) = when {
         !state.online && state.queued > 0 -> Triple(Icons.Filled.CloudOff, pluralStringResource(R.plurals.p1_banner_offline, state.queued, state.queued), MaterialTheme.colorScheme.tertiary)
         !state.online -> Triple(Icons.Filled.CloudOff, stringResource(R.string.p1_banner_offline_none), MaterialTheme.colorScheme.tertiary)
         state.failed > 0 -> Triple(Icons.Filled.ErrorOutline, pluralStringResource(R.plurals.p1_banner_failed, state.failed, state.failed), MaterialTheme.colorScheme.error)
         else -> Triple(Icons.Filled.Sync, pluralStringResource(R.plurals.p1_banner_sending, state.queued, state.queued), MaterialTheme.colorScheme.primary)
     }
-    Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = modifier.fillMaxWidth().clickable(onClick = onClick)) {
-        Row(Modifier.padding(horizontal = 20.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = color, modifier = Modifier.width(18.dp).height(18.dp))
-            Spacer(Modifier.width(10.dp))
-            Text(text, style = MaterialTheme.typography.bodySmall, color = color)
+    val short = when {
+        !state.online && state.queued > 0 -> stringResource(R.string.qa2_bn_offline) + " \u00B7 " + stringResource(R.string.qa2_bn_queued, state.queued)
+        !state.online -> stringResource(R.string.qa2_bn_offline)
+        state.failed > 0 -> stringResource(R.string.qa2_bn_failed, state.failed)
+        else -> stringResource(R.string.qa2_bn_sending, state.queued)
+    }
+    Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = modifier.fillMaxWidth().clickable { expanded = !expanded }) {
+        Column(Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(icon, null, tint = color, modifier = Modifier.width(16.dp).height(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(if (expanded) text else short, style = MaterialTheme.typography.labelMedium, color = color, modifier = Modifier.weight(1f), maxLines = if (expanded) 3 else 1)
+                Text(if (expanded) "\u25B4" else "\u25BE", style = MaterialTheme.typography.labelMedium, color = color)
+            }
+            if (expanded && (state.queued > 0 || state.failed > 0)) TextButton(onClick = onClick, modifier = Modifier.heightIn(min = 40.dp)) { Text(stringResource(R.string.qa2_bn_open)) }
         }
     }
 }
@@ -132,8 +147,17 @@ fun MoneyLine(label: String, value: Double?, emphasize: Boolean = false, color: 
  * [showVat] puts the QQS-inclusive figure first and largest (object value). Unknown is an em dash, never 0.
  */
 @Composable
-fun MoneyDual(d: MoneyDisplay, modifier: Modifier = Modifier, showVat: Boolean = false, hint: Boolean = false, short: Boolean = false) {
+fun MoneyDual(d: MoneyDisplay, modifier: Modifier = Modifier, showVat: Boolean = false, hint: Boolean = false, short: Boolean = false, loading: Boolean = false, forbidden: Boolean = false) {
     val fmt: (Double?) -> String = if (short) ::formatMoneyShort else { v -> formatMoney(v) }
+    // Still loading and nothing known yet: skeleton bars, never dashes plus a "no permission" line (that reads like a refusal).
+    if (loading && !d.fromServer && d.withoutMarkup == null) {
+        Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (showVat) Skeleton(Modifier.width(180.dp), 24.dp)
+            Skeleton(Modifier.fillMaxWidth(), 14.dp)
+            Skeleton(Modifier.fillMaxWidth(), 14.dp)
+        }
+        return
+    }
     Column(modifier) {
         if (showVat) {
             Text(stringResource(R.string.m_vat_incl), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -143,7 +167,7 @@ fun MoneyDual(d: MoneyDisplay, modifier: Modifier = Modifier, showVat: Boolean =
         MoneyRow(stringResource(R.string.m_markup), fmt(d.withMarkup))
         MoneyRow(stringResource(R.string.m_plain), fmt(d.withoutMarkup))
         if (hint && !d.fromServer) {
-            Text(stringResource(R.string.m_markup_unknown), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.padding(top = 2.dp))
+            Text(stringResource(if (forbidden) R.string.m_markup_forbidden else R.string.m_markup_pending), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.padding(top = 2.dp))
         }
     }
 }
