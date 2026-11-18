@@ -2,14 +2,19 @@
  * Fayl menejeri — papka daraxti, ZIP yo'llari va jadval CSV (egasi 2026-10-02: "saytdagi R2 ni xuddi fayl exploreri
  * darajasida"; "butun boshli tizimlashgan folderlarga tartiblab solingan"; "bitta tugma bilan zip").
  *
- * Papka tartibi (har kompaniya o'z qismi): Loyiha → Obyekt → Hujjat turi → Yil-oy → fayl.
- * Loyihasiz/obyektsiz fayllar aniq nomlangan papkada (yashirilmaydi).
+ * Papka tartibi (har kompaniya o'z qismi): Shartnoma → Obyekt → Hujjat turi → Yil-oy → fayl (Disk A bosqichi).
+ * Shartnomasiz/obyektsiz fayllar aniq nomlangan papkada (yashirilmaydi). Bir hujjatning versiyalari (hujjat_kalit) bitta fayl bo'lib ko'rinadi: eng oxirgisi daraxtda, eskilari «versiyalar» ostida.
  */
 
 export type Fayl = {
   id: number; nom: string; tur: string; versiya: number; mime: string; hajm: number; sha256: string | null;
   sana: string; kim: string | null; loyiha_id: number | null; loyiha: string | null; obyekt_id: number | null; obyekt: string | null;
   slot?: string | null;
+  /** Disk (A): shartnoma, tizim manbasi (tur + id), barqaror hujjat kaliti va versiya zanjiri. */
+  shartnoma_id?: number | null; shartnoma?: string | null; shartnoma_nom?: string | null;
+  manba_turi?: string | null; manba_id?: number | null; hujjat_kalit?: string | null;
+  /** Shu hujjatning nechta versiyasi bor va bu eng oxirgisimi (sukut - eski ma'lumotda yo'q = oxirgi). */
+  versiyalar?: number; oxirgi?: boolean;
   /** Rasmiy hujjatning hisobot oyi (YYYY-MM) — papka shu oy bo'yicha (yuklangan kuni emas). */
   davr?: string | null;
   /** Yuklangandagi asl nom (`nom` — foydalanuvchi bergan ko'rinadigan nom bo'lishi mumkin). */
@@ -24,7 +29,10 @@ export type Fayl = {
 export type FaylPapka = { id: number; ota_id: number | null; nom: string };
 
 /** Tizim papkalari daraxtiga kiradigan fayllar: o'z papkasiga ko'chirilmagan va savatda emas. */
-export const tizimFayllari = (f: readonly Fayl[]) => f.filter((x) => !x.papka_id && !x.savatda);
+export const tizimFayllari = (f: readonly Fayl[]) => f.filter((x) => !x.papka_id && !x.savatda && x.oxirgi !== false);
+/** Bir hujjatning eski versiyalari (yangisi tepada): bir xil obyekt + hujjat_kalit, oxirgi emas. */
+export const eskiVersiyalar = (f: readonly Fayl[], x: Fayl): Fayl[] =>
+  x.hujjat_kalit ? f.filter((y) => y.hujjat_kalit === x.hujjat_kalit && (y.obyekt_id ?? null) === (x.obyekt_id ?? null) && y.id !== x.id && y.oxirgi === false && !y.savatda).sort((a, b) => b.versiya - a.versiya) : [];
 /** Savatdagi fayllar — yangi tashlangani tepada. */
 export const savatFayllari = (f: readonly Fayl[]) => f.filter((x) => !!x.savatda).sort((a, b) => String(b.savatda).localeCompare(String(a.savatda)));
 /** O'z papkasidagi fayllar (savatdagilar emas). */
@@ -59,9 +67,9 @@ export function menPapkaSoni(p: readonly FaylPapka[], f: readonly Fayl[], id: nu
 }
 
 export type Papka = {
-  kalit: string;            // to'liq yo'l: "Loyiha/Obyekt/Tur/2026-10"
+  kalit: string;            // to'liq yo'l: "shartnoma:5/obyekt:80/tur:f3/oy:2026-10"
   nom: string;
-  daraja: number;            // 0 — loyiha, 1 — obyekt, 2 — tur, 3 — oy
+  daraja: number;            // 0 — shartnoma, 1 — obyekt, 2 — tur, 3 — oy
   bolalar: Papka[];
   fayllar: Fayl[];           // faqat shu papkaning o'zidagi (eng pastki daraja — oy)
   soni: number;              // ichidagi barcha fayllar
@@ -78,6 +86,7 @@ export const TUR_NOMI: Readonly<Record<string, string>> = {
 export const turNomi = (t: string) => TUR_NOMI[t] ?? t;
 
 export const LOYIHASIZ = 'Loyihaga biriktirilmagan';
+export const SHARTNOMASIZ = 'Shartnomaga biriktirilmagan';
 export const OBYEKTSIZ = 'Obyektga biriktirilmagan';
 
 /** Fayl/papka nomini ZIP va Windows uchun xavfsiz qiladi (\ / : * ? " < > | — taqiqlangan). */
@@ -89,7 +98,7 @@ export function xavfsizNom(s: string): string {
 
 export function faylYoli(f: Fayl): string[] {
   return [
-    xavfsizNom(f.loyiha ?? LOYIHASIZ),
+    xavfsizNom(f.shartnoma_id ? `Shartnoma №${f.shartnoma || f.shartnoma_nom || f.shartnoma_id}` : SHARTNOMASIZ),
     xavfsizNom(f.obyekt ?? OBYEKTSIZ),
     xavfsizNom(turNomi(f.tur)),
     (f.davr && /^\d{4}-\d{2}$/.test(f.davr) ? f.davr : (f.sana || '').slice(0, 7)) || 'sanasiz',
@@ -104,7 +113,7 @@ export function faylDaraxti(fayllar: readonly Fayl[]): Papka {
     let p = ildiz;
     p.soni++; p.hajm += f.hajm || 0;
     yol.forEach((qism, i) => {
-      const identity = [`loyiha:${f.loyiha_id ?? 'none'}`, `obyekt:${f.obyekt_id ?? 'none'}`, `tur:${encodeURIComponent(f.tur)}`, `oy:${yol[3]}`];
+      const identity = [`shartnoma:${f.shartnoma_id ?? 'none'}`, `obyekt:${f.obyekt_id ?? 'none'}`, `tur:${encodeURIComponent(f.tur)}`, `oy:${yol[3]}`];
       const kalit = identity.slice(0, i + 1).join('/');
       let b = p.bolalar.find((x) => x.kalit === kalit);
       if (!b) {
@@ -119,7 +128,7 @@ export function faylDaraxti(fayllar: readonly Fayl[]): Papka {
   }
   const tartibla = (p: Papka) => {
     p.bolalar.sort((a, b) => a.daraja === 3 ? b.nom.localeCompare(a.nom)
-      : (a.nom === LOYIHASIZ || a.nom === OBYEKTSIZ) ? 1 : (b.nom === LOYIHASIZ || b.nom === OBYEKTSIZ) ? -1 : a.nom.localeCompare(b.nom, 'ru'));
+      : (a.nom === SHARTNOMASIZ || a.nom === OBYEKTSIZ) ? 1 : (b.nom === SHARTNOMASIZ || b.nom === OBYEKTSIZ) ? -1 : a.nom.localeCompare(b.nom, 'ru'));
     p.fayllar.sort((a, b) => b.sana.localeCompare(a.sana) || a.nom.localeCompare(b.nom));
     p.bolalar.forEach(tartibla);
   };

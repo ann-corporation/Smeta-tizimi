@@ -6,7 +6,7 @@
  * Amallar: ko'rish (Excel — saytda aynan hujjatdagiday; PDF/rasm — yangi oynada), yuklab olish, joriy papkaga yuklash,
  * papkani ZIP, "hammasi + ma'lumotlar" ZIP (fayllar papkalari bilan + jadvallar CSV/JSON + manifest).
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { ChevronDown, ChevronRight, Download, Eye, FileArchive, FileSpreadsheet, FileText, Folder, FolderInput, FolderOpen, FolderPlus, Pencil, RefreshCw, RotateCcw, Search, Trash2, Upload } from 'lucide-react';
 import { zipSync, strToU8, type Zippable } from 'fflate';
 import { useTil } from '../../i18n/til';
@@ -15,7 +15,7 @@ import { downloadBlob } from '../../lib/construction-document-control/export/dow
 import { HujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { hujjatYukla } from '../../api/t2-hujjat-canonical';
 import { EKSPORT_JADVALLARI, faylAmal, faylBaytlari, faylExplorerOl, jadvalHammasi, type FaylAmali, type FaylExplorer } from '../../api/t2-fayl';
-import { csv, faylDaraxti, hajmMatni, menPapkaFayllari, menPapkaSoni, papkaBolalari, papkaFayllari, papkaTanlovlari, papkaTop, papkaYoli, savatFayllari, tizimFayllari, turNomi, xavfsizNom, zipYollari, type Fayl, type FaylPapka, type Papka } from '../../lib/fayl-daraxt';
+import { csv, faylDaraxti, hajmMatni, menPapkaFayllari, menPapkaSoni, papkaBolalari, papkaFayllari, papkaTanlovlari, papkaTop, eskiVersiyalar, papkaYoli, savatFayllari, tizimFayllari, turNomi, xavfsizNom, zipYollari, type Fayl, type FaylPapka, type Papka } from '../../lib/fayl-daraxt';
 
 /** Faqat ko'ra oladigan lavozimlar — fayl amallari (nomlash, ko'chirish, savat) ko'rsatilmaydi (server ham rad etadi). */
 const FAQAT_KORISH = new Set(['kuzatuvchi', 'buyurtmachi', 'pudratchi']);
@@ -56,6 +56,8 @@ function CompanyFileManager({ kompaniyaId, faqatTizim, documentId }: { kompaniya
   const [menPapka, setMenPapka] = useState<number | null>(null);
   /** Ko'chirish tanlovi ochiq turgan fayl (id) yoki joriy papka ('papka'). */
   const [kochirish, setKochirish] = useState<number | 'papka' | null>(null);
+  /** Eski versiyalari ochib ko'rsatilgan hujjatlar (id). */
+  const [versiyaOchiq, setVersiyaOchiq] = useState<Set<number>>(new Set());
 
   const yukla = useCallback(async () => {
     const request = ++requestRef.current;
@@ -275,11 +277,13 @@ function CompanyFileManager({ kompaniyaId, faqatTizim, documentId }: { kompaniya
     <tr key={f.id} onDoubleClick={() => void korish(f)} className="border-t border-border/40 hover:bg-surface-2">
       <td className="max-w-[420px] px-3 py-1.5">
         <span className="flex items-center gap-2 text-text">{EXCEL.test(f.mime) || EXCEL.test(f.nom) ? <FileSpreadsheet size={15} className="shrink-0 text-ok" /> : <FileText size={15} className="shrink-0 text-text-dim" />}<span className="truncate" title={f.asl_nom && f.asl_nom !== f.nom ? `${f.nom}\n${t('Asl nom: {n}', { n: f.asl_nom })}` : f.nom}>{f.nom}</span></span>
-        {joyKorsat && <span className="ml-6 block truncate text-[10px] text-text-mute">{[f.loyiha, f.obyekt, turNomi(f.tur)].filter(Boolean).join(' / ')}</span>}
+        {joyKorsat && <span className="ml-6 block truncate text-[10px] text-text-mute">{[f.shartnoma ? ` №${f.shartnoma}` : null, f.obyekt, turNomi(f.tur)].filter(Boolean).join(' / ')}</span>}
         {kochirish === f.id && <div className="ml-6 mt-1">{kochirTanlov(null, t('Tizim papkasi (asl joyi)'), (v) => void amal('kochir', { documentId: f.id, papkaId: v }, t('Fayl ko‘chirildi')))}</div>}
       </td>
       <td className="px-2 text-text-dim">{turNomi(f.tur)}</td>
-      <td><span className="fz-chip">v{f.versiya}</span></td>
+      <td>{(f.versiyalar ?? 1) > 1 && f.oxirgi !== false
+        ? <button type="button" className="fz-chip" aria-expanded={versiyaOchiq.has(f.id)} title={t('Shu hujjatning oldingi versiyalari')} onClick={() => setVersiyaOchiq((s) => { const n = new Set(s); if (n.has(f.id)) n.delete(f.id); else n.add(f.id); return n; })}>v{f.versiya} · {t('{n} versiya', { n: f.versiyalar ?? 1 })}</button>
+        : <span className="fz-chip">v{f.versiya}</span>}</td>
       <td className="px-2 text-right tabular-nums text-text-dim">{hajmMatni(f.hajm)}</td>
       <td className="px-2 text-text-dim">{sanaMatni(f.sana)}</td>
       <td className="max-w-[140px] truncate px-2 text-text-mute">{f.kim}</td>
@@ -435,7 +439,7 @@ function CompanyFileManager({ kompaniyaId, faqatTizim, documentId }: { kompaniya
                       <td className="px-2 text-text-mute" colSpan={3}>{t('{n} fayl', { n: p.soni })}</td>
                     </tr>
                   ))}
-                  {bolim === 'tizim' && royxat.map((f) => faylQatori(f, !!qidiruvNatija))}
+                  {bolim === 'tizim' && royxat.map((f) => <Fragment key={f.id}>{faylQatori(f, !!qidiruvNatija)}{versiyaOchiq.has(f.id) && eskiVersiyalar(fayllar, f).map((e) => faylQatori(e, false))}</Fragment>)}
                   {bolim === 'tizim' && !papkalar.length && !royxat.length && (
                     <tr><td colSpan={7} className="px-3 py-8 text-center text-text-mute">{qidiruvNatija ? t('Hech narsa topilmadi') : t('Bu papka bo‘sh')}</td></tr>
                   )}

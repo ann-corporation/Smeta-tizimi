@@ -36,6 +36,8 @@ export async function faylSha256(file: File): Promise<string> {
 export async function hujjatYukla(p: {
   file: File; kompaniyaId: number; loyihaId?: number | null; obyektId?: number | null;
   documentType?: string; revision?: string | null; operationId?: string;
+  /** Disk: tizim hujjatining shaxsi (kalit = bir hujjat; qayta yuklash = yangi versiya), manba va aniq nom. */
+  manba?: { turi: string; id: number | null; kalit: string; nom: string; shartnomaId?: number | null };
 }): Promise<UploadNatija> {
   let sha: string;
   try { sha = await faylSha256(p.file); }
@@ -48,6 +50,11 @@ export async function hujjatYukla(p: {
   if (p.obyektId != null) fd.append('obyekt_id', String(p.obyektId));
   fd.append('turi', p.documentType || 'hujjat');
   if (p.revision != null) fd.append('revision', String(p.revision));
+  if (p.manba) {
+    fd.append('manba_turi', p.manba.turi); fd.append('hujjat_kalit', p.manba.kalit); fd.append('korinish_nom', p.manba.nom);
+    if (p.manba.id != null) fd.append('manba_id', String(p.manba.id));
+    if (p.manba.shartnomaId != null) fd.append('shartnoma_id', String(p.manba.shartnomaId));
+  }
   fd.append('sha256', sha);
   fd.append('size', String(p.file.size));
   fd.append('operation_id', p.operationId || yangiOperationId());

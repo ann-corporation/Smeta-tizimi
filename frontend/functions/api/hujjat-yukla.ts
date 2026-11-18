@@ -22,6 +22,8 @@
  *   sha256        hex (required — client-computed)
  *   size          bytes (required)
  *   revision      string (optional)
+ *   manba_turi / manba_id / hujjat_kalit / shartnoma_id / korinish_nom  optional (Disk): tizim hujjatining shaxsi - bir kalit = bitta hujjat,
+ *                   qayta yuklash o'sha hujjatning YANGI VERSIYASI; metama'lumot saqlanadi (t2_disk_tizim_meta_v1), xato yuklashni to'xtatmaydi.
  *   source_slot_key optional, immutable logical source slot for a multi-file
  *                   smeta package. Different slots are independent documents,
  *                   not revisions of one another.
@@ -102,6 +104,18 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     const revision = form.get('revision') != null ? String(form.get('revision')) : null;
     const sourceSlotKey = form.get('source_slot_key') != null ? String(form.get('source_slot_key')).trim().toLowerCase() : '';
 
+    const manbaTuri = String(form.get('manba_turi') || '').trim().toLowerCase();
+    const hujjatKalit = String(form.get('hujjat_kalit') || '').trim();
+    const manbaId = Number(form.get('manba_id')); const shartnomaIdForm = Number(form.get('shartnoma_id'));
+    const korinishNom = String(form.get('korinish_nom') || '').trim();
+    /** Disk metama'lumoti (kalit/manba/nom/shartnoma): hujjat yozuvi tayyor bo'lgach; xato yuklashni buzmaydi. */
+    const diskMeta = async (documentId: number) => {
+      if (!hujjatKalit && !manbaTuri && !korinishNom) return;
+      await rpc(ctx.env, 't2_disk_tizim_meta_v1', { p_actor_id: actorId, p_kompaniya_id: kompaniyaId, p_document_id: documentId, p_manba_turi: manbaTuri || null,
+        p_manba_id: Number.isSafeInteger(manbaId) && manbaId > 0 ? manbaId : null, p_hujjat_kalit: hujjatKalit || null,
+        p_shartnoma_id: Number.isSafeInteger(shartnomaIdForm) && shartnomaIdForm > 0 ? shartnomaIdForm : null, p_nom: korinishNom || null }).catch(() => null);
+    };
+
     if (!file || typeof file.stream !== 'function') return Response.json({ ok: false, code: 'DOCUMENT_CONTEXT_REQUIRED', xato: 'Fayl topilmadi' }, { status: 400 });
     if (!kompaniyaId || !UUID.test(operationId)) return Response.json({ ok: false, code: 'DOCUMENT_CONTEXT_REQUIRED', xato: 'kompaniya_id va UUID operation_id majburiy' }, { status: 400 });
     if (!HEX64.test(clientSha)) return Response.json({ ok: false, code: 'DOCUMENT_CONTRACT_INVALID', xato: 'Brauzer tomonidan hisoblangan sha256 (64 hex) majburiy' }, { status: 400 });
@@ -167,6 +181,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     const r2Key: string = reserve.body.r2_key;
     // Already stored (retry) — nothing more to do.
     if (reserve.body.canonical_storage_status === 'stored') {
+      await diskMeta(documentId);
       return Response.json({ ok: true, document_id: documentId, r2_key: r2Key, sha256: reserve.body.sha256,
         versiya: reserve.body.versiya, retry: true, dedup: reserve.body.dedup === true });
     }
@@ -201,6 +216,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         p_sha256: serverSha, p_size_bytes: declaredSize,
       }).catch(() => null);
       if (share?.httpOk && share.body?.ok === true) {
+        await diskMeta(documentId);
         return Response.json({
           ok: true, document_id: documentId, revision_seq: share.body.revision_seq,
           r2_key: r2Key, sha256: share.body.sha256, sha256_verified: true,
@@ -233,6 +249,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       }, { status: 202 });
     }
 
+    await diskMeta(documentId);
     return Response.json({
       ok: true, document_id: documentId, revision_seq: fin.body.revision_seq,
       r2_key: r2Key, sha256: fin.body.sha256, sha256_verified: fin.body.sha256_verified,

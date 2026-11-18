@@ -38,8 +38,10 @@ import { nakopitelniyPaketFayli } from '../../src/lib/oylik-hujjat/nakopitelniy'
 import { ostatkaPaketFayli, paketImzosiOl } from '../../src/lib/oylik-hujjat/ostatka-slichitelniy';
 import { m29PaketFayli, pudratchiNomiOl } from '../../src/lib/oylik-hujjat/m29';
 import { NDS_SUKUT_FOIZ } from '../../src/lib/nakopitelniy-vedomost-export';
+import { f2Manba, forma3Manba, obyektHujjatManba, type DiskManba } from '../../src/lib/disk-hujjat';
+import { diskArxivla } from '../_shared/disk-arxiv';
 
-type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; BREND_URL?: string };
+type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; BREND_URL?: string; R2_CANONICAL?: R2Bucket };
 export type HujjatFormat = 'xlsx' | 'pdf';
 const FORMATLAR: readonly HujjatFormat[] = ['xlsx', 'pdf'];
 const MIME: Record<HujjatFormat, string> = { xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', pdf: 'application/pdf' };
@@ -48,7 +50,7 @@ const musbat = (v: unknown): number | null => (Number.isSafeInteger(Number(v)) &
 class Rad extends Error { constructor(readonly status: number, readonly code: string, msg: string) { super(msg); } }
 const rad = (e: Rad) => Response.json({ ok: false, code: e.code, xato: e.message }, { status: e.status });
 
-type Tayyor = { bytes: Uint8Array; faylNomi: string; turi: string; obyektId: number; davr: string | null; xesh: string };
+type Tayyor = { bytes: Uint8Array; faylNomi: string; turi: string; obyektId: number; davr: string | null; xesh: string; manba: DiskManba; arxivla: boolean };
 const OY = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 /** Hujjat nashri tokeni (t2_nashr_tayyor_v1: bir xil mazmun — mavjud token). Xatoda null. */
@@ -110,7 +112,7 @@ async function f2Yasa(kompaniyaId: number, obyektId: number, aktId: number): Pro
   if (!h) throw new Rad(409, 'QATOR_YOQ', 'Bu hujjatda chiqariladigan qator yo‘q');
   if (h.topilmagan) throw new Rad(409, 'F2_QATOR_TOPILMADI', `${h.topilmagan} ta qator smetada topilmadi`);
   const xesh = f2HujjatKaliti(obyektId, akt.oy || '', akt.raqam) ?? `akt:${akt.id}:${await mazmunXeshi(h.bytes)}`;
-  return { bytes: h.bytes, faylNomi: h.faylNomi, turi: 'f2_hujjat', obyektId, davr: akt.oy || null, xesh };
+  return { bytes: h.bytes, faylNomi: h.faylNomi, turi: 'f2_hujjat', obyektId, davr: akt.oy || null, xesh, arxivla: akt.holat === 'tasdiqlangan', manba: f2Manba({ aktId: akt.id, raqam: akt.raqam ?? null, obyekt: akt.obyekt || null, oy: akt.oy || null }) };
 }
 
 async function f3Yasa(kompaniyaId: number, obyektId: number, shartnomaId: number, f3Id: number, shakl: unknown): Promise<Tayyor> {
@@ -121,7 +123,9 @@ async function f3Yasa(kompaniyaId: number, obyektId: number, shartnomaId: number
   const tashkilot = (komp.qatorlar ?? []).find((k) => k.id === kompaniyaId)?.nom ?? null;
   const h = forma3SotuvdanXlsx(sh, f3Id, { tashkilot, shakl: f3ShaklTozala(shakl) });
   if (!h) throw new Rad(409, 'F3_HISOBLANMADI', 'Форма № 3 hisoblanmadi (sana/summa yo‘q)');
-  return { bytes: h.bytes, faylNomi: h.faylNomi, turi: 'f3', obyektId, davr: null, xesh: await mazmunXeshi(h.bytes) };
+  const f3q = sotuvF3lar(sh).find((x) => x.id === f3Id);
+  return { bytes: h.bytes, faylNomi: h.faylNomi, turi: 'f3', obyektId, davr: null, xesh: await mazmunXeshi(h.bytes), arxivla: true,
+    manba: forma3Manba({ obyektId, shartnomaId: sh.id, f3Id, raqam: f3q?.raqam ?? null, obyekt: sh.obyektlar.find((o) => o.id === obyektId)?.nom ?? null, davr: (f3q?.sotuv_sana ?? '').slice(0, 7) || null, shartnomaRaqam: sh.raqam ?? null }) };
 }
 
 /** Oylik/obyekt hujjatlari: sayt sahifalari va oylik paket ishlatadigan AYNAN o'sha `*PaketFayli` quruvchilari (paket.test: sahifa yo'li bilan bayt-bayt teng). */
@@ -135,7 +139,7 @@ async function obyektHujjati(tur: 'nakopitelniy' | 'm29' | 'slichitelniy' | 'ost
     : tur === 'm29' ? await m29PaketFayli({ kompaniyaId, obyektId, obyektNom: ob.nom, oy: oy!, imzo, pudratchi: await pudratchiNomiOl(kompaniyaId).catch(() => null) })
       : await ostatkaPaketFayli({ kompaniyaId, obyektId, obyektNom: ob.nom, imzo, tur });
   if (!r.ok) throw new Rad(409, r.bosh ? 'HUJJAT_BOSH' : 'HUJJAT_TUZILMADI', r.xato.slice(0, 200));
-  return { bytes: r.bytes, faylNomi: r.nom, turi: tur, obyektId, davr: oy, xesh: await mazmunXeshi(r.bytes) };
+  return { bytes: r.bytes, faylNomi: r.nom, turi: tur, obyektId, davr: oy, xesh: await mazmunXeshi(r.bytes), arxivla: true, manba: obyektHujjatManba({ tur, obyektId, obyekt: ob.nom ?? null, oy }) };
 }
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
@@ -179,6 +183,9 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     // Token: hujjat yaratildi — endi yechiladi (qayta yuklash bepul). PDF/XLSX bir hujjat: ikkinchisi takror.
     const s = await serverSarfla(ctx.env, { actorId, kompaniyaId, turi: tayyor.turi, obyektId, davr: tayyor.davr, xesh: tayyor.xesh, bytes: tayyor.bytes });
     if (!s.ok) return sarfRad(s);
+    // Disk: hujjat avtomatik saqlanadi (Shartnoma -> Obyekt -> tur -> oy); qayta yasalsa - o'sha hujjatning yangi versiyasi. Xato hujjat berishni to'xtatmaydi.
+    const arxiv = !tayyor.arxivla ? Promise.resolve(null) : diskArxivla(ctx.env, { actorId, kompaniyaId, obyektId, turi: tayyor.turi === 'f2_hujjat' ? 'f2' : tayyor.turi === 'f3' ? 'forma3' : tayyor.turi, faylNomi: tayyor.faylNomi, bytes: tayyor.bytes, davr: tayyor.davr, xesh: tayyor.xesh, manba: tayyor.manba });
+    if (typeof ctx.waitUntil === 'function') ctx.waitUntil(arxiv); else await arxiv;
     let chiqish: Uint8Array = tayyor.bytes;
     let faylNomi = tayyor.faylNomi;
     if (format === 'pdf') {

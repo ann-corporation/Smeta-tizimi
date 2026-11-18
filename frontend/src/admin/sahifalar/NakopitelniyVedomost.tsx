@@ -33,6 +33,7 @@ import { nakopitelniyAktlarKOplate, nakopitelniyAktUstunOl, nakopitelniyHujjatQu
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { hujjatArxivla } from '../../api/t2-hujjat-arxiv';
+import { forma3Manba } from '../../lib/disk-hujjat';
 import { toast } from '../../umumiy/ui/Toast';
 import { forma3Tayyorgarlik } from '../../lib/pto-markazi/forma3-tayyorgarlik';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
@@ -381,7 +382,8 @@ function Sessiya({ companyId }: { companyId: number }) {
       if (t.xabar) toast(t.xabar, 'ok');
       // F3 — rasmiy hujjat: R2 arxivga o'zgarmas versiya (davr bo'yicha; aynan bir xil mazmun qayta saqlanmaydi).
       if (f2Oylik.length) {
-        void hujjatArxivla({ kompaniyaId: companyId, loyihaId: loyihaId ?? null, obyektId: Number(objectId), turi: 'f3', faylNomi: h.faylNomi, bytes: h.bytes, davr: davr.slice(0, 7) })
+        void hujjatArxivla({ kompaniyaId: companyId, loyihaId: loyihaId ?? null, obyektId: Number(objectId), turi: 'f3', faylNomi: h.faylNomi, bytes: h.bytes, davr: davr.slice(0, 7),
+          manba: forma3Manba({ obyektId: Number(objectId), shartnomaId: null, f3Id: null, raqam: tay.raqam ?? null, obyekt: obyektNom, davr: davr.slice(0, 7), shartnomaRaqam: shartnoma?.raqam ?? null }) })
           .then((a) => { if (!a.ok) toast('F3 arxivga saqlanmadi — keyinroq qayta chiqaring.', 'warn'); else if (!a.takror) toast(`F3 arxivga saqlandi (v${a.versiya})`, 'ok'); });
       }
     } catch (e) {

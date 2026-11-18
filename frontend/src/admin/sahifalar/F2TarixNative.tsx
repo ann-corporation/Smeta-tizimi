@@ -34,7 +34,6 @@ import { serverUchligi } from '../../lib/ustamali-summa';
 import { f2HujjatKonteksti, type F2HujjatKonteksti } from '../../api/f2-hujjat-kontekst';
 import { hujjatYarat as hujjatYaratYuklab } from '../../api/hujjat-yarat';
 import { useYordamchiSahifaAmallari } from '../../lib/yordamchi/sahifa-amal-store';
-import { hujjatArxivla } from '../../api/t2-hujjat-arxiv';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { t, tilLocale } from '../../i18n/til';
@@ -318,11 +317,7 @@ export function F2TarixNative() {
       if (korish) korinish.ochish(r.bytes, r.faylNomi); else downloadBlob(r.bytes, r.faylNomi);
       if (r.bepulTakror) toast('Bu hujjat avval to‘langan — qayta yuklash bepul', 'ok');
       else if (r.sarflandi) toast(`${r.sarflandi} token`, 'ok');
-      // Tasdiqlangan F2 — R2 arxivga o'zgarmas versiya (bir xil mazmun qayta saqlanmaydi). Hujjat berishni to'xtatmaydi.
-      if (akt.holat === 'tasdiqlangan') {
-        void hujjatArxivla({ kompaniyaId, obyektId, turi: 'f2_hujjat', faylNomi: r.faylNomi, bytes: r.bytes, davr: (akt.oy || '').slice(0, 7) })
-          .then((a) => { if (!a.ok) toast('Hujjat arxivga saqlanmadi — keyinroq qayta chiqaring.', 'warn'); else if (!a.takror) toast(`Arxivga saqlandi (v${a.versiya})`, 'ok'); });
-      }
+      // Disk: tasdiqlangan F2 serverda (/api/hujjat-yarat) avtomatik saqlanadi: Shartnoma -> Obyekt -> tur -> oy, qayta chiqarilsa - yangi versiya.
     } catch { toast('Ф-2 hujjatini yaratib bo‘lmadi.', 'danger'); }
     finally { setChiqarilmoqda(false); }
   }
