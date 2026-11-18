@@ -1,6 +1,6 @@
-﻿package uz.anncorp.qurai.desktop
+package uz.anncorp.qurai.desktop
 
-import androidx.compose.material3.MaterialTheme
+import uz.anncorp.qurai.ui.theme.QuraiTheme
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.res.loadImageBitmap
 import androidx.compose.ui.res.useResource

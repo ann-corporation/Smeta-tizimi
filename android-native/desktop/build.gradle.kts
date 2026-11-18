@@ -1,4 +1,4 @@
-﻿import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -36,6 +36,7 @@ tasks.named("compileKotlin") { dependsOn(genConfig) }
 
 dependencies {
     implementation(project(":shared"))
+    implementation(project(":ui-common"))
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
     implementation(libs.kotlinx.coroutines.swing)
