@@ -65,6 +65,7 @@ const KODLAR: Record<string, [number, string]> = {
   TAQDIM_ALOQA_YOQ: [404, 'Faol aloqa topilmadi.'], TAQDIM_SHAXSIY: [400, 'Shaxsiy fayl taqdim qilinmaydi: avval kompaniya diskiga ko‘chiring.'], TAQDIM_BOSH: [400, 'Taqdim qilinadigan fayl topilmadi.'], TAQDIM_KO_P: [413, 'Papkada 200 tadan ko‘p fayl bor: kichikroq papka tanlang.'], TAQDIM_TOPILMADI: [404, 'Taqdim topilmadi.'], TAQDIMDA: [409, 'Fayl taqdim qilingan: avval taqdimni qaytaring.'],
   YUKLA_YAROQSIZ: [400, 'Yuklash sessiyasi yaroqsiz yoki muddati tugagan.'], QISM_NOTOGRI: [400, 'Qism hajmi yoki raqami noto‘g‘ri.'], QISMLAR_YETMAYDI: [400, 'Barcha qismlar yuborilmagan.'], SHA_MOS_EMAS: [422, 'Fayl butunligi tekshiruvidan o‘tmadi. Qayta yuklang.'], HAJM_MOS_EMAS: [422, 'Yuklangan hajm e‘lon qilinganiga mos emas. Qayta yuklang.'],
   EMPTY_FILE: [400, 'Fayl bo‘sh.'], FILE_TOO_LARGE: [413, 'Fayl juda katta.'], MIME_REJECTED: [415, 'Bu turdagi faylni yuklab bo‘lmaydi.'],
+  YETIM_EMAS: [409, 'Fayl allaqachon biriktirilgan: sahifani yangilang.'], LOYIHA_KERAK: [400, 'Obyekt yoki loyihani tanlang.'], LOYIHA_TOPILMADI: [404, 'Loyiha topilmadi.'], OBYEKT_TOPILMADI: [404, 'Obyekt topilmadi.'], LOYIHA_MOS_EMAS: [400, 'Obyekt tanlangan loyihaga tegishli emas.'],
 };
 export function rpcXato(res: { httpOk: boolean; body: any; raw: string }): Response {
   const code = String(res.body?.code || (res.httpOk ? 'XATO' : 'RPC_XATO'));
