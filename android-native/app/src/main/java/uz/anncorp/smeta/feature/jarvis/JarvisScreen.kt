@@ -68,6 +68,10 @@ import uz.anncorp.smeta.core.data.JarvisRepository
 import uz.anncorp.smeta.core.data.JarvisResult
 import uz.anncorp.smeta.core.data.WorkContext
 import uz.anncorp.smeta.core.ui.WorkTopBar
+import uz.anncorp.qurai.ui.screens.QBubble
+import uz.anncorp.qurai.ui.screens.QChatItem
+import uz.anncorp.qurai.ui.screens.QJarvisChat
+import uz.anncorp.qurai.ui.screens.QJarvisTexts
 import java.time.OffsetDateTime
 import java.util.UUID
 import javax.inject.Inject
@@ -182,97 +186,42 @@ class JarvisViewModel @Inject constructor(private val repo: JarvisRepository, pr
 fun JarvisScreen(onBack: () -> Unit, vm: JarvisViewModel = hiltViewModel()) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     var text by rememberSaveable { mutableStateOf("") }
-    val list = rememberLazyListState()
     val owner = LocalLifecycleOwner.current
-    // Refresh on open and poll ~5 s only while the screen is visible (STARTED) — the web and the app show the same server chats.
+    // Refresh on open and poll ~5 s only while the screen is visible (STARTED): the web and the app show the same server chats.
     LaunchedEffect(owner) { owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { while (true) { vm.refresh(); delay(POLL_MS) } } }
-    LaunchedEffect(ui.bubbles.size, ui.busy) { if (ui.bubbles.isNotEmpty()) list.animateScrollToItem(ui.bubbles.size) }
-    val send = { val t = text; text = ""; vm.ask(t) }
+    val objName by vm.objectName.collectAsStateWithLifecycle()
+    val budgetTitle = stringResource(R.string.ja_budget_title)
+    val budgetBody = stringResource(R.string.ja_budget_body)
+    val budgetHint = stringResource(R.string.ja_budget_hint)
+    val netErr = stringResource(R.string.err_network)
+    val srvErr = stringResource(R.string.err_server)
+    val bubbles = ui.bubbles.map { b ->
+        when (b) {
+            is Bubble.Mine -> QBubble.Mine(b.text)
+            is Bubble.Jarvis -> QBubble.Jarvis(b.text)
+            is Bubble.Budget -> QBubble.Budget(budgetTitle, b.message ?: budgetBody, budgetHint)
+            is Bubble.Problem -> QBubble.Problem(b.message?.takeIf { b.kind != Bubble.Kind.NETWORK } ?: if (b.kind == Bubble.Kind.NETWORK) netErr else srvErr)
+        }
+    }
+    val q1 = stringResource(if (vm.scoped) R.string.ja_q_money_obj_text else R.string.ja_q_money_text)
+    val q2 = stringResource(R.string.ja_q_today_text)
+    val q3 = stringResource(R.string.ja_q_fact_text)
+    val texts = QJarvisTexts(
+        title = stringResource(R.string.mod_jarvis), welcome = stringResource(R.string.ja_welcome), hint = stringResource(R.string.ja_hint), thinking = stringResource(R.string.ja_thinking),
+        input = stringResource(R.string.ja_input), send = stringResource(R.string.ja_send), newChat = stringResource(R.string.ja_new_chat), chats = stringResource(R.string.ja_chats, ui.chats.size).substringBefore(" ("),
+        noChats = stringResource(R.string.ja_chats_empty),
+    )
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
         WorkTopBar(stringResource(R.string.mod_jarvis), onBack)
-        val objName by vm.objectName.collectAsStateWithLifecycle()
-        if (vm.scoped) Text(
-            stringResource(R.string.ja_object_scope) + (objName?.let { ": $it" } ?: ""),
-            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        QJarvisChat(
+            bubbles, ui.busy, text, { text = it }, { val t = text; text = ""; vm.ask(t) },
+            texts = texts, maxInput = JarvisRepository.MAX_QUESTION,
+            scope = if (vm.scoped) stringResource(R.string.ja_object_scope) + (objName?.let { ": $it" } ?: "") else null,
+            quick = listOf(stringResource(R.string.ja_q_money) to q1, stringResource(R.string.ja_q_today) to q2, stringResource(R.string.ja_q_fact) to q3), onQuick = { vm.ask(it) },
+            chats = ui.chats.map { QChatItem(it.id, it.title) }, activeChat = ui.chatId, showChats = ui.showList,
+            onToggleChats = { vm.toggleList() }, onNewChat = { vm.newChat() }, onOpenChat = { qc -> ui.chats.firstOrNull { it.id == qc.id }?.let { vm.open(it) } },
         )
-        Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SuggestionChip(onClick = { vm.newChat() }, label = { Text(stringResource(R.string.ja_new_chat)) })
-            SuggestionChip(onClick = { vm.toggleList() }, label = { Text(stringResource(R.string.ja_chats, ui.chats.size)) })
-        }
-        if (ui.showList) {
-            LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (ui.chats.isEmpty()) item { Text(stringResource(R.string.ja_chats_empty), color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                items(ui.chats) { c ->
-                    Surface(color = if (c.id == ui.chatId) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier.fillMaxWidth().clickable { vm.open(c) }) {
-                        Text(c.title.ifBlank { "—" }, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(12.dp), maxLines = 2)
-                    }
-                }
-            }
-        } else LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = list, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (ui.bubbles.isEmpty()) item {
-                Column(Modifier.fillMaxWidth().padding(vertical = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(stringResource(R.string.ja_welcome), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
-                    Spacer(Modifier.height(6.dp))
-                    Text(stringResource(R.string.ja_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            items(ui.bubbles) { b -> BubbleView(b) }
-            if (ui.busy) item {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                    Text(stringResource(R.string.ja_thinking), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-        val q1 = stringResource(if (vm.scoped) R.string.ja_q_money_obj_text else R.string.ja_q_money_text)
-        val q2 = stringResource(R.string.ja_q_today_text)
-        val q3 = stringResource(R.string.ja_q_fact_text)
-        Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SuggestionChip(onClick = { vm.ask(q1) }, enabled = !ui.busy, label = { Text(stringResource(R.string.ja_q_money)) })
-            SuggestionChip(onClick = { vm.ask(q2) }, enabled = !ui.busy, label = { Text(stringResource(R.string.ja_q_today)) })
-            SuggestionChip(onClick = { vm.ask(q3) }, enabled = !ui.busy, label = { Text(stringResource(R.string.ja_q_fact)) })
-        }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                text, { text = it.take(JarvisRepository.MAX_QUESTION) }, Modifier.weight(1f), placeholder = { Text(stringResource(R.string.ja_input)) }, maxLines = 4,
-                shape = MaterialTheme.shapes.large, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-            )
-            IconButton(onClick = send, enabled = text.isNotBlank() && !ui.busy) {
-                Icon(Icons.Filled.Send, contentDescription = stringResource(R.string.ja_send), tint = if (text.isNotBlank() && !ui.busy) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
     }
 }
 
 private const val POLL_MS = 5_000L
-@Composable
-private fun BubbleView(b: Bubble) {
-    when (b) {
-        is Bubble.Mine -> Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-            Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.large, modifier = Modifier.widthIn(max = 300.dp)) {
-                Text(b.text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.padding(12.dp))
-            }
-        }
-        is Bubble.Jarvis -> Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
-            Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.large, modifier = Modifier.widthIn(max = 340.dp)) {
-                Column(Modifier.padding(12.dp)) {
-                    Text(b.text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-                }
-            }
-        }
-        is Bubble.Budget -> Surface(color = MaterialTheme.colorScheme.errorContainer, shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(14.dp)) {
-                Text(stringResource(R.string.ja_budget_title), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onErrorContainer)
-                Text(b.message ?: stringResource(R.string.ja_budget_body), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.padding(top = 4.dp))
-                Text(stringResource(R.string.ja_budget_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.padding(top = 6.dp))
-            }
-        }
-        is Bubble.Problem -> Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
-            Text(
-                b.message?.takeIf { b.kind != Bubble.Kind.NETWORK } ?: stringResource(if (b.kind == Bubble.Kind.NETWORK) R.string.err_network else R.string.err_server),
-                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(12.dp),
-            )
-        }
-    }
-}

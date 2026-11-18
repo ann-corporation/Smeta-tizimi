@@ -157,15 +157,15 @@ private fun QIconButtonSmall(icon: ImageVector, description: String, onClick: ()
 @Composable
 fun <O> QSelect(
     current: O?, options: List<O>, label: (O) -> String, onPick: (O) -> Unit, modifier: Modifier = Modifier,
-    placeholder: String = "Tanlang", title: String? = null, enabled: Boolean = true, minWidth: Int = 160,
+    placeholder: String = "Tanlang", title: String? = null, enabled: Boolean = true, minWidth: Int = 160, fill: Boolean = false,
 ) {
     val c = Q.colors
     var open by remember { mutableStateOf(false) }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         if (title != null) Text(title, style = Q.type.labelMedium, color = c.textDim)
-        Box {
+        Box(if (fill) Modifier.fillMaxWidth() else Modifier) {
             Row(
-                Modifier.widthIn(min = minWant(minWidth)).heightIn(min = Q.layout.control).background(c.surface2, Q.shape.small).border(BorderStroke(1.dp, c.border), Q.shape.small)
+                Modifier.let { if (fill) it.fillMaxWidth() else it }.widthIn(min = minWant(minWidth)).heightIn(min = Q.layout.control).background(c.surface2, Q.shape.small).border(BorderStroke(1.dp, c.border), Q.shape.small)
                     .clickable(enabled = enabled) { open = true }.padding(horizontal = QuraiTokens.SPACE_3.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(QuraiTokens.SPACE_2.dp),
             ) {

@@ -41,6 +41,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import uz.anncorp.smeta.R
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.size
+import uz.anncorp.qurai.ui.components.QButton
+import uz.anncorp.qurai.ui.components.QButtonKind
+import uz.anncorp.qurai.ui.components.QCard
 import uz.anncorp.smeta.core.data.MoneyDisplay
 import uz.anncorp.smeta.core.data.formatMoney
 import uz.anncorp.smeta.core.data.formatMoneyShort
@@ -96,24 +101,20 @@ fun UpdatedLine(ms: Long?, modifier: Modifier = Modifier) {
 
 @Composable
 fun CenterMessage(icon: ImageVector?, title: String, body: String? = null, actionLabel: String? = null, modifier: Modifier = Modifier, secondaryLabel: String? = null, onSecondary: (() -> Unit)? = null, onAction: (() -> Unit)? = null) {
-    Column(modifier.fillMaxSize().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        if (icon != null) { Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(40.dp).height(40.dp)); Spacer(Modifier.height(12.dp)) }
+    Column(modifier.fillMaxSize().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)) {
+        if (icon != null) Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(36.dp))
         Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center)
-        if (body != null) { Spacer(Modifier.height(6.dp)); Text(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center) }
-        if (actionLabel != null && onAction != null) { Spacer(Modifier.height(12.dp)); Button(onClick = onAction, modifier = Modifier.heightIn(min = TouchTarget)) { Text(actionLabel) } }
-        if (secondaryLabel != null && onSecondary != null) { Spacer(Modifier.height(4.dp)); TextButton(onClick = onSecondary, modifier = Modifier.heightIn(min = TouchTarget)) { Text(secondaryLabel) } }
+        if (body != null) Text(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+        if (actionLabel != null && onAction != null) QButton(actionLabel, onAction, kind = QButtonKind.Primary)
+        if (secondaryLabel != null && onSecondary != null) QButton(secondaryLabel, onSecondary, kind = QButtonKind.Ghost)
     }
 }
 
+/** The website's `.fz-card` (shared QCard): surface, 1dp border, radius-md. */
 @Composable
 fun WorkCard(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, content: @Composable () -> Unit) {
-    val colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
-    val shape = RoundedCornerShape(16.dp)
-    val border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-    if (onClick != null) Card(onClick = onClick, modifier = modifier.fillMaxWidth(), colors = colors, shape = shape, border = border) { content() }
-    else Card(modifier = modifier.fillMaxWidth(), colors = colors, shape = shape, border = border) { content() }
+    QCard(modifier.fillMaxWidth(), onClick = onClick, padding = PaddingValues(0.dp), content = content)
 }
-
 /** Money with the Uzbek grouping, em dash when unknown. */
 @Composable
 fun MoneyLine(label: String, value: Double?, emphasize: Boolean = false, color: Color = MaterialTheme.colorScheme.onSurface) {

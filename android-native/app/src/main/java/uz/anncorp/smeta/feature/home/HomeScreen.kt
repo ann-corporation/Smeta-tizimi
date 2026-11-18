@@ -52,6 +52,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import uz.anncorp.smeta.R
+import androidx.compose.runtime.remember
+import uz.anncorp.qurai.ui.icons.QIcons
+import uz.anncorp.qurai.ui.nav.QBottomNav
+import uz.anncorp.qurai.ui.nav.QNav
+import uz.anncorp.qurai.ui.nav.QNavSection
+import androidx.compose.foundation.layout.navigationBarsPadding
 import uz.anncorp.smeta.core.data.NativeTarget
 import uz.anncorp.smeta.core.data.isBossRole
 import uz.anncorp.smeta.core.data.Workplace
@@ -69,6 +75,14 @@ import uz.anncorp.smeta.feature.work.BannerViewModel
 import uz.anncorp.smeta.feature.work.ObjectsScreen
 
 private const val OMBOR_TAB = 5
+
+/** Bottom bar = sections of the ONE navigation model (QNav: Bugun, Obyekt, Hujjatlar ...) + "Yana" (hub of all modules) + Profile. */
+private fun navSections(): List<QNavSection> {
+    fun s(id: String) = QNav.sections.first { it.id == id }
+    return listOf(s("bugun"), s("obyekt"), s("hujjatlar"), QNavSection("yana", "Yana", QIcons.Menu, emptyList()), QNavSection("profil", "Profil", QIcons.User, emptyList()))
+}
+private fun tabOfSection(id: String): Int = when (id) { "bugun" -> 3; "obyekt" -> 1; "hujjatlar" -> 2; "profil" -> 4; else -> 0 }
+private fun sectionOfTab(tab: Int): String = when (tab) { 3 -> "bugun"; 1 -> "obyekt"; 2 -> "hujjatlar"; 4 -> "profil"; else -> "yana" }
 
 private data class Tab(@StringRes val label: Int, val icon: ImageVector)
 
@@ -113,16 +127,14 @@ fun HomeScreen(
         topBar = { Column { WorkplaceBar(state.selected, state.workplaces.size > 1, workspace, onCabinets = { cabinetSheet = true }) { sheet = true }; UpdateBanner() } },
         // With the keyboard open the bar would sit under it and push the content below the keyboard (Ombor command field was hidden): drop it, the Scaffold then pads for the IME.
         bottomBar = {
-            if (androidx.compose.foundation.layout.WindowInsets.Companion.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current) == 0) NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
-                Tabs.forEachIndexed { i, t ->
-                    NavigationBarItem(
-                        selected = tab == i || (i == 0 && tab == OMBOR_TAB), onClick = { tab = i },
-                        icon = { Icon(t.icon, contentDescription = null) },
-                        label = { Text(stringResource(t.label), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall) },
-                    )
-                }
-            }
-        },
+            if (androidx.compose.foundation.layout.WindowInsets.Companion.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current) == 0) {
+                // The website's work places (same names and order, shared QNav) + "Yana" (all modules) + Profile, in the shared bottom bar.
+                val sections = remember { navSections() }
+                QBottomNav(
+                    sections, selectedSection = sectionOfTab(tab), onSection = { tab = tabOfSection(it.id) },
+                    modifier = Modifier.navigationBarsPadding(), onMore = { tab = 0 },
+                )
+            }        },
     ) { padding ->
         Box(Modifier.padding(padding).imePadding().fillMaxSize()) {
             when {
