@@ -23,7 +23,7 @@ enum class F2Status(val code: String) {
 
 @kotlinx.serialization.Serializable
 data class F2Act(
-    val id: Long, val obyektId: Long, val raqam: String?, val oy: String?, val status: String?, val rows: Int?, val unpriced: Int?, val negativeRows: Int?, val hasDiff: Boolean,
+    val id: Long, val obyektId: Long, val raqam: String?, val oy: String?, val status: String?, val rows: Int?, val unpriced: Int?, val negativeRows: Int?, val hasDiff: Boolean, val version: Int? = null,
 ) {
     val state: F2Status get() = F2Status.of(status)
 }
@@ -45,7 +45,7 @@ fun parseF2List(body: JsonElement?): List<F2Act>? {
             (o["oy"] as? JsonPrimitive)?.takeIf { it.isString }?.content,
             (o["lifecycle_status"] as? JsonPrimitive)?.takeIf { it.isString }?.content,
             o["qator_soni"].num()?.toInt(), o["narxsiz_qator"].num()?.toInt(), o["manfiy_qator"].num()?.toInt(),
-            (o["farq"].num() ?: 0.0).let { kotlin.math.abs(it) > 1.0 },
+            (o["farq"].num() ?: 0.0).let { kotlin.math.abs(it) > 1.0 }, o["versiya"].num()?.toInt(),
         )
     }
 }

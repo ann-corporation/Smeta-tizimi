@@ -1,14 +1,15 @@
-package uz.anncorp.qurai.desktop
+﻿package uz.anncorp.qurai.desktop
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.res.loadImageBitmap
+import androidx.compose.ui.res.useResource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -17,7 +18,6 @@ import androidx.compose.ui.window.rememberWindowState
 import kotlinx.coroutines.delay
 import uz.anncorp.smeta.core.data.SessionCheck
 
-private val Scheme = lightColorScheme(primary = Color(0xFF1B6B4A), onPrimary = Color.White, secondary = Color(0xFF3D5A80))
 
 private enum class Stage { Boot, Login, Main }
 
@@ -26,8 +26,8 @@ fun main(args: Array<String>) {
     Log.i("start v${BuildInfo.VERSION} smoke=$smoke java=${System.getProperty("java.version")} os=${System.getProperty("os.name")}")
     val services = Services()
     application {
-        Window(onCloseRequest = { Log.i("exit"); exitApplication() }, title = "QURAI", state = rememberWindowState(size = DpSize(1360.dp, 820.dp)), onPreviewKeyEvent = { Shortcuts.dispatch(it) }) {
-            MaterialTheme(colorScheme = Scheme) { Root(services) }
+        Window(icon = BitmapPainter(useResource("qurai-icon.png", ::loadImageBitmap)), onCloseRequest = { Log.i("exit"); exitApplication() }, title = "QURAI", state = rememberWindowState(size = DpSize(1360.dp, 820.dp)), onPreviewKeyEvent = { Shortcuts.dispatch(it) }) {
+            QuraiTheme { Root(services) }
             if (smoke) LaunchedEffect(Unit) {
                 delay(6_000)
                 Log.i("smoke: window alive after 6s, exiting")

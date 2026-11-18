@@ -104,4 +104,5 @@
     <string name="p10_nz_msg_remark">Введите замечание (минимум 3 символа).</string>
     <string name="p10_nz_msg_no_right">У вас нет права на это решение.</string>
     <string name="p10_nz_msg_state">Состояние предъявления изменилось. Обновите список.</string>
+    <string name="p16_stale_banner">Офлайн: списки из копии от %1$s. Для записи и подтверждения подключитесь к интернету.</string>
 </resources>
