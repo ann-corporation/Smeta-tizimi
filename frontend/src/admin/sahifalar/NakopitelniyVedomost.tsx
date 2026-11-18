@@ -37,6 +37,7 @@ import { toast } from '../../umumiy/ui/Toast';
 import { forma3Tayyorgarlik } from '../../lib/pto-markazi/forma3-tayyorgarlik';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { diskJoy } from '../../lib/disk-joy';
+type BerDisk = Parameters<typeof hujjatTokenBilan>[0]['disk'];
 import type { SmetaModel } from '../../lib/smeta-model';
 import { validatePtoHierarchy, type PtoF3LineageInput, type PtoLineageScope } from '../../lib/pto-document-lineage';
 import { f3CertifiedHajm, f3CertifiedSources, f2OyKesimi } from '../../lib/pto-document-lineage/f3-sources';
@@ -634,7 +635,7 @@ function ShartnomaSvodBolimi({ companyId, shartnomaId, tashkilot }: { companyId:
   const sv = useMemo(() => (sh ? shartnomaSvodi(sh) : null), [sh]);
   const sverka = useMemo(() => (sh ? sverkaHisobla(sh, { dan: dan || null, gacha: gacha || null }) : null), [sh, dan, gacha]);
 
-  async function ber(h: { bytes: Uint8Array; faylNomi: string } | null, hujjat: string, sabab: string, disk?: (x: { bytes: Uint8Array; faylNomi: string }) => Parameters<typeof hujjatTokenBilan>[0]['disk']) {
+  async function ber(h: { bytes: Uint8Array; faylNomi: string } | null, hujjat: string, sabab: string, disk?: (x: { bytes: Uint8Array; faylNomi: string }) => BerDisk) {
     if (!h) return;
     const r = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat, sabab, ...(disk ? { disk: disk(h) } : {}) }, () => downloadBlob(h.bytes, h.faylNomi));
     if (!r.ok) { toast(r.xabar, 'danger'); return; }
