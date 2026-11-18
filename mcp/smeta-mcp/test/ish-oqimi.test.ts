@@ -107,7 +107,7 @@ describe('qoralamaTahrirYuki', () => {
     expect(t.yuk[1].raw_snapshot.qolTahrir).toEqual({ narx: true });
     expect(t.yuk[0].raw_snapshot.qolTahrir).toBeUndefined();
     // belgi yuk orqali qayta kelsa va faqat narx berilsa — hajm belgisi yo'qolmaydi
-    const mav2 = mav.map((m) => (m.qator_id === 3 && !m.raw_snapshot.manba_akt_qator_id ? { ...m, certified_quantity: 6, raw_snapshot: { ...m.raw_snapshot, qolTahrir: { hajm: true } } } : m));
+    const mav2 = mav.map((m) => (m.qator_id === 3 && !m.raw_snapshot?.manba_akt_qator_id ? { ...m, certified_quantity: 6, raw_snapshot: { ...m.raw_snapshot, qolTahrir: { hajm: true } } } : m));
     const t2 = qoralamaTahrirYuki(mav2, { ozgartir: [{ qator_id: 3, narx: 11 }] });
     expect(t2.yuk[2].raw_snapshot.qolTahrir).toEqual({ hajm: true, narx: true });
   });
