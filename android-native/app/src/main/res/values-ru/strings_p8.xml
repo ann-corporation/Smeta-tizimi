@@ -137,6 +137,13 @@
     <string name="ombor_cmd_unit">Единица</string>
     <string name="ombor_cmd_object">Объект</string>
     <string name="ombor_cmd_party">Кому / от кого: %1$s</string>
+    <string name="ombor_cmd_price">Цена (необязательно)</string>
+    <string name="ombor_cmd_price_ask">Цена известна? (можно пропустить)</string>
+    <string name="ombor_cmd_price_skip">Пропустить</string>
+    <string name="ombor_cmd_price_mode_ask">Цена с НДС или без НДС? Выберите.</string>
+    <string name="ombor_cmd_qqs_in">С НДС</string>
+    <string name="ombor_cmd_qqs_ex">Без НДС</string>
+    <string name="ombor_cmd_price_both">Без НДС: %1$s · С НДС: %2$s</string>
     <string name="ombor_cmd_save">Сохранить</string>
     <string name="ombor_cmd_edit">Править</string>
     <string name="ombor_cmd_balance_none">Остаток такого материала не найден</string>

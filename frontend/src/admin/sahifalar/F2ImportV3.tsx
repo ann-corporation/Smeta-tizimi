@@ -72,6 +72,7 @@ import { abcXato, ishAbcOchir, ishAbcSaqla, resursIshZamena, type ResursIshInput
 import { katAniqla } from '../../lib/ish-abc';
 import { BOSH_QADAMLAR, F2YozishOynasi, type Qadam, type QadamHolat, type QadamId } from './F2YozishOynasi';
 import type { ModalRejali } from './F2AddReplModal';
+import { resursToldir, type AvtoResursQator } from '../../lib/f2-moslash-v3/resursToldir';
 import { BOLIM_ILDIZ, SMETASIZ_RZ, resursTuri, type OchirishBuyruq, ijniAlmashtir, vaqtinchami, rejaliniYoz, rejaliniYozilganlardanTozala, type YozilganQator, rejaliOchir, rejaliBuyruqQosh, otadiganResurslar, rejaliQatorlar, rejaliSurish, rejaliSurishMumkin, yangiTempIdlar, type RejaliBuyruq, type RejaliYaratish } from '../../lib/f2-moslash-v3/rejali';
 import { sbT2IshResurslarBilanYarat, sbT2QoshimchaIshYarat, sbT2ResursBolaQosh, sbT2ZamenaAlmashtirishBelgila, sbT2ZamenaIshYarat } from '../../api/t2-additional-replacement';
 import { faylBaytlari, faylExplorerOl } from '../../api/t2-fayl';
@@ -178,6 +179,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [rows, setRows] = useState<T2Qator[]>([]);
   // Rejali (hali yozilmagan) qo'shimcha/zamena/resurslar — egasi 2026-10-20: har birida kutmaslik, oxirida bittada yozish.
   const [rejali, setRejali] = useState<RejaliBuyruq[]>([]);
+  const avtoResurslar = useRef<AvtoResursQator[]>([]);
   const rejaliRef = useRef(rejali);
   rejaliRef.current = rejali;
   const [davomEt, setDavomEt] = useState(false);
@@ -783,6 +785,8 @@ function Sessiya({ companyId }: { companyId: number }) {
     }
     catch (e) { return { rows: [], izohlar: [] as string[], error: e instanceof Error ? e.message : 'Tekshiruv kerak.' }; }
   }, [yozish, tkmQosh, raw]);
+  /** Aktdagi ishlarning resurslari tekshiruvi (yozishdan oldin ko'rinadi; yozishda yana tekshiriladi). */
+  const resursTekshiruv = useMemo(() => (payload && !payload.error && payload.rows.length ? resursToldir(payload.rows, raw.values()) : null), [payload, raw]);
   // FAKT rejimi: mavjud fakt (eski qatordagisi ham, faol vorisga yig'ilgan) — rejim yoqilganda o'qiladi.
   useEffect(() => {
     if (!faktRejim || !objectId) { setFaktMavjud(null); return; }
@@ -1304,6 +1308,11 @@ function Sessiya({ companyId }: { companyId: number }) {
     setBusy(true); setXato('');
     try {
       const r = await rejaliniYoz(rejaliRef.current, { yarat: rejaliYarat, versiya: otaVersiya,
+        bolalar: async (qid) => {
+          const o = await sbOqi<{ id: number; tartib: number | null }>({ jadval: 't2_qator', filtr: `obyekt_id=eq.${objectId}&ota_id=eq.${qid}`, ustunlar: 'id,tartib', limit: 2000 });
+          if (!o.ok) return [];
+          return [...(o.qatorlar ?? [])].sort((x, y) => (Number(x.tartib ?? 0) - Number(y.tartib ?? 0)) || x.id - y.id).map((x) => x.id);
+        },
         progress: (i, n) => qadam('ozgarish', 'ishlayapti', `${i}/${n}`) });
       if (r.map.size && ijRef.current) {
         const yangiIj = ijniAlmashtir(ijRef.current, r.map);
@@ -1398,6 +1407,14 @@ function Sessiya({ companyId }: { companyId: number }) {
       setDavomEt(true); // smeta yangilangach akt davom etadi
       return;
     }
+    // Ish (BL) aktga kirsa, resurslari ham kirishi shart: yangi (qo'shimcha/zamena) ishning tushmagan bolalari avtomatik qo'shiladi,
+    // vaqtinchalik id yoki hajmi aniqlanmagan resurs bo'lsa - yozishdan OLDIN ro'yxat bilan to'xtatiladi (jim tashlanmaydi).
+    const toldir = resursToldir(payload.rows, raw.values());
+    if (toldir.bloklovchi.length) {
+      qadam('tekshiruv', 'xato', `Resurslar F2 ga tushmaydi - yozish toxtatildi: ${toldir.bloklovchi.join(' | ')}`);
+      return;
+    }
+    avtoResurslar.current = toldir.qoshiladi;
     setJarayon((old) => (old ?? BOSH_QADAMLAR()).map((q) => (q.id === 'ozgarish' && (q.holat === 'kutish' || q.holat === 'ishlayapti') ? (ochirildi ? { ...q, holat: 'tayyor', izoh: `${ochirildi} ${t('ta qator o‘chirildi')}` } : { ...q, holat: 'otkazildi', izoh: t('Qo‘shimcha/zamena yo‘q') }) : q)));
     setBusy(true);
     try {
@@ -1450,11 +1467,13 @@ function Sessiya({ companyId }: { companyId: number }) {
           ...(asl !== n.uid ? { taqsimHajm: n.hajm, taqsimSumma: n.summa ?? null } : {}) });
         manba.set(id, a);
       }
-      const qatorlar = payload.rows.map((q) => ({
+      const qatorlar = [...payload.rows.map((q) => ({
           ...q, rawSnapshot: { manba: 'f2_v3', hujjat_id: docId, fayl: akt.fayl, varaq: akt.varaq, fayl_sha256: faylSha || undefined, davr, qatorlar: manba.get(q.qatorId),
             import_job_id: draft.server?.jobId, partial: yozish.qolgan.length > 0,
             unresolved_count: yozish.qolgan.length },
-        }));
+        })),
+        // F2 hujjatida mos qatori yo'q, lekin aktdagi yangi ishning resursi: norma x ish hajmi, smeta narxi (jim tushib qolmasin).
+        ...avtoResurslar.current.map(({ otaQatorId, manba: _m, ...q }) => ({ ...q, rawSnapshot: { manba: 'avto_resurs', ota_qator_id: otaQatorId, hujjat_id: docId, davr } }))];
       const r = mavjudQoralama
         // PR #294 shartnomasi: server har saqlashda versiyani oshiradi — keyingi saqlash qaytgan versiya bilan (eski serverda versiya qaytmaydi).
         ? await sbT2F2QoralamaYangila({ kompaniyaId: companyId, aktId: mavjudQoralama.id, kutilganVersiya: Math.max(qoralamaVersiya.current.get(mavjudQoralama.id) ?? 0, mavjudQoralama.versiya), operationId: yangiOperationId(), qatorlar })
@@ -1480,6 +1499,8 @@ function Sessiya({ companyId }: { companyId: number }) {
         }
       }
       // Avto podval (server, 20261221810000): smeta podvali topilmasa qulf yo'q — faqat ogohlantirish.
+      { const rt = Number((r as { resurs_tushgan_soni?: unknown }).resurs_tushgan_soni ?? 0);
+        if (rt > 0) podvalIzoh += ` ${t('DIQQAT: {n} ta resurs qatori F2 ga tushmagan (ish qatori bor, resurslari yo‘q) — summa to‘liq emas, yuborishdan oldin «F2 tayyorlash»da qo‘shing.', { n: String(rt) })}`; }
       if (r.podval?.bor === false && r.podval.ogohlantirish) podvalIzoh += ` ${t('Diqqat: obyektning smeta podvali topilmadi, nakrutka foizlari shartnoma yoki standart stavka boʻyicha hisoblanadi.')}`;
       setTekshiruv((v) => v + 1);
       qadam('akt', 'tayyor', `#${r.akt_id ?? '?'} · ${payload.rows.length} ${t('qator')}`);
@@ -1513,6 +1534,13 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (hisobot && (hisobot.stat.shubhali > 0 || hisobot.stat.xato > 0)) tekshiruvBandlari.push({ id: 'hisobot', daraja: hisobot.stat.xato > 0 ? 'bad' : 'warn',
       matn: t('Moslash hisoboti: shubhali {s}, xato {x} — PTO tekshirmaguncha jim yozilmasin', { s: hisobot.stat.shubhali, x: hisobot.stat.xato }), amal: { nom: t('Ko‘rsatish'), run: sakra('Moslash hisoboti') } });
     if (yozish && yozish.qolgan.length > 0) tekshiruvBandlari.push({ id: 'qolgan', daraja: 'warn', matn: t('Bog‘lanmagan qatorlar aktga kirmaydi: {n}', { n: yozish.qolgan.length }), amal: { nom: t('Qatorga o‘tish'), run: () => { sakra('F2 akt')(); keyingiHalRef.current?.(); } } });
+    if (resursTekshiruv) {
+      // Saqlanmagan (rejali) qo'shimchalar yozilgach vaqtinchalik id lar haqiqiyga o'tadi — shu paytgacha bloklovchi band chiqmaydi.
+      const bad = rejali.length ? [] : resursTekshiruv.bloklovchi;
+      if (bad.length) tekshiruvBandlari.push({ id: 'resurs-blok', daraja: 'bad', matn: `Ish resurslari F2 ga tushmaydi: ${bad.join(' | ')}` });
+      const ogoh = [...(resursTekshiruv.qoshiladi.length ? [`${resursTekshiruv.qoshiladi.length} ta yangi ish resursi hujjatda yo'q - norma x hajm, smeta narxida avtomatik qo'shiladi (avto_resurs)`] : []), ...resursTekshiruv.ogohlantirish];
+      if (ogoh.length) tekshiruvBandlari.push({ id: 'resurs-ogoh', daraja: 'warn', matn: ogoh.join(' | ') });
+    }
     if (taklifSoni > 0) tekshiruvBandlari.push({ id: 'taklif', daraja: 'warn', matn: t('Tasdiq kutayotgan takliflar (aktga faqat tasdiqlanganlar kiradi): {n}', { n: taklifSoni }), amal: { nom: t('Qatorga o‘tish'), run: () => { sakra('F2 akt')(); keyingiHalRef.current?.(); } } });
     if (moslikOgoh.length > 0) tekshiruvBandlari.push({ id: 'moslik', daraja: 'warn', matn: t('Ish–material muvofiqligi: ogohlantirishlar {n} (bloklamaydi)', { n: moslikOgoh.length }), amal: { nom: t('Ko‘rsatish'), run: sakra('Ish va material hajmi muvofiqligi') } });
     if (oshishlar.length > 0) tekshiruvBandlari.push({ id: 'oshish', daraja: 'warn', matn: t('Smeta qoldig‘idan oshadigan qatorlar: {n}', { n: oshishlar.length }), amal: { nom: t('Ko‘rsatish'), run: sakra('Dublikat hajm nazorati') } });

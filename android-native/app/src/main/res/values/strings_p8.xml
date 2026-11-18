@@ -132,6 +132,13 @@
     <string name="ombor_cmd_unit">Birlik</string>
     <string name="ombor_cmd_object">Obyekt</string>
     <string name="ombor_cmd_party">Kimga / kimdan: %1$s</string>
+    <string name="ombor_cmd_price">Narx (ixtiyoriy)</string>
+    <string name="ombor_cmd_price_ask">Narxi ma’lummi? (o‘tkazib yuborish mumkin)</string>
+    <string name="ombor_cmd_price_skip">O‘tkazib yuborish</string>
+    <string name="ombor_cmd_price_mode_ask">Narx QQS bilanmi yoki QQS sizmi? Tanlang.</string>
+    <string name="ombor_cmd_qqs_in">QQS bilan</string>
+    <string name="ombor_cmd_qqs_ex">QQS siz</string>
+    <string name="ombor_cmd_price_both">QQS siz: %1$s · QQS bilan: %2$s</string>
     <string name="ombor_cmd_save">Saqlash</string>
     <string name="ombor_cmd_edit">Tahrirlash</string>
     <string name="ombor_cmd_balance_none">Bunday material qoldig\'i topilmadi</string>

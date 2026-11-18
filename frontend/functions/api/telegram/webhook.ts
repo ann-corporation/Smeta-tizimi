@@ -14,7 +14,7 @@ import {
 import { type BotJavob, type Callback, type TgRasm, bugunJavobi, fotoAmali, jarvisJavobi, kunlikAmali, obyektlarJavobi, yordamMatni } from '../../_shared/telegram-bot';
 import { callbackIshlaV2, faktTaklif, fotoQidiruv, menyuTugmasi, qidiruvKonteksti } from '../../_shared/telegram-bot-oqim';
 import { startTugmalari } from '../../_shared/telegram-tugma';
-import { omborBuyruq, omborCallback } from '../../_shared/telegram-ombor';
+import { omborBuyruq, omborCallback, omborSavolCallback } from '../../_shared/telegram-ombor';
 import { NONCE_PREFIKS, kalitYaroqli, nonceYaroqli, xesh, yoqilgan } from '../../_shared/kirish-emailsiz';
 import { type KanalEnv, kanalCallback, kanalCallbackmi, kanalTahrirJavobi, tahrirBelgisi } from '../../_shared/telegram-kanal';
 import { menUsernameQatori, taklifJavobi, usernameCallback, usernameJavobi, usernameTaklifi } from '../../_shared/telegram-username';
@@ -66,7 +66,9 @@ async function callbackAjrat(env: TgEnv, cb: Callback, tgId: number | undefined)
     if (k.tugmalarniOlibTashla && Number.isSafeInteger(cb.message?.message_id)) await tgApi(env, 'editMessageReplyMarkup', { chat_id: chat.id, message_id: cb.message?.message_id, reply_markup: { inline_keyboard: [] } });
     return k.amal;
   }
-  const r = typeof cb.data === 'string' && cb.data.startsWith('ob:')
+  const r = typeof cb.data === 'string' && cb.data.startsWith('os:')
+    ? await omborSavolCallback(env, a.foydalanuvchi_id, til, cb)   // OMBOR: aniqlovchi savol / QQS tugmalari (imzolangan token xabar matnida)
+    : typeof cb.data === 'string' && cb.data.startsWith('ob:')
     ? await omborCallback(env, a.foydalanuvchi_id, til, cb)   // OMBOR-OVOZ: tasdiq tokeni preview xabari matnida
     : await callbackIshlaV2(env, a.foydalanuvchi_id, til, cb, chat.id as number);
   await javobBer(r.toast || undefined);
@@ -187,6 +189,12 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
     case 'jarvis': await yubor(env, chatId, await jarvisJavobi(env, uid, til, b?.arg ?? '')); return 'jarvis';
     case 'kunlik': await yubor(env, chatId, await kunlikAmali(env, uid, til, b?.arg ?? '')); return 'kunlik';
     case 'fakt': await yubor(env, chatId, await faktTaklif(env, uid, til, b?.arg ?? '')); return 'fakt';
+    case 'hisobot': case 'qoldiq': case 'ostatka': {
+      // OMBOR: /hisobot o'tgan oy sement · /qoldiq 2026-11-01 — matn omborchi buyrug'i bilan bir xil yo'ldan (tahlil → kartochka) o'tadi.
+      const j = await omborBuyruq(env, uid, til, { matn: (b?.buyruq === 'hisobot' ? 'hisobot ' : 'qoldiq ') + (b?.arg ?? '') });
+      await yubor(env, chatId, j ?? { matn: tgT('Bu buyruq faqat omborchilar uchun.', til) });
+      return 'ombor_' + b?.buyruq;
+    }
     case 'yordam': case 'help':
       await xabarYubor(env, chatId, yordamMatni(til), { reply_markup: miniAppTugma(env, til) });
       return 'yordam';

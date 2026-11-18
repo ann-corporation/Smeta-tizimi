@@ -282,5 +282,6 @@
   "Ovozli buyruq faqat omborchilar uchun.": {
     "ru": "Голосовые команды доступны только кладовщикам.",
     "en": "Voice commands are for storekeepers only."
-  }
+  },
+  "Bu buyruq faqat omborchilar uchun.": { "ru": "Эта команда только для кладовщиков.", "en": "This command is for storekeepers only." }
 }

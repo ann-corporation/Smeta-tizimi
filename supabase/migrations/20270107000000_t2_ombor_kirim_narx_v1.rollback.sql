@@ -1,0 +1,3 @@
+-- Orqaga: yangi funksiyalarni olib tashlash (yozilgan narxlar ustunda qoladi — append-only jadval; ular hech narsani buzmaydi).
+DROP FUNCTION IF EXISTS public.t2_ombor_prixod_v2(bigint, bigint, bigint, text, text, numeric, date, text, text, text, text, numeric, uuid);
+DROP FUNCTION IF EXISTS public.t2_ombor_yozuv_v2(bigint, bigint, bigint, text, text, text, numeric, date, text, text, text, text, bigint, text, uuid, boolean, numeric);

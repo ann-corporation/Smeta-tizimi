@@ -21,7 +21,9 @@ import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.runtime.setValue
 import dagger.hilt.android.AndroidEntryPoint
 import uz.anncorp.smeta.core.data.AuthEvents
 import uz.anncorp.smeta.core.data.Prefs
@@ -41,7 +43,6 @@ import uz.anncorp.smeta.feature.work.FaktScreen
 import uz.anncorp.smeta.feature.work.ObjectCardScreen
 import uz.anncorp.smeta.feature.work.OutboxScreen
 import uz.anncorp.smeta.feature.work.ObjectsScreen
-import uz.anncorp.smeta.feature.web.WebModuleScreen
 import uz.anncorp.smeta.feature.jarvis.JarvisScreen
 import uz.anncorp.smeta.feature.rahbar.RahbarScreen
 import uz.anncorp.smeta.feature.smeta.SmetaBrowseScreen
@@ -57,6 +58,7 @@ import uz.anncorp.smeta.core.ui.WorkTopBar
 import android.net.Uri
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.layout.statusBarsPadding
 import javax.inject.Inject
 
@@ -84,6 +86,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Default language is Uzbek (Latin) whatever the phone's system language is (most phones here run English or Russian UI); only an explicit
+        // choice in Settings (uz / ru / en) changes it. Must run once an activity exists: AppCompat ignores the call before that (API 33+), and it
+        // persists the choice itself (autoStoreLocales). The platform recreates the activity once on the very first launch.
+        if (androidx.appcompat.app.AppCompatDelegate.getApplicationLocales().isEmpty) androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(androidx.core.os.LocaleListCompat.forLanguageTags("uz"))
         // B9: the status / navigation bars follow the APP theme from the very first frame (no light bar flash before Compose runs).
         val systemDark = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
         applyBars(when (prefs.theme.value) { ThemeMode.DARK -> true; ThemeMode.LIGHT -> false; ThemeMode.SYSTEM -> systemDark })
@@ -123,7 +129,9 @@ private const val APPROVAL = "approval/{id}"
 private const val PHOTO = "photo/{id}?naryad={naryad}"
 private const val SIGNUP = "signup"
 private const val INVITE = "invite"
-private const val WEB = "web?path={path}&title={title}"
+private const val MODUL = "modul/{code}"
+private const val PICK_SMETA = "pick/smeta"
+private const val PICK_F2 = "pick/f2"
 private const val PICK_FAKT = "pick/fakt"
 private const val PICK_PHOTO = "pick/photo"
 private const val JARVIS = "jarvis"
@@ -152,13 +160,30 @@ private const val NAZORAT = "nazorat"
 @Composable
 private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
     val nav = rememberNavController()
+    var jarvisEpoch by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    val here by nav.currentBackStackEntryAsState()
+    val route = here?.destination?.route.orEmpty()
     // Revoked/expired device or explicit sign-out: always back to Login with a clean stack.
     LaunchedEffect(Unit) {
         events.logout.collect {
             lock.reset()
+            jarvisEpoch++
             nav.navigate(LOGIN) { popUpTo(nav.graph.id) { inclusive = true }; launchSingleTop = true }
         }
     }
+    // Jarvis floating button: on every signed-in screen except where it would be in the way (start, sign-in, camera) or redundant (Jarvis itself).
+    val jarvisHidden = route.isEmpty() || route == SPLASH || route == LOGIN || route == SIGNUP || route == INVITE || route.startsWith("jarvis") || route.startsWith("photo/")
+    var fabHidden by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val fabScroll = androidx.compose.runtime.remember {
+        object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
+            override fun onPreScroll(available: androidx.compose.ui.geometry.Offset, source: androidx.compose.ui.input.nestedscroll.NestedScrollSource): androidx.compose.ui.geometry.Offset {
+                if (available.y < -8f) fabHidden = true else if (available.y > 8f) fabHidden = false
+                return androidx.compose.ui.geometry.Offset.Zero
+            }
+        }
+    }
+    LaunchedEffect(route) { fabHidden = false }
+    Box(androidx.compose.ui.Modifier.fillMaxSize().nestedScroll(fabScroll)) {
     NavHost(nav, startDestination = start) {
         composable(SPLASH) {
             SplashScreen(onRoute = { r ->
@@ -179,7 +204,6 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
             HomeScreen(
                 onOpenObject = { nav.navigate("object/$it") }, onOpenFakt = { nav.navigate("fakt/$it") },
                 onOpenApproval = { nav.navigate("approval/$it") }, onOutbox = { nav.navigate(OUTBOX) },
-                onOpenWeb = { path, title -> nav.navigate("web?path=${Uri.encode(path)}&title=${Uri.encode(title)}") },
                 onPickFakt = { nav.navigate(PICK_FAKT) }, onPickPhoto = { nav.navigate(PICK_PHOTO) },
                 onJarvis = { nav.navigate(JARVIS) }, onRahbar = { nav.navigate(RAHBAR) }, onZayavka = { nav.navigate(ZAYAVKA) },
                 onModule = { t ->
@@ -192,6 +216,11 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
                         uz.anncorp.smeta.core.data.NativeTarget.QABUL -> nav.navigate(QABUL)
                         uz.anncorp.smeta.core.data.NativeTarget.RESURS -> nav.navigate(PICK_RESURS)
                         uz.anncorp.smeta.core.data.NativeTarget.NAZORAT -> nav.navigate(NAZORAT)
+                        uz.anncorp.smeta.core.data.NativeTarget.SMETA -> nav.navigate(PICK_SMETA)
+                        uz.anncorp.smeta.core.data.NativeTarget.F2 -> nav.navigate(PICK_F2)
+                        uz.anncorp.smeta.core.data.NativeTarget.NARX, uz.anncorp.smeta.core.data.NativeTarget.MOLIYA, uz.anncorp.smeta.core.data.NativeTarget.BUXGALTERIYA, uz.anncorp.smeta.core.data.NativeTarget.AOSR,
+                        uz.anncorp.smeta.core.data.NativeTarget.TENDER, uz.anncorp.smeta.core.data.NativeTarget.LOGISTIKA, uz.anncorp.smeta.core.data.NativeTarget.HR, uz.anncorp.smeta.core.data.NativeTarget.SOTUV,
+                        uz.anncorp.smeta.core.data.NativeTarget.KOMPANIYA -> nav.navigate("modul/" + t.name.lowercase())
                         else -> nav.navigate("hujjat")
                     }
                 }, onInvite = { nav.navigate(PEOPLE_INVITE) }, onInvites = { nav.navigate(PEOPLE_INVITES) },
@@ -212,9 +241,9 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
         composable(PHOTO, idArg + listOf(navArgument("naryad") { type = NavType.LongType; defaultValue = -1L })) {
             PhotoScreen(onBack = { nav.popBackStack() }, onQueued = { nav.navigate(OUTBOX) { popUpTo(PHOTO) { inclusive = true } } })
         }
-        composable(WEB, listOf(navArgument("path") { type = NavType.StringType; defaultValue = "" }, navArgument("title") { type = NavType.StringType; defaultValue = "" })) { e ->
-            WebModuleScreen(title = e.arguments?.getString("title").orEmpty(), onBack = { nav.popBackStack() })
-        }
+        composable(MODUL, listOf(navArgument("code") { type = NavType.StringType })) { uz.anncorp.smeta.feature.modul.ModuleScreen(onBack = { nav.popBackStack() }, onDebtors = { nav.navigate(QARZDOR) }) }
+        composable(PICK_SMETA) { PickObjectScreen(R.string.mod_estimate, onBack = { nav.popBackStack() }) { nav.navigate("smeta/$it") } }
+        composable(PICK_F2) { PickObjectScreen(R.string.mod_f2, onBack = { nav.popBackStack() }) { nav.navigate("f2/$it") } }
         composable(PICK_FAKT) { PickObjectScreen(R.string.mod_fact, onBack = { nav.popBackStack() }) { nav.navigate("fakt/$it") } }
         composable(PICK_NAKOP) { PickObjectScreen(R.string.p8_nk_title, onBack = { nav.popBackStack() }) { nav.navigate("nakop/$it") } }
         composable(PICK_RESURS) { PickObjectScreen(R.string.p8_rv_title, onBack = { nav.popBackStack() }) { nav.navigate("resurs/$it") } }
@@ -226,14 +255,12 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
         composable(NAKOP, idArg) {
             uz.anncorp.smeta.feature.nakop.NakopScreen(
                 onBack = { nav.popBackStack() }, onResources = { nav.navigate("resurs/$it") }, onOpenF2 = { nav.navigate("f2/$it") },
-                onOpenWeb = { path, title -> nav.navigate("web?path=${Uri.encode(path)}&title=${Uri.encode(title)}") },
             )
         }
         composable(RESURS, idArg) { uz.anncorp.smeta.feature.resurs.ResursScreen(onBack = { nav.popBackStack() }) }
         composable(QARZDOR) {
             uz.anncorp.smeta.feature.qarzdor.QarzdorScreen(
                 onBack = { nav.popBackStack() }, onOpenObject = { nav.navigate("object/$it") },
-                onOpenWeb = { path, title -> nav.navigate("web?path=${Uri.encode(path)}&title=${Uri.encode(title)}") },
             )
         }
         composable(QABUL) { uz.anncorp.smeta.feature.qabul.QabulScreen(onBack = { nav.popBackStack() }, onPhoto = { nav.navigate("photo/$it") }) }
@@ -246,7 +273,6 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
         composable(F2LIST, idArg) {
             F2ListScreen(
                 onBack = { nav.popBackStack() }, onDocs = { nav.navigate("docs/$it?f2=true") },
-                onOpenWeb = { path, title -> nav.navigate("web?path=${Uri.encode(path)}&title=${Uri.encode(title)}") },
             )
         }
         composable(DOCS, idArg + listOf(navArgument("f2") { type = NavType.BoolType; defaultValue = false })) { DocumentsScreen(onBack = { nav.popBackStack() }) }
@@ -259,6 +285,8 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
         composable(NARYAD) { uz.anncorp.smeta.feature.naryad.NaryadScreen(onBack = { nav.popBackStack() }, onOutbox = { nav.navigate(OUTBOX) }, onPhoto = { o, n -> nav.navigate("photo/$o?naryad=$n") }) }
         composable(HUJJAT, listOf(navArgument("xat") { type = NavType.LongType; defaultValue = -1L })) { uz.anncorp.smeta.feature.hujjat.HujjatScreen(onBack = { nav.popBackStack() }, onOpenChain = { nav.navigate("approval/$it") }) }
         composable(OUTBOX) { OutboxScreen(onBack = { nav.popBackStack() }, onEditDraft = { nav.navigate("draft/$it") }) }
+    }
+    uz.anncorp.smeta.feature.jarvis.JarvisOverlay(visible = !jarvisHidden, epoch = jarvisEpoch, scrollHidden = fabHidden)
     }
 }
 

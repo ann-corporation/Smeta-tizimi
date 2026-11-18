@@ -1,8 +1,8 @@
 /**
- * POST /api/arxiv-tick - tungi sovuq-arxiv ishi (GitHub Actions .github/workflows/arxiv-tungi.yml, 21:30 UTC; Postgres R2 ga yoza olmaydi).
+ * POST /api/arxiv-tick - tungi sovuq-arxiv ishi (GitHub Actions .github/workflows/arxiv-tungi.yml, kuniga 3 jadval; Postgres R2 ga yoza olmaydi).
  *
  *  - Kirish FAQAT `X-Cron-Kalit` (BILDIRISHNOMA_CRON_KALIT, telegram-kunlik bilan bir xil sir); sozlanmagan 503, noto'g'ri 403.
- *  - Oyna: faqat 21:00-23:59 UTC (tungi, past yuk). Tashqarida { oyna:false } (body.majbur=true bilan egasi qo'lda ishga tushirishi mumkin).
+ *  - Oyna: 17:00-05:59 UTC (Toshkent 22:00-10:59; GitHub cron 3-6 soatgacha kechikadi - eski 21-24 oynasi hech qachon tushmagan). Tashqarida { oyna:false }; body.majbur=true (cron kaliti bilan; workflow_dispatch ham shuni yuboradi) oynani chetlab o'tadi.
  *  - IO byudjeti: chaqiruvga <= 2 partiya/jadval, partiya <= 1000 qator, partiyalar orasida pauza; workflow `qoldi:true` bo'lsa davom etadi.
  *  - Har ish t2_arxiv_ish_jurnal ga yoziladi; xato yoki baza hajmi chegaradan oshsa - superadminga bildirishnoma (kuniga bir marta).
  *  - Javobda faqat sonlar/nomlar (qator mazmuni, sir yo'q).
@@ -19,9 +19,15 @@ import { sovuqKalit } from '../../src/lib/snapshot-r2/sovuq';
 type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; R2_CANONICAL?: R2Bucket; BILDIRISHNOMA_CRON_KALIT?: string; DB_LIMIT_MB?: string; ARXIV_OGOH_MB?: string };
 const javob = (d: unknown, status = 200) => Response.json(d, { status, headers: { 'Cache-Control': 'no-store' } });
 const MB = 1024 * 1024;
-export const OYNA_BOSH_SOAT = 21; // UTC, [21, 24)
-export const oynadaMi = (d: Date) => d.getUTCHours() >= OYNA_BOSH_SOAT;
+export const OYNA_BOSH_SOAT = 17; // UTC, [17, 24) + [0, 6): tungi/past yuk (Toshkent 22:00-11:00)
+export const OYNA_OXIR_SOAT = 6;
+export const oynadaMi = (d: Date) => d.getUTCHours() >= OYNA_BOSH_SOAT || d.getUTCHours() < OYNA_OXIR_SOAT;
 const SNAP_SAQLASH_KUN = 30;
+/** Bitta chaqiruvdagi qator va snapshot soni (Cloudflare CPU limiti). */
+export const ARXIV_PARTIYA_LIMIT = 250;
+export const SNAP_CHAQIRUV_LIMIT = 2;
+/** Baza hajmi ogohlantirish chegarasi (MB; Supabase Free 500). 380: arxiv/VACUUM FULL uchun vaqtincha joy zaxirasi qolsin. */
+export const ARXIV_OGOH_STANDART_MB = 380;
 
 export function depsYarat(env: Env, fetchFn: typeof fetch = fetch): ArxivDeps {
   const baza = supabaseBaseUrl(env.SUPABASE_URL) + '/rest/v1/rpc/';
@@ -74,11 +80,14 @@ export async function arxivTickIsh(d: ArxivDeps, env: Pick<Env, 'DB_LIMIT_MB' | 
   if (!o.majbur && !oynadaMi(hozir)) return { ok: true, oyna: false, ishlar: [] as IshNatija[], qoldi: false };
   const ishlar: IshNatija[] = [];
   const xatolar: string[] = [];
+  // CPU byudjeti (Cloudflare 1102, 2026-11-18): bitta chaqiruvda faqat BITTA kichik partiya; workflow qoldi:true bo'lsa qayta chaqiradi.
+  let ishBor = false;
   for (const s of qatorArxivRoyxati()) {
-    const n = await jadvalArxivla(d, s, { maxPartiya: 2, pauzaMs: o.pauzaMs ?? 1500 });
+    const n = await jadvalArxivla(d, s, { maxPartiya: 1, pauzaMs: o.pauzaMs ?? 1500, limit: ARXIV_PARTIYA_LIMIT });
     ishlar.push(n);
+    if (n.partiya > 0 || n.xato) { ishBor = true; if (n.partiya > 0) n.qoldi = true; break; }
   }
-  ishlar.push(await snapshotSovut(d).catch((e): IshNatija => ({ jadval: 'snapshot.bolak_mazmun', partiya: 0, qator: 0, bayt: 0, xato: 'SNAP_' + String(e?.message ?? '').slice(0, 40), qoldi: false })));
+  if (!ishBor) ishlar.push(await snapshotSovut(d, SNAP_CHAQIRUV_LIMIT).catch((e): IshNatija => ({ jadval: 'snapshot.bolak_mazmun', partiya: 0, qator: 0, bayt: 0, xato: 'SNAP_' + String(e?.message ?? '').slice(0, 40), qoldi: false })));
   for (const n of ishlar) {
     await d.rpc('t2_arxiv_jurnal_yoz_v1', { p_jadval: n.jadval, p_rejim: n.jadval.startsWith('snapshot.') ? 'snapshot-sovuq' : 'qator-arxiv', p_qator: n.qator, p_r2_bayt: n.bayt, p_xato: n.xato }).catch(() => null);
     if (n.xato) xatolar.push(`${n.jadval}:${n.xato}`);
@@ -87,7 +96,7 @@ export async function arxivTickIsh(d: ArxivDeps, env: Pick<Env, 'DB_LIMIT_MB' | 
   try {
     const h = await d.rpc('t2_arxiv_holat_v1', {});
     hajmMb = Math.round(Number(h?.db_bytes) / MB);
-    const chegara = Number(env.ARXIV_OGOH_MB) > 0 ? Number(env.ARXIV_OGOH_MB) : 450;
+    const chegara = Number(env.ARXIV_OGOH_MB) > 0 ? Number(env.ARXIV_OGOH_MB) : ARXIV_OGOH_STANDART_MB;
     if (Number.isFinite(hajmMb) && hajmMb > chegara) await d.rpc('t2_arxiv_ogohlantir_v1', { p_sabab: 'hajm', p_tafsilot: { db_mb: hajmMb, chegara_mb: chegara } });
   } catch { /* monitoring arxivni to'xtatmaydi */ }
   if (xatolar.length) await d.rpc('t2_arxiv_ogohlantir_v1', { p_sabab: 'xato', p_tafsilot: { soni: xatolar.length, birinchi: xatolar[0].slice(0, 120) } }).catch(() => null);
