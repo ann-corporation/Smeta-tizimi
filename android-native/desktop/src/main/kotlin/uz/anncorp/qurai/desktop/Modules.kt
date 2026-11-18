@@ -1,5 +1,6 @@
 package uz.anncorp.qurai.desktop
 
+import uz.anncorp.smeta.core.data.Loaded
 import uz.anncorp.smeta.feature.common.*
 
 import androidx.compose.foundation.background
@@ -85,7 +86,7 @@ private fun statusUz(s: F2Status, raw: String?): String = when (s) {
     F2Status.REJECTED -> "Rad etilgan"; F2Status.CANCELLED -> "Bekor qilingan"; F2Status.SUPERSEDED -> "Almashtirilgan"; F2Status.UNKNOWN -> raw ?: T_DASH
 }
 
-private const val T_DASH = "—"
+private const val T_DASH = "вЂ”"
 
 /** The server sum package in the owner's order: QQS bilan first, then ustamali (ITOGO-4), then ustamasiz (direct). */
 @Composable
@@ -148,7 +149,7 @@ fun SmetaScreen(c: Ctx) = NeedObject(c) { o ->
             items(vis, key = { it.id }) { x ->
                 val sum = if (x.isRz) x.roll else x.summa
                 Row(Modifier.fillMaxWidth().clickable(enabled = x.hasChildren) { expanded = if (x.id in expanded) expanded - x.id else expanded + x.id }.padding(vertical = 4.dp)) {
-                    val mark = if (x.hasChildren) (if (x.id in expanded || q.isNotBlank()) "▾ " else "▸ ") else "   "
+                    val mark = if (x.hasChildren) (if (x.id in expanded || q.isNotBlank()) "в–ѕ " else "в–ё ") else "   "
                     Text(
                         mark + (x.kod?.let { "$it  " } ?: "") + x.nom, Modifier.width(560.dp).padding(start = (x.depth * 16).dp, end = 6.dp),
                         fontWeight = if (x.isRz) FontWeight.Bold else if (x.isBl) FontWeight.Medium else FontWeight.Normal, maxLines = 2,
@@ -174,7 +175,8 @@ private fun DataCell(t: String, w: androidx.compose.ui.unit.Dp, right: Boolean =
 
 @Composable
 fun F2Screen(c: Ctx) = NeedObject(c) { o ->
-    val acts = load(o.id, c.tick) { c.repo.f2Acts(o.id) }
+    var refreshF2 by remember { mutableStateOf(0) }
+    val acts = load(o.id, c.tick + refreshF2) { c.repo.f2Acts(o.id) }
     val mny = load(c.place.companyId, c.tick) { c.repo.money(c.place.companyId) }
     val gen = load(o.id, c.tick) { Loaded.Fresh(DocGenRepository(c.sv.api).list(c.place.companyId, o.id).orEmpty()) }
     var pick by remember(o.id) { mutableStateOf<F2Act?>(null) }
@@ -200,6 +202,8 @@ fun F2Screen(c: Ctx) = NeedObject(c) { o ->
             )
         }
         val a = pick
+        if (a != null) AktSummaStrip(c, a.id)
+        if (a != null) F2StepBar(c, a) { pick = null; refreshF2++ }
         if (a != null) ActRows(c, o, a)
         val f2docs = gen.valueOrNull().orEmpty().filter { it.isF2 }
         if (f2docs.isNotEmpty()) {
@@ -273,6 +277,8 @@ fun FaktScreen(c: Ctx) = NeedObject(c) { o ->
     var msg by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     Page("Fakt: ${o.nom}") {
+        Text("Fakt foto-dalil", fontWeight = FontWeight.SemiBold)
+        UploadBar(c, o.id)
         journal?.Banner()
         Text("Fakt jurnali", fontWeight = FontWeight.SemiBold)
         Box(Modifier.fillMaxWidth().height(180.dp)) {
@@ -413,8 +419,8 @@ fun MoneyScreen(c: Ctx) {
     var tab by remember { mutableStateOf(0) }
     Page("Moliya", "Hamma summa: QQS bilan, ustamali, ustamasiz (serverdan, qurilmada hisoblanmaydi)") {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { tab = 0 }) { Text(if (tab == 0) "● Obyektlar bo'yicha" else "Obyektlar bo'yicha") }
-            OutlinedButton(onClick = { tab = 1 }) { Text(if (tab == 1) "● Qarzdorlar" else "Qarzdorlar") }
+            OutlinedButton(onClick = { tab = 0 }) { Text(if (tab == 0) "в—Џ Obyektlar bo'yicha" else "Obyektlar bo'yicha") }
+            OutlinedButton(onClick = { tab = 1 }) { Text(if (tab == 1) "в—Џ Qarzdorlar" else "Qarzdorlar") }
         }
         if (tab == 0) {
             if (mny == null) { Loading(); return@Page }
@@ -466,12 +472,15 @@ fun MoneyScreen(c: Ctx) {
 
 @Composable
 fun DocsScreen(c: Ctx) = NeedObject(c) { o ->
-    val docs = load(o.id, c.tick) { c.repo.docs(c.place.companyId, o.id) }
-    val inbox = load(c.place.companyId, c.tick) { Loaded.Fresh(ApprovalsRepository(c.sv.api).inbox(c.place.companyId).second) }
+    var bump by remember { mutableStateOf(0) }
+    val docs = load(o.id, c.tick + bump) { c.repo.docs(c.place.companyId, o.id) }
+    var openItem by remember { mutableStateOf<uz.anncorp.smeta.core.data.ApprovalItem?>(null) }
+    val inbox = load(c.place.companyId, c.tick + bump) { Loaded.Fresh(ApprovalsRepository(c.sv.api).inbox(c.place.companyId).second) }
     val scope = rememberCoroutineScope()
     var msg by remember { mutableStateOf<String?>(null) }
     Page("Hujjatlar: ${o.nom}", "Qatorni bosing: hujjat yuklanadi va ochiladi") {
         msg?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        UploadBar(c, o.id) { bump++ }
         if (docs == null) { Loading(); return@Page }
         docs.Banner()
         Box(Modifier.fillMaxWidth().height(300.dp)) {
@@ -502,9 +511,10 @@ fun DocsScreen(c: Ctx) = NeedObject(c) { o ->
                     Col("Rol", 110.dp) { it.rol ?: "" },
                     Col("Muddat", 120.dp, sort = { it.muddat }) { it.muddat?.take(10) ?: "" },
                     Col("Kechikkan", 90.dp) { if (it.kechikkan) "ha" else "" },
-                ), modifier = Modifier.weight(1f), key = { it.id },
+                ), modifier = Modifier.weight(1f), key = { it.id }, onClick = { openItem = it },
             )
-            Hint("Qaror (tasdiqlash / rad etish) hozircha Android ilovada yoki saytda; bu yerda faqat ko'rish.")
+            Hint("Qatorni bosing: hujjat ochiladi, u yerda tasdiqlash, qaytarish yoki rad etish (sabab bilan).")
+            openItem?.let { it0 -> ApprovalDialog(c, it0) { changed -> openItem = null; if (changed) bump++ } }
         }
     }
 }
@@ -527,7 +537,7 @@ fun NotifScreen(c: Ctx, onRead: () -> Unit) {
         }
         SortTable(
             v.items, listOf(
-                Col("", 30.dp) { if (it.oqildi) "" else "●" },
+                Col("", 30.dp) { if (it.oqildi) "" else "в—Џ" },
                 Col("Mavzu", 420.dp, sort = { it.mavzu }) { notifKind(it.mavzu).label() },
                 Col("Vaqt", 170.dp, sort = { it.yaratildi }) { it.yaratildi?.let { s -> formatIsoStamp(s) } ?: "" },
             ), modifier = Modifier.weight(1f), key = { it.id },

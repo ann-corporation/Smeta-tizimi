@@ -26,6 +26,8 @@ import { onRequestGet as tomonGet, onRequestPost as tomonPost } from '../tomon';
 import { onRequestGet as telegramGet, onRequestPost as telegramPost } from '../telegram/index';
 import { onRequestPost as omborBuyruqPost } from '../ombor-buyruq';
 import { onRequestPost as f2BuyruqPost } from '../f2-buyruq';
+import { onRequestPost as yukTashishPost } from '../yuk-tashish';
+import { yukTashishAmalmi } from '../../_shared/yuk-tashish';
 
 // Native Android BFF (P0). Same trust model as api/desktop/bff.ts: verified device Bearer -> server-only cookie -> unchanged
 // middleware + handler. Roles never come from the token; the unchanged middleware derives fresh authority from the database.
@@ -64,9 +66,10 @@ const handlers: Record<string, Record<string, PagesFunction<Env>>> = {
   '/api/ombor-buyruq': { POST: omborBuyruqPost },
   // Jarvis F2/fakt vositalari (smeta MCP o'qish + yozish): yozish faqat server dry_run preview + tasdiq tokeni bilan; ruxsat/aktor/token serverda.
   '/api/f2-buyruq': { POST: f2BuyruqPost },
+  // Logistika yuk birjasi (haydovchi/yuk egasi): web bilan bir xil handler; aktor sessiyadan, ruxsat/tenant RPC ichida. Faqat oq ro'yxatdagi amallar.
+  '/api/yuk-tashish': { POST: yukTashishPost },
 } as never;
-export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|obyekt-tugun-summa|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol|agent-ish|qulf|hujjat-royxat|hujjat-ol|hujjat-maydoni|hujjat-maydoni-ol|hujjat-buyruq|hujjat-yarat|tomon|telegram|ombor-buyruq|f2-buyruq)(?:\?[^#\s]*)?$/;
-/** /api/profil also hosts account-security actions (parol, google/telegram ulash, hisob_birlashtir, usul_uz, birlashtir_*): the native device token may NOT reach them.
+export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|obyekt-tugun-summa|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol|agent-ish|qulf|hujjat-royxat|hujjat-ol|hujjat-maydoni|hujjat-maydoni-ol|hujjat-buyruq|hujjat-yarat|tomon|telegram|ombor-buyruq|f2-buyruq|yuk-tashish)(?:\?[^#\s]*)?$/;
  *  Exposed: GET (own profile + session window), the @username / people-search / invite-answer actions (USERNAME_V1), `yangila` (name, phone, language, avatar colour)
  *  and `boshqa_sessiyalar_chiqish` (sign out everywhere; the BFF re-enrols THIS device so it stays signed in, see reissueDevice). */
 export const MOBIL_PROFIL_AMAL: ReadonlySet<string> = new Set(['username_ol','username_tekshir','username_belgila','username_sozlama','qidir','kompaniyadosh_qidir','username_ommaviy','taklif_royxat','taklif_javob','yangila','boshqa_sessiyalar_chiqish']);
@@ -85,6 +88,10 @@ const amalRuxsat = (amallar: ReadonlySet<string>, method: string, body: unknown)
   if (method !== 'POST') return false;
   try { const o = typeof body === 'string' ? JSON.parse(body) : body; return !!o && typeof o === 'object' && typeof (o as { amal?: unknown }).amal === 'string' && amallar.has((o as { amal: string }).amal); } catch { return false; }
 };
+/** /api/yuk-tashish: faqat _shared/yuk-tashish AMALLAR oq ro'yxatidagi amal (web bilan bir xil); noma'lum amal serverga yetmaydi. */
+const yukTashishAmalRuxsat = (body: unknown): boolean => {
+  try { const o = typeof body === 'string' ? JSON.parse(body) : body; return !!o && typeof o === 'object' && yukTashishAmalmi((o as { amal?: unknown }).amal); } catch { return false; }
+};
 /** /api/agent-ish also hosts admin/superadmin actions (models, budgets, rules, rivojlanish...): the device may reach ONLY the Jarvis chat (kasb_savol, same aiHisobli charging) and the server-side chat list/save (t2_jarvis_suhbat), identical to web. */
 export const MOBIL_AGENT_AMAL: ReadonlySet<string> = new Set(['kasb_savol','suhbat_royxat','suhbat_ol','suhbat_saqla','suhbat_ochir']);
 export const MOBIL_BFF_MAX_BYTES = 2 * 1024 * 1024;
@@ -97,6 +104,7 @@ export function yolRuxsat(target: URL, method: string, body: unknown): boolean {
     case '/api/agent-ish': return amalRuxsat(MOBIL_AGENT_AMAL, method, body);
     case '/api/ombor-buyruq': return amalRuxsat(MOBIL_OMBOR_AMAL, method, body);
     case '/api/f2-buyruq': return amalRuxsat(MOBIL_F2_AMAL, method, body);
+    case '/api/yuk-tashish': return method === 'POST' && yukTashishAmalRuxsat(body);
     case '/api/telegram': return method === 'GET' || amalRuxsat(MOBIL_TELEGRAM_AMAL, method, body);
     case '/api/tomon': return method === 'GET' ? MOBIL_TOMON_OQISH.has(target.searchParams.get('bolim') ?? '') : amalRuxsat(MOBIL_TOMON_YOZISH, method, body);
     default: return true;

@@ -1,5 +1,6 @@
 package uz.anncorp.qurai.desktop
 
+import uz.anncorp.smeta.core.data.Loaded
 import uz.anncorp.smeta.feature.common.*
 
 import androidx.compose.foundation.background
