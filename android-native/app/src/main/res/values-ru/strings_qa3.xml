@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="qa3_disk_open">Открыть</string>
+    <string name="qa3_disk_download">Скачать</string>
+    <string name="qa3_disk_system">Открыть в системе</string>
+    <string name="qa3_disk_versions">Версии</string>
+    <string name="qa3_disk_current">текущая</string>
+    <string name="qa3_disk_close">Закрыть</string>
+    <string name="qa3_disk_loading">Загрузка...</string>
+    <string name="qa3_disk_versions_failed">Не удалось загрузить версии</string>
+    <string name="qa3_disk_busy">Подготовка...</string>
+    <string name="qa3_disk_n_saved">Готово: файл в окне сохранения или отправки</string>
+    <string name="qa3_disk_n_offline">Нет связи. Проверьте интернет и повторите.</string>
+    <string name="qa3_disk_n_forbidden">Нет права открыть этот файл</string>
+    <string name="qa3_disk_n_too_large">Файл слишком большой (больше 25 МБ): скачайте на сайте</string>
+    <string name="qa3_disk_n_missing">Файл не найден</string>
+    <string name="qa3_disk_n_payment">Этот документ оплачивается на сайте</string>
+    <string name="qa3_disk_n_failed">Не удалось получить файл</string>
+    <string name="qa3_disk_flow_short">Оборот</string>
+</resources>

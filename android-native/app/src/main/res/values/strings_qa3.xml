@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="qa3_disk_open">Ochish</string>
+    <string name="qa3_disk_download">Yuklab olish</string>
+    <string name="qa3_disk_system">Tizimda ochish</string>
+    <string name="qa3_disk_versions">Versiyalar</string>
+    <string name="qa3_disk_current">joriy</string>
+    <string name="qa3_disk_close">Yopish</string>
+    <string name="qa3_disk_loading">Yuklanmoqda...</string>
+    <string name="qa3_disk_versions_failed">Versiyalarni yuklab bo\'lmadi</string>
+    <string name="qa3_disk_busy">Tayyorlanmoqda...</string>
+    <string name="qa3_disk_n_saved">Tayyor: fayl saqlash yoki ulashish oynasida</string>
+    <string name="qa3_disk_n_offline">Aloqa yo\'q. Internetni tekshirib, qayta urinib ko\'ring.</string>
+    <string name="qa3_disk_n_forbidden">Bu faylni ochishga ruxsat yo\'q</string>
+    <string name="qa3_disk_n_too_large">Fayl juda katta (25 MB dan oshadi): saytdan yuklab oling</string>
+    <string name="qa3_disk_n_missing">Fayl topilmadi</string>
+    <string name="qa3_disk_n_payment">Bu hujjat saytda to\'lanadi</string>
+    <string name="qa3_disk_n_failed">Faylni olib bo\'lmadi</string>
+    <string name="qa3_disk_flow_short">Aylanish</string>
+</resources>

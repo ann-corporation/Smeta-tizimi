@@ -61,14 +61,14 @@ object QNav {
             QNavSection("obyekt", "Obyekt", QIcons.Building2, listOf(
                 QNavItem("obyektlar", "Obyektlar", QIcons.FolderKanban), QNavItem("smeta", "Smeta", QIcons.Calculator),
                 QNavItem("narx", "Narx manbalari", QIcons.Tags), QNavItem("fakt", "Fakt kiritish", QIcons.HardHat),
-                QNavItem("f2", "F2 va Nakopitelniy", QIcons.FileOutput), QNavItem("nakop", "Nakopitelniy va F3", QIcons.FileOutput),
+                QNavItem("f2", "F2", QIcons.FileOutput), QNavItem("nakop", "Nakopitelniy va F3", QIcons.FileOutput),
                 QNavItem("naryad", "Naryad", QIcons.ClipboardList), QNavItem("m29", "M-29 (material sarfi)", QIcons.Box),
             )),
-            QNavSection("hujjatlar", "Hujjatlar", QIcons.FileStack, listOf(
+            QNavSection("hujjatlar", "Disk", QIcons.FileStack, listOf(
                 QNavItem("hujjat", "Disk", QIcons.FileStack), QNavItem("nazorat", "Texnik nazorat", QIcons.ShieldCheck),
             )),
-            QNavSection("taminot", "Ta'minot", QIcons.Truck, listOf(
-                QNavItem("ombor", "Ta'minot va sklad", QIcons.Box), QNavItem("zayavka", "Zayavkalar", QIcons.ClipboardList),
+            QNavSection("taminot", "Ta‘minot", QIcons.Truck, listOf(
+                QNavItem("ombor", "Ta‘minot va sklad", QIcons.Box), QNavItem("zayavka", "Zayavkalar", QIcons.ClipboardList),
             )),
             QNavSection("moliya", "Moliya", QIcons.Briefcase, listOf(
                 QNavItem("moliya", "Moliya va shartnomalar", QIcons.Briefcase), QNavItem("qarzdor", "Qarzdorlik", QIcons.CircleAlert),

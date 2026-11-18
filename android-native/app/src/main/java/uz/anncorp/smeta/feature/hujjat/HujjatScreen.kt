@@ -57,7 +57,10 @@ import uz.anncorp.qurai.ui.screens.QDiskState
 import uz.anncorp.qurai.ui.screens.QDiskTab
 import uz.anncorp.qurai.ui.screens.QDiskTabs
 import uz.anncorp.smeta.feature.disk.DiskController
+import androidx.compose.runtime.remember
 import uz.anncorp.smeta.feature.disk.DiskTab
+import uz.anncorp.smeta.feature.disk.detailText
+import uz.anncorp.smeta.feature.disk.label
 import uz.anncorp.smeta.core.ui.CenterMessage
 import uz.anncorp.smeta.core.ui.ChipRow
 import uz.anncorp.smeta.core.ui.SectionTitle
@@ -144,15 +147,31 @@ private fun letterLabel(h: String): String = stringResource(when (h) { "olindi" 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HujjatScreen(onBack: () -> Unit, onOpenChain: (Long) -> Unit, vm: HujjatViewModel = hiltViewModel()) {
+fun HujjatScreen(onBack: () -> Unit, onOpenChain: (Long) -> Unit, onOpenModule: (String, Long?) -> Unit = { _, _ -> }, vm: HujjatViewModel = hiltViewModel()) {
     val ui by vm.state.collectAsStateWithLifecycle()
     var chainMode by rememberSaveable { mutableStateOf("all") }
     var section by rememberSaveable { mutableStateOf("mine") }
     val diskUi by vm.disk.state.collectAsStateWithLifecycle()
     val today = LocalDate.now()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    // What the phone does with a file / a link: open or share through the system (FileProvider), jump to a screen, or open the website page.
+    val host = remember(context, onOpenModule) {
+        object : uz.anncorp.smeta.feature.disk.DiskHost {
+            override fun deliver(name: String, mime: String, bytes: ByteArray, open: Boolean) {
+                if (open) { if (!uz.anncorp.smeta.feature.docs.DocFiles.openWith(context, name, mime, bytes)) uz.anncorp.smeta.feature.docs.DocFiles.share(context, name, mime, bytes) }
+                else uz.anncorp.smeta.feature.docs.DocFiles.share(context, name, mime, bytes)
+            }
+            override val modules = setOf("smeta", "f2", "nakop", "m29", "naryad")
+            override fun openModule(module: String, objectId: Long?) = onOpenModule(module, objectId)
+            override fun openWeb(path: String) {
+                runCatching { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(uz.anncorp.smeta.BuildConfig.API_BASE_URL.trimEnd('/') + path)).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            }
+        }
+    }
+    androidx.compose.runtime.LaunchedEffect(host) { vm.disk.host = host }
     val tabs = listOf(
         QDiskTab("mine", stringResource(R.string.qa2_disk_mine)), QDiskTab("company", stringResource(R.string.qa2_disk_company)), QDiskTab("shared", stringResource(R.string.qa2_disk_shared)),
-        QDiskTab("trash", stringResource(R.string.qa2_disk_trash)), QDiskTab("flow", stringResource(R.string.dl_doc_title)),
+        QDiskTab("trash", stringResource(R.string.qa2_disk_trash)), QDiskTab("flow", stringResource(R.string.qa3_disk_flow_short)),
     )
 
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
@@ -165,7 +184,7 @@ fun HujjatScreen(onBack: () -> Unit, onOpenChain: (Long) -> Unit, vm: HujjatView
         if (section != "flow") QDiskList(
             rows = diskUi.rows.map { QDiskRow(it.key, it.folder, it.name, it.sub, it.meta) },
             state = when (diskUi.status) { DiskController.Status.LOADING -> QDiskState.Loading; DiskController.Status.READY -> QDiskState.Ready; DiskController.Status.FAILED -> QDiskState.Failed },
-            onRow = { r -> diskUi.rows.firstOrNull { it.key == r.key }?.let { m -> if (m.folder && (section == "mine" || section == "company")) vm.disk.openFolder(m.id, m.name) } },
+            onRow = { r -> diskUi.rows.firstOrNull { it.key == r.key }?.let { m -> if (!m.folder) vm.disk.showFile(m.key) else if (section == "mine" || section == "company") vm.disk.openFolder(m.id, m.name) } },
             crumbs = diskUi.stack.takeIf { it.isNotEmpty() }?.joinToString(" / ") { it.name },
             onUp = if (diskUi.canGoUp) ({ vm.disk.up() }) else null, upLabel = stringResource(R.string.p1_back),
             emptyText = stringResource(R.string.qa2_disk_empty),
@@ -229,6 +248,26 @@ fun HujjatScreen(onBack: () -> Unit, onOpenChain: (Long) -> Unit, vm: HujjatView
                 }
             }
         }
+    }
+
+    diskUi.detail?.let { d ->
+        val labels = uz.anncorp.qurai.ui.screens.QDiskFileLabels(
+            open = stringResource(R.string.qa3_disk_open), download = stringResource(R.string.qa3_disk_download), system = stringResource(R.string.qa3_disk_system), versions = stringResource(R.string.qa3_disk_versions),
+            current = stringResource(R.string.qa3_disk_current), close = stringResource(R.string.qa3_disk_close), loading = stringResource(R.string.qa3_disk_loading),
+            versionsFailed = stringResource(R.string.qa3_disk_versions_failed), busy = stringResource(R.string.qa3_disk_busy),
+        )
+        val notice = d.notice?.let { stringResource(when (it) {
+            uz.anncorp.smeta.feature.disk.DiskNotice.SAVED -> R.string.qa3_disk_n_saved; uz.anncorp.smeta.feature.disk.DiskNotice.OFFLINE -> R.string.qa3_disk_n_offline
+            uz.anncorp.smeta.feature.disk.DiskNotice.FORBIDDEN -> R.string.qa3_disk_n_forbidden; uz.anncorp.smeta.feature.disk.DiskNotice.TOO_LARGE -> R.string.qa3_disk_n_too_large
+            uz.anncorp.smeta.feature.disk.DiskNotice.MISSING -> R.string.qa3_disk_n_missing; uz.anncorp.smeta.feature.disk.DiskNotice.PAYMENT -> R.string.qa3_disk_n_payment
+            uz.anncorp.smeta.feature.disk.DiskNotice.FAILED -> R.string.qa3_disk_n_failed
+        }) }
+        uz.anncorp.qurai.ui.screens.QDiskFileDialog(
+            name = d.file.name, meta = d.file.detailText(), versions = d.versions?.map { uz.anncorp.qurai.ui.screens.QDiskVersionRow(it.number, it.label(), it.current) }, versionsFailed = d.versionsFailed,
+            busy = d.busy, notice = notice, noticeOk = d.notice == uz.anncorp.smeta.feature.disk.DiskNotice.SAVED, labels = labels,
+            onOpen = { vm.disk.deliver(null, true) }, onDownload = { vm.disk.deliver(null, false) }, onVersion = { vm.disk.deliver(it, false) },
+            onSystem = if (vm.disk.systemTarget() != null) ({ vm.disk.openInSystem() }) else null, onClose = { vm.disk.closeFile() },
+        )
     }
 
     if (ui.letter != null || ui.letterError) {

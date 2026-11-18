@@ -31,6 +31,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import uz.anncorp.smeta.feature.disk.detailText
+import uz.anncorp.smeta.feature.disk.label as diskLabel
 import androidx.compose.runtime.collectAsState
 import uz.anncorp.qurai.ui.theme.Q
 import androidx.compose.runtime.getValue
@@ -469,16 +471,26 @@ fun MoneyScreen(c: Ctx) {
 
 /** "Disk" (website: Mening diskim | Kompaniya diski | Ulashilgan | Savat) + the old document workflow as the last tab. Same state machine as Android (shared DiskController). */
 @Composable
-fun DiskScreen(c: Ctx) {
+fun DiskScreen(c: Ctx, onOpenModule: (String, Long?) -> Unit = { _, _ -> }) {
     val scope = rememberCoroutineScope()
     val ctl = remember(c.place.companyId) { uz.anncorp.smeta.feature.disk.DiskController(uz.anncorp.smeta.feature.disk.DiskRepository(c.sv.api), scope) { c.place.companyId } }
     var section by remember { mutableStateOf("mine") }
     val st by ctl.state.collectAsState()
+    // Files go to the Downloads folder (open = also launch it); "Tizimda ochish" jumps to the module of this app or opens the website page.
+    val host = remember(ctl, onOpenModule) {
+        object : uz.anncorp.smeta.feature.disk.DiskHost {
+            override fun deliver(name: String, mime: String, bytes: ByteArray, open: Boolean) { saveAndOpen(name, bytes, open) }
+            override val modules = setOf("smeta", "f2", "nakop")
+            override fun openModule(module: String, objectId: Long?) = onOpenModule(module, objectId)
+            override fun openWeb(path: String) { runCatching { java.awt.Desktop.getDesktop().browse(java.net.URI(BuildInfo.API_BASE.trimEnd('/') + path)) } }
+        }
+    }
+    LaunchedEffect(ctl, host) { ctl.host = host }
     LaunchedEffect(c.place.companyId, c.tick) { ctl.reload() }
     val tabs = listOf(
         uz.anncorp.qurai.ui.screens.QDiskTab("mine", I18n.s("qa2_disk_mine", "Mening diskim")), uz.anncorp.qurai.ui.screens.QDiskTab("company", I18n.s("qa2_disk_company", "Kompaniya diski")),
         uz.anncorp.qurai.ui.screens.QDiskTab("shared", I18n.s("qa2_disk_shared", "Ulashilgan")), uz.anncorp.qurai.ui.screens.QDiskTab("trash", I18n.s("qa2_disk_trash", "Savat")),
-        uz.anncorp.qurai.ui.screens.QDiskTab("flow", I18n.s("dl_doc_title", "Hujjat aylanishi")),
+        uz.anncorp.qurai.ui.screens.QDiskTab("flow", I18n.s("qa3_disk_flow_short", "Aylanish")),
     )
     Column(Modifier.fillMaxSize()) {
         Text(I18n.s("qa2_disk_title", "Disk"), style = Q.type.titleLarge, color = Q.colors.text, modifier = Modifier.padding(bottom = 6.dp))
@@ -496,12 +508,31 @@ fun DiskScreen(c: Ctx) {
                 uz.anncorp.smeta.feature.disk.DiskController.Status.READY -> uz.anncorp.qurai.ui.screens.QDiskState.Ready
                 uz.anncorp.smeta.feature.disk.DiskController.Status.FAILED -> uz.anncorp.qurai.ui.screens.QDiskState.Failed
             },
-            onRow = { r -> st.rows.firstOrNull { it.key == r.key }?.let { m -> if (m.folder && (section == "mine" || section == "company")) ctl.openFolder(m.id, m.name) } },
+            onRow = { r -> st.rows.firstOrNull { it.key == r.key }?.let { m -> if (!m.folder) ctl.showFile(m.key) else if (section == "mine" || section == "company") ctl.openFolder(m.id, m.name) } },
             crumbs = st.stack.takeIf { it.isNotEmpty() }?.joinToString(" / ") { it.name },
             onUp = if (st.canGoUp) ({ ctl.up() }) else null, upLabel = I18n.s("p1_back", "Orqaga"),
             emptyText = I18n.s("qa2_disk_empty", "Bu yerda hali hech narsa yo'q"),
             errorText = if (st.offline) Tx.offlineWrite else if (st.forbidden) I18n.s("qa2_disk_forbidden", "Bu diskni ko'rishga ruxsat yo'q") else "Yuklab bo'lmadi",
             onRetry = { ctl.reload() },
+        )
+    }
+    st.detail?.let { d ->
+        val labels = uz.anncorp.qurai.ui.screens.QDiskFileLabels(
+            open = I18n.s("qa3_disk_open", "Ochish"), download = I18n.s("qa3_disk_download", "Yuklab olish"), system = I18n.s("qa3_disk_system", "Tizimda ochish"), versions = I18n.s("qa3_disk_versions", "Versiyalar"),
+            current = I18n.s("qa3_disk_current", "joriy"), close = I18n.s("qa3_disk_close", "Yopish"), loading = I18n.s("qa3_disk_loading", "Yuklanmoqda..."),
+            versionsFailed = I18n.s("qa3_disk_versions_failed", "Versiyalarni yuklab bo'lmadi"), busy = I18n.s("qa3_disk_busy", "Tayyorlanmoqda..."),
+        )
+        val notice = d.notice?.let { n -> when (n) {
+            uz.anncorp.smeta.feature.disk.DiskNotice.SAVED -> I18n.s("qa3_disk_n_saved", "Tayyor"); uz.anncorp.smeta.feature.disk.DiskNotice.OFFLINE -> Tx.offlineWrite
+            uz.anncorp.smeta.feature.disk.DiskNotice.FORBIDDEN -> I18n.s("qa3_disk_n_forbidden", "Bu faylni ochishga ruxsat yo'q"); uz.anncorp.smeta.feature.disk.DiskNotice.TOO_LARGE -> I18n.s("qa3_disk_n_too_large", "Fayl juda katta")
+            uz.anncorp.smeta.feature.disk.DiskNotice.MISSING -> I18n.s("qa3_disk_n_missing", "Fayl topilmadi"); uz.anncorp.smeta.feature.disk.DiskNotice.PAYMENT -> I18n.s("qa3_disk_n_payment", "Bu hujjat saytda to'lanadi")
+            uz.anncorp.smeta.feature.disk.DiskNotice.FAILED -> I18n.s("qa3_disk_n_failed", "Faylni olib bo'lmadi")
+        } }
+        uz.anncorp.qurai.ui.screens.QDiskFileDialog(
+            name = d.file.name, meta = d.file.detailText(), versions = d.versions?.map { uz.anncorp.qurai.ui.screens.QDiskVersionRow(it.number, it.diskLabel(), it.current) }, versionsFailed = d.versionsFailed,
+            busy = d.busy, notice = notice, noticeOk = d.notice == uz.anncorp.smeta.feature.disk.DiskNotice.SAVED, labels = labels,
+            onOpen = { ctl.deliver(null, true) }, onDownload = { ctl.deliver(null, false) }, onVersion = { ctl.deliver(it, false) },
+            onSystem = if (ctl.systemTarget() != null) ({ ctl.openInSystem() }) else null, onClose = { ctl.closeFile() },
         )
     }
 }

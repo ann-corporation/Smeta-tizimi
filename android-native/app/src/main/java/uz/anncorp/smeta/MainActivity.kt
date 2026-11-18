@@ -290,7 +290,13 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
         composable(ZAYAVKA_NEW) { uz.anncorp.smeta.feature.zayavka.ZayavkaScreen(onBack = { nav.popBackStack() }, onOutbox = { nav.navigate(OUTBOX) }) }
         composable(M29) { uz.anncorp.smeta.feature.m29.M29Screen(onBack = { nav.popBackStack() }, onOutbox = { nav.navigate(OUTBOX) }) }
         composable(NARYAD) { uz.anncorp.smeta.feature.naryad.NaryadScreen(onBack = { nav.popBackStack() }, onOutbox = { nav.navigate(OUTBOX) }, onPhoto = { o, n -> nav.navigate("photo/$o?naryad=$n") }) }
-        composable(HUJJAT, listOf(navArgument("xat") { type = NavType.LongType; defaultValue = -1L })) { uz.anncorp.smeta.feature.hujjat.HujjatScreen(onBack = { nav.popBackStack() }, onOpenChain = { nav.navigate("approval/$it") }) }
+        composable(HUJJAT, listOf(navArgument("xat") { type = NavType.LongType; defaultValue = -1L })) { uz.anncorp.smeta.feature.hujjat.HujjatScreen(onBack = { nav.popBackStack() }, onOpenChain = { nav.navigate("approval/$it") }, onOpenModule = { module, obyekt ->
+            // "Tizimda ochish" from the Disk: the screen of this app that made the document (object-scoped ones need the object id; otherwise the object picker).
+            when (module) {
+                "smeta" -> nav.navigate(if (obyekt != null) "smeta/$obyekt" else PICK_SMETA); "f2" -> nav.navigate(if (obyekt != null) "f2/$obyekt" else PICK_F2)
+                "nakop" -> nav.navigate(if (obyekt != null) "nakop/$obyekt" else PICK_NAKOP); "m29" -> nav.navigate(M29); "naryad" -> nav.navigate(NARYAD)
+            }
+        }) }
         composable(OUTBOX) { OutboxScreen(onBack = { nav.popBackStack() }, onEditDraft = { nav.navigate("draft/$it") }) }
     }
     uz.anncorp.smeta.feature.jarvis.JarvisOverlay(visible = !jarvisHidden, epoch = jarvisEpoch, scrollHidden = fabHidden)
