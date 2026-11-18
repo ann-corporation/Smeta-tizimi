@@ -278,6 +278,11 @@ export function qoralamaTahrirYuki(mavjud: readonly MavjudAktQator[], o: { ozgar
       ozgardi++;
       const hajm = z.hajm != null ? y6(z.hajm) : y.certified_quantity;
       const snap: Record<string, unknown> = { ...y.raw_snapshot, enteredQuantity: hajm };
+      // Qo'lda tahrir himoyasi: F2 tayyorlash «yangilash» (lib/f2-akt-kiritma) bu belgidagi hajm/narxni smeta normasiga qaytarmaydi.
+      const qolBelgi: Record<string, unknown> = snap.qolTahrir && typeof snap.qolTahrir === 'object' ? { ...(snap.qolTahrir as Record<string, unknown>) } : {};
+      if (z.hajm != null && y6(z.hajm) !== y.certified_quantity) qolBelgi.hajm = true;
+      if (z.narx != null) qolBelgi.narx = true;
+      if (qolBelgi.hajm === true || qolBelgi.narx === true) snap.qolTahrir = qolBelgi;
       if (z.narxsiz) {
         // Ongli «narxsiz» — avto belgisi olib tashlanadi (server tasdiqni to'smaydi).
         delete snap.narxsizSabab; delete snap.enteredUnitPrice; delete snap.enteredAmount;
