@@ -1,6 +1,8 @@
--- DRAFT ONLY: durable Jarvis task checkpoints. Do not apply as a production migration.
--- Business commands remain outside this checkpoint store. Only read-only task tools
--- object.summary and object.discrepancies are accepted in this initial slice.
+-- Jarvis vazifa checkpoint (T2): durable, read-only task checkpoints (object.summary, object.discrepancies).
+-- Biznes buyruqlari bu do'konda YO'Q; yozuvchi qadam (write=true) validatorda rad etiladi.
+-- t2_qator o'qilmaydi (versiya guard - AGENTS.md 2c - talab qilinmaydi). Pul hisobi yo'q.
+-- Jadval to'g'ridan-to'g'ri yopiq (RLS + no_direct_access + revoke); faqat service_role RPC (actor sessiyadan, t2_agent_scope_guard_v1).
+-- Migratsiya faylida o'z BEGIN/COMMIT yo'q.
 
 create table public.t2_jarvis_vazifa (
   id text primary key,

@@ -8,7 +8,7 @@
 
 Граница доверия: checkpoint содержит пользовательское состояние read-only задачи; его evidence НЕ является юридическим подтверждением, разрешением, бизнес-журналом или доказательством проведённой записи. При будущих write tools нужны серверный executor, approval snapshot, lease и проверка operation_id/expected_version через существующие команды. Нельзя просто разрешить write=true в валидаторе.
 
-Хранение: docs/architecture/ai-task-checkpoint.sql — исполнимый SQL draft с rollback и PGlite acceptance. До номера миграции/review L0 и применения на сервере API будет явно сообщать об ошибке, без локального fake-success fallback. Не выпускать UI отдельно от schema. Таблица не заменяет t2_ai_ish фоновых работников и не является второй бизнес-базой.
+Хранение: supabase/migrations/20270112000000_t2_jarvis_vazifa_checkpoint_v1.sql (+ .rollback.sql, .acceptance.sql, PGlite: supabase/tests/jarvis-task-pglite.mjs). До применения миграции на сервере API будет явно сообщать об ошибке, без локального fake-success fallback. Не выпускать UI отдельно от schema. Таблица не заменяет t2_ai_ish фоновых работников и не является второй бизнес-базой.
 
 Проверка: runtime и UI/API focused tests; PGlite — синтетическая модель зависимостей, не production permissions audit. Полный owner E2E после применения схемы и preview обязателен. Full history, личный scope, arbitrary planning, approval/write recovery и platform development bridge остаются дальнейшими частями единой задачи.
 

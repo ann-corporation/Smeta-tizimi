@@ -1,4 +1,4 @@
--- DRAFT ONLY rollback for docs/architecture/ai-task-checkpoint.sql.
+-- Rollback: 20270112000000_t2_jarvis_vazifa_checkpoint_v1 (vazifa checkpointlari o'chadi).
 revoke all on function public.t2_jarvis_vazifa_ol_v1(bigint,bigint,bigint,text) from public, anon, authenticated, service_role;
 revoke all on function public.t2_jarvis_vazifa_royxat_v1(bigint,bigint,bigint) from public, anon, authenticated, service_role;
 revoke all on function public.t2_jarvis_vazifa_saqla_v1(bigint,bigint,bigint,text,integer,jsonb) from public, anon, authenticated, service_role;

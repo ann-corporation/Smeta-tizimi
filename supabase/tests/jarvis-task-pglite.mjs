@@ -3,11 +3,11 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-// Synthetic PGlite acceptance only; SQL input is the architecture draft, not a migration.
+// Synthetic PGlite acceptance; SQL input is the packaged migration.
 const runtime = process.env.PGLITE_DIR || 'C:/Temp/hr-pglite/node_modules/@electric-sql/pglite';
 const { PGlite } = await import(pathToFileURL(resolve(runtime, 'dist/index.js')).href);
-const sql = await readFile(new URL('../../docs/architecture/ai-task-checkpoint.sql', import.meta.url), 'utf8');
-const rollback = await readFile(new URL('../../docs/architecture/ai-task-checkpoint.rollback.sql', import.meta.url), 'utf8');
+const sql = await readFile(new URL('../migrations/20270112000000_t2_jarvis_vazifa_checkpoint_v1.sql', import.meta.url), 'utf8');
+const rollback = await readFile(new URL('../migrations/20270112000000_t2_jarvis_vazifa_checkpoint_v1.rollback.sql', import.meta.url), 'utf8');
 const db = new PGlite();
 const okTask = (id, revision = 0, extra = {}) => ({
   id, goal: 'Check object context', scope: { actorId: 11, companyId: 21, objectId: 31 },
