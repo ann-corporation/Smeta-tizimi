@@ -6,6 +6,9 @@ import { toast } from '../../umumiy/ui/Toast';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { solishtirHisobotiXlsx, texnadzorFaylOqi } from '../../lib/f2-texnadzor-oqi';
 import { solishtir, type Chip, type Natija, type QoralamaQator } from '../../lib/f2-texnadzor-solishtir';
+import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
+import { hujjatTokenBilan } from '../../lib/token-hujjat';
 
 type Filtr = 'ozgargan' | 'hammasi' | Chip;
 const KO_RSATISH_CHEGARA = 400;
@@ -25,7 +28,8 @@ const CHIPLAR: Chip[] = ['bajarildi', 'bizning', 'yangi', 'hujjat', 'ochiq'];
 const fmt = (v: number | null) => (v == null ? '—' : new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 4 }).format(v));
 
 /** Texnadzor qaytargan Excel'ni joriy qoralama bilan solishtirish — faqat o'qish (hech narsa saqlanmaydi). */
-export function F2TexnadzorSolishtir({ qoralama, aktRaqam, onYop }: { qoralama: readonly QoralamaQator[]; aktRaqam: string; onYop: () => void }) {
+export function F2TexnadzorSolishtir({ qoralama, aktRaqam, onYop, obyektId }: { qoralama: readonly QoralamaQator[]; aktRaqam: string; onYop: () => void; obyektId?: number | null }) {
+  const kid = useKompaniya().joriy?.id ?? null;
   const [natija, setNatija] = useState<ReturnType<typeof solishtir> | null>(null);
   const [fayl, setFayl] = useState('');
   const [band, setBand] = useState(false);
@@ -39,6 +43,8 @@ export function F2TexnadzorSolishtir({ qoralama, aktRaqam, onYop }: { qoralama: 
       const qator = await texnadzorFaylOqi(await f.arrayBuffer());
       if (!qator) { toast(t('Bu tizim F-2 eksporti emas: КАЛИТ ustuni topilmadi'), 'danger'); return; }
       setNatija(solishtir(qator, qoralama)); setFayl(f.name); setFiltr('ozgargan');
+      // Texnadzor fayli asl nusxasi arxivga (R2/Disk) — solishtirishni to'xtatmaydi.
+      void aslFaylSaqla(f, { kompaniyaId: kid, obyektId: obyektId ?? null, turi: 'asl_f2' });
     } catch { toast(t('Faylni o‘qib bo‘lmadi'), 'danger'); } finally { setBand(false); }
   }
 
@@ -55,7 +61,10 @@ export function F2TexnadzorSolishtir({ qoralama, aktRaqam, onYop }: { qoralama: 
     if (!natija) return;
     const sarlavha = [t('Qator №'), t('Shifr'), t('Nomi'), t('Texnadzor izohi'), t('Fayl hajmi'), t('Qoralama hajmi'), t('Fayl narxi'), t('Qoralama narxi'), t('Holat')];
     const bytes = await solishtirHisobotiXlsx(korinadi, sarlavha, (n) => `${holatNomi(n)}${n.chip ? ` / ${chipNomi(n.chip)}` : ''}`);
-    downloadBlob(bytes, `texnadzor-solishtirish-${aktRaqam || 'f2'}.xlsx`);
+    const faylNomi = `texnadzor-solishtirish-${aktRaqam || 'f2'}.xlsx`;
+    if (!kid) { toast(t('Kompaniya tanlanmagan'), 'danger'); return; }
+    const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'TEXNADZOR_SOLISHTIRISH', obyekt: obyektId ?? null, sabab: `Сверка с технадзором · Ф-2 ${aktRaqam}`.slice(0, 120) }, () => downloadBlob(bytes, faylNomi));
+    toast(r.ok ? (r.xabar || t('Hisobot tayyor')) : r.xabar, r.ok ? 'ok' : 'danger');
   }
 
   return (
