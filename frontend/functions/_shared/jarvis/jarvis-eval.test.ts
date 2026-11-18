@@ -84,6 +84,29 @@ const mockModel = (answer: string, material: string) => boundary.model.mockResol
 const fixtures = Object.entries(evalLexicon).flatMap(([language, lexicon]) =>
   evalProjects.map(project => ({ key: `${language}/${project.id}`, language: language as EvalLanguage, lexicon, project })));
 
+it('model/tools: limits the billed loop to six verified, scoped read calls', async () => {
+  for (const { material } of evalProjects) {
+    boundary.model.mockResolvedValueOnce({ provider: 'openrouter', model: 'synthetic-eval', usage: billingUsage,
+      text: JSON.stringify({ javob: '', harakatlar: [],
+        tool_call: { name: 'warehouse_balance', arguments: { query: 'Ombor #7 qoldig‘i: ' + material } } }) });
+  }
+  const { body } = await query('Materiallar bo‘yicha mavjud ma’lumotlarni tekshir');
+  expect(boundary.model).toHaveBeenCalledTimes(6);
+  expect(rpc('t2_sklad_markaziy_qoldiq_v1').map(args => args.p_qidir)).toEqual(evalProjects.map(row => row.material));
+  expect(rpc('t2_ai_telemetriya_yoz_v1').filter(args => args.p_manba === 'tool')).toHaveLength(6);
+  expect(rpc('t2_agent_harakat_taklif_v1')).toEqual([]);
+  expect(body.javob).toContain(evalProjects[0].material);
+});
+
+it('model/tools: never executes a fabricated name or tenant override', async () => {
+  boundary.model.mockResolvedValueOnce({ provider: 'openrouter', model: 'synthetic-eval', usage: billingUsage,
+    text: JSON.stringify({ javob: 'Synthetic unverified answer', harakatlar: [],
+      tool_call: { name: 'warehouse_balance', arguments: { query: 'Ombor #7 qoldig‘i: sement', company: 99100 } } }) });
+  const { body } = await query('Material bo‘yicha mavjud ma’lumotlarni tekshir');
+  expect(rpc('t2_sklad_markaziy_qoldiq_v1')).toEqual([]);
+  expect(body.javob).not.toContain('Synthetic unverified answer');
+});
+
 it.each(fixtures)('money/official $key', async ({ language, lexicon, project }) => {
   const { status, body } = await query(lexicon.money(project.name));
   expect(status).toBe(200);

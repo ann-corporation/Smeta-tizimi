@@ -23,14 +23,14 @@ function resultsFor(cases, prefix) {
 }
 
 try {
-  const processResult = spawnSync(process.execPath, ['node_modules/vitest/vitest.mjs', 'run', suite,
+  const processResult = spawnSync(process.execPath, ['node_modules/vitest/vitest.mjs', 'run', suite, 'functions/_shared/jarvis/read-tools.test.ts',
     '--reporter=default', '--reporter=json', `--outputFile.json=${output}`], {
     cwd: frontend, stdio: 'inherit', shell: false,
   });
   if (processResult.error) throw processResult.error;
   const result = JSON.parse(readFileSync(output, 'utf8'));
   const cases = result.testResults.flatMap(file => file.assertionResults);
-  const suites = ['money/', 'status/', 'unknown/', 'permission/', 'tenant/', 'model/confirmation', 'model/document-injection'];
+  const suites = ['money/', 'status/', 'unknown/', 'permission/', 'tenant/', 'model/confirmation', 'model/document-injection', 'tool/routing'];
   const checks = Object.fromEntries(suites.map(prefix => [prefix, resultsFor(cases, prefix)]));
   const languages = Object.fromEntries(['uz-Latn', 'uz-Cyrl', 'ru'].map(language =>
     [language, cases.filter(test => test.title.includes(`${language}/`)).length]));
@@ -40,6 +40,7 @@ try {
   const gate = processResult.status === 0 && cases.length >= 150 && Object.values(languages).every(count => count > 0) &&
     Object.values(checks).every(check => check.total > 0) && checks['money/'].rate >= 0.95 && checks['status/'].rate >= 0.95 &&
     checks['permission/'].rate === 1 && checks['tenant/'].rate === 1 &&
+    checks['tool/routing'].total >= 30 && checks['tool/routing'].rate >= 0.90 &&
     deterministic !== null && deterministic <= 4000 && modelSimulated !== null && modelSimulated <= 12000;
   console.log(JSON.stringify({
     suite: 'jarvis-golden-synthetic', gate, cases: cases.length, languages, checks,
