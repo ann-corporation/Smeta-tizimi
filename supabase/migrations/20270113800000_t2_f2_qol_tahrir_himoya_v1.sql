@@ -11,6 +11,7 @@
 -- Bu migratsiya: (1) ichki yordamchi — audit/payload bo'yicha belgi qo'yadi; (2) 2026-11-18 dagi mcp.f2_qoralama_tahrir yozuvlaridan
 -- (t2_audit_log) bugungi qo'lda qatorlarga belgini backfill qiladi. Faqat qoralama F2 qatorlari (tasdiqlangan muzlagan, tegilmaydi).
 -- Qayta ishga tushirish xavfsiz (idempotent: belgi birlashtiriladi).
+-- versiya: texnik — t2_qator faqat akt qatorining smeta ma'lumotini (tur/ota/norma) o'qish uchun, versiya tanlovi akt qatori orqali.
 
 create or replace function public._t2_f2_qol_belgila_v1(p_akt_id bigint, p_ozgartir jsonb)
 returns integer
@@ -55,7 +56,7 @@ revoke all on function public._t2_f2_qol_belgila_v1(bigint, jsonb) from public, 
 grant execute on function public._t2_f2_qol_belgila_v1(bigint, jsonb) to service_role;
 
 comment on function public._t2_f2_qol_belgila_v1(bigint, jsonb) is
-  'F2 qoralama qatorlariga raw_snapshot.qolTahrir belgisi (qo''lda hajm/narx/norma nisbati) — «yangilash» smeta normasiga qaytarmasin. Faqat qoralama; ichki.';
+  'F2 qoralama qatorlariga raw_snapshot.qolTahrir belgisi (qo''lda hajm/narx/norma nisbati) — «yangilash» smeta normasiga qaytarmasin. Faqat qoralama; ichki. versiya: texnik (t2_qator faqat akt qatorining tur/ota ma''lumoti uchun).';
 
 -- Backfill: 2026-11-18 mcp.f2_qoralama_tahrir (real, dry_run emas) yozuvlari → bugungi qo'lda qatorlar.
 do $$
