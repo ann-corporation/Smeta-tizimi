@@ -1,6 +1,7 @@
 /**
  * HujjatMaydoni.tsx - "Hujjatlarim / Kompaniya diski" (egasi 2026-11-18): shaxsiy va kompaniya maydonlari, papka, yuklash/yuklab olish,
  * versiyalar, izoh (@eslatma), qulf, ulashish, savat (30 kun), faoliyat, qidiruv, kvota va admin ko'rinishi.
+ * Kompaniya konteksti ixtiyoriy: kompaniyasiz foydalanuvchida ham shaxsiy disk ochiladi (kompaniya talab qiluvchi blok yo'q); kompaniya tablari faqat kompaniya bor bo'lsa ko'rinadi.
  * Mavjud qatlamlar ustida (t2_fayl_papka, R2, t2_outbox); API: /api/hujjat-maydoni*. Jonli birgalikda tahrir - keyingi faza.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';

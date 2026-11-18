@@ -18,7 +18,7 @@ const acc = R('supabase', 'migrations', '20260906120000_t2_document_registry_rea
 const ftMig = R('supabase', 'migrations', '20260902120000_t2_file_truth_r2_canonical_v1.sql');
 const fn = R('frontend', 'functions', 'api', 'hujjat-royxat.ts');
 const client = R('frontend', 'src', 'api', 't2-hujjat-canonical.ts');
-const page = R('frontend', 'src', 'admin', 'pages', 'DocumentsPage.tsx');
+const page = R('frontend', 'src', 'hujjat-maydoni', 'HujjatMaydoni.tsx');
 const yukla = R('frontend', 'functions', 'api', 'hujjat-yukla.ts');
 const olcli = client;
 
@@ -61,7 +61,7 @@ must('client hujjatRoyxatOl hits /api/hujjat-royxat only', /fetch\('\/api\/hujja
    (fayl_explorer_v1, a'zolik serverda), yuklab olish/ko'rish — kanonik R2 (/api/hujjat-ol), demo yo'q. */
 const menejer = R('frontend', 'src', 'admin', 'sahifalar', 'FaylMenejer.tsx');
 const faylApi = R('frontend', 'src', 'api', 't2-fayl.ts');
-must('DocumentsPage renders the real FaylMenejer (no demo dataset)',
+must('Disk sahifasi (/admin/documents) renders the real FaylMenejer (no demo dataset)',
   /<FaylMenejer/.test(page) && !/demoData|DEMO_DATA|makeDemo|demoDocuments/.test(nocomment(page) + nocomment(menejer)));
 must('FaylMenejer feeds on real data from fayl_explorer_v1 via /api/sb', /faylExplorerOl/.test(menejer) && /soro: 'fayl_explorer_v1'/.test(faylApi));
 must('FaylMenejer download/preview goes to canonical R2 url', /\/api\/hujjat-ol\?id=/.test(faylApi) && /faylBaytlari/.test(menejer));
