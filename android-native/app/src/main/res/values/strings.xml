@@ -213,8 +213,8 @@
     <string name="mod_fact_d">Bajarilgan ishni kiritish</string>
     <string name="mod_photo">Foto dalil</string>
     <string name="mod_photo_d">Qatorga foto biriktirish</string>
-    <string name="mod_approval">Tasdiq</string>
-    <string name="mod_approval_d">Tasdiqlash navbatingiz</string>
+    <string name="mod_approval">Hujjat aylanishi</string>
+    <string name="mod_approval_d">Tasdiq navbati, xatlar va zanjirlar</string>
     <string name="mod_today">Bugun</string>
     <string name="mod_today_d">Bugungi ishlar va xabarlar</string>
     <string name="mod_warehouse">Ombor</string>

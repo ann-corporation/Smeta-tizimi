@@ -147,7 +147,8 @@ private const val ZAYAVKA = "zayavka"
 private const val ZAYAVKA_NEW = "zayavka/new"
 private const val M29 = "m29"
 private const val NARYAD = "naryad"
-private const val HUJJAT = "hujjat?xat={xat}"
+private const val HUJJAT = "hujjat"
+private const val AYLANISH = "aylanish?xat={xat}"
 private const val SMETA = "smeta/{id}"
 private const val F2LIST = "f2/{id}"
 private const val DOCS = "docs/{id}?f2={f2}"
@@ -228,6 +229,7 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
                         uz.anncorp.smeta.core.data.NativeTarget.NARX, uz.anncorp.smeta.core.data.NativeTarget.MOLIYA, uz.anncorp.smeta.core.data.NativeTarget.BUXGALTERIYA, uz.anncorp.smeta.core.data.NativeTarget.AOSR,
                         uz.anncorp.smeta.core.data.NativeTarget.TENDER, uz.anncorp.smeta.core.data.NativeTarget.LOGISTIKA, uz.anncorp.smeta.core.data.NativeTarget.HR, uz.anncorp.smeta.core.data.NativeTarget.SOTUV,
                         uz.anncorp.smeta.core.data.NativeTarget.KOMPANIYA -> nav.navigate("modul/" + t.name.lowercase())
+                        uz.anncorp.smeta.core.data.NativeTarget.APPROVALS -> nav.navigate("aylanish")
                         else -> nav.navigate("hujjat")
                     }
                 }, onInvite = { nav.navigate(PEOPLE_INVITE) }, onInvites = { nav.navigate(PEOPLE_INVITES) },
@@ -283,14 +285,16 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
             )
         }
         composable(DOCS, idArg + listOf(navArgument("f2") { type = NavType.BoolType; defaultValue = false })) { DocumentsScreen(onBack = { nav.popBackStack() }) }
-        composable(NOTIFICATIONS) { NotificationsScreen(onBack = { nav.popBackStack() }, onOpenApproval = { nav.navigate("approval/$it") }, onOpenLetter = { nav.navigate("hujjat?xat=$it") }) }
+        composable(NOTIFICATIONS) { NotificationsScreen(onBack = { nav.popBackStack() }, onOpenApproval = { nav.navigate("approval/$it") }, onOpenLetter = { nav.navigate("aylanish?xat=$it") }) }
         composable(PEOPLE_INVITE) { CompanyInviteScreen(onBack = { nav.popBackStack() }) }
         composable(PEOPLE_INVITES) { InvitesScreen(onBack = { nav.popBackStack() }, onAccepted = { nav.navigate(HOME) { popUpTo(HOME) { inclusive = true } } }) }
         composable(ZAYAVKA) { uz.anncorp.smeta.feature.zayavka.ZayavkaListScreen(onBack = { nav.popBackStack() }, onNew = { nav.navigate(ZAYAVKA_NEW) }, onOutbox = { nav.navigate(OUTBOX) }) }
         composable(ZAYAVKA_NEW) { uz.anncorp.smeta.feature.zayavka.ZayavkaScreen(onBack = { nav.popBackStack() }, onOutbox = { nav.navigate(OUTBOX) }) }
         composable(M29) { uz.anncorp.smeta.feature.m29.M29Screen(onBack = { nav.popBackStack() }, onOutbox = { nav.navigate(OUTBOX) }) }
         composable(NARYAD) { uz.anncorp.smeta.feature.naryad.NaryadScreen(onBack = { nav.popBackStack() }, onOutbox = { nav.navigate(OUTBOX) }, onPhoto = { o, n -> nav.navigate("photo/$o?naryad=$n") }) }
-        composable(HUJJAT, listOf(navArgument("xat") { type = NavType.LongType; defaultValue = -1L })) { uz.anncorp.smeta.feature.hujjat.HujjatScreen(onBack = { nav.popBackStack() }, onOpenChain = { nav.navigate("approval/$it") }, onOpenModule = { module, obyekt ->
+        // "Hujjat aylanishi" = its own page (as on the website), not a Disk tab.
+        composable(AYLANISH, listOf(navArgument("xat") { type = NavType.LongType; defaultValue = -1L })) { uz.anncorp.smeta.feature.hujjat.HujjatScreen(onBack = { nav.popBackStack() }, onOpenChain = { nav.navigate("approval/$it") }, flowOnly = true) }
+        composable(HUJJAT) { uz.anncorp.smeta.feature.hujjat.HujjatScreen(onBack = { nav.popBackStack() }, onOpenChain = { nav.navigate("approval/$it") }, onOpenModule = { module, obyekt ->
             // "Tizimda ochish" from the Disk: the screen of this app that made the document (object-scoped ones need the object id; otherwise the object picker).
             when (module) {
                 "smeta" -> nav.navigate(if (obyekt != null) "smeta/$obyekt" else PICK_SMETA); "f2" -> nav.navigate(if (obyekt != null) "f2/$obyekt" else PICK_F2)

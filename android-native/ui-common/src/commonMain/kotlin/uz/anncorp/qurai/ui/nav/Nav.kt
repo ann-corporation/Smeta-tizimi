@@ -64,8 +64,8 @@ object QNav {
                 QNavItem("f2", "F2", QIcons.FileOutput), QNavItem("nakop", "Nakopitelniy va F3", QIcons.FileOutput),
                 QNavItem("naryad", "Naryad", QIcons.ClipboardList), QNavItem("m29", "M-29 (material sarfi)", QIcons.Box),
             )),
-            QNavSection("hujjatlar", "Disk", QIcons.FileStack, listOf(
-                QNavItem("hujjat", "Disk", QIcons.FileStack), QNavItem("nazorat", "Texnik nazorat", QIcons.ShieldCheck),
+            QNavSection("hujjatlar", "Hujjatlar", QIcons.FileStack, listOf(
+                QNavItem("hujjat", "Disk", QIcons.FileStack), QNavItem("aylanish", "Hujjat aylanishi", QIcons.ClipboardList), QNavItem("nazorat", "Texnik nazorat", QIcons.ShieldCheck),
             )),
             QNavSection("taminot", "Ta‘minot", QIcons.Truck, listOf(
                 QNavItem("ombor", "Ta‘minot va sklad", QIcons.Box), QNavItem("zayavka", "Zayavkalar", QIcons.ClipboardList),

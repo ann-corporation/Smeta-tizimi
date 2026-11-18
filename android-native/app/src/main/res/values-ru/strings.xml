@@ -212,7 +212,7 @@
     <string name="mod_fact_d">Ввод выполненных работ</string>
     <string name="mod_photo">Фото-подтверждение</string>
     <string name="mod_photo_d">Прикрепить фото к строке</string>
-    <string name="mod_approval">Согласование</string>
+    <string name="mod_approval">Документооборот</string>
     <string name="mod_approval_d">Ваша очередь согласования</string>
     <string name="mod_today">Сегодня</string>
     <string name="mod_today_d">Задачи и уведомления</string>

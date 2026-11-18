@@ -63,7 +63,6 @@ import uz.anncorp.smeta.core.data.isBossRole
 import uz.anncorp.smeta.core.data.Workplace
 import uz.anncorp.smeta.core.ui.OutboxBanner
 import uz.anncorp.smeta.core.ui.QurLogo
-import uz.anncorp.smeta.feature.approval.ApprovalsScreen
 import uz.anncorp.smeta.feature.company.CabinetSheet
 import uz.anncorp.smeta.feature.company.WorkplaceSheet
 import uz.anncorp.smeta.feature.hub.HubScreen
@@ -131,7 +130,7 @@ fun HomeScreen(
                 // The website's work places (same names and order, shared QNav) + "Yana" (all modules) + Profile, in the shared bottom bar.
                 val sections = remember { navSections() }
                 QBottomNav(
-                    sections, selectedSection = sectionOfTab(tab), onSection = { tab = tabOfSection(it.id) },
+                    sections, selectedSection = sectionOfTab(tab), onSection = { if (it.id == "hujjatlar") onModule(NativeTarget.HUJJAT) else tab = tabOfSection(it.id) },
                     modifier = Modifier.navigationBarsPadding(), onMore = { tab = 0 },
                 )
             }        },
@@ -255,7 +254,7 @@ private fun TabBody(
                 onNative = { target ->
                     when (target) {
                         NativeTarget.OBJECTS -> onGoTab(1)
-                        NativeTarget.APPROVALS -> onGoTab(2)
+                        NativeTarget.APPROVALS -> onModule(NativeTarget.APPROVALS)
                         NativeTarget.TODAY -> onGoTab(3)
                         NativeTarget.FAKT -> onPickFakt()
                         NativeTarget.PHOTO -> onPickPhoto()
@@ -277,10 +276,8 @@ private fun TabBody(
             }
         } else if (tab == 1) {
             ObjectsScreen(onOpen = onOpenObject)
-        } else if (tab == 2) {
-            ApprovalsScreen(onOpen = onOpenApproval)
         } else {
-            TodayScreen(onOpenApprovals = { onGoTab(2) }, onOutbox = onOutbox, showRahbar = isBossRole(state.selected?.rol), onRahbar = onRahbar)
+            TodayScreen(onOpenApprovals = { onModule(NativeTarget.APPROVALS) }, onOutbox = onOutbox, showRahbar = isBossRole(state.selected?.rol), onRahbar = onRahbar)
         }
     }
 }

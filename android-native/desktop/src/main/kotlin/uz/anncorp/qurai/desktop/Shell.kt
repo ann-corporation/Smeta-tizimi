@@ -67,7 +67,7 @@ object Shortcuts {
 /** The pages this app implements: ids are those of the ONE navigation model ([QNav]) shared with Android and the website. */
 enum class Mod(val id: String, val needsObject: Boolean) {
     Objects("obyektlar", false), Smeta("smeta", true), F2("f2", true), Fakt("fakt", true), Nakop("nakop", true),
-    Narx("narx", false), Ombor("ombor", false), Money("moliya", false), Docs("hujjat", true), Notif("bildirish", false), Settings("sozlama", false);
+    Narx("narx", false), Ombor("ombor", false), Money("moliya", false), Docs("hujjat", false), Flow("aylanish", true), Notif("bildirish", false), Settings("sozlama", false);
     companion object { val ids: Set<String> = entries.map { it.id }.toSet(); fun of(id: String): Mod = entries.first { it.id == id } }
 }
 
@@ -182,7 +182,8 @@ fun MainScreen(sv: Services, me: SessionUser) {
                         Mod.Ombor -> OmborScreen(ctx)
                         Mod.Money -> MoneyScreen(ctx)
                         Mod.Docs -> DiskScreen(ctx) { id, o -> if (id in Mod.ids) { if (o != null) objId = o; mod = Mod.of(id) } }
-                        Mod.Notif -> NotifScreen(ctx) { unread = 0 }
+                        Mod.Flow -> DocsScreen(ctx)
+            Mod.Notif -> NotifScreen(ctx) { unread = 0 }
                         Mod.Settings -> SettingsScreen(ctx)
                     }
                 }
