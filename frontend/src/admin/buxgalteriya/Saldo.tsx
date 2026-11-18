@@ -11,6 +11,7 @@ import { SALDO_MAYDONLAR, saldoQatorlar, saldoUstunTaxmin, type SaldoMap, type S
 import { readWorkbookGrids, type Grid } from '../../lib/qarzdorlik/parse';
 import { Izoh, Son, XatoQator } from './umumiy';
 import { bugun, kirit, td, th, yorliq } from './yordamchi';
+import { DiskdanTanlashTugma } from '../../hujjat-maydoni/DiskdanTanlash';
 
 const MAYDON_NOM: Record<SaldoMaydon, () => string> = {
   hisob: () => t('Hisob (счёт)'), kontragent: () => t('Kontragent'), shartnoma: () => t('Shartnoma'), dt: () => t('Debet'), kt: () => t('Kredit'), saldo: () => t('Saldo (ishorali)'),
@@ -72,7 +73,7 @@ export function Saldo({ kid, onOzgardi, tasdiqlaydi }: { kid: number; onOzgardi:
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[13px] font-semibold">{t('Boshlang‘ich qoldiq (начальные остатки)')}</span>
         <Izoh matn={t('1C dagi «оборотно-сальдовая ведомость» (Excel/CSV) ni yuklang. Ustunlarni moslang, ko‘rikda xatolar va Debet = Kredit tekshiriladi, keyin bitta partiya bilan yoziladi. Faqat bir marta; xato bo‘lsa bekor qilib qayta yuklang.')} />
-        <label className="fz-btn cursor-pointer"><FileUp size={14} /> {t('Fayl tanlash')}<input type="file" className="hidden" accept=".csv,.txt,.xlsx,.xls" aria-label={t('Boshlang‘ich qoldiq fayli')} onChange={(e) => void faylTanla(e.target.files?.[0])} /></label>
+        <label className="fz-btn cursor-pointer"><FileUp size={14} /> {t('Fayl tanlash')}<input type="file" className="hidden" accept=".csv,.txt,.xlsx,.xls" aria-label={t('Boshlang‘ich qoldiq fayli')} onChange={(e) => void faylTanla(e.target.files?.[0])} /></label><DiskdanTanlashTugma accept=".csv,.txt,.xlsx,.xls" onFayllar={(f) => faylTanla(f[0])} onXato={setXato} />
         {fayl && <span className="text-[12px] text-text-mute">{fayl.nom}</span>}
       </div>
       {fayl && map && (

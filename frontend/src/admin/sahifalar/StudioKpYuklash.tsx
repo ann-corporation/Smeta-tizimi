@@ -14,6 +14,7 @@ import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
 import { katalogniOqi } from '../../lib/narx-dalil/katalog-oqish';
 import { kpSarlavhasi, qqsHolatiniAniqla } from '../../lib/smeta-studio/kompaniya-manbalari';
 import { docxMatni } from '../../lib/narx-dalil/docx-matn';
+import { DiskdanTanlashTugma } from '../../hujjat-maydoni/DiskdanTanlash';
 
 type Nds = 'nds_bilan' | 'nds_siz' | 'nomalum';
 type Oqilgan = { tur: 'kp' | 'katalog'; yetkazuvchi: string; inn: string; raqam: string; sana: string; nds: Nds; ndsDalil: string; qatorlar: NarxManbaQatorKirish[]; usul: string };
@@ -100,7 +101,7 @@ export function StudioKpYuklash({ kompaniyaId, onSaqlandi }: { kompaniyaId: numb
       <button type="button" className="tugma h-7 px-2 text-[11.5px]" onClick={() => setOchiq(!ochiq)}>{ochiq ? t('Yopish') : t('KP yuklash')}</button>
     </div>
     {ochiq && <div className="space-y-2">
-      <input aria-label={t('KP fayli')} type="file" accept=".xlsx,.xls,.xlsm,.docx,.pdf,.png,.jpg,.jpeg,.webp" disabled={!!band} onChange={e => void oqi(e.target.files?.[0])} />
+      <input aria-label={t('KP fayli')} type="file" accept=".xlsx,.xls,.xlsm,.docx,.pdf,.png,.jpg,.jpeg,.webp" disabled={!!band} onChange={e => void oqi(e.target.files?.[0])} /><DiskdanTanlashTugma accept=".xlsx,.xls,.xlsm,.docx,.pdf,.png,.jpg,.jpeg,.webp" disabled={!!band} onFayllar={(f) => oqi(f[0])} />
       {band && <p role="status" className="text-xs text-accent">{band}</p>}
       {xato && <p role="alert" className="text-xs text-danger">{xato}</p>}
       {k && <div className="space-y-2">

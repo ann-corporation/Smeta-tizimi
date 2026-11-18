@@ -18,6 +18,7 @@ import { parseVaraqlar, readWorkbookGrids, sonOl, type ImportNatija } from '../.
 import { qarzdorlikXlsxYarat } from '../../lib/qarzdorlik/eksport';
 import { DebitorPanel } from './DebitorPanel';
 import { ZanjirChizigi } from '../components/ZanjirChizigi';
+import { DiskdanTanlashTugma } from '../../hujjat-maydoni/DiskdanTanlash';
 
 const kirit = 'w-full rounded-md border border-border bg-surface px-2 py-1 text-[12.5px] text-text outline-none focus:border-accent';
 const yorliq = 'mb-1 block text-[11px] font-medium uppercase tracking-wide text-text-mute';
@@ -213,7 +214,7 @@ function ImportOyna({ kid, obyektlar, onYop, onTayyor }: { kid: number; obyektla
       </div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <label><span className={yorliq}>{t('Fayl (.xlsx)')}</span>
-          <input aria-label={t('Fayl (.xlsx)')} type="file" accept=".xlsx" className={kirit} onChange={(e) => void tanla(e.target.files?.[0])} />
+          <input aria-label={t('Fayl (.xlsx)')} type="file" accept=".xlsx" className={kirit} onChange={(e) => void tanla(e.target.files?.[0])} /><DiskdanTanlashTugma accept=".xlsx" onFayllar={(f) => tanla(f[0])} />
         </label>
         <label><span className={yorliq}>{t('Shartnoma turi (standart)')}</span>
           <select aria-label={t('Shartnoma turi (standart)')} className={kirit} value={turi} onChange={(e) => turOzgar(e.target.value as typeof turi)}>

@@ -10,6 +10,7 @@ import { readWorkbookGrids, type Grid } from '../../lib/qarzdorlik/parse';
 import { yigindi2 } from '../../lib/hisob-yadro';
 import { Izoh, Son, XatoQator } from './umumiy';
 import { ddmmyyyy, kirit, td, th, type Davr } from './yordamchi';
+import { DiskdanTanlashTugma } from '../../hujjat-maydoni/DiskdanTanlash';
 
 const SABAB: Record<string, () => string> = {
   raqam: () => t('shartnoma raqami bo‘yicha'), inn: () => t('STIR bo‘yicha'), nom: () => t('nomi bo‘yicha'),
@@ -80,7 +81,7 @@ export function Bank({ kid, davr, versiya, onOzgardi }: { kid: number; davr: Dav
           <label className="fz-btn cursor-pointer"><FileUp size={14} /> {t('Bank ko‘chirmasini yuklash')}
             <input type="file" accept=".csv,.txt,.xlsx" className="sr-only" aria-label={t('Bank ko‘chirmasi fayli')} onChange={(e) => { void faylTanla(e.target.files?.[0]); e.target.value = ''; }} />
           </label>
-          <Izoh matn={t('CSV yoki Excel. Tizim sana, summa, STIR va to‘lov maqsadini topadi va shartnomaga moslaydi. Moslanmaganini o‘zingiz tanlaysiz. Qayta yuklansa takror yozilmaydi.')} />
+          <DiskdanTanlashTugma accept=".csv,.txt,.xlsx" onFayllar={(f) => faylTanla(f[0])} onXato={setXato} /><Izoh matn={t('CSV yoki Excel. Tizim sana, summa, STIR va to‘lov maqsadini topadi va shartnomaga moslaydi. Moslanmaganini o‘zingiz tanlaysiz. Qayta yuklansa takror yozilmaydi.')} />
           {fayl && <span className="text-[12px] text-text-mute">{fayl.nom}</span>}
           {fayl && (
             <label className="flex items-center gap-1 text-[12px]">

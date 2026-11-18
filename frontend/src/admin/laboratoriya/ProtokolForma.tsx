@@ -12,6 +12,7 @@ import { natijaYubor, sorovTafsilotOl, type SorovTafsilot } from '../../api/t2-l
 import { maydonXatosi, maydonYuki, natijaMaslahati } from '../../lib/laboratoriya/sinov-maslahat';
 import { t } from '../../i18n/til';
 import { inp, tugmaAsosiy } from '../zakazchik/tomon-yordam';
+import { DiskdanTanlashTugma } from '../../hujjat-maydoni/DiskdanTanlash';
 
 const QARZ_MATNI: Record<string, string> = {
   yozildi: 'Hisob pudratchining qarzdorligiga yozildi',
@@ -131,7 +132,7 @@ export function ProtokolForma({ kompaniyaId, id, onTayyor }: { kompaniyaId: numb
             <div className="text-xs font-semibold">{t('Protokol fayli (PDF / skan)')}{s.fayl_document_id ? '' : ' *'}</div>
             <ul>{d.hujjatlar.map((h) => (
               <li key={h.document_id} className="text-xs"><a className="text-accent underline" href={hujjatYuklabOlishUrl(h.document_id)}><Paperclip size={11} className="mr-1 inline" />{h.fayl ?? `#${h.document_id}`}</a></li>))}</ul>
-            <input type="file" multiple accept=".pdf,image/*" className="block text-xs" aria-label={t('Protokol fayli')} onChange={(e) => setFayllar(Array.from(e.target.files ?? []))} />
+            <input type="file" multiple accept=".pdf,image/*" className="block text-xs" aria-label={t('Protokol fayli')} onChange={(e) => setFayllar(Array.from(e.target.files ?? []))} /><DiskdanTanlashTugma kopmi accept=".pdf,image/*" onFayllar={(f) => setFayllar(f)} />
           </div>
           <button type="button" className={tugmaAsosiy} disabled={band} onClick={() => void yubor()}>{s.natija === 'kutilmoqda' ? t('Protokolni yuborish') : t('Protokolni yangilash')}</button>
         </>

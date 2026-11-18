@@ -28,6 +28,7 @@ import { t } from '../../i18n/til';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { ManbaChip } from '../../components/narx/NarxKorinish';
+import { DiskdanTanlashTugma } from '../../hujjat-maydoni/DiskdanTanlash';
 
 const BOSH_FORMA: NarxManbaMalumot = { tur: 'katalog', nds_holati: 'nomalum' };
 const inp = 'mt-1 h-8 w-full px-2 text-[13px]';
@@ -139,7 +140,7 @@ export default function NarxManbalari() {
 
           <div className="flex flex-wrap items-center gap-3 text-[13px]">
             <label className="fz-btn cursor-pointer"><FileUp size={14} /> {t('Excel’dan pozitsiyalar')}
-              <input type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => void faylTanla(e.target.files?.[0])} /></label>
+              <input type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => void faylTanla(e.target.files?.[0])} /></label><DiskdanTanlashTugma accept=".xlsx,.xls" onFayllar={(f) => faylTanla(f[0])} />
             {kitob && <select className="h-8 px-2" value={varaq} onChange={(e) => { setVaraq(e.target.value); setQolda(null); }}>{kitob.sheets.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}</select>}
             {!kitob && <button type="button" className="fz-btn" onClick={() => setQoldaQatorlar((q) => [...q, { kod: '', nom: '', birlik: '', narx: null }])}>{t('+ qo‘lda pozitsiya')}</button>}
             {oqish && <span className="flex flex-wrap items-center gap-1.5 text-[12px] text-text-dim">
