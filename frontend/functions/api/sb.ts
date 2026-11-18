@@ -221,6 +221,9 @@ export const onRequestPost: PagesFunction<{
            it is never client-supplied. */
         price_control_v1: 'obyekt_actor',
         f2_exact_qatorlar_v1: 'akt_actor',
+        /* Egasi 2026-11-18 (Windows/Android ilova): bitta akt summa paketi (QQS bilan / ustamali / ustamasiz) — yagona yadro `_t2_summa_paket_v1`, faqat o'qish.
+           `stable`; a'zolik + f2.read RPC ichida; actor sessiyadan. */
+        akt_summa_paket_v1: 'akt_actor',
         /* Egasi 2026-11-03: F2 hujjat podvali (akt, blok) va backfill nomzodlari. stable; a'zolik + f2.read RPC ichida. */
         akt_podval_ol_v1: 'obyekt_actor',
         akt_podval_nomzod_v1: 'obyekt_actor',

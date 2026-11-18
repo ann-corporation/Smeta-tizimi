@@ -104,4 +104,5 @@
     <string name="p10_nz_msg_remark">Enter a remark (at least 3 characters).</string>
     <string name="p10_nz_msg_no_right">You have no right to make this decision.</string>
     <string name="p10_nz_msg_state">The submission changed. Refresh the list.</string>
+    <string name="p16_stale_banner">Offline: lists are shown from the copy saved at %1$s. Connect to the internet to write or approve.</string>
 </resources>

@@ -23,3 +23,12 @@ fun saveAndOpen(name: String, bytes: ByteArray, open: Boolean = true): File {
 }
 
 fun openFile(f: File) { runCatching { if (Desktop.isDesktopSupported()) Desktop.getDesktop().open(f) }.onFailure { Log.i("open failed ${it::class.simpleName}") } }
+
+/** Native Windows "open file" dialog; null when cancelled. */
+fun pickFile(title: String, imagesOnly: Boolean = false): File? {
+    val d = java.awt.FileDialog(null as java.awt.Frame?, title, java.awt.FileDialog.LOAD)
+    if (imagesOnly) d.setFilenameFilter { _, n -> n.lowercase().let { it.endsWith(".jpg") || it.endsWith(".jpeg") || it.endsWith(".png") || it.endsWith(".webp") } }
+    d.isVisible = true
+    val n = d.file ?: return null
+    return File(d.directory, n)
+}

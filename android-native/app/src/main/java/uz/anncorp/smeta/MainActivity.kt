@@ -10,6 +10,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import android.view.WindowManager
 import uz.anncorp.smeta.core.security.AppLockController
@@ -69,6 +73,7 @@ class MainActivity : AppCompatActivity() {
     @Inject lateinit var lock: AppLockController
     @Inject lateinit var api: uz.anncorp.smeta.core.data.ApiClient
     @Inject lateinit var docCache: uz.anncorp.smeta.core.data.DocCache
+    @Inject lateinit var readCache: uz.anncorp.smeta.core.data.CachingBffApi
 
     /** QULF: every touch/key counts as activity for the idle lock; background/foreground drive the lock timer. */
     override fun onUserInteraction() { super.onUserInteraction(); lock.touch() }
@@ -95,7 +100,7 @@ class MainActivity : AppCompatActivity() {
         applyBars(when (prefs.theme.value) { ThemeMode.DARK -> true; ThemeMode.LIGHT -> false; ThemeMode.SYSTEM -> systemDark })
         // Decrypted staging copies of opened documents never outlive the process; sign-out also wipes the encrypted document cache.
         DocFiles.cleanup(this)
-        lifecycleScope.launch { events.logout.collect { docCache.clear() } }
+        lifecycleScope.launch { events.logout.collect { docCache.clear(); readCache.wipe() } }
         setContent {
             val mode by prefs.theme.collectAsStateWithLifecycle()
             val dark = isDarkFor(mode)
@@ -111,6 +116,8 @@ class MainActivity : AppCompatActivity() {
                 // Every screen sits on the theme background (a screen without its own background used to show the dark window colour in the light theme).
                 Box(androidx.compose.ui.Modifier.background(androidx.compose.material3.MaterialTheme.colorScheme.background)) {
                     AppNav(events, lock, if (uz.anncorp.smeta.core.demo.Demo.enabled(this@MainActivity)) HOME else SPLASH)
+                    val stale by readCache.staleSince.collectAsStateWithLifecycle()
+                    stale?.let { ts -> androidx.compose.material3.Surface(color = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh, modifier = androidx.compose.ui.Modifier.align(androidx.compose.ui.Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding().padding(bottom = 64.dp)) { androidx.compose.material3.Text(stringResource(R.string.p16_stale_banner, java.text.SimpleDateFormat("dd.MM HH:mm", java.util.Locale.getDefault()).format(java.util.Date(ts))), style = androidx.compose.material3.MaterialTheme.typography.bodySmall, color = androidx.compose.material3.MaterialTheme.colorScheme.tertiary, modifier = androidx.compose.ui.Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) } }
                     AppLockLayer(lock, onSignOut = { lifecycleScope.launch { api.signOut() } })
                 }
             }
