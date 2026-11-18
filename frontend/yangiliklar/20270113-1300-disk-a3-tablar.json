@@ -1,0 +1,11 @@
+{
+  "sana": "2027-01-13",
+  "sarlavha": "Disk: tablar soddalashdi, tizim hujjatlari Kompaniya diskida",
+  "bandlar": [
+    "Disk endi to‘rt tab: Mening diskim, Kompaniya diski, Ulashilgan, Savat. «Tizim hujjatlari», «Taqdimlar», «Faoliyat» va «Disk boshqaruvi» alohida tab emas.",
+    "Tizim yasagan hujjatlar (F-2, F-3, nakopitelniy va boshqalar) Kompaniya diskida 🔒 tizim papkalarida turadi: ularni o‘chirib, ko‘chirib yoki qayta nomlab bo‘lmaydi, lekin ichiga o‘z faylingizni qo‘shish mumkin.",
+    "Tizim faylida «Tizimda ochish» tugmasi uni yasagan oynaga olib boradi; versiyalar fayl panelida.",
+    "Taqdimlar Ulashilgan ichida (Menga ulashilgan, Men taqdim qilganlar, Menga taqdim qilinganlar). Faoliyat va Boshqaruv sarlavhadagi ⚙ menyuda.",
+    "Eski /admin/documents?document_id= havolasi hujjat joylashgan papkani ochadi. Papkani ZIP qilish Kompaniya diskiga ko‘chdi."
+  ]
+}

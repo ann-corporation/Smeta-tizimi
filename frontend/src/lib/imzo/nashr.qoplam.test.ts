@@ -24,7 +24,7 @@ const barcha = fayllar(SRC).map((p) => ({ yol: relative(SRC, p).replace(/\\/g, '
 const DVIGATELSIZ: Record<string, string> = {
   'admin/sahifalar/FotoLenta.tsx': 'rasm (foto) yuklab olish - xlsx hujjat emas',
   'admin/sahifalar/NormSmetaWorkbench.tsx': 'ichki review JSON (katalog tekshiruvi), hujjat emas',
-  'admin/sahifalar/FaylMenejer.tsx': 'foydalanuvchining o‘z yuklagan fayllari (uning mulki) - qayta yuklab berish',
+  'hujjat-maydoni/HujjatMaydoni.tsx': 'Diskdagi saqlangan fayllarni ZIP qilib yuklab berish (foydalanuvchining o‘z fayllari va avval to‘langan tizim hujjatlari)',
   'components/imzo/ImzoUi.tsx': 'imzolangan nusxa: IMZO varag‘i o‘zida QR (imzo QR lari) bilan quriladi',
   'lib/construction-document-control/export/download-helper.ts': 'markaziy nuqtaning o‘zi',
 };

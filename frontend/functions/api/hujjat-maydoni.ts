@@ -2,7 +2,7 @@
  * hujjat-maydoni.ts - Hujjat maydoni (Hujjatlarim / Kompaniya diski) API: papka, fayl amallari, versiya, izoh, ulashish, kvota, admin.
  * Aktor - faqat sessiyadan. Ruxsat/kvota - service_role RPC lari ichida (t2_hm_*). Baytlar - /api/hujjat-maydoni-yukla va -ol.
  *
- *   GET  /api/hujjat-maydoni?amal=royxat|ulashilgan|versiyalar|izoh|ulashish|faoliyat|qidir|tizim|odamlar|admin|sozlama|tg|taqdim_nishon|taqdim_royxat|taqdim_tafsilot
+ *   GET  /api/hujjat-maydoni?amal=royxat|ulashilgan|versiyalar|izoh|ulashish|faoliyat|qidir|tizim|registry_joy|odamlar|admin|sozlama|tg|taqdim_nishon|taqdim_royxat|taqdim_tafsilot
  *   POST /api/hujjat-maydoni { amal: papka|fayl|izoh|ulash|sozlama|abadiy|bosh|reja|taqdim|taqdim_qaytar, ... }
  *   Taqdim (tomonlararo o'zgarmas surat): oluvchi tomon faqat o'qiydi; yuklab olish - /api/hujjat-maydoni-ol?taqdim=<id>&el=<id>.
  *   qidir: fayl nomi + fayl ICHIDAGI matn (pdf/docx/xlsx/pptx/matn; yuklashda indekslanadi).
@@ -30,6 +30,7 @@ export const onRequestGet: PagesFunction<HmEnv> = async (ctx) => {
     const id = a.actorId;
     switch (amal) {
       case 'royxat': return R('t2_hm_royxat_v1', { p_actor: id, p_kompaniya: komp, p_papka: num(q.get('papka_id')), p_savat: q.get('savat') === '1' });
+      case 'registry_joy': return R('t2_hm_registry_joy_v1', { p_actor: id, p_registry_id: num(q.get('registry_id')) });
       case 'ulashilgan': return R('t2_hm_ulashilgan_v1', { p_actor: id });
       case 'versiyalar': return R('t2_hm_versiyalar_v1', { p_actor: id, p_fayl_id: num(q.get('fayl_id')) });
       case 'izoh': return R('t2_hm_izoh_v1', { p_actor: id, p_fayl_id: num(q.get('fayl_id')) });

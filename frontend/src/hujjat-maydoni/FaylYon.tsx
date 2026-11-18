@@ -2,7 +2,8 @@
  * FaylYon.tsx - tanlangan fayl paneli: versiyalar (qaytarish, yangi versiya), izohlar (@eslatma), ulashish, faoliyat, qulf, nomlash, ko'chirish.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { Lock, Send, Unlock, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ExternalLink, Lock, Send, Unlock, X } from 'lucide-react';
 import { toast } from '../umumiy/ui/Toast';
 import { matnSora } from '../umumiy/ui/Tasdiq';
 import { t, tilLocale } from '../i18n/til';
@@ -11,6 +12,7 @@ import {
   type HmFaoliyat, type HmFayl, type HmIzoh, type HmYuklaFn, type HmOdam, type HmPapka, type HmUlash, type HmVersiya,
 } from '../api/t2-hujjat-maydoni';
 import { TaqdimDialog } from './TaqdimPanel';
+import { tizimdaOchishYoli } from '../lib/disk-manba-yol';
 
 type Tab = 'versiya' | 'izoh' | 'ulashish' | 'faoliyat';
 const xm = (x: { code: string; xato?: string }) => x.xato || x.code;
@@ -50,6 +52,8 @@ export function FaylYon(p: {
   };
   const nomla = async () => { const n = await matnSora({ matn: t('Yangi nom'), boshlangich: fayl.nom, majburiy: true }); if (n && n !== fayl.nom) void amal('nomla', { nom: n }); };
   const yozaOladi = daraja >= 3;
+  /** Tizim hujjati bo'lsa - uni yasagan oyna (F-2 tayyorlash, F-3, nakopitelniy, smeta ...). */
+  const ochish = fayl.tizim_hujjat ? tizimdaOchishYoli(fayl) : null;
   const izohYoz = async () => {
     if (!matn.trim()) return;
     const r = await hmIzohYoz(fayl.id, matn, eslatilgan);
@@ -66,6 +70,8 @@ export function FaylYon(p: {
     <aside className="w-full shrink-0 rounded-lg border border-border bg-surface p-3 text-[13px] lg:w-[340px]" aria-label={t('Fayl tafsilotlari')}>
       <div className="flex items-start justify-between gap-2"><div className="min-w-0"><div className="truncate font-semibold text-text">{fayl.nom}</div><div className="text-[11px] text-text-mute">{hmHajm(fayl.bayt)} · v{fayl.versiya ?? 1}</div></div>
         <button type="button" aria-label={t('Yopish')} onClick={p.onYop}><X size={16} /></button></div>
+      {fayl.tizim_hujjat && <p className="mt-1 text-[11px] text-text-mute">{t('Tizim hujjati: manba o‘zgarib qayta yasalsa, yangi versiya shu faylga qo‘shiladi.')}</p>}
+      {ochish && <div className="mt-2 flex flex-wrap items-center gap-2"><Link to={ochish.yol} className="fz-btn fz-btn--primary"><ExternalLink size={13} /> {t('Tizimda ochish')}</Link><span className="text-[11px] text-text-mute">{t(ochish.qayerda)}</span></div>}
       {yozaOladi && (
         <div className="mt-2 flex flex-wrap gap-1.5">
           <button type="button" className="fz-btn" onClick={() => void nomla()}>{t('Nomlash')}</button>
