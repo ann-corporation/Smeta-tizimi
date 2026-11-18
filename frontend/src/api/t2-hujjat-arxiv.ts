@@ -7,8 +7,9 @@
  * Saqlash hujjatni berishni to'xtatmaydi: xato bo'lsa faqat ogohlantiriladi.
  */
 import { hujjatYukla } from './t2-hujjat-canonical';
+import type { DiskManba } from '../lib/disk-hujjat';
 
-export type ArxivTuri = 'f2_hujjat' | 'f3' | 'nakopitelniy' | 'slichitelniy' | 'm29' | 'aosr';
+export type ArxivTuri = 'f2_hujjat' | 'f3' | 'nakopitelniy' | 'slichitelniy' | 'ostatka' | 'm29' | 'aosr' | 'sverka' | 'sverka_lrv_res' | 'smeta_lrv' | 'smeta_res' | 'f2_portfel' | 'shartnoma_oylik_paket';
 
 const hex = async (s: Uint8Array | string) => {
   const b = typeof s === 'string' ? new TextEncoder().encode(s) : s;
@@ -26,13 +27,15 @@ export async function arxivOperationId(kompaniyaId: number, obyektId: number | n
 export async function hujjatArxivla(p: {
   kompaniyaId: number; loyihaId?: number | null; obyektId?: number | null; turi: ArxivTuri;
   faylNomi: string; bytes: Uint8Array; davr?: string | null;
+  /** Disk shaxsi (lib/disk-hujjat): kalit/manba/aniq nom. Berilmasa SQL registry qatoridan aniqlaydi. */
+  manba?: DiskManba; mime?: string;
 }): Promise<{ ok: true; versiya: number; takror: boolean } | { ok: false; xato: string }> {
   try {
     const sha = await hex(p.bytes);
-    const file = new File([p.bytes.slice()], p.faylNomi, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const file = new File([p.bytes.slice()], p.faylNomi, { type: p.mime || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const r = await hujjatYukla({
       file, kompaniyaId: p.kompaniyaId, loyihaId: p.loyihaId ?? null, obyektId: p.obyektId ?? null,
-      documentType: p.turi, revision: p.davr ?? null,
+      documentType: p.turi, revision: p.davr ?? null, manba: p.manba,
       operationId: await arxivOperationId(p.kompaniyaId, p.obyektId ?? null, p.turi, sha),
     });
     if (!r.ok) return { ok: false, xato: r.xato || r.code };

@@ -1,4 +1,5 @@
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
+import { obyektHujjatManba } from '../../lib/disk-hujjat';
 import { ContractScopePanel } from '../../components/contract-scope/ContractScopePanel';
 import { ObjectMoneySummary } from '../../components/pto-workspace/ObjectMoneySummary';
 import { ObjectTrail } from '../../components/pto-workspace/ObjectTrail';
@@ -309,7 +310,8 @@ export function HolatNative() {
         return;
       }
       const { bytes, faylNomi } = fayl;
-      const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes, hujjat: 'OSTATKA', sabab: `Ведомость остатка · ${obyektNom}`, obyekt: obyektId },
+      const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes, hujjat: 'OSTATKA', sabab: `Ведомость остатка · ${obyektNom}`, obyekt: obyektId,
+          disk: { turi: 'ostatka', obyektId, faylNomi, manba: obyektHujjatManba({ tur: 'ostatka', obyektId, obyekt: obyektNom, oy: null }) } },
         () => { if (korish) korinish.ochish(bytes, faylNomi); else downloadBlob(bytes, faylNomi); });
       if (!t.ok) { toast(t.xabar, 'danger'); return; }
       const izoh = [
@@ -349,7 +351,8 @@ export function HolatNative() {
       const { model, fayl } = slichitelniyHujjatQur({ rows: daraxtXom, states: holatXom, istisnolar, ustama: u.ustama, obyektNom, imzo: tomonlar, faqatFarq: slichFaqatFarq, aktlarKOplate, bajarilmadiIdlar: await bajarilmadiIdlariOl(joriy.id, obyektId), bekorAktlar: await bekorAktlarOl(obyektId) });
       if (!fayl) { toast(slichFaqatFarq ? 'Farq yo‘q: barcha pozitsiyalarda fakt smeta bilan teng.' : 'Solishtiriladigan pozitsiya yo‘q.', 'warn'); return; }
       const { bytes, faylNomi } = fayl;
-      const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes, hujjat: 'SLICHITELNIY', sabab: `Сличительная ведомость · ${obyektNom}`, obyekt: obyektId },
+      const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes, hujjat: 'SLICHITELNIY', sabab: `Сличительная ведомость · ${obyektNom}`, obyekt: obyektId,
+          disk: { turi: 'slichitelniy', obyektId, faylNomi, manba: obyektHujjatManba({ tur: 'slichitelniy', obyektId, obyekt: obyektNom, oy: null }) } },
         () => { if (korish) korinish.ochish(bytes, faylNomi); else downloadBlob(bytes, faylNomi); });
       if (!t.ok) { toast(t.xabar, 'danger'); return; }
       toast(`Slichitelniy: ${model.barglar} ta pozitsiya, ${model.ortiq} tasida smetadan ortiq, ${model.kam} tasida kam bajarilgan${model.diqqat.length ? `; ${model.diqqat.length} ta pozitsiyada ma’lumot yetishmaydi — jami bo‘sh qoldirildi` : ''}.${t.xabar ? ' ' + t.xabar : ''}`, model.diqqat.length ? 'warn' : 'ok');

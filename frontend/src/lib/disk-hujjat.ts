@@ -45,11 +45,29 @@ export function forma3Manba(p: { forma3Id: number; shartnomaId: number | null; r
   };
 }
 
-const OYLIK_NOM: Record<string, string> = { nakopitelniy: 'Nakopitelniy', m29: 'M-29', slichitelniy: 'Slichitelniy', ostatka: 'Ostatka' };
+/** F-3 qoralamasi (brauzerda nakopitelniydan yasaladi, saqlangan t2_forma3 yozuvi yo'q): VAQTINCHALIK kalit; haqiqiy kalit (f3:<forma3_id>) kelganda SQL shu faylga ULAYDI. */
+export function forma3QoralamaManba(p: { shartnomaId: number | null; raqam: string | number | null; shartnomaRaqam?: string | null; davr: string | null }): DiskManba {
+  const oy = oyMatni(p.davr);
+  return { turi: 'forma3', id: null, kalit: kalitVaqtinchaF3(p.shartnomaId, oy), shartnomaId: p.shartnomaId, nom: qism(p.raqam != null && p.raqam !== '' ? `F-3 №${p.raqam}` : 'F-3', p.shartnomaRaqam ? `shartnoma №${p.shartnomaRaqam}` : null, oy) };
+}
 
-export function obyektHujjatManba(p: { tur: 'nakopitelniy' | 'm29' | 'slichitelniy' | 'ostatka'; obyektId: number; obyekt: string | null; oy: string | null }): DiskManba {
+const OYLIK_NOM: Record<string, string> = {
+  nakopitelniy: 'Nakopitelniy', m29: 'M-29', slichitelniy: 'Slichitelniy', ostatka: 'Ostatka', aosr: 'AOSR', sverka: 'Sverka', sverka_lrv_res: 'LRV-RES sverkasi',
+  smeta_lrv: 'LRV', smeta_res: 'RES', smeta: 'Smeta', f2_portfel: 'F-2 portfeli',
+};
+export type OylikTur = 'nakopitelniy' | 'm29' | 'slichitelniy' | 'ostatka' | 'aosr' | 'sverka' | 'sverka_lrv_res' | 'smeta_lrv' | 'smeta_res' | 'smeta' | 'f2_portfel';
+
+/** Obyekt darajasidagi hujjat: kalit `<tur>:<obyekt_id>:<oy|->` (SQL `_t2_disk_kalit_v1` umumiy shakli bilan bir xil). */
+export function obyektHujjatManba(p: { tur: OylikTur; obyektId: number; obyekt: string | null; oy: string | null }): DiskManba {
   const oy = oyMatni(p.oy);
-  return { turi: p.tur, id: p.obyektId, kalit: kalitOylik(p.tur, p.obyektId, oy), nom: qism(OYLIK_NOM[p.tur], p.obyekt, oy) };
+  return { turi: p.tur, id: p.obyektId, kalit: kalitOylik(p.tur, p.obyektId, oy), nom: qism(OYLIK_NOM[p.tur] ?? p.tur, p.obyekt, oy) };
+}
+
+/** Shartnoma darajasidagi hujjat (oylik paket, shartnoma sverkasi): kalit `<tur>:s<shartnoma_id>:<oy|->` - obyektlar orasida to'qnashmaydi. */
+export function shartnomaHujjatManba(p: { tur: 'shartnoma_oylik_paket' | 'sverka_shartnoma'; shartnomaId: number; shartnomaRaqam: string | null; oy: string | null }): DiskManba {
+  const oy = oyMatni(p.oy);
+  const nom = p.tur === 'shartnoma_oylik_paket' ? 'Oylik paket' : 'Shartnoma sverkasi';
+  return { turi: p.tur, id: p.shartnomaId, kalit: `${p.tur}:s${p.shartnomaId}:${oy ?? '-'}`, shartnomaId: p.shartnomaId, nom: qism(nom, p.shartnomaRaqam ? `shartnoma №${p.shartnomaRaqam}` : null, oy) };
 }
 
 /** Server hujjat turi -> registry document_type (mavjud arxiv turlari bilan bir xil). */

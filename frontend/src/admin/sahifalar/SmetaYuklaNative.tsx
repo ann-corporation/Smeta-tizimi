@@ -2266,7 +2266,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi, yonaltirish }: { com
                     })}</tbody>
                   </table>
                 </div>
-                <LrvResSverkaPanel lrvlar={paketSverka.lrvlar} reslar={paketSverka.reslar} obyektNomi={selectedObject?.nom ?? ''} />
+                <LrvResSverkaPanel lrvlar={paketSverka.lrvlar} reslar={paketSverka.reslar} obyektNomi={selectedObject?.nom ?? ''} obyektId={selectedObject?.id ?? null} />
                 <div className="flex flex-wrap items-center gap-2">
                   <button type="button" className="fz-btn disabled:opacity-50" disabled={paketBand || busy} onClick={paketTahliliniTasdiqla}>Tahlil va manba bog‘lanishini tasdiqlash</button>
                   <span className={paketTasdiqImzosi === smetaPaketTasdiqImzosi(paketVaraqlar) ? 'text-success text-[12px]' : 'text-warn text-[12px]'}>
@@ -2541,7 +2541,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi, yonaltirish }: { com
             )}
 
             <HujjatTekshiruvPanel book={book} faylNomi={rawFile.current?.name ?? ''} />
-            <LrvResSverkaPanel lrvlar={sverkaLrvlar} reslar={sverkaReslar} obyektNomi={selectedObject?.nom ?? ''} />
+            <LrvResSverkaPanel lrvlar={sverkaLrvlar} reslar={sverkaReslar} obyektNomi={selectedObject?.nom ?? ''} obyektId={selectedObject?.id ?? null} />
 
             {/* Owner (2026-09-10): "narxlanmagan rs mat ob kabi har bir
                 qatorlarni bildirishi va sababini keltirib bera olishi kerak" --

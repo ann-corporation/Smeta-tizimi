@@ -2,7 +2,8 @@
  * POST /api/hujjat-maydoni-tozala - kunlik hisob va tozalash (GitHub Actions: .github/workflows/hujjat-maydoni-kunlik.yml).
  * Kirish FAQAT `X-Cron-Kalit` (BILDIRISHNOMA_CRON_KALIT). Ish:
  *   1. savatda 30 kundan oshgan fayllar va 1 kundan eski 'kutish' versiyalari: R2 dan o'chiriladi, so'ng metama'lumot;
- *   2. t2_hm_hisobla_v1: ortiqcha xotira/trafik tokenda (idempotent, sana bo'yicha) + 80%/95% ogohlantirish.
+ *   2. Disk navbati: saqlangan, lekin Diskka ulanmagan tizim hujjatlari (yozuv xatosi) t2_disk_yetim_ishla_v1 bilan ulanadi (xato jim emas: javob + jurnal);
+ *   3. t2_hm_hisobla_v1: ortiqcha xotira/trafik tokenda (idempotent, sana bo'yicha) + 80%/95% ogohlantirish.
  * Token yetmasa fayllar O'CHIRILMAYDI (faqat 'yetmadi' belgisi) - foydalanuvchi ma'lumoti garovga olinmaydi.
  */
 import { cronKalitTekshir } from './bildirishnoma-yetkaz';
@@ -28,8 +29,11 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       }
       tozalandi = { fayllar: fayllar.length, versiyalar: versiyalar.length };
     }
+    const y = await hmRpc(ctx.env, 't2_disk_yetim_ishla_v1', { p_limit: 100, p_kutish_daqiqa: 5 });
+    const disk = y.httpOk && y.body?.ok ? { korildi: y.body.korildi, yozildi: y.body.yozildi, xato: y.body.xato } : { xato: -1 };
+    if (!y.httpOk || !y.body?.ok || Number(y.body.xato) > 0) console.error(JSON.stringify({ disk: 'navbat_xato', http: y.httpOk, natija: y.body?.ok ? { xato: y.body.xato, xatolar: y.body.xatolar } : null }));
     const h = await hmRpc(ctx.env, 't2_hm_hisobla_v1', { p_sana: new Date().toISOString().slice(0, 10) });
-    return Response.json({ ok: true, tozalandi, hisob: h.body?.ok ? { hisoblandi: h.body.hisoblandi, ogohlantirish: h.body.ogohlantirish } : null }, { headers: { 'Cache-Control': 'no-store' } });
+    return Response.json({ ok: true, tozalandi, disk, hisob: h.body?.ok ? { hisoblandi: h.body.hisoblandi, ogohlantirish: h.body.ogohlantirish } : null }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (e: any) {
     return Response.json({ ok: false, code: 'HM_XATO', xato: String(e?.message || e).slice(0, 200) }, { status: 500 });
   }

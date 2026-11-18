@@ -13,6 +13,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ChevronDown, ChevronRight, Download, Eye, Save, Search, Sparkles, Zap } from 'lucide-react';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
+import { diskHolatiniKorsat } from '../../lib/disk-saqla';
 import { toast } from '../../umumiy/ui/Toast';
 import { moslikHisobla, moslikTuzilma } from '../../lib/ish-material-moslik';
 import { IshMaterialOgohRoyxat } from '../../components/fakt/IshMaterialOgoh';
@@ -870,6 +871,7 @@ export function F2TayyorlashNative() {
       if (!r.ok) { toast(r.xabar, 'danger', undefined, 9000); return; }
       if (korish) korinish.ochish(r.bytes, r.faylNomi); else downloadBlob(r.bytes, r.faylNomi);
       if (r.bepulTakror) toast('Bu hujjat avval to‘langan — qayta yuklash bepul', 'ok'); else if (r.sarflandi) toast(`${r.sarflandi} token`, 'ok');
+      diskHolatiniKorsat(r.diskHolat);
       return;
     }
     // Eski F2 bloklari o'z hujjat podvali bilan yoziladi: podval o'qilmasa jim smeta podvaliga o'tilmaydi.

@@ -167,6 +167,6 @@ describe('Kunlik hisob/tozalash endpointi', () => {
     const s = r2(); const kalit = 'x'.repeat(40);
     const res = await tozala({ request: new Request('https://x/t', { method: 'POST', headers: { 'X-Cron-Kalit': kalit } }), env: ENV(s.bucket, { BILDIRISHNOMA_CRON_KALIT: kalit }) } as never);
     expect(res.status).toBe(200); expect(s.del).toHaveBeenCalledTimes(2);
-    expect(c.map((x) => x.nom)).toEqual(['t2_hm_tozala_ol_v1', 't2_hm_tozala_tasdiq_v1', 't2_hm_hisobla_v1']);
+    expect(c.map((x) => x.nom)).toEqual(['t2_hm_tozala_ol_v1', 't2_hm_tozala_tasdiq_v1', 't2_disk_yetim_ishla_v1', 't2_hm_hisobla_v1']); // A2: Disk navbati (yetim hujjatlar) hisobdan oldin
   });
 });

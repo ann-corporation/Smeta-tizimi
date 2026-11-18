@@ -401,7 +401,7 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot, yangila }: { kompaniyaId: 
       const tk = await hujjatTokenBilan({ kompaniyaId, bytes: x.zip, hujjat: 'SHARTNOMA_OYLIK_PAKET', sabab: `Пакет по договору № ${raqamTozala(tanlanganShartnoma.raqam)} · ${oy}`, yacheykalar: 0 }, () => undefined);
       if (!tk.ok) { toast(tk.xabar, 'danger'); return; }
       const loyihalar = new Set(shObyektlar.map((o) => o.loyiha_id));
-      const sk = await paketZipniSaqla({ kompaniyaId, loyihaId: loyihalar.size === 1 ? [...loyihalar][0] : null, zip: x.zip, fayl: x.zipNom, oy, operationId: yangiTopshirishId() });
+      const sk = await paketZipniSaqla({ kompaniyaId, loyihaId: loyihalar.size === 1 ? [...loyihalar][0] : null, zip: x.zip, fayl: x.zipNom, oy, operationId: yangiTopshirishId(), shartnomaId: tanlanganShartnoma.id, shartnomaRaqam: tanlanganShartnoma.raqam });
       if (!sk.ok) { toast(`${t('ZIP ni saqlab bo‘lmadi')}: ${sk.xato}`, 'danger'); return; }
       const r = await oylikPaketniTopshir({ kompaniyaId, shartnomaId: tanlanganShartnoma.id, oy, manifest: x.manifest, hujjatId: sk.hujjatId,
         zipSha256: x.manifest.zip?.sha256 ?? null, zipOlcham: x.manifest.zip?.olcham ?? null, operationId: topshirishId.current });

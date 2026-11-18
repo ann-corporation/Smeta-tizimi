@@ -6,6 +6,7 @@
  */
 import { vaqtliOqish } from './vaqtli-fetch';
 import { sbOqi, yozAmali, yangiOperationId, type AktNatija } from './supabase';
+import { shartnomaHujjatManba } from '../lib/disk-hujjat';
 import { hujjatYukla, hujjatYuklabOlishUrl } from './t2-hujjat-canonical';
 import { m29HujjatOl } from './t2-m29';
 import { oyKaliti } from '../lib/f2-oylik-paket/oylik';
@@ -50,10 +51,12 @@ export async function topshirilganPaketlar(obyektId: number, oy: string): Promis
 }
 
 /** ZIP ni mavjud kanonik saqlashga yuklaydi (R2 + t2_document_registry). */
-export async function paketZipniSaqla(p: { kompaniyaId: number; loyihaId?: number | null; zip: Uint8Array; fayl: string; oy: string; operationId: string }):
+export async function paketZipniSaqla(p: { kompaniyaId: number; loyihaId?: number | null; zip: Uint8Array; fayl: string; oy: string; operationId: string; shartnomaId?: number; shartnomaRaqam?: string | null }):
   Promise<{ ok: true; hujjatId: number; sha256: string } | { ok: false; xato: string }> {
   const file = new File([p.zip as unknown as BlobPart], p.fayl, { type: 'application/zip' });
-  const r = await hujjatYukla({ file, kompaniyaId: p.kompaniyaId, loyihaId: p.loyihaId ?? null, documentType: PAKET_HUJJAT_TURI, revision: p.oy, operationId: p.operationId });
+  const r = await hujjatYukla({ file, kompaniyaId: p.kompaniyaId, loyihaId: p.loyihaId ?? null, documentType: PAKET_HUJJAT_TURI, revision: p.oy, operationId: p.operationId,
+    /* Disk (A2): paket shartnoma-oy bo'yicha bitta fayl (qayta topshirilsa - yangi versiya); kalit lib/disk-hujjat dan. */
+    ...(p.shartnomaId ? { manba: shartnomaHujjatManba({ tur: 'shartnoma_oylik_paket', shartnomaId: p.shartnomaId, shartnomaRaqam: p.shartnomaRaqam ?? null, oy: p.oy }) } : {}) });
   return r.ok ? { ok: true, hujjatId: r.data.document_id, sha256: r.data.sha256 } : { ok: false, xato: r.xato || r.code };
 }
 

@@ -1,4 +1,5 @@
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
+import { obyektHujjatManba } from '../../lib/disk-hujjat';
 import { useEffect, useMemo, useState } from 'react';
 import { Download, Eye, RefreshCw, AlertTriangle, Building2, ShieldAlert, FileSignature, Inbox } from 'lucide-react';
 import { sbT2ObyektlarOlKomp, type T2Obyekt } from '../../api/supabase';
@@ -71,7 +72,8 @@ function Sessiya({ companyId }: { companyId: number }) {
       // Egasi 2026-09-30: hisobot oyidan oldingi har oy — alohida ustun (lib/oylik-hujjat/m29: paket bilan bir xil quruvchi).
       if (!kirish) return;
       const h = m29HujjatQur({ kirish, davr, obyektNom, pudratchi, imzo: tomonlar });
-      const tk = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'M-29', sabab: `М-29 · ${obyektNom} · ${davr}`, obyekt: objectId },
+      const tk = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'M-29', sabab: `М-29 · ${obyektNom} · ${davr}`, obyekt: objectId,
+          disk: { turi: 'm29', obyektId: Number(objectId), faylNomi: h.faylNomi, davr: davr.slice(0, 7), manba: obyektHujjatManba({ tur: 'm29', obyektId: Number(objectId), obyekt: obyektNom, oy: davr }) } },
         () => { if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi); });
       if (!tk.ok) toast(tk.xabar, 'danger'); else if (tk.xabar) toast(tk.xabar, 'ok');
     } catch (e) { setXato(e instanceof Error ? t('M-29 tuzilmadi: {x}', { x: e.message }) : t('M-29 tuzilmadi.')); }
