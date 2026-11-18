@@ -3,6 +3,27 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "JARVIS-M3-F2-WRITE-20261119",
+      "title": "Jarvis F2 and fact tools through existing preview and confirmation",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/jarvis-m3-f2-write",
+      "base_sha": "548ce612",
+      "status": "ready_for_review",
+      "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md"],
+      "owns": [
+        "frontend/src/lib/jarvis/write-tools.ts", "frontend/src/lib/jarvis/write-tools.test.ts",
+        "frontend/src/lib/jarvis/f2-preview-card.ts", "frontend/src/lib/jarvis/f2-preview-card.test.ts",
+        "frontend/functions/_shared/jarvis/chat.ts", "frontend/functions/_shared/jarvis/jarvis-eval.test.ts",
+        "frontend/functions/api/agent-ish.ts", "frontend/src/api/t2-agent-ish.ts", "frontend/src/umumiy/ui/AiChat.tsx",
+        "frontend/functions/_shared/telegram-jarvis.ts", "frontend/functions/_shared/telegram-jarvis.test.ts",
+        "frontend/functions/api/telegram/webhook.ts", "frontend/src/i18n/lugat/qism/telegram-jarvis.json"
+      ],
+      "production_write_allowed": false,
+      "note": "L0 LANE-1 PR-2 after merged #646. Existing F2 preview endpoint only. Minimal web/Telegram adapters required by L0 acceptance; no existing F2 tool or endpoint edits. Merge and production belong to L0."
+    },
+    {
       "id": "FAKT-ROOT-NODE-20261108",
       "title": "Virtual root work group in Fakt journal",
       "owner": "codex",

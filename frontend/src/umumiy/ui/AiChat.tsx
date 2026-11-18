@@ -1,4 +1,6 @@
 import { JarvisVazifa } from './ai-yordamchi/JarvisVazifa';
+import { f2PreviewCard } from '../../lib/jarvis/f2-preview-card';
+import { jarvisF2WriteIntent } from '../../lib/jarvis/write-tools';
 import { suhbatKonteksti } from '../../lib/ai-yordamchi/suhbat-kontekst';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
@@ -652,7 +654,9 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
 
     /* YAGONA YORDAMCHI (Jarvis) qatlami: navigatsiya, o'qish, yozuv taklifi — bepul va bir zumda; hal qilmasa mavjud oqim davom etadi. */
     const ya = yaRef.current;
-    if (ya && ya.sahifalar.length && !jarvisKichikGap(s)) {
+    const f2Write = jarvisF2WriteIntent(s);
+    if (f2Write) davomRef.current = null;
+    if (ya && ya.sahifalar.length && !jarvisKichikGap(s) && !f2Write) {
       const davom = davomRef.current; davomRef.current = null;
       if (davom && davomBekorMi(s)) { setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', jarvis: true, matn: t('Bekor qildim — hech narsa yozilmadi.') }]); setMatn(''); return; }
       let n: Niyat = davom ? { tur: 'vosita', id: davom.id, davom } : niyatAniqla(s, { sahifalar: ya.sahifalar, obyektlar: ya.obyektlar, joriyObyekt: ya.joriyObyekt, sahifaAmallar: ya.sahifaAmallar });
@@ -747,6 +751,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
       .filter((q, i, a) => a.findIndex((z) => z.yol === q.yol) === i);
     setXabarlar((p) => p.map((x) => (x.id === id + 'a' ? {
       ...x, jonli: false, yakun, xato: !yakun.ok, qadamlar: yakun.qadamlar ?? x.qadamlar, sahifalar: sahMerge.length ? sahMerge : undefined,
+      taklif: yakun.ok && yakun.f2_preview ? f2PreviewCard(kompaniyaId, yakun.f2_preview) : undefined,
       matn: yakun.ok ? (yakun.javob ?? '') : t(XATO_MATNI[yakun.code ?? ''] ?? yakun.error ?? 'AI javob bera olmadi'),
     } : x)));
   };

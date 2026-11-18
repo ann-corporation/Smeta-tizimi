@@ -122,6 +122,7 @@ export type HarakatTaklif = {
 };
 export type SahifaIshora = { yol: string; nom: string };
 export type KasbYakun = {
+  f2_preview?: import('../lib/jarvis/write-tools').JarvisPreview;
   ok: boolean; status?: number; javob?: string; rad?: boolean; kasb?: { nom: string; rol: string; profil: string }; harakatlar?: HarakatTaklif[];
   sahifalar?: SahifaIshora[]; model_manba?: 'foydalanuvchi' | 'kompaniya' | 'platforma' | null;
   toifalar?: string[]; model?: string; ms?: number; jurnal_id?: number | null; qadamlar?: Qadam[]; error?: string; code?: string;

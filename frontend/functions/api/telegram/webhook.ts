@@ -42,7 +42,7 @@ type Men = { ok?: boolean; foydalanuvchi?: { ism?: string | null; login?: string
 
 const yubor = (env: TgEnv, chatId: number, j: BotJavob) => xabarYubor(env, chatId, j.matn, j.markup ? { reply_markup: j.markup } : {});
 async function jarvisYubor(env: TgEnv, chatId: number, reply: JarvisBotReply) {
-  for (const page of reply.transcript ?? []) if (!await xabarYubor(env, chatId, page, reply.transcriptOptions)) break;
+  for (const page of reply.transcript ?? []) if (!await xabarYubor(env, chatId, page, reply.transcriptOptions)) return;
   await xabarYubor(env, chatId, reply.matn, reply.options);
 }
 
@@ -59,7 +59,10 @@ async function callbackAjrat(env: TgEnv, cb: Callback, tgId: number | undefined)
   if (!a?.ok || !a.ulangan || !a.foydalanuvchi_id) { await javobBer(tgT('Avval hisobni ulang', til)); return 'cb_ulanmagan'; }
   if (typeof cb.data === 'string' && cb.data.startsWith('j:')) {
     await javobBer();
-    await jarvisYubor(env, chat.id as number, await telegramJarvisSelect(env, a.foydalanuvchi_id, tgId as number, til, cb.data));
+    await jarvisYubor(env, chat.id as number, await telegramJarvisSelect(env, a.foydalanuvchi_id, tgId as number, til, cb.data, cb.message));
+    if ((cb.data === 'j:f:y' || cb.data === 'j:f:n') && cb.message?.message_id) {
+      await tgApi(env, 'editMessageReplyMarkup', { chat_id: chat.id, message_id: cb.message.message_id, reply_markup: { inline_keyboard: [] } });
+    }
     return 'cb:jarvis';
   }
   if (typeof cb.data === 'string' && cb.data.startsWith('usr:')) {
