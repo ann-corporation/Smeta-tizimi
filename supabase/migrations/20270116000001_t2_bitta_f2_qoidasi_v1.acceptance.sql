@@ -34,7 +34,7 @@ begin
   -- qator_id kesishuvi
   select q.id into v_q from public.t2_qator q where q.obyekt_id = v_ob limit 1;
   if v_q is not null then
-    insert into public.t2_akt_qator (akt_id, qator_id, obyekt_id, kompaniya_id) values (v_a1, v_q, v_ob, v_k);
+    insert into public.t2_akt_qator (akt_id, qator_id, obyekt_id, kompaniya_id, hajm) values (v_a1, v_q, v_ob, v_k, 1);
     if public._t2_f2_qator_kesish_v1(v_ob, date '2099-01-01', jsonb_build_array(jsonb_build_object('qator_id', v_q)), v_a2) is null then raise exception 'ACC6: kesishuv topilmadi'; end if;
     if public._t2_f2_qator_kesish_v1(v_ob, date '2099-01-01', jsonb_build_array(jsonb_build_object('qator_id', v_q)), v_a1) is not null then raise exception 'ACC7: o''zi bilan kesishdi'; end if;
     if public._t2_f2_qator_kesish_v1(v_ob, date '2099-01-01', jsonb_build_array(jsonb_build_object('qator_id', v_q, 'raw_snapshot', jsonb_build_object('source', 'storno'))), v_a2) is not null then raise exception 'ACC8: storno kesishdi'; end if;
