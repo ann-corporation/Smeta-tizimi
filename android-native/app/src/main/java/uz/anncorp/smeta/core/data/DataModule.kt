@@ -180,6 +180,12 @@ object DataModule {
     fun jarvisRepository(api: BffApi) = JarvisRepository(api)
 
     @Provides @Singleton
+    fun jarvisPendingStore(@ApplicationContext c: Context, tokens: TokenStore, json: Json): JarvisPendingStore =
+        JarvisOutbox(File(c.noBackupFilesDir, "jarvis-outbox"), KeystoreCipher("qurai_jarvis_outbox"), json) {
+            if (Demo.enabled(c)) "00000000-0000-4000-8000-000000000001" else tokens.load()?.deviceId
+        }
+
+    @Provides @Singleton
     fun workspaceRepository(api: BffApi, json: Json, prefs: Prefs) = WorkspaceRepository(api, json, prefs)
 
     @Provides @Singleton

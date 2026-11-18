@@ -7,10 +7,11 @@
  */
 import { qqsSizNarx } from '../hisob-yadro';
 import { birlikKalit, nomKalit } from './kalit';
+import { buildCatalogSearch } from './catalog-search';
 
 export const PRICE_SHARD_SCHEMA = 'narx-katalog-shards-v1';
 /** 3: smeta-pricing catalogue — VAT-free prices only, exact duplicates collapsed (owner rule 2026-10-06). */
-export const PRICE_BUILD_FORMAT = 3;
+export const PRICE_BUILD_FORMAT = 5;
 export const PRICE_ROWS_PER_FILE = 25000;
 /** Small id-ordered files for server-side lookup (a Function parses ~100 KB, within the Workers CPU budget). */
 export const PRICE_LOOKUP_ROWS = 1000;
@@ -108,5 +109,7 @@ export function buildPriceShards(rows: ExportRow[], manba: PriceManba, hududKali
     files.set(path, JSON.stringify({ rows: part }));
     lookupFiles.push({ path, from: part[0][0], to: part[part.length - 1][0] });
   }
-  return { files, rowFiles, lookupFiles, counts: { source: rows.length, rows: out.length, headersSkipped: skipped, keyOverrides: Object.keys(keyOverrides).length } };
+  const search = buildCatalogSearch(out);
+  for (const [path, text] of search) files.set(path, text);
+  return { files, rowFiles, lookupFiles, searchFiles: [...search.keys()], counts: { source: rows.length, rows: out.length, headersSkipped: skipped, keyOverrides: Object.keys(keyOverrides).length } };
 }

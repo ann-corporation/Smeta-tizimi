@@ -17,9 +17,11 @@ import { startTugmalari } from '../../_shared/telegram-tugma';
 import { omborBuyruq, omborCallback, omborSavolCallback } from '../../_shared/telegram-ombor';
 import { NONCE_PREFIKS, kalitYaroqli, nonceYaroqli, xesh, yoqilgan } from '../../_shared/kirish-emailsiz';
 import { type KanalEnv, kanalCallback, kanalCallbackmi, kanalTahrirJavobi, tahrirBelgisi } from '../../_shared/telegram-kanal';
+import { DISK_CB, type TgHujjat, diskCallback, diskFayl } from '../../_shared/telegram-disk';
 import { menUsernameQatori, taklifJavobi, usernameCallback, usernameJavobi, usernameTaklifi } from '../../_shared/telegram-username';
+import { telegramJarvisMenu, telegramJarvisReply, telegramJarvisSelect, type JarvisBotReply, type JarvisReplyTo } from '../../_shared/telegram-jarvis';
 
-type Xabar = { message_id?: number; reply_to_message?: { from?: { is_bot?: boolean }; text?: string }; text?: string; caption?: string; photo?: TgRasm[]; voice?: { file_id?: string; file_size?: number }; audio?: { file_id?: string; file_size?: number }; contact?: { phone_number?: string; user_id?: number }; chat?: { id?: number; type?: string }; from?: { id?: number; is_bot?: boolean; language_code?: string; username?: string } };
+type Xabar = { message_id?: number; reply_to_message?: JarvisReplyTo & { text?: string }; text?: string; caption?: string; photo?: TgRasm[]; document?: TgHujjat; voice?: { file_id?: string; file_size?: number }; audio?: { file_id?: string; file_size?: number }; contact?: { phone_number?: string; user_id?: number }; chat?: { id?: number; type?: string }; from?: { id?: number; is_bot?: boolean; language_code?: string; username?: string } };
 export type Update = { update_id?: number; message?: Xabar; edited_message?: Xabar; callback_query?: Callback };
 
 const ROL_NOMI: Record<string, string> = {
@@ -39,6 +41,10 @@ type Men = { ok?: boolean; foydalanuvchi?: { ism?: string | null; login?: string
   azoliklar?: { nom?: string; rol?: string }[] };
 
 const yubor = (env: TgEnv, chatId: number, j: BotJavob) => xabarYubor(env, chatId, j.matn, j.markup ? { reply_markup: j.markup } : {});
+async function jarvisYubor(env: TgEnv, chatId: number, reply: JarvisBotReply) {
+  for (const page of reply.transcript ?? []) if (!await xabarYubor(env, chatId, page, reply.transcriptOptions)) break;
+  await xabarYubor(env, chatId, reply.matn, reply.options);
+}
 
 /** Inline tugma bosildi. Faqat shaxsiy chat (chat.id == from.id) va BOG'LANGAN foydalanuvchi; amal ruxsati — mavjud qatlamda (telegram-bot.ts). */
 async function callbackAjrat(env: TgEnv, cb: Callback, tgId: number | undefined): Promise<string> {
@@ -51,6 +57,11 @@ async function callbackAjrat(env: TgEnv, cb: Callback, tgId: number | undefined)
   const til = tilAniqla(cb.from?.language_code);
   const a = await tgRpc<{ ok?: boolean; ulangan?: boolean; foydalanuvchi_id?: number }>(env, 't2_telegram_aniqla_v1', { p_telegram_user_id: tgId });
   if (!a?.ok || !a.ulangan || !a.foydalanuvchi_id) { await javobBer(tgT('Avval hisobni ulang', til)); return 'cb_ulanmagan'; }
+  if (typeof cb.data === 'string' && cb.data.startsWith('j:')) {
+    await javobBer();
+    await jarvisYubor(env, chat.id as number, await telegramJarvisSelect(env, a.foydalanuvchi_id, tgId as number, til, cb.data));
+    return 'cb:jarvis';
+  }
   if (typeof cb.data === 'string' && cb.data.startsWith('usr:')) {
     /* USERNAME-V1: Telegram username ni QURAI username qilish — foydalanuvchi tugma bilan tasdiqlaydi; qiymat RPC da qayta tekshiriladi. */
     const u = await usernameCallback(env, a.foydalanuvchi_id, til, cb.data);
@@ -58,6 +69,13 @@ async function callbackAjrat(env: TgEnv, cb: Callback, tgId: number | undefined)
     if (u.xabar) await xabarYubor(env, chat.id as number, u.xabar.matn);
     if (Number.isSafeInteger(cb.message?.message_id)) await tgApi(env, 'editMessageReplyMarkup', { chat_id: chat.id, message_id: cb.message?.message_id, reply_markup: { inline_keyboard: [] } });
     return 'cb:' + u.amal;
+  }
+  if (typeof cb.data === 'string' && DISK_CB.test(cb.data)) {
+    /* HUJJAT MAYDONI: Telegram fayli -> shaxsiy papka (faqat shaxsiy chat; kvota/ruxsat serverda). */
+    const d = await diskCallback(env, a.foydalanuvchi_id, til, cb.data, chat.id as number);
+    await javobBer(d.toast || undefined);
+    if (Number.isSafeInteger(cb.message?.message_id)) await tgApi(env, 'editMessageReplyMarkup', { chat_id: chat.id, message_id: cb.message?.message_id, reply_markup: { inline_keyboard: [] } });
+    return d.amal;
   }
   if (kanalCallbackmi(cb.data)) {
     /* KANAL-BOSHQARUV: kanalga chiqarish/o'chirish FAQAT egasi (superadmin) shu tugmani bosganda; qoralama egasi va rol qayta tekshiriladi. */
@@ -158,6 +176,9 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
     if (ovoz) { await xabarYubor(env, chatId, tgT('Ovozli buyruq faqat omborchilar uchun.', til)); return 'ovoz_ruxsatsiz'; }
   }
 
+  // Fayl (document) -> Hujjat maydoni: bot "qaysi papkaga?" deb so'raydi (guruhlar yuqorida rad etilgan).
+  if (msg.document?.file_id) return diskFayl(env, uid, til, chatId, msg.document);
+
   // Rasm (izoh bilan yoki izohsiz) → foto-dalil (umumiy, faktga biriktirilmagan). Fakt summasi/hajmi yozilmaydi.
   if (Array.isArray(msg.photo) && msg.photo.length) {
     const j = await fotoAmali(env, uid, til, msg.photo.slice(0, 10), String(msg.caption || '').slice(0, 600));
@@ -170,6 +191,10 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
   if (!b && typeof msg.text === 'string') {
     const k = qidiruvKonteksti(msg.reply_to_message);
     if (k) { await yubor(env, chatId, await fotoQidiruv(env, uid, til, k, msg.text.slice(0, 200))); return 'foto_qidiruv'; }
+    if (chatId === tgId) {
+      const reply = await telegramJarvisReply(env, uid, chatId, til, msg.reply_to_message, msg.text);
+      if (reply) { await jarvisYubor(env, chatId, reply); return 'jarvis_reply'; }
+    }
   }
 
   switch (b?.buyruq) {
@@ -186,7 +211,10 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
     }
     case 'bugun': await yubor(env, chatId, await bugunJavobi(env, uid, til)); return 'bugun';
     case 'obyektlar': await yubor(env, chatId, await obyektlarJavobi(env, uid, til)); return 'obyektlar';
-    case 'jarvis': await yubor(env, chatId, await jarvisJavobi(env, uid, til, b?.arg ?? '')); return 'jarvis';
+    case 'jarvis':
+      if (b.arg) await yubor(env, chatId, await jarvisJavobi(env, uid, til, b.arg));
+      else if (chatId === tgId) await jarvisYubor(env, chatId, await telegramJarvisMenu(env, uid, til));
+      return 'jarvis';
     case 'kunlik': await yubor(env, chatId, await kunlikAmali(env, uid, til, b?.arg ?? '')); return 'kunlik';
     case 'fakt': await yubor(env, chatId, await faktTaklif(env, uid, til, b?.arg ?? '')); return 'fakt';
     case 'hisobot': case 'qoldiq': case 'ostatka': {

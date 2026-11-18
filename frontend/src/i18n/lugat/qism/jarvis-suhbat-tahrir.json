@@ -1,0 +1,9 @@
+{
+  "Suhbat nomini o‘zgartirish": { "ru": "Переименовать беседу", "en": "Rename conversation" },
+  "Suhbatni o‘chirish": { "ru": "Удалить беседу", "en": "Delete conversation" },
+  "Suhbat nomi": { "ru": "Название беседы", "en": "Conversation name" },
+  "Serverdagi «{nom}» suhbatini o‘chirasizmi?": { "ru": "Удалить беседу «{nom}» с сервера?", "en": "Delete “{nom}” from the server?" },
+  "O‘chirishni tasdiqlash": { "ru": "Подтвердить удаление", "en": "Confirm deletion" },
+  "Suhbat boshqa qurilmada o‘zgargan. Yangilangan suhbatni tekshiring.": { "ru": "Беседа изменилась на другом устройстве. Проверьте обновлённую беседу.", "en": "This conversation changed on another device. Review the updated conversation." },
+  "Suhbatdagi o‘zgarish saqlanmadi.": { "ru": "Изменение беседы не сохранилось.", "en": "The conversation change was not saved." }
+}

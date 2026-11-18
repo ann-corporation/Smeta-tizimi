@@ -51,6 +51,8 @@ export const ADMIN_MARSHRUTLARI = [
   'nazorat', 'nazorat/tekshiruv', 'nazorat/jurnal',
   /* 2026-11-11: loyihachi / mualliflik nazorati (chizma reyestri + rol uyi «Bugun»). */
   'chizmalar', 'loyihachi', 'loyiha-smeta', 'solishtiruv',
+  /* 2026-11-18: Hujjat maydoni (Hujjatlarim / Kompaniya diski). */
+  'hujjat-maydoni',
 ] as const;
 
 /**

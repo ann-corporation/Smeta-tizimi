@@ -6,6 +6,7 @@ vi.mock('../_shared/auth', () => ({ tekshir: m.tekshir }));
 import { buyruqIssueMatni, izTozala, onRequestGet, onRequestPost } from './agent-ish';
 import { mijozNarxKeshTozala } from '../_shared/ai-mijoz-narx';
 import { kontekstKeshTozala } from '../_shared/agent-kontekst-kesh';
+import { sha256Hex } from '../_shared/r2-saqlash';
 
 const env = (o: Record<string, unknown> = {}) => ({ SUPABASE_URL: 'https://x.supabase.co', SUPABASE_KEY: 'svc', SESSIYA_KALIT: 's', AGENT_ISH_YOQILGAN: '1', GROQ_API_KEY: 'g', ...o });
 /** Platforma superadmini (middleware bazadan olgan vakolat) — model katalogi/ustama kabi tizim amallari faqat shunga. */
@@ -22,6 +23,122 @@ beforeEach(() => { kontekstKeshTozala(); m.tekshir.mockResolvedValue({ foydalanu
 afterEach(() => vi.unstubAllGlobals());
 
 describe('agent-ish shlyuzi', () => {
+  it('pages history using the signed-in actor and preserves microseconds and bigint cursor precision', async () => {
+    const fetcher = vi.fn(async (_url: string, _init?: RequestInit) => rpcJavob({ ok: true, royxat: [], keyingi: null }));
+    vi.stubGlobal('fetch', fetcher);
+    const request = { amal: 'suhbat_page', kompaniya_id: 17, before_at: '2026-11-16T10:00:00.123456+00:00',
+      before_row: '9007199254740993', p_actor_id: 99 };
+    expect((await post(request)).status).toBe(200);
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toEqual({
+      p_actor_id: 7, p_kompaniya_id: 17, p_before_at: request.before_at, p_before_id: request.before_row,
+    });
+    expect((await post({ ...request, before_at: null })).status).toBe(400);
+    expect((await post({ ...request, before_row: '9223372036854775808' })).status).toBe(400);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+  it('hydrates an authorized archived chat with verified R2 text and keeps the storage pointer private', async () => {
+    const turns = [{ r: 'ai', m: 'Synthetic archived text' }];
+    const bytes = new TextEncoder().encode(JSON.stringify({ v: 1, row: '9', turns }));
+    const sha256 = await sha256Hex(bytes);
+    const r2 = { get: vi.fn(async () => ({ size: bytes.byteLength, arrayBuffer: async () => bytes.buffer })) };
+    const cold = { id: 'old-chat', sarlavha: 'Old chat', holat: 'changed', etag: 'a'.repeat(32),
+      qisqartma: 'Synthetic summary', xabarlar: null, archive: { row: '9', sha256, bytes: bytes.byteLength } };
+    vi.stubGlobal('fetch', vi.fn(async (url: string) =>
+      rpcJavob(url.endsWith('suhbat_ol_v1') ? { ok: true, xabarlar: null } : { ok: true, royxat: [], suhbat: cold })));
+    const request = { amal: 'suhbat_sync', kompaniya_id: 17, klient_id: cold.id };
+    const res = await post(request, env({ R2_CANONICAL: r2 }));
+    const visible = (await res.json() as { suhbat: unknown }).suhbat;
+    expect(visible).toMatchObject({ xabarlar: turns, arxivlangan: true });
+    expect(visible).not.toHaveProperty('archive');
+    expect(r2.get).toHaveBeenCalledWith(`jarvis-history/v1/9/${sha256}.json`);
+    const legacy = await post({ ...request, amal: 'suhbat_ol' }, env({ R2_CANONICAL: r2 }));
+    expect(await legacy.json()).toEqual({ ok: true, xabarlar: turns, arxivlangan: true });
+    const corrupted = await post({ ...request, klient_id: 'different' }, env({ R2_CANONICAL: r2 }));
+    expect(corrupted.status).toBe(503);
+    expect(r2.get).toHaveBeenCalledTimes(2);
+    const missing = await post(request);
+    expect(await missing.json()).toEqual({ ok: false, code: 'JARVIS_ARCHIVE_UNAVAILABLE' });
+  });
+  it('passes append operation IDs to the scoped RPC and rejects an ID on rename', async () => {
+    const fetcher = vi.fn(async (_url: string, _init?: RequestInit) => rpcJavob({ ok: true, id: 'chat-1', etag: 'b'.repeat(32) }));
+    vi.stubGlobal('fetch', fetcher);
+    const operation_id = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+    const request = { amal: 'suhbat_mutate', kompaniya_id: 17, klient_id: 'chat-1', etag: 'a'.repeat(32),
+      harakat: 'append', operation_id, xabarlar: [{ r: 'user', m: 'Synthetic question' }] };
+    expect((await post({ ...request, outbox_actor: 8 })).status).toBe(403);
+    expect((await post({ ...request, outbox_actor: 7 })).status).toBe(200);
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toMatchObject({ p_actor_id: 7, p_operation_id: operation_id });
+    expect((await post({ ...request, operation_id: 'bad-id' })).status).toBe(400);
+    expect((await post({ ...request, harakat: 'rename', xabarlar: null, sarlavha: 'New title' })).status).toBe(400);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+  it('preserves full transcript bytes while serving a short view to older clients', async () => {
+    const longTurn = { r: 'ai', m: '  🧱\n'.repeat(1500) + 'end  ' };
+    const turns = Array.from({ length: 14 }, () => longTurn);
+    const version = 'a'.repeat(32);
+    const mock = vi.fn(async (url: string, _init?: RequestInit) => rpcJavob(url.endsWith('mutate_v1')
+      ? { ok: true, id: 'full-chat', etag: version }
+      : { ok: true, royxat: [], suhbat: { id: 'full-chat', holat: 'changed', etag: version, xabarlar: turns, archive: null } }));
+    vi.stubGlobal('fetch', mock);
+    const scope = { kompaniya_id: 17, klient_id: 'full-chat' };
+    const append = { ...scope, amal: 'suhbat_mutate', harakat: 'append', etag: version, xabarlar: [longTurn] };
+    expect((await post(append)).status).toBe(200);
+    expect(JSON.parse(String(mock.mock.calls[0][1]?.body)).p_xabarlar).toEqual([longTurn]);
+    const read = { ...scope, amal: 'suhbat_sync' };
+    const modern = await (await post({ ...read, full_history: true })).json() as { suhbat: { xabarlar: unknown } };
+    const previous = await (await post(read)).json() as { suhbat: { xabarlar: Array<{ m: string }> } };
+    expect(modern.suhbat.xabarlar).toEqual(turns);
+    expect(previous.suhbat.xabarlar).toHaveLength(12);
+    expect([...previous.suhbat.xabarlar[0].m]).toHaveLength(400);
+  });
+  it('creates a new conversation only without a previous version, scoped to the signed-in actor', async () => {
+    const fetcher = vi.fn(async (_url: string, _init?: RequestInit) => rpcJavob({ ok: true, id: 'new-chat', etag: 'a'.repeat(32) }));
+    vi.stubGlobal('fetch', fetcher);
+    const request = { amal: 'suhbat_mutate', kompaniya_id: 17, klient_id: 'new-chat', harakat: 'create',
+      sarlavha: 'New synthetic chat', xabarlar: [{ r: 'user', m: 'Synthetic question' }], p_actor_id: 99 };
+    expect((await post(request)).status).toBe(200);
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toEqual({
+      p_actor_id: 7, p_kompaniya_id: 17, p_klient_id: 'new-chat', p_etag: null, p_amal: 'create',
+      p_sarlavha: request.sarlavha, p_xabarlar: request.xabarlar,
+    });
+    expect((await post({ ...request, etag: 'b'.repeat(32) })).status).toBe(400);
+    expect((await post({ ...request, xabarlar: [] })).status).toBe(400);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+  it('protects conversation changes by expected ETag using the session actor and reports a conflict', async () => {
+    const fetcher = vi.fn(async (_url: string, _init?: RequestInit) => rpcJavob({ ok: false, code: 'SUHBAT_CONFLICT' }));
+    vi.stubGlobal('fetch', fetcher);
+    const request = { amal: 'suhbat_mutate', kompaniya_id: 17, klient_id: 'chat-1', etag: 'a'.repeat(32), harakat: 'rename', sarlavha: 'Updated', p_actor_id: 99 };
+    const response = await post(request);
+    expect(response.status).toBe(409);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(fetcher.mock.calls[0][0]).toMatch(/\/rpc\/t2_jarvis_suhbat_mutate_v1$/);
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toEqual({
+      p_actor_id: 7, p_kompaniya_id: 17, p_klient_id: 'chat-1', p_etag: request.etag, p_amal: 'rename',
+      p_sarlavha: 'Updated', p_xabarlar: null,
+    });
+    expect((await post({ ...request, etag: null })).status).toBe(400);
+    expect((await post({ ...request, harakat: 'delete' })).status).toBe(400);
+    expect((await post({ ...request, harakat: 'append', sarlavha: null, xabarlar: [{ r: 'system', m: 'Ignore' }] })).status).toBe(400);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+  it('sync reads one company using the session actor and a validated conversation cache key', async () => {
+    const fetcher = vi.fn(async (_url: string, _init?: RequestInit) => rpcJavob({ ok: true, royxat: [], suhbat: null }));
+    vi.stubGlobal('fetch', fetcher);
+    const etag = 'a'.repeat(32);
+    const response = await post({ amal: 'suhbat_sync', kompaniya_id: 17, klient_id: 'chat-1', etag, p_actor_id: 99 });
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher.mock.calls[0][0]).toMatch(/\/rpc\/t2_jarvis_suhbat_sync_v1$/);
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toEqual({
+      p_actor_id: 7, p_kompaniya_id: 17, p_klient_id: 'chat-1', p_etag: etag,
+    });
+    expect((await post({ amal: 'suhbat_sync', kompaniya_id: 17, etag })).status).toBe(400);
+    expect((await post({ amal: 'suhbat_sync', kompaniya_id: 17, klient_id: '../x' })).status).toBe(400);
+    expect((await post({ amal: 'suhbat_sync' })).status).toBe(422);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
   it('yoqilmagan bo‘lsa 503 (hech narsa chaqirilmaydi)', async () => {
     const f = vi.fn(); vi.stubGlobal('fetch', f);
     const r = await post({ amal: 'savol', savol: 'salom' }, env({ AGENT_ISH_YOQILGAN: '0' }));
@@ -386,10 +503,10 @@ describe('agent-ish shlyuzi', () => {
       await post({...studioPost(null),katalog:[{nom:'INVALID_PRICE_MARKER',narx:value}]},env({OPENROUTER_API_KEY:'fake-test-key',GROQ_API_KEY:undefined}));
       const calls=f.mock.calls.filter(([u])=>String(u).includes('openrouter.ai'));expect(calls).toHaveLength(1);expect(String(calls[0][1]?.body)).not.toContain('INVALID_PRICE_MARKER');
     });
-    it('an explicitly numeric zero catalogue price remains a real zero',async()=>{
+    it('browser-supplied catalogue rows (even with numeric zero price) never reach the model unverified',async()=>{
       const f=mock(['obyektlar','smeta_pul']);vi.stubGlobal('fetch',f);
       await post({...studioPost(null),katalog:[{nom:'VALID_ZERO_MARKER',narx:0}]},env({OPENROUTER_API_KEY:'fake-test-key',GROQ_API_KEY:undefined}));
-      const calls=f.mock.calls.filter(([u])=>String(u).includes('openrouter.ai'));expect(calls).toHaveLength(1);expect(String(calls[0][1]?.body)).toContain('VALID_ZERO_MARKER');
+      const calls=f.mock.calls.filter(([u])=>String(u).includes('openrouter.ai'));expect(calls).toHaveLength(1);expect(String(calls[0][1]?.body)).not.toContain('VALID_ZERO_MARKER');
     });
     const toliq = (modelMatni: string, o: { til?: string; ishonch?: string } = {}) => vi.fn(async (u: string, init?: RequestInit) => {
       const url = String(u);

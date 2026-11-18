@@ -3,8 +3,12 @@
    SINTETIK ma'lumot; tarmoq (Telegram + Supabase) to'liq soxtalashtirilgan. Haqiqiy middleware → shlyuz zanjiri ishlaydi. */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const ai = vi.hoisted(() => ({ hisobli: vi.fn(), Xato: class extends Error { constructor(readonly kod: string, readonly xabar: string) { super(kod); } } }));
-vi.mock('../../_shared/ai-hisobli', () => ({ aiHisobli: ai.hisobli, AiByudjetXatosi: ai.Xato }));
+const ai = vi.hoisted(() => ({ hisobli: vi.fn() }));
+vi.mock('../../_shared/agent-hisob', async (load) => ({ ...(await load<typeof import('../../_shared/agent-hisob')>()), aiHisobli: ai.hisobli }));
+vi.mock('../../_shared/ai-hisobli', async (load) => ({ ...(await load<typeof import('../../_shared/ai-hisobli')>()), aiHisobli: ai.hisobli }));
+import { AiByudjetXatosi } from '../../_shared/ai-hisobli';
+import { ByudjetXatosi } from '../../_shared/agent-hisob';
+import { kontekstKeshTozala } from '../../_shared/agent-kontekst-kesh';
 
 import { vakolatKeshTozala } from '../../_shared/role-authority';
 import { bildirishnomaTugmalari } from '../../_shared/telegram-tugma';
@@ -137,21 +141,43 @@ describe('/obyektlar', () => {
   });
 });
 
-describe('/jarvis — mavjud ai-savol (aiHisobli: limit + token yechish)', () => {
-  const umumiy = { t2_ai_umumiy: () => ({ ok: true, izoh: '', obyektlar: [{ id: 79, nom: 'Sinov', smeta: 10, fakt: 20, f2: 30, narxsiz: 0, toliq: true }] }) };
+describe('/jarvis — umumiy Jarvis yadrosi', () => {
+  beforeEach(() => kontekstKeshTozala());
+  const umumiy = {
+    t2_agent_kasb_v1: () => ({ ok: true, nom: 'Sinov', rol: 'pto', profil: 'company_access', vazifa: 'Sinov', boshqalar: [], namuna_savollar: [], kategoriyalar: ['obyektlar', 'smeta_pul'] }),
+    t2_agent_shaxsiy_v1: () => ({ ok: true }),
+    t2_agent_fakt_v1: () => ({ ok: true, fakt: {}, ishlatilgan: ['smeta_pul'] }),
+    t2_agent_muhit_v1: () => ({ ok: true, qoidalar: [], xotira: [], manbalar: [] }),
+  };
   const envAi = { ...ENV, OPENROUTER_API_KEY: 'test' };
+  it('approved F2 total comes from the canonical read and opens its object in Mini App', async () => {
+    const c = net(asos({
+      ...umumiy,
+      t2_agent_kasb_v1: () => ({ ...umumiy.t2_agent_kasb_v1(), kategoriyalar: ['obyektlar', 'f2_fakt_pul'] }),
+      t2_agent_fakt_v1: () => ({ ok: true, fakt: { obyektlar: [{ id: 79, nom: 'Sinov Bino' }] } }),
+      t2_object_financials_v1: () => ({ ok: true, kompaniya_id: 17, basis: 'direct', objects: [
+        { obyekt_id: 79, f2: { known: 82.5, unknown: 0, present: true } },
+      ] }),
+    }));
+    expect(await updateIshla(envAi as never, msg('/jarvis Sinov Bino F2 jami qancha?') as never)).toBe('jarvis');
+    expect(javobMatni(c)).toContain('82,50');
+    expect(c.yuk.t2_object_financials_v1).toEqual([{ p_actor_id: UID, p_kompaniya_id: 17, p_object_ids: [79] }]);
+    const message = c.tg.find(x => x.metod === 'sendMessage')?.yuk;
+    expect(message.reply_markup.inline_keyboard[0][0].web_app.url).toBe(SITE + '/tg?to=' + encodeURIComponent('/admin/f2-tarix?obyekt=79'));
+    expect(ai.hisobli).not.toHaveBeenCalled();
+  });
   it('hisobli yo‘l: actor + kompaniya + profil/amal; javob yuboriladi; Workers AI chetlab o‘tilmaydi', async () => {
     const worker = vi.fn();
     ai.hisobli.mockResolvedValue({ text: 'Dalilli javob', provider: 'openrouter', model: 'm' });
     const c = net(asos(umumiy));
     expect(await updateIshla({ ...envAi, AI: { run: worker } } as never, msg('/jarvis Narxlar haqida tushuntir') as never)).toBe('jarvis');
     expect(ai.hisobli).toHaveBeenCalledTimes(1);
-    expect(ai.hisobli.mock.calls[0].slice(1, 5)).toEqual([UID, 17, 'company_access', 'jarvis_eski']);
+    expect(ai.hisobli.mock.calls[0].slice(1, 5)).toEqual([UID, 17, 'company_access', 'kasb_savol']);
     expect(worker).not.toHaveBeenCalled();
     expect(javobMatni(c)).toBe('Dalilli javob');
   });
   it('byudjet/limit tugagan — model chaqirilmaydi, server xabari foydalanuvchiga', async () => {
-    ai.hisobli.mockRejectedValue(new ai.Xato('BYUDJET_YOQ', 'AI uchun oylik limit belgilanmagan'));
+    ai.hisobli.mockRejectedValue(new ByudjetXatosi('BYUDJET_YOQ', 'AI uchun oylik limit belgilanmagan'));
     const c = net(asos(umumiy));
     await updateIshla(envAi as never, msg('/jarvis Narxlar haqida tushuntir') as never);
     expect(javobMatni(c)).toContain('oylik limit');
@@ -160,8 +186,8 @@ describe('/jarvis — mavjud ai-savol (aiHisobli: limit + token yechish)', () =>
     const c = net(asos(umumiy));
     await updateIshla(envAi as never, msg('/jarvis') as never);
     await updateIshla(envAi as never, msg('/jarvis ' + 'x'.repeat(1001)) as never);
-    expect(ai.hisobli).not.toHaveBeenCalled(); expect(c.rpc).not.toContain('t2_ai_umumiy');
-    expect(javobMatni(c)).toContain('/jarvis <savol>'); expect(javobMatni(c)).toContain('juda uzun');
+    expect(ai.hisobli).not.toHaveBeenCalled(); expect(c.rpc).not.toContain('t2_agent_kasb_v1'); expect(c.rpc).not.toContain('t2_ai_umumiy');
+    expect(javobMatni(c)).toContain('Jarvis uchun kompaniyani tanlang.'); expect(javobMatni(c)).toContain('juda uzun');
   });
   it('soʻrov limiti: daqiqada 5 tadan keyin AI chaqirilmaydi', async () => {
     ai.hisobli.mockResolvedValue({ text: 'ok', provider: 'p', model: 'm' });
@@ -173,8 +199,51 @@ describe('/jarvis — mavjud ai-savol (aiHisobli: limit + token yechish)', () =>
   it('ruxsati yo‘q rol (document.read yo‘q) — middleware rad etadi, AI chaqirilmaydi', async () => {
     const c = net(asos({ ...umumiy, t2_men_v1: men(['company.read']) }));
     await updateIshla(envAi as never, msg('/jarvis Narxlar haqida tushuntir') as never);
-    expect(ai.hisobli).not.toHaveBeenCalled(); expect(c.rpc).not.toContain('t2_ai_umumiy');
+    expect(ai.hisobli).not.toHaveBeenCalled(); expect(c.rpc).not.toContain('t2_agent_kasb_v1');
   });
+});
+
+it('lists shared Jarvis chats only through the bound actor and selected company', async () => {
+  const tag = 'a'.repeat(32);
+  const row = { id: 'test-chat', sarlavha: 'Synthetic chat', yangilandi: '2026-11-16T10:00:00Z', toliq: true };
+  const c = net(asos({
+    t2_jarvis_suhbat_page_v1: (body) => ({ ok: true, royxat: body.p_before_id ? [] : [row],
+      keyingi: body.p_before_id ? null : { at: '2026-11-16T10:00:00.123456+00:00', row: '9007199254740993' } }),
+    t2_jarvis_suhbat_sync_v1: (body) => ({ ok: true, royxat: [row], suhbat: body.p_klient_id ? {
+      id: row.id, holat: 'changed', etag: tag, xabarlar: [{ r: 'ai', m: 'Shared synthetic answer' }], qisqartma: null,
+    } : null }),
+    t2_agent_kasb_v1: () => ({ ok: true, rol: 'pto', profil: 'pto', nom: 'Synthetic assistant',
+      vazifa: 'Synthetic remit', kategoriyalar: [], namuna_savollar: [] }),
+    t2_jarvis_suhbat_mutate_v1: () => ({ ok: true, id: row.id, etag: 'b'.repeat(32) }),
+  }));
+  expect(await updateIshla(ENV, msg('/jarvis') as never)).toBe('jarvis');
+  expect(await updateIshla(ENV, cb('j:c:17') as never)).toBe('cb:jarvis');
+  const pages = c.tg.find(x => x.metod === 'sendMessage' && x.yuk.reply_markup?.inline_keyboard?.some((items: any[]) =>
+    items[0].callback_data?.startsWith('j:p:')));
+  const older = pages?.yuk.reply_markup.inline_keyboard.at(-1)[0].callback_data;
+  expect(older).toMatch(/^j:p:17:/);
+  expect(older.length).toBeLessThanOrEqual(64);
+  expect(await updateIshla(ENV, cb(older) as never)).toBe('cb:jarvis');
+  expect(await updateIshla(ENV, cb('j:o:17:test-chat') as never)).toBe('cb:jarvis');
+  expect(await updateIshla(ENV, cb('j:o:18:test-chat') as never)).toBe('cb:jarvis');
+  expect(c.yuk.t2_jarvis_suhbat_sync_v1).toEqual([
+    { p_actor_id: UID, p_kompaniya_id: 17, p_klient_id: 'test-chat', p_etag: null },
+  ]);
+  expect(c.yuk.t2_jarvis_suhbat_page_v1).toEqual([
+    { p_actor_id: UID, p_kompaniya_id: 17, p_before_at: null, p_before_id: null },
+    { p_actor_id: UID, p_kompaniya_id: 17, p_before_at: '2026-11-16T10:00:00.123456Z', p_before_id: '9007199254740993' },
+  ]);
+  const sends = c.tg.filter(x => x.metod === 'sendMessage').map(x => x.yuk);
+  expect(sends.some(x => x.reply_markup?.inline_keyboard?.some((r: any[]) => r[0].callback_data === 'j:o:17:test-chat'))).toBe(true);
+  expect(sends.some(x => x.text.includes('Shared synthetic answer'))).toBe(true);
+  const prompt = sends.find(x => x.reply_markup?.force_reply && x.entities?.[0].url.includes('#jarvis-tg='));
+  expect(prompt).toBeTruthy();
+  expect(await updateIshla(ENV, msg('Salom', { reply_to_message: { from: { is_bot: true }, entities: prompt.entities } }) as never)).toBe('jarvis_reply');
+  expect(c.yuk.t2_jarvis_suhbat_mutate_v1).toEqual([{
+    p_actor_id: UID, p_kompaniya_id: 17, p_klient_id: row.id, p_etag: tag, p_amal: 'append',
+    p_sarlavha: null, p_xabarlar: [{ r: 'user', m: 'Salom' }, { r: 'ai', m: expect.stringContaining('Synthetic assistant') }],
+  }]);
+  expect(ai.hisobli).not.toHaveBeenCalled();
 });
 
 describe('/kunlik on|off', () => {
@@ -569,7 +638,7 @@ describe('/fakt <obyekt#> <matn> — AI taklifi → ko‘rib chiqish → faqat Q
     expect(c.rpc).not.toContain('t2_usta_fakt_qoralama_v1'); expect(javobMatni(c)).toContain('saqlanmadi');
   });
   it('byudjet/limit tugagan — server xabari; qator qidirilmaydi, hech narsa yozilmaydi', async () => {
-    ai.hisobli.mockRejectedValue(new ai.Xato('BYUDJET_YOQ', 'AI uchun oylik limit belgilanmagan'));
+    ai.hisobli.mockRejectedValue(new AiByudjetXatosi('BYUDJET_YOQ', 'AI uchun oylik limit belgilanmagan'));
     const c = net(hamma());
     await updateIshla(envAi as never, msg('/fakt 79 beton quyish 12,5 m3') as never);
     expect(javobMatni(c)).toContain('oylik limit'); expect(c.rpc).not.toContain('t2_qator');

@@ -18,6 +18,9 @@ import { onRequestPost as agentIshPost } from '../agent-ish';
 import { onRequestGet as qulfGet, onRequestPost as qulfPost } from '../qulf';
 import { onRequestGet as hujjatRoyxatGet } from '../hujjat-royxat';
 import { onRequestGet as hujjatOlGet } from '../hujjat-ol';
+import { onRequestGet as hujjatMaydoniGet, onRequestPost as hujjatMaydoniPost } from '../hujjat-maydoni';
+import { onRequestGet as hujjatMaydoniOlGet } from '../hujjat-maydoni-ol';
+import { onRequestPost as hujjatBuyruqPost } from '../hujjat-buyruq';
 import { onRequestPost as hujjatYaratPost } from '../hujjat-yarat';
 import { onRequestGet as tomonGet, onRequestPost as tomonPost } from '../tomon';
 import { onRequestGet as telegramGet, onRequestPost as telegramPost } from '../telegram/index';
@@ -50,6 +53,10 @@ const handlers: Record<string, Record<string, PagesFunction<Env>>> = {
   // P6 documents: canonical registry list + binary download (F-2 PDF/Excel, drawings). GET only; same authorization as the web, bytes stream through unchanged.
   '/api/hujjat-royxat': { GET: hujjatRoyxatGet },
   '/api/hujjat-ol': { GET: hujjatOlGet },
+  // Hujjat maydoni (Disk): ro'yxat/amallar JSON, yuklab olish, Jarvis vositalari; yuklash (multipart) ilova uchun keyingi bosqich.
+  '/api/hujjat-maydoni': { GET: hujjatMaydoniGet, POST: hujjatMaydoniPost },
+  '/api/hujjat-maydoni-ol': { GET: hujjatMaydoniOlGet },
+  '/api/hujjat-buyruq': { POST: hujjatBuyruqPost },
   // Yagona hujjat dvigateli: server tayyor XLSX/PDF qaytaradi (ro'yxat ham serverdan); ilovada shablon yo'q.
   '/api/hujjat-yarat': { POST: hujjatYaratPost },
   // P10: texnadzor acceptance (tomon: nazorat sections + decision) and notification preferences (telegram: holat + sozlama). Allow-listed below.
@@ -62,7 +69,7 @@ const handlers: Record<string, Record<string, PagesFunction<Env>>> = {
   // Logistika yuk birjasi (haydovchi/yuk egasi): web bilan bir xil handler; aktor sessiyadan, ruxsat/tenant RPC ichida. Faqat oq ro'yxatdagi amallar.
   '/api/yuk-tashish': { POST: yukTashishPost },
 } as never;
-export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|obyekt-tugun-summa|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol|agent-ish|qulf|hujjat-royxat|hujjat-ol|hujjat-yarat|tomon|telegram|ombor-buyruq|f2-buyruq|yuk-tashish)(?:\?[^#\s]*)?$/;
+export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|obyekt-tugun-summa|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol|agent-ish|qulf|hujjat-royxat|hujjat-ol|hujjat-maydoni|hujjat-maydoni-ol|hujjat-buyruq|hujjat-yarat|tomon|telegram|ombor-buyruq|f2-buyruq|yuk-tashish)(?:\?[^#\s]*)?$/;
 /** /api/profil also hosts account-security actions (parol, google/telegram ulash, hisob_birlashtir, usul_uz, birlashtir_*): the native device token may NOT reach them.
  *  Exposed: GET (own profile + session window), the @username / people-search / invite-answer actions (USERNAME_V1), `yangila` (name, phone, language, avatar colour)
  *  and `boshqa_sessiyalar_chiqish` (sign out everywhere; the BFF re-enrols THIS device so it stays signed in, see reissueDevice). */
@@ -87,7 +94,7 @@ const yukTashishAmalRuxsat = (body: unknown): boolean => {
   try { const o = typeof body === 'string' ? JSON.parse(body) : body; return !!o && typeof o === 'object' && yukTashishAmalmi((o as { amal?: unknown }).amal); } catch { return false; }
 };
 /** /api/agent-ish also hosts admin/superadmin actions (models, budgets, rules, rivojlanish...): the device may reach ONLY the Jarvis chat (kasb_savol, same aiHisobli charging) and the server-side chat list/save (t2_jarvis_suhbat), identical to web. */
-export const MOBIL_AGENT_AMAL: ReadonlySet<string> = new Set(['kasb_savol','suhbat_royxat','suhbat_ol','suhbat_saqla','suhbat_ochir']);
+export const MOBIL_AGENT_AMAL: ReadonlySet<string> = new Set(['kasb_savol','suhbat_sync','suhbat_page','suhbat_mutate','suhbat_royxat','suhbat_ol','suhbat_saqla','suhbat_ochir']);
 export const MOBIL_BFF_MAX_BYTES = 2 * 1024 * 1024;
 
 /** Per-path action gate on top of the path allow-list. GET /api/profil and GET /api/telegram are read-only own-account status. */
@@ -156,7 +163,8 @@ async function boundedBody(request: Request): Promise<string> {
  * External Cookie/headers/actor/authority are never forwarded. */
 export const onRequestPost: PagesFunction<Env> = async ctx => {
   const sess = await sessiyaOl(ctx.request, ctx.env);
-  if (!sess || !verifiedDesktopDevice(ctx.request)) return desktopFail(401, desktopDenyCode(ctx.request));
+  const device = verifiedDesktopDevice(ctx.request);
+  if (!sess || !device) return desktopFail(401, desktopDenyCode(ctx.request));
   let b: Record<string, unknown>;
   try { b = JSON.parse(await boundedBody(ctx.request)); }
   catch (err) { return desktopFail(err instanceof Error && err.message === 'BODY_TOO_LARGE' ? 413 : 400, 'BODY_INVALID'); }
@@ -167,6 +175,12 @@ export const onRequestPost: PagesFunction<Env> = async ctx => {
   const handler = Object.hasOwn(handlers, target.pathname) ? handlers[target.pathname][b.method] : undefined;
   if (!handler || !yolRuxsat(target, b.method, b.body) || (b.method === 'GET' && b.body != null) ||
     (b.etag != null && (typeof b.etag !== 'string' || b.etag.length > 512 || /[\x00-\x1f\x7f]/.test(b.etag)))) return desktopFail(400, 'TARGET_INVALID');
+  if (target.pathname === '/api/agent-ish' && b.body && typeof b.body === 'object' && Object.hasOwn(b.body, 'jarvis_device_id')) {
+    const { jarvis_device_id: expected, ...payload } = b.body as Record<string, unknown>;
+    if (payload.amal !== 'suhbat_mutate' || (payload.harakat !== 'create' && payload.harakat !== 'append') ||
+      expected !== device.device_id) return desktopFail(403, 'JARVIS_DEVICE_SCOPE');
+    b.body = payload;
+  }
   try {
     const cookie = await imzola({ rol: sess.rol, foydalanuvchi_id: sess.foydalanuvchi_id }, ctx.env.SESSIYA_KALIT, sess.exp - SESSIYA_MUDDAT_MS);
     const headers = new Headers({ Cookie: 'sess=' + cookie, Origin: target.origin, 'Sec-Fetch-Site': 'same-origin' });

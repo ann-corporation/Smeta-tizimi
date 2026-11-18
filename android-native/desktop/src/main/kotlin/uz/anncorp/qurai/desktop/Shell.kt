@@ -43,7 +43,11 @@ import uz.anncorp.qurai.ui.screens.QBubble
 import uz.anncorp.qurai.ui.screens.QChatItem
 import uz.anncorp.qurai.ui.screens.QJarvisChat
 import uz.anncorp.qurai.ui.theme.Q
+import uz.anncorp.smeta.core.data.ChatCursor
 import uz.anncorp.smeta.core.data.ChatInfo
+import uz.anncorp.smeta.core.data.ChatSnapshot
+import uz.anncorp.smeta.core.data.ChatWrite
+import uz.anncorp.smeta.core.data.JarvisRepository
 import uz.anncorp.smeta.core.data.ChatMsg
 import uz.anncorp.smeta.core.data.JarvisResult
 import uz.anncorp.smeta.core.data.TodayRepository
@@ -73,9 +77,10 @@ class JarvisState {
     var chatId by mutableStateOf(UUID.randomUUID().toString())
     var busy by mutableStateOf(false)
     var chats by mutableStateOf<List<ChatInfo>>(emptyList())
+    var etag by mutableStateOf<String?>(null)
     var showChats by mutableStateOf(false)
     var input by mutableStateOf("")
-    fun reset() { msgs.clear(); chatId = UUID.randomUUID().toString(); showChats = false }
+    fun reset() { msgs.clear(); chatId = UUID.randomUUID().toString(); etag = null; showChats = false }
 }
 
 @Composable
@@ -208,7 +213,14 @@ fun JarvisPanel(sv: Services, p: Workplace, obj: Obj?, st: JarvisState, focusTic
                 is JarvisResult.Server -> res.message ?: "Server xatosi"
             }))
             st.busy = false
-            runCatching { sv.jarvis.saveChat(p.companyId, st.chatId, st.msgs.toList()) }
+            runCatching {
+                val all = st.msgs.toList()
+                val tag = st.etag
+                val cursor = ChatCursor(st.chatId, tag)
+                val write = if (tag == null) sv.jarvis.writeMessages(p.companyId, cursor, JarvisRepository.chatTitle(all), all.takeLast(JarvisRepository.MAX_SAVED))
+                else sv.jarvis.writeMessages(p.companyId, cursor, null, all.takeLast(2), UUID.randomUUID().toString())
+                if (write is ChatWrite.Saved) st.etag = write.etag
+            }
         }
     }
     val bubbles = st.msgs.map { if (it.mine) QBubble.Mine(it.text) else QBubble.Jarvis(it.text) }
@@ -219,9 +231,9 @@ fun JarvisPanel(sv: Services, p: Workplace, obj: Obj?, st: JarvisState, focusTic
             quick = listOf("Pul holati" to "Shu obyekt bo'yicha pul holati qanday?", "Bugun" to "Bugun nima qilishim kerak?", "Fakt" to "Oxirgi fakt qanday?"),
             onQuick = { send(it) },
             chats = st.chats.map { QChatItem(it.id, it.title) }, activeChat = st.chatId, showChats = st.showChats,
-            onToggleChats = { st.showChats = !st.showChats; if (st.showChats) scope.launch { st.chats = sv.jarvis.chats(p.companyId).orEmpty() } },
+            onToggleChats = { st.showChats = !st.showChats; if (st.showChats) scope.launch { st.chats = sv.jarvis.syncChats(p.companyId)?.chats.orEmpty() } },
             onNewChat = { st.reset() },
-            onOpenChat = { ch -> scope.launch { sv.jarvis.openChat(p.companyId, ch.id)?.let { m -> st.msgs.clear(); st.msgs.addAll(m); st.chatId = ch.id; st.showChats = false } } },
+            onOpenChat = { ch -> scope.launch { (sv.jarvis.syncChats(p.companyId, ChatCursor(ch.id))?.active as? ChatSnapshot.Changed)?.let { s -> st.msgs.clear(); st.msgs.addAll(s.messages.orEmpty()); st.chatId = ch.id; st.etag = s.etag; st.showChats = false } } },
             headerExtra = { QButton("", onClose, kind = QButtonKind.Ghost, icon = QIcons.X) },
             focus = focus,
         )

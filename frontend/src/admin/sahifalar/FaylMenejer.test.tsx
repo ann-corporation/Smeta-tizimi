@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { FaylMenejer } from './FaylMenejer';
 import type { FaylExplorer } from '../../api/t2-fayl';
@@ -14,6 +14,20 @@ vi.mock('../../umumiy/hujjat/HujjatKorinish', () => ({ HujjatKorinish: () => <di
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>((done) => { resolve = done; }); return { promise, resolve }; }
 const listing = (id: number): FaylExplorer => ({ ok: true, rol: 'admin', kompaniya_id: id, kompaniya: `Company ${id}`, fayllar: [{ id, nom: 'file.xlsx', tur: 'smeta', versiya: 1, mime: 'application/xlsx', hajm: 1, sha256: null, sana: '2026-10-09', kim: null, loyiha_id: null, loyiha: null, obyekt_id: null, obyekt: null }] });
 afterEach(() => vi.resetAllMocks());
+
+it('a document link opens the preview only for a file in the active company', async () => {
+  mocks.list.mockResolvedValueOnce(listing(1)).mockResolvedValueOnce(listing(2));
+  mocks.bytes.mockResolvedValue(new Uint8Array([1]));
+  const { rerender } = render(<FaylMenejer kompaniyaId={1} documentId={1} />);
+  const card = await screen.findByRole('region', { name: 'file.xlsx' });
+  fireEvent.click(within(card).getByRole('button', { name: 'Ko‘rish' }));
+  expect(await screen.findByText('preview')).toBeTruthy();
+  expect(mocks.bytes).toHaveBeenCalledWith(1);
+  rerender(<FaylMenejer kompaniyaId={2} documentId={1} />);
+  expect((await screen.findByRole('status')).textContent).toContain('Hech narsa topilmadi');
+  expect(screen.queryByRole('region', { name: 'file.xlsx' })).toBeNull();
+  expect(mocks.bytes).toHaveBeenCalledTimes(1);
+});
 
 it('late A response cannot populate B or a new A session', async () => {
   const first = deferred<FaylExplorer>();

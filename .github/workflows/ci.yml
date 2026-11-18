@@ -54,6 +54,8 @@ jobs:
         run: npm run site-map:check
       - name: Biznes invariantlar va governance
         run: npm run tekshir
+      - name: Jarvis golden eval
+        run: node scripts/jarvis-eval.mjs
 
   # Unit testlar 4 shardga bo'lingan (avval bitta ketma-ket ~18 daqiqa). Har shard ichida --no-file-parallelism saqlangan.
   unit:

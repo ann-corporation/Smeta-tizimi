@@ -29,11 +29,11 @@ import { FAYL_TURI_NOMI, FAYL_TURI_RANG, faylTurTaqsimot } from '../../lib/fayl-
 const EXCEL = /spreadsheet|excel|\.xlsx?$/i;
 const sanaMatni = (s: string) => (s ? new Date(s).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' }) : '');
 
-export function FaylMenejer({ kompaniyaId }: { kompaniyaId: number }) {
-  return <CompanyFileManager key={kompaniyaId} kompaniyaId={kompaniyaId} />;
+export function FaylMenejer({ kompaniyaId, documentId }: { kompaniyaId: number; documentId?: number }) {
+  return <CompanyFileManager key={kompaniyaId} kompaniyaId={kompaniyaId} documentId={documentId} />;
 }
 
-function CompanyFileManager({ kompaniyaId }: { kompaniyaId: number }) {
+function CompanyFileManager({ kompaniyaId, documentId }: { kompaniyaId: number; documentId?: number }) {
   const { t } = useTil();
   const [storedData, setData] = useState<FaylExplorer | null>(null);
   const data = storedData?.kompaniya_id === kompaniyaId ? storedData : null;
@@ -301,9 +301,16 @@ function CompanyFileManager({ kompaniyaId }: { kompaniyaId: number }) {
   const turlar = faylTurTaqsimot(bolim === 'savat' ? savat : bolim === 'mening' ? menFayllar : papkaFayllari(joriy));
   const royxat = qidiruvNatija ?? joriy.fayllar;
   const papkalar = qidiruvNatija ? [] : joriy.bolalar;
+  const linked = documentId === undefined ? undefined : fayllar.find(f => f.id === documentId);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
+      {linked && <section className="fz-card flex flex-wrap items-center gap-2 p-3" aria-label={linked.nom}>
+        <span className="mr-auto min-w-0 break-all font-semibold">{linked.nom}</span>
+        <button type="button" disabled={!!band} onClick={() => void korish(linked)} className="fz-btn"><Eye size={14} />{t('Ko‘rish')}</button>
+        <button type="button" disabled={!!band} onClick={() => void yuklabOl(linked)} className="fz-btn"><Download size={14} />{t('Yuklab olish')}</button>
+      </section>}
+      {documentId !== undefined && data && !linked && <div role="status" className="fz-card p-3">{t('Hech narsa topilmadi')}</div>}
       <section className="fz-card flex flex-wrap items-center gap-2 p-3">
         <div className="mr-2 min-w-0">
           <div className="truncate text-[15px] font-semibold text-text" style={{ fontFamily: 'var(--font-display)' }}>{data?.kompaniya ?? '…'}</div>

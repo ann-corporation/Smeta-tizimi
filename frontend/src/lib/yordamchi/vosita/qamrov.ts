@@ -46,7 +46,7 @@ export const QAMROV: Readonly<Record<string, Qamrov>> = {
   kompaniya: q([], ['a’zo/modul boshqaruvi']), 'system-control': q([], ['integratsiya sozlamalari']),
   'tizim-sozlama': q(['xotira_korsat', 'xotira_yoz', 'xotira_unut']), 'hujjat-dizayn': q([], ['hujjat dizayni sozlamalari']), tokenlar: q([], ['obuna/token to‘ldirish']),
   'ai-agentlar': q(['xotira_korsat', 'ishchi_holat', 'ishchi_topshir'], ['AI ishchilarni yoqish/o‘chirish va jadval sozlamalari (boss)']), korzinka: q([], ['tiklash']),
-  'ish-joylarim': q(['bugun']), kurs: q([]), topshiriqlar: q(['bugun']), mutaxassis: q([], ['xizmat e’lon qilish']),
+  'ish-joylarim': q(['bugun']), 'hujjat-maydoni': q([], ['fayl yuklash/ulashish/versiya (Jarvis /api/hujjat-buyruq fayl_* vositalari orqali; sahifa UI da to‘liq)']), kurs: q([]), topshiriqlar: q(['bugun']), mutaxassis: q([], ['xizmat e’lon qilish']),
   osuvchi: q(['niyat:oqish'], ['taklifni qabul/rad']), akkaunt: q([], ['akkaunt sozlamalari']), sozlamalar: q(['xotira_korsat', 'xotira_yoz', 'xotira_unut']),
   boshqaruv: q([], ['platforma boshqaruvi']), 'tizim-xaritasi': q([]), 'fayl-boglash': q([], ['fayl bog‘lash']),
   // Imzo: Jarvis faqat sahifani ochadi; imzolash qurilma kaliti va token yechilishini talab qiladi — shuning uchun hammasi qo‘lda qoladi.
