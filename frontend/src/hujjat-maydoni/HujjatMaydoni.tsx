@@ -1,7 +1,7 @@
 /**
  * HujjatMaydoni.tsx - "Hujjatlarim / Kompaniya diski" (egasi 2026-11-18): shaxsiy va kompaniya maydonlari, papka, yuklash/yuklab olish,
  * versiyalar, izoh (@eslatma), qulf, ulashish, savat (30 kun), faoliyat, qidiruv, kvota va admin ko'rinishi.
- * Kompaniya konteksti ixtiyoriy: kompaniyasiz foydalanuvchida ham shaxsiy disk ochiladi (kompaniya talab qiluvchi blok yo'q); kompaniya tablari faqat kompaniya bor bo'lsa ko'rinadi.
+ * Kompaniya konteksti ixtiyoriy: kompaniyasiz foydalanuvchida ham shaxsiy disk ochiladi (sahifa bo'yicha kompaniya talabi yo'q); kompaniya tablari kompaniya bo'lmasa KompaniyaKerak ko'rsatadi.
  * Mavjud qatlamlar ustida (t2_fayl_papka, R2, t2_outbox); API: /api/hujjat-maydoni*. Jonli birgalikda tahrir - keyingi faza.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -11,6 +11,7 @@ import { Sahifa } from '../umumiy/ui/Sahifa';
 import { toast } from '../umumiy/ui/Toast';
 import { matnSora, tasdiqSora } from '../umumiy/ui/Tasdiq';
 import { useKompaniya } from '../umumiy/kontekst/KompaniyaKontekst';
+import { KompaniyaKerak } from '../umumiy/kontekst/KompaniyaKerak';
 import { HujjatKorinish } from '../umumiy/hujjat/HujjatKorinish';
 import { t, tilLocale } from '../i18n/til';
 import {
@@ -232,6 +233,7 @@ export default function HujjatMaydoni() {
           </tbody></table>
         )}
 
+        {!kompId && (joy === 'kompaniya' || joy === 'taqdim' || joy === 'tizim' || joy === 'admin') && <KompaniyaKerak nima={joy === 'tizim' ? 'Tizim hujjatlari' : joy === 'admin' ? 'Disk boshqaruvi' : 'Kompaniya diski'} />}
         {joy === 'taqdim' && kompId && <TaqdimPanel kompaniyaId={kompId} />}
         {joy === 'tizim' && kompId && <FaylMenejer kompaniyaId={kompId} faqatTizim documentId={docId ?? undefined} />}
 

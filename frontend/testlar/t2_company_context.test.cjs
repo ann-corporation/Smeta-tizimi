@@ -49,7 +49,9 @@ const navReestr = R('frontend', 'src', 'lib', 'reestr', 'sahifa.ts') + '\n' + R(
 must('/admin/kompaniya = GLOBAL (kompaniya tanlash shart emas)', /yol: '\/admin\/kompaniya'[^\n]*scope: 'GLOBAL'/.test(navReestr) && /NAV_SAHIFALAR/.test(scope));
 must('company-scoped sahifa <KompaniyaKerak/> ko\'rsatadi (xom matn emas)', bor('frontend','src','umumiy','kontekst','KompaniyaKerak.tsx') && /Global rejim|Kompaniya tanlanmagan/.test(kerak));
 // 2026-11-18: /admin/documents endi yagona «Disk» sahifasi (hujjat-maydoni/HujjatMaydoni.tsx): kompaniyasiz foydalanuvchida ham shaxsiy disk ochiladi, KompaniyaKerak bloki YO'Q.
-must('Disk sahifasi xom "kompaniya tanlang" matnini ishlatmaydi va kompaniyasiz shaxsiy diskni ochadi', !/Avval yuqoridan kompaniya tanlang/.test(R('frontend', 'src', 'hujjat-maydoni', 'HujjatMaydoni.tsx')) && !/KompaniyaKerak/.test(R('frontend', 'src', 'hujjat-maydoni', 'HujjatMaydoni.tsx')));
+const disk = R('frontend', 'src', 'hujjat-maydoni', 'HujjatMaydoni.tsx');
+must('Disk (/admin/documents): kompaniya tablari <KompaniyaKerak/> ko\'rsatadi (xom matn emas), shaxsiy disk esa kompaniyasiz ochiladi (sahifa darajasida erta return yo\'q)',
+  /<KompaniyaKerak/.test(disk) && !/Avval yuqoridan kompaniya tanlang/.test(disk) && !/if \(!joriy\??\.id\) return <KompaniyaKerak/.test(disk) && /hmRoyxat\(\{ kompaniyaId: joy === 'kompaniya' \? kompId : null/.test(disk));
 for (const f of ['HujjatNazoratPage.tsx', 'ParticipantsPage.tsx']) {
   const s = R('frontend', 'src', 'admin', 'pages', f);
   must(f + ': "Avval yuqoridan kompaniya tanlang" xom matni olib tashlangan', !/Avval yuqoridan kompaniya tanlang/.test(s) && /KompaniyaKerak/.test(s));
