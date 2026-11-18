@@ -26,6 +26,7 @@ import type { T2Qator } from '../api/supabase';
 import { NARX_ANIQLANMAGAN, mashinistMehnati } from './narx-bildirishnoma';
 import { YAXLIT_KAT } from './svod-yaxlit';
 import { f2YaxlitQator } from './f2-akt-eksport';
+import { matJoyBogla } from './mat-joy';
 
 /** Vedomost qatori: bitta resurs (kat + nom kaliti + birlik kaliti) va bitta narx; narxi farqli guruhlar alohida qatorlarga ajraladi. */
 type VedQator = { guruh: string; kat: NakrutkaKat | null; kodlar: string[]; nom: string; birlik: string; qatorlar: number[]; summaQatorlar: number[]; hajm: number; summa: number | null; narx: number | null; narxFarqli: boolean; /** Eng yuqori razdel (uchastka/fayl) - vedomost shu bo'yicha bo'limlanadi (iyerarxiya bo'lsa). */ ildiz: number | null; ildizNom: string };
@@ -59,6 +60,8 @@ export type F2HujjatOpsiya = {
   eskiSmetaPodval?: { podval: Podval | null; nakrutka: Partial<NakrutkaKoeffitsientlar> | null; nkManba?: string | null; ndsFoiz?: number | null };
   /** Smeta qatorlari (rz zanjiri): berilsa - hujjatda uchastka/fayl > razdel > ichki razdel iyerarxiyasi. */
   rows?: readonly T2Qator[];
+  /** Razdel darajasidagi mat/ob ni o'z ishi (BL) ostiga qo'lda biriktirish: mat id -> BL id (null - joyida). Avto qoida lib/mat-joy. */
+  matJoyQol?: ReadonlyMap<number, number | null>;
   /**
    * Svod yaxlit bo'limi ichidagi qator idlari (imzolangan hujjat va server `_t2_f2_ustamali` kesim.svod bilan bir xil): bu qatorlarga
    * ustama hisoblanmaydi — summa ИТОГО-4 ga ustamasiz qo'shiladi, QQS bir marta. ЧЕЛ/МАШ qatorlari mustasno (oddiy kategoriya).
@@ -213,8 +216,11 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     alohida: b.alohida.filter((r) => tanlangan.has(r.id)),
   });
   /** Bo'limning o'z ishlari/materiallari qatorlari: yig'iladigan (H) qatorlar va ularning yig'indisi. */
+  const joyBlId = new Map<number, number>();
+  if (o.rows) for (const [m, j] of matJoyBogla(o.rows, o.matJoyQol)) joyBlId.set(m, j.blId);
   const bolimQatorlari = (b: F2Bolim): { tarkib: number[]; js: number } => {
     const { ishlar, alohida } = tanlash(b);
+    const joylandi = new Set<number>();
     const tarkib: number[] = [];
     let bolimJS = 0;
     const qosh = (x: number | null) => { bolimJS += x ?? 0; };
@@ -241,8 +247,10 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
         for (const r of avto) resursYoz(tanlangan.get(r.id)!, r.kod, r.norma, blQ);
       }
       for (const r of mustaqil) { tarkib.push(resursYoz(tanlangan.get(r.id)!, r.kod, null, null, false, bolaRaqam)); qosh(oxirgiSumma); }
+      // Razdel darajasidagi mat/ob o'z ishi ostida (RS lardan keyin): asl smeta o'zgarmaydi, faqat hujjat tartibi; jami qatorlar tarkib bo'yicha.
+      for (const r of alohida) if (joyBlId.get(r.id) === ish.id && bl) { joylandi.add(r.id); tarkib.push(resursYoz(tanlangan.get(r.id)!, r.kod, null, null, false, true)); qosh(oxirgiSumma); }
     }
-    for (const r of alohida) { tarkib.push(resursYoz(tanlangan.get(r.id)!, r.kod, null, null)); qosh(oxirgiSumma); }
+    for (const r of alohida) {if (joylandi.has(r.id)) continue; tarkib.push(resursYoz(tanlangan.get(r.id)!, r.kod, null, null)); qosh(oxirgiSumma); }
     return { tarkib, js: bolimJS };
   };
   const jamiQator = (matn: string, tarkib: readonly number[], js: number): number =>
