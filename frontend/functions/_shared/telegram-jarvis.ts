@@ -1,5 +1,9 @@
 import { onRequest as middleware } from '../api/_middleware';
 import { onRequestPost as agent } from '../api/agent-ish';
+import { onRequestPost as f2 } from '../api/f2-buyruq';
+import { tokenTekshir } from './f2-buyruq-yadro';
+import { f2XatoMatni } from '../../src/lib/yordamchi/vosita/f2-mcp-liniya';
+import type { F2Javob } from '../../src/lib/jarvis/f2-javob';
 import { botChaqiruv } from './telegram-amal';
 import { limitOshdi } from './telegram-bot';
 import { saytUrl, tengSatr, tgRpc, tgT, type TgEnv, type TgTil } from './telegram';
@@ -97,7 +101,21 @@ export async function telegramJarvisMenu(env: TgEnv, actor: number, til: TgTil):
   return { matn: tgT('Jarvis uchun kompaniyani tanlang.', til), options: { reply_markup: { inline_keyboard: keyboard } } };
 }
 
-export async function telegramJarvisSelect(env: TgEnv, actor: number, telegram: number, til: TgTil, data: string): Promise<JarvisBotReply> {
+export async function telegramJarvisSelect(env: TgEnv, actor: number, telegram: number, til: TgTil, data: string, message?: JarvisReplyTo & { text?: string }): Promise<JarvisBotReply> {
+  const decision = async (matn: string) => {
+    const target = await conversationTarget(env, actor, telegram, message);
+    return target ? prompt(env, actor, telegram, til, { ...target, mode: 'o' }, matn) : { matn };
+  };
+  if (data === 'j:f:n') return decision(tgT('Bekor qilindi', til));
+  if (data === 'j:f:y') {
+    const match = /\n#JF:([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)$/.exec(message?.text ?? '');
+    const token = match ? await tokenTekshir(String(env.SESSIYA_KALIT ?? ''), match[1]) : null;
+    if (!token || token === 'muddati' || token.a !== actor) return decision(unavailable(til).matn);
+    const result = await botChaqiruv<F2Javob>(env, actor, { api: 'f2-buyruq', json: {
+      amal: 'tasdiq', kompaniya_id: token.k, token: match![1], tasdiqlayman: true,
+    } }, middleware, f2);
+    return decision(result.status === 200 && result.body?.ok ? tgT('Yozildi', til) : f2XatoMatni(result.body ?? {}));
+  }
   const page = /^j:t:([a-z0-9]{1,11}):([A-Za-z0-9_.-]{1,40}):(\d{1,3})$/.exec(data);
   if (page) {
     const company = parseInt(page[1], 36);
@@ -143,21 +161,28 @@ export async function telegramJarvisSelect(env: TgEnv, actor: number, telegram: 
   return unavailable(til);
 }
 
-export async function telegramJarvisReply(
-  env: TgEnv, actor: number, telegram: number, til: TgTil, replyTo: JarvisReplyTo | undefined, text: string,
-): Promise<JarvisBotReply | null> {
+async function conversationTarget(env: TgEnv, actor: number, telegram: number, replyTo: JarvisReplyTo | undefined): Promise<Target | null> {
   if (!replyTo?.from?.is_bot || !Array.isArray(replyTo.entities)) return null;
   const start = `${saytUrl(env)}/admin${PREFIX}`;
   const url = replyTo.entities.find(item => item?.type === 'text_link' && typeof item.url === 'string' && item.url.startsWith(start))?.url;
   if (!url) return null;
   const match = /^([1-9]\d{0,15}):([A-Za-z0-9_.-]{1,40}):([no]):(\d{1,10}):([a-f0-9]{64})$/.exec(url.slice(start.length));
-  if (!match) return unavailable(til);
+  if (!match) return null;
   const [, companyText, id, mode, minutes, tag] = match;
   const company = Number(companyText);
   const age = Math.floor(Date.now() / 60_000) - Number(minutes);
-  if (!number(company) || age < 0 || age > 60) return unavailable(til);
+  if (!number(company) || age < 0 || age > 60) return null;
   const expected = await sign(env, actor, telegram, match.slice(1, 5).join(':'));
-  if (!expected || !tengSatr(tag, expected)) return unavailable(til);
+  if (!expected || !tengSatr(tag, expected)) return null;
+  return { company, id, mode: mode as Target['mode'] };
+}
+
+export async function telegramJarvisReply(
+  env: TgEnv, actor: number, telegram: number, til: TgTil, replyTo: JarvisReplyTo | undefined, text: string,
+): Promise<JarvisBotReply | null> {
+  const target = await conversationTarget(env, actor, telegram, replyTo);
+  if (!target) return replyTo?.entities?.some(entity => entity.url?.startsWith(`${saytUrl(env)}/admin${PREFIX}`)) ? unavailable(til) : null;
+  const { company, id, mode } = target;
   const savol = text.trim();
   if (!savol || savol.length > 1000) return { matn: tgT('Savol juda uzun (1000 belgigacha).', til) };
   if (limitOshdi('jarvis:' + actor, 5)) return { matn: tgT('Juda ko‘p so‘rov. Bir daqiqadan keyin urinib ko‘ring.', til) };
@@ -167,7 +192,7 @@ export async function telegramJarvisReply(
   if (chat.holat === 'missing' ? mode !== 'n' :
     chat.holat !== 'changed' || chat.arxivlangan || !validJarvisTurns(chat.xabarlar) || !VERSION.test(chat.etag)) return unavailable(til);
   const tarix = chat.holat === 'changed' ? chat.xabarlar?.slice(-6).map(x => ({ rol: x.r === 'user' ? 'user' : 'assistant', matn: x.m })) : [];
-  const answer = await call<{ ok?: boolean; javob?: string; xabar?: string; error?: string; sahifalar?: Array<{ yol?: string }> }>(env, actor,
+  const answer = await call<{ ok?: boolean; javob?: string; xabar?: string; error?: string; sahifalar?: Array<{ yol?: string }>; f2_preview?: F2Javob }>(env, actor,
     { amal: 'kasb_savol', kompaniya_id: company, savol, tarix, sahifa: '/telegram/jarvis' });
   const javob = typeof answer.body?.javob === 'string' ? answer.body.javob : '';
   if (!sent(answer.status) || answer.body?.ok !== true || !javob.trim()) {
@@ -189,5 +214,15 @@ export async function telegramJarvisReply(
     return url.pathname === '/admin' || url.pathname.startsWith('/admin/') ? [url.href] : [];
   }) : [];
   const body = links.length ? [javob.slice(0, 2900), ...links].join('\n\n') : javob;
+  const preview = answer.body.f2_preview;
+  if (preview?.holat === 'tasdiq_kerak' && typeof preview.token === 'string') {
+    const marker = '\n#JF:' + preview.token;
+    if (marker.length > 3500) return { matn: tgT('Taklif juda katta. Uni web chatda qayta so‘rang.', til) };
+    const continuation = await prompt(env, actor, telegram, til, { company, id, mode: 'o' });
+    const evidence = [javob, ...links].join('\n\n');
+    return { transcript: evidence.match(/[\s\S]{1,1900}/gu) ?? [], matn: continuation.matn + marker, options: { ...continuation.options, reply_markup: { inline_keyboard: [[
+      { text: tgT('Tasdiqlash', til), callback_data: 'j:f:y' }, { text: tgT('Bekor qilish', til), callback_data: 'j:f:n' },
+    ]] } } };
+  }
   return prompt(env, actor, telegram, til, { company, id, mode: 'o' }, body);
 }

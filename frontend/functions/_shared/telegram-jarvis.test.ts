@@ -1,5 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 import { limitTozala } from './telegram-bot';
+import { tokenYarat } from './f2-buyruq-yadro';
 import { telegramJarvisReply, telegramJarvisSelect, type JarvisBotReply, type JarvisReplyTo } from './telegram-jarvis';
 
 const request = vi.hoisted(() => vi.fn());
@@ -14,6 +15,37 @@ const replyTo = (reply: JarvisBotReply): JarvisReplyTo => ({
   from: { is_bot: true }, entities: reply.options?.entities as JarvisReplyTo['entities'],
 });
 const payloads = () => request.mock.calls.map(([, , payload]) => payload.json);
+
+it('confirms a signed F2 preview only after an explicit callback', async () => {
+  const token = await tokenYarat(env.SESSIYA_KALIT, { a: 7, k: 17, o: 3, op: 'synthetic-op', rh: 'hash', v: 'f2_qoralama_tahrir', args: {} });
+  request.mockResolvedValueOnce(success({}));
+  const result = await telegramJarvisSelect(env, 7, 11, 'uz', 'j:f:y', { text: 'Sinov\n#JF:' + token });
+  expect(result.matn).toContain('Yozildi');
+  expect(request.mock.calls[0][2]).toEqual({ api: 'f2-buyruq', json: { amal: 'tasdiq', kompaniya_id: 17, token, tasdiqlayman: true } });
+});
+it('rejects expired or foreign tokens and cancellation without calling the writer', async () => {
+  for (const [actor, ttl] of [[8, 60000], [7, -1000]]) {
+    const token = await tokenYarat(env.SESSIYA_KALIT, { a: actor, k: 17, o: 3, op: 'synthetic', rh: 'hash', v: 'fakt_yoz', args: {} }, ttl);
+    await telegramJarvisSelect(env, 7, 11, 'uz', 'j:f:y', { text: '\n#JF:' + token });
+  }
+  await telegramJarvisSelect(env, 7, 11, 'uz', 'j:f:n');
+  expect(request).not.toHaveBeenCalled();
+});
+
+it('shows all preview evidence separately and keeps the signed token out of callback data', async () => {
+  request.mockResolvedValueOnce(success({ royxat: list, suhbat: changed }))
+    .mockResolvedValueOnce(success({ royxat: list, suhbat: changed }))
+    .mockResolvedValueOnce(success({ javob: 'Qator: 1 → 2\n'.repeat(400), f2_preview: { holat: 'tasdiq_kerak', token: 'signed.preview' } }))
+    .mockResolvedValueOnce(success({ id: 'chat-1', etag: 'b'.repeat(32) }));
+  const opened = await telegramJarvisSelect(env, 7, 11, 'uz', 'j:o:17:chat-1');
+  const result = await telegramJarvisReply(env, 7, 11, 'uz', replyTo(opened), '41 F-2 da 53 hajmini 2 qil');
+  expect(result?.transcript?.join('')).toBe('Qator: 1 → 2\n'.repeat(400));
+  expect(result?.matn).toContain('#JF:signed.preview');
+  expect(result?.options?.reply_markup).toEqual({ inline_keyboard: [[
+    { text: 'Tasdiqlash', callback_data: 'j:f:y' }, { text: 'Bekor qilish', callback_data: 'j:f:n' },
+  ]] });
+  expect(payloads().some(payload => payload?.amal === 'tasdiq')).toBe(false);
+});
 
 beforeEach(() => { request.mockReset(); limitTozala(); });
 
