@@ -1,4 +1,5 @@
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { DiskdanTanlashTugma } from '../../hujjat-maydoni/DiskdanTanlash';
 import { obyektlarEskirdi } from '../../api/obyektlar-kesh-belgi';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, CheckCircle2, XCircle, UploadCloud, AlertTriangle, Info, FileSpreadsheet } from 'lucide-react';
@@ -2211,6 +2212,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi, yonaltirish }: { com
                   disabled={paketBand}
                   onChange={e => { if (e.target.files?.length) void paketFayllariniTahlilQil(e.target.files); e.currentTarget.value = ''; }} />
               </label>
+              <DiskdanTanlashTugma kopmi accept=".xlsx,.xlsm,.xls" disabled={paketBand} onFayllar={(fl) => { if (fl.length) void paketFayllariniTahlilQil(fl); }} />
               <label className="text-sm">Obyekt papkasini birdan tahlil qilish
                 <input aria-label="Paket papkasi" type="file" multiple className="ml-2"
                   ref={(node) => { node?.setAttribute('webkitdirectory', ''); node?.setAttribute('directory', ''); }}

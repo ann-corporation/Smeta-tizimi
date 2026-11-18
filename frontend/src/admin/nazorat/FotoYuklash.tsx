@@ -7,6 +7,7 @@ import { Camera, X } from 'lucide-react';
 import { sbLoyihaUmumiy } from '../../api/t2-loyiha';
 import { hujjatYukla, hujjatYuklabOlishUrl } from '../../api/t2-hujjat-canonical';
 import { toast } from '../../umumiy/ui/Toast';
+import { DiskdanTanlashTugma } from '../../hujjat-maydoni/DiskdanTanlash';
 import { t } from '../../i18n/til';
 
 export function FotoYuklash({ kompaniyaId, idlar, onOzgardi, hujjatTuri = 'tekshiruv_foto', max = 10 }: {
@@ -42,6 +43,7 @@ export function FotoYuklash({ kompaniyaId, idlar, onOzgardi, hujjatTuri = 'teksh
         <Camera size={14} />{band ? t('Yuklanmoqda…') : t('Foto qo‘shish')}
         <input ref={input} type="file" accept="image/*" capture="environment" multiple className="sr-only" disabled={band} onChange={(e) => void tanlandi(Array.from(e.target.files ?? []))} aria-label={t('Foto qo‘shish')} />
       </label>
+      <DiskdanTanlashTugma kopmi accept="image/*" disabled={band} onFayllar={(fl) => tanlandi(fl)} onXato={(m) => toast(m, 'danger')} />
     </div>
   );
 }
