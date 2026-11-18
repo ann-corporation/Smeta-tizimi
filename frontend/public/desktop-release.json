@@ -1,10 +1,10 @@
 {
-  "version": "0.2.1",
+  "version": "0.2.3",
   "arch": "x64",
-  "generatedAtUtc": "2026-11-18T07:05:59Z",
-  "file": "QURAI-0.2.1.msi",
-  "bytes": 48016506,
-  "sha256": "778211b7402fea95372334179406990eca7fdf4a199a607526ad5940059537ef",
+  "generatedAtUtc": "2026-11-18T10:07:51Z",
+  "file": "QURAI-0.2.3.msi",
+  "bytes": 48045428,
+  "sha256": "cdee815bf192965b310425a18b02980ecb139acc144242a1b75b490d04d2d7d6",
   "signature": "NotSigned",
   "signerThumbprint": null
 }
