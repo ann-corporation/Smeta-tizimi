@@ -224,6 +224,10 @@ describe('mobil BFF: ombor-buyruq (omborchi matn/ovoz buyrug\'i)', () => {
       return base(raw, init);
     }));
   });
+  it('MOBIL_PATH ombor-ovoz (Jarvis ovozli kiritish) ni o\'tkazadi, qo\'shnilarini emas', () => {
+    expect(MOBIL_PATH.test('/api/ombor-ovoz')).toBe(true);
+    expect(MOBIL_PATH.test('/api/ombor-ovoz-x')).toBe(false);
+  });
   it('MOBIL_PATH ombor-buyruq ni o\'tkazadi, qo\'shnilarini emas', () => {
     expect(MOBIL_PATH.test('/api/ombor-buyruq')).toBe(true);
     expect(MOBIL_PATH.test('/api/ombor-ovoz')).toBe(false);

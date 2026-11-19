@@ -14,7 +14,8 @@ import kotlinx.serialization.Serializable
 
 /** Outcome of one Jarvis question. Charging (aiHisobli) happens on the server; the app only shows what came back. */
 sealed interface JarvisResult {
-    data class Answer(val text: String, val local: Boolean) : JarvisResult
+    /** [previewToken] = a write preview waiting for the user's manual confirmation (server 2_preview.token); nothing is saved until [JarvisRepository.confirm]. */
+    data class Answer(val text: String, val local: Boolean, val previewToken: String? = null) : JarvisResult
     /** HTTP 402: the token balance / budget does not cover the question. [message] is the server's own text. */
     data class Budget(val message: String?) : JarvisResult
     /** HTTP 422/403 about the company context (pick a company, no access, context too large). */
@@ -72,6 +73,21 @@ class JarvisRepository(private val api: BffApi) {
             if (h.isNotEmpty()) put("tarix", h)
         })
         return map(r)
+    }
+
+    /** The web card's confirm: POST /api/f2-buyruq { amal: tasdiq, token, tasdiqlayman } - the only call that writes. Returns null on success, else the error text. */
+    suspend fun confirm(companyId: Long, token: String): String? =
+        failText(api.bff("/api/f2-buyruq", "POST", buildJsonObject { put("amal", "tasdiq"); put("kompaniya_id", companyId); put("token", token); put("tasdiqlayman", true) }))
+
+    /** Voice to text for the question field (server STT, nothing is written): POST /api/ombor-ovoz { audio_b64 }. Pair(text, null) or Pair(null, error). */
+    @OptIn(kotlin.io.encoding.ExperimentalEncodingApi::class)
+    suspend fun transcribe(companyId: Long, audio: ByteArray, mime: String, lang: String = "auto"): Pair<String?, String?> {
+        val r = api.bff("/api/ombor-ovoz", "POST", buildJsonObject {
+            put("kompaniya_id", companyId); put("language", lang); put("mime", mime); put("audio_b64", kotlin.io.encoding.Base64.encode(audio))
+        })
+        val err = failText(r)
+        val text = ((r.body as? JsonObject)?.get("text") as? JsonPrimitive)?.takeIf { it.isString }?.content?.trim()
+        return if (err == null && !text.isNullOrEmpty()) text to null else null to (err ?: "Ovoz tanilmadi")
     }
 
     suspend fun syncChats(companyId: Long, cursor: ChatCursor? = null): ChatSync? =
@@ -221,6 +237,21 @@ class JarvisRepository(private val api: BffApi) {
         fun chatTitle(messages: List<ChatMsg>): String? =
             messages.firstOrNull { it.mine && it.text.isNotBlank() }?.text?.replace(Regex("\\s+"), " ")?.trim()?.take(80)
 
+        /** The confirmation token of a write preview (2_preview with holat 	asdiq_kerak), or null for an ordinary answer. Pure. */
+        fun previewToken(o: JsonObject?): String? {
+            val p = o?.get("f2_preview") as? JsonObject ?: return null
+            if ((p["holat"] as? JsonPrimitive)?.content != "tasdiq_kerak") return null
+            return (p["token"] as? JsonPrimitive)?.takeIf { it.isString }?.content?.takeIf { it.isNotBlank() }
+        }
+
+        /** Outcome text of a confirm / transcription call: null = success. Pure. */
+        fun failText(r: ApiResult): String? {
+            val o = r.body as? JsonObject
+            if (r.networkError) return "Tarmoq yo'q"
+            if (r.ok && (o?.get("ok") as? JsonPrimitive)?.content != "false") return null
+            return ((o?.get("xabar") ?: o?.get("error") ?: o?.get("code")) as? JsonPrimitive)?.takeIf { it.isString }?.content ?: "Server xatosi"
+        }
+
         /** Pure, unit tested. The server's error text is `xabar` (ai-savol) or `error` (agent-ish). */
         fun map(r: ApiResult): JarvisResult {
             val o = r.body as? JsonObject
@@ -231,7 +262,7 @@ class JarvisRepository(private val api: BffApi) {
                 r.ok && (o?.get("ok") as? JsonPrimitive)?.content != "false" -> {
                     val text = (o?.get("javob") as? JsonPrimitive)?.takeIf { it.isString }?.content?.trim().orEmpty()
                     val local = (o?.get("provider") as? JsonPrimitive)?.content == "local" || (o?.get("model") as? JsonPrimitive)?.content == "local"
-                    if (text.isEmpty()) JarvisResult.Server(null) else JarvisResult.Answer(text, local)
+                    if (text.isEmpty()) JarvisResult.Server(null) else JarvisResult.Answer(text, local, previewToken(o))
                 }
                 r.status == 422 || r.status == 403 -> JarvisResult.Context(msg)
                 else -> JarvisResult.Server(msg)

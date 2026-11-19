@@ -67,6 +67,7 @@ import uz.anncorp.qurai.ui.screens.QBubble
 import uz.anncorp.qurai.ui.screens.QChatItem
 import uz.anncorp.qurai.ui.screens.QJarvisChat
 import uz.anncorp.qurai.ui.screens.QJarvisTexts
+import uz.anncorp.qurai.ui.screens.QJarvisVoice
 import uz.anncorp.smeta.core.ui.WorkTopBar
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -75,7 +76,7 @@ import javax.inject.Inject
 /** One bubble in the chat. Errors are first-class so a 402 (no tokens) is shown as a clear card, not a generic failure. */
 sealed interface Bubble {
     data class Mine(val text: String) : Bubble
-    data class Jarvis(val text: String, val local: Boolean) : Bubble
+    data class Jarvis(val text: String, val local: Boolean, val previewToken: String? = null) : Bubble
     data class Budget(val message: String?) : Bubble
     data class Problem(val kind: Kind, val message: String?) : Bubble
     enum class Kind { NETWORK, SERVER, CONTEXT }
@@ -211,6 +212,18 @@ class JarvisViewModel @Inject constructor(
             saveIssue = if (write.stale) ChatSaveIssue.STALE else ChatSaveIssue.RETRY) }
     }
 
+    /** Manual confirmation of a write preview (the web card's Tasdiqlash): null = written, else the error text. */
+    suspend fun confirmPreview(token: String): String? {
+        val cid = companyId() ?: return "Kompaniya tanlang"
+        return repo.confirm(cid, token)
+    }
+
+    /** Server speech-to-text for the question field: Pair(text, null) or Pair(null, error). */
+    suspend fun transcribe(audio: ByteArray, mime: String): Pair<String?, String?> {
+        val cid = companyId() ?: return null to "Kompaniya tanlang"
+        return repo.transcribe(cid, audio, mime)
+    }
+
     fun ask(text: String) {
         val q = text.trim()
         if (q.isEmpty() || !_ui.value.canSend || ctx.current.value != workplace) return
@@ -227,7 +240,7 @@ class JarvisViewModel @Inject constructor(
         _ui.update { it.copy(bubbles = it.bubbles + Bubble.Mine(q), busy = true, showList = false) }
         viewModelScope.launch {
             val reply: Bubble = when (val r = repo.ask(q, cid, history, objectId)) {
-                is JarvisResult.Answer -> Bubble.Jarvis(r.text, r.local)
+                is JarvisResult.Answer -> Bubble.Jarvis(r.text, r.local, r.previewToken)
                 is JarvisResult.Budget -> Bubble.Budget(r.message)
                 is JarvisResult.Context -> Bubble.Problem(Bubble.Kind.CONTEXT, r.message)
                 JarvisResult.Network -> Bubble.Problem(Bubble.Kind.NETWORK, null)
@@ -458,6 +471,34 @@ fun JarvisScreen(onBack: () -> Unit, vm: JarvisViewModel = hiltViewModel(), embe
         }
     }
     val send = { val t = text; text = ""; vm.ask(t) }
+    // Voice input: AAC recording (the ombor recorder) -> server STT -> the transcript lands in the field for the user to read and send.
+    val micContext = LocalContext.current
+    val micScope = androidx.compose.runtime.rememberCoroutineScope()
+    val recorder = remember { uz.anncorp.smeta.core.media.AndroidAudioRecorder(micContext.applicationContext) }
+    var micRecording by remember { mutableStateOf(false) }
+    var micBusy by remember { mutableStateOf(false) }
+    val micFail = stringResource(R.string.ja_mic_fail)
+    val micDenied = stringResource(R.string.ja_mic_denied)
+    val toast = { m: String -> android.widget.Toast.makeText(micContext, m, android.widget.Toast.LENGTH_SHORT).show() }
+    val beginRecord = { if (recorder.start()) micRecording = true else toast(micFail) }
+    val micPerm = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { ok -> if (ok) beginRecord() else toast(micDenied) }
+    val startMic: () -> Unit = {
+        if (androidx.core.content.ContextCompat.checkSelfPermission(micContext, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) beginRecord()
+        else micPerm.launch(android.Manifest.permission.RECORD_AUDIO)
+    }
+    val stopMic: () -> Unit = {
+        micRecording = false
+        val a = recorder.stop()
+        if (a == null) toast(micFail) else {
+            micBusy = true
+            micScope.launch {
+                val (t, err) = vm.transcribe(a.bytes, a.mime)
+                micBusy = false
+                if (t != null) text = (text.trim() + " " + t).trim().take(JarvisRepository.MAX_QUESTION) else toast(err ?: micFail)
+            }
+        }
+    }
+    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { recorder.cancel() } }
     if (confirmDiscard) AlertDialog(
         onDismissRequest = { confirmDiscard = false },
         title = { Text(stringResource(R.string.ja_discard_title)) },
@@ -502,7 +543,7 @@ fun JarvisScreen(onBack: () -> Unit, vm: JarvisViewModel = hiltViewModel(), embe
     val bubbles = ui.bubbles.map { b ->
         when (b) {
             is Bubble.Mine -> QBubble.Mine(b.text)
-            is Bubble.Jarvis -> QBubble.Jarvis(b.text)
+            is Bubble.Jarvis -> QBubble.Jarvis(b.text, b.previewToken)
             is Bubble.Budget -> QBubble.Budget(budgetTitle, b.message ?: budgetBody, budgetHint)
             is Bubble.Problem -> QBubble.Problem(b.message?.takeIf { b.kind != Bubble.Kind.NETWORK } ?: if (b.kind == Bubble.Kind.NETWORK) errNetwork else errServer)
         }
@@ -510,6 +551,8 @@ fun JarvisScreen(onBack: () -> Unit, vm: JarvisViewModel = hiltViewModel(), embe
     val texts = QJarvisTexts(
         title = "", welcome = stringResource(R.string.ja_welcome), hint = stringResource(R.string.ja_hint), thinking = stringResource(R.string.ja_thinking),
         input = stringResource(R.string.ja_input), send = stringResource(R.string.ja_send), newChat = stringResource(R.string.ja_new_chat), chats = stringResource(R.string.ja_chats_label),
+        confirm = stringResource(R.string.ja_confirm), cancel = stringResource(R.string.ja_cancel_preview), saved = stringResource(R.string.ja_confirmed), cancelled = stringResource(R.string.ja_cancelled), preview = stringResource(R.string.ja_preview_hint),
+        micStart = stringResource(R.string.ja_mic_start), micStop = stringResource(R.string.ja_mic_stop), micBusy = stringResource(R.string.ja_mic_busy),
         noChats = stringResource(R.string.ja_chats_empty), copy = stringResource(R.string.ja_copy), copied = stringResource(R.string.ja_copied), scrollDown = stringResource(R.string.ja_scroll_down),
     )
     // Inside the bottom sheet the sheet already sits below the status bar: no second inset (that was the ~170 px empty band on top).
@@ -525,6 +568,8 @@ fun JarvisScreen(onBack: () -> Unit, vm: JarvisViewModel = hiltViewModel(), embe
             onNewChat = { if (!ui.busy && !ui.outboxUnreadable) { if (ui.saveIssue == null && text.isBlank()) vm.newChat() else confirmDiscard = true } },
             onOpenChat = { qc -> if (ui.canSend && text.isBlank()) ui.chats.firstOrNull { it.id == qc.id }?.let(vm::open) },
             maxInput = JarvisRepository.MAX_QUESTION, canSend = ui.canSend,
+            onConfirm = { token -> vm.confirmPreview(token) },
+            voice = QJarvisVoice(recording = micRecording, busy = micBusy, onStart = startMic, onStop = stopMic),
             belowHeader = {
                 Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     if (!ui.showList && ui.chats.any { it.id == ui.chatId }) {
