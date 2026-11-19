@@ -78,6 +78,7 @@ export function asosiyMenyuJavobi(til: TgTil, ijro: boolean): BotJavob {
       [b('Obyektlar', 'g:o:0'), b('Obyekt qidirish', 'g:s')],
       ...(ijro ? [[b('Fakt kiritish', 'g:y'), b('F-2', 'g:f')]] : []),
       [b('Hujjatlar', 'g:h'), b('Tasdiqlar', 'g:t:0')],
+      [b('Hujjatlar paketi', 'g:pk')],
       [b('Bildirishnomalar', 'g:n:0'), b('Bugun', 'm:b')],
       [b('Xatlar', 'g:q:0'), b('Topshiriqlar', 'g:z:0:0'), b('Tokenlar', 'g:tk')],
     ] },

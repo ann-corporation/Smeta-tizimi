@@ -4,7 +4,7 @@
  */
 import { paketZip } from '../f2-oylik-paket/eksport';
 import type { PaketFayl, PaketFaylTuri } from '../f2-oylik-paket/oylik';
-import { parallelIsh } from '../f2-oylik-paket/paket-tez';
+import { parallelIsh } from '../f2-oylik-paket/parallel';
 import { tarkibMatni, zipYollari, TUR_NOMI, type Nomzod, type PaketReja } from './nomzod';
 
 export type Olingan = { bytes: Uint8Array; faylNomi: string };

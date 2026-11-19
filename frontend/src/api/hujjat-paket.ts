@@ -4,7 +4,9 @@
  * Yangi hujjat mantig'i yo'q; hammasi mavjud endpointlar ustida.
  */
 import { vaqtliOqish } from './vaqtli-fetch';
-import { hujjatYarat, type HujjatTur } from './hujjat-yarat';
+import { hujjatYarat } from './hujjat-yarat';
+import { yasashSorovi } from '../lib/hujjat-paket/yasash-sorov';
+export { yasashSorovi };
 import { filtrServerga, type PaketFiltr } from '../lib/hujjat-paket/nomzod';
 import type { RoyxatQator } from '../lib/hujjat-paket/royxat';
 import type { Nomzod } from '../lib/hujjat-paket/nomzod';
@@ -34,17 +36,6 @@ export async function diskdanOl(n: Pick<Nomzod, 'fayl_id' | 'sarlavha'>): Promis
   const r = await vaqtliOqish(`/api/hujjat-maydoni-ol?id=${n.fayl_id}`, {}, 120_000);
   if (!r.ok) throw new Error(`Diskdan o'qilmadi (HTTP ${r.status})`);
   return { bytes: new Uint8Array(await r.arrayBuffer()), faylNomi: fayloNomi(r.headers.get('Content-Disposition'), `${n.sarlavha}.xlsx`) };
-}
-
-/** `/api/hujjat-yarat` parametrlari (nomzod -> tur + parametrlar). null - bu turni yasab bo'lmaydi. */
-export function yasashSorovi(n: Nomzod): { tur: HujjatTur; parametrlar: Record<string, number> } | null {
-  switch (n.tur) {
-    case 'f2': return n.akt_id != null ? { tur: 'f2', parametrlar: { akt_id: n.akt_id } } : null;
-    case 'forma3': return n.forma3_id != null && n.shartnoma_id != null ? { tur: 'forma3', parametrlar: { shartnoma_id: n.shartnoma_id, f3_id: n.forma3_id } } : null;
-    case 'nakopitelniy': case 'm29': return n.oy ? { tur: n.tur, parametrlar: { oy_son: Number(n.oy.replace('-', '')) } } : null;
-    case 'slichitelniy': case 'ostatka': return { tur: n.tur, parametrlar: {} };
-    default: return null;
-  }
 }
 
 export function saytYetkazuvchi(kompaniyaId: number): Yetkazuvchi {

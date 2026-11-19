@@ -15,7 +15,7 @@ import { hujjatMazmunXeshi, imzoVaraqiBormi, xlsxMi } from './mazmun';
 import { imzoVaraqQosh } from './qr-varaq';
 import { nashrKompaniyasi } from './nashr-kontekst';
 
-export type NashrMeta = { turi?: string; obyektId?: number | null; atama?: string; /** F-2: nashr tokeni shu aktga (va uning joriy versiyasiga) bog'lanadi - QR texnadzor tekshiruv paneliga olib boradi (/tekshiruv/<token>). */ aktId?: number | null };
+export type NashrMeta = { turi?: string; obyektId?: number | null; atama?: string; /** F-2: nashr tokeni shu aktga (va uning joriy versiyasiga) bog'lanadi - QR texnadzor tekshiruv paneliga olib boradi (/tekshiruv/<token>). */ aktId?: number | null; /** Server (Worker) yasashi: faol kompaniya global kontekstdan emas, shu yerdan (bir vaqtda bir necha kompaniya). */ kompaniyaId?: number | null };
 
 /** Fayl nomidan hujjat turi kaliti: «F2_Obyekt_5.xlsx» -> «f2». */
 export function turiFaylNomidan(nom: string): string {
@@ -34,7 +34,7 @@ export type NashrAdapter = {
 
 /** Nashr: QR li xlsx baytlarini qaytaradi; qo'llab bo'lmasa (xlsx emas, kontekst yo'q, xato) - null. */
 export async function nashrQoy(bytes: Uint8Array, filename: string, meta: NashrMeta | undefined, a: NashrAdapter): Promise<Uint8Array | null> {
-  const kompaniyaId = nashrKompaniyasi();
+  const kompaniyaId = meta?.kompaniyaId ?? nashrKompaniyasi();
   // IMZO varag'i bor fayl (imzolangan nusxa) qayta shtamplanmaydi: imzo qatorlari yo'qolmasin
   if (!kompaniyaId || !/\.(xlsx|xlsm)$/i.test(filename) || !xlsxMi(bytes) || imzoVaraqiBormi(bytes)) return null;
   try {

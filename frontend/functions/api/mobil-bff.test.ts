@@ -423,3 +423,21 @@ describe('mobil BFF: yuk-tashish (Logistika yuk birjasi)', () => {
     expect(rpcs).toHaveLength(0);
   });
 });
+
+describe('mobil BFF: tekshiruv (PTO texnadzor takliflari)', () => {
+  const notTarget = async (r: Response) => expect(((await r.json().catch(() => ({}))) as { code?: string }).code).not.toBe('TARGET_INVALID');
+  const refused = async (r: Response) => expect(((await r.json().catch(() => ({}))) as { code?: string }).code).toBe('TARGET_INVALID');
+  it('reaches exactly GET amal=akt and POST amal=qaror (the endpoint itself enforces the session / PTO right)', async () => {
+    await notTarget(await bff('/api/tekshiruv?amal=akt&kompaniya_id=8&akt_id=5'));
+    await notTarget(await bff('/api/tekshiruv', 'POST', { amal: 'qaror', taklif_id: 3, qaror: 'qabul' }));
+    expect(MOBIL_PATH.test('/api/tekshiruv?amal=akt&kompaniya_id=8&akt_id=5')).toBe(true);
+    expect(MOBIL_PATH.test('/api/tekshiruv-x')).toBe(false);
+  });
+  it('everything else of /api/tekshiruv stays web-only', async () => {
+    await refused(await bff('/api/tekshiruv?token=' + 'a'.repeat(43)));                 // token reading (texnadzor panel)
+    await refused(await bff('/api/tekshiruv?amal=akt&token=' + 'a'.repeat(43)));
+    await refused(await bff('/api/tekshiruv?amal=boshqa'));
+    for (const amal of ['saqla', 'holat', 'qidir', 'kod_ber', 'kod_ol', 'bog', 'hujjat', 'import', '']) await refused(await bff('/api/tekshiruv', 'POST', { amal }));
+    await refused(await bff('/api/tekshiruv', 'PUT', { amal: 'qaror' }));
+  });
+});
