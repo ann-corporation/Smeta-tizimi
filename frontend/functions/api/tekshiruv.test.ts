@@ -141,16 +141,16 @@ describe('/api/tekshiruv - yaroqsiz, muddati utgan, begona kompaniya tokeni rad 
 
 describe('/api/tekshiruv - PTO qarori', () => {
   it('qaror: aktor sessiyadan; rad - sabab uzatiladi; noto\'g\'ri qiymat 400; begona 403; sabab kerak 400', async () => {
-    const f = mockFetch({ t2_tekshiruv_qaror_v1: (b: any) => (b.p_taklif_id === 9 ? { ok: false, code: 'RUXSAT_YOQ' } : b.p_qaror === 'rad' && !b.p_sabab ? { ok: false, code: 'SABAB_KERAK' } : { ok: true, qaror: b.p_qaror }) });
+    const f = mockFetch({ t2_f2_tekshiruv_qaror_v1: (b: any) => (b.p_taklif_id === 9 ? { ok: false, code: 'RUXSAT_YOQ' } : b.p_qaror === 'rad' && !b.p_sabab ? { ok: false, code: 'SABAB_KERAK' } : { ok: true, qaror: b.p_qaror }) });
     expect(await J(await post({ amal: 'qaror', taklif_id: 5, qaror: 'rad', sabab: 'hajm togri', p_actor_id: 99 }))).toEqual({ ok: true, qaror: 'rad' });
-    expect(body(f, 't2_tekshiruv_qaror_v1')).toEqual({ p_actor_id: 7, p_taklif_id: 5, p_qaror: 'rad', p_sabab: 'hajm togri' });
+    expect(body(f, 't2_f2_tekshiruv_qaror_v1')).toEqual({ p_actor_id: 7, p_taklif_id: 5, p_qaror: 'rad', p_sabab: 'hajm togri' });
     expect((await post({ amal: 'qaror', taklif_id: 5, qaror: 'rad' })).status).toBe(400);
     expect((await post({ amal: 'qaror', taklif_id: 5, qaror: 'yomon' })).status).toBe(400);
     expect((await post({ amal: 'qaror', taklif_id: 9, qaror: 'qabul' })).status).toBe(403);
     expect((await post({ amal: 'qaror', taklif_id: 0, qaror: 'qabul' })).status).toBe(400);
   });
   it('akt takliflari va hujjat biriktirish: parametr tekshiruvi, RPC ruxsati', async () => {
-    mockFetch({ t2_tekshiruv_akt_takliflari_v1: { ok: true, takliflar: [] }, t2_tekshiruv_hujjat_v1: { ok: false, code: 'RUXSAT_YOQ' } });
+    mockFetch({ t2_f2_tekshiruv_akt_takliflari_v1: { ok: true, takliflar: [] }, t2_f2_tekshiruv_hujjat_v1: { ok: false, code: 'RUXSAT_YOQ' } });
     expect((await get('amal=akt&kompaniya_id=17&akt_id=41')).status).toBe(200);
     expect((await get('amal=akt&kompaniya_id=x&akt_id=41')).status).toBe(400);
     expect((await post({ amal: 'hujjat', taklif_id: 5, fayl_id: 3 })).status).toBe(403);

@@ -6,8 +6,7 @@
  * olib tashlash - f2_qoralama_tahrir + bajarilmadi; ikkalasi ham preview ko'rsatiladi va PTO «Tasdiqlayman» bosadi.
  * «Qo'shish» taklifi: qator F-2 muharririda qo'lda qo'shiladi (mavjud yozuv yo'li shu), so'ng «Qabul» faqat qaror sifatida yoziladi.
  */
-import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useState } from 'react';
 import { Check, ClipboardList, FileText, X } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
@@ -22,16 +21,16 @@ const sonMatn = (v: number | null | undefined) => (v == null ? '—' : Number(v)
 type Jarayon = { taklif: AktTaklif; qadamlar: QabulQadam[]; i: number; javob: F2Javob | null; band: boolean };
 
 export function F2TekshiruvTakliflari({ kompaniyaId, obyektId, aktId, versiya, qoralama, onOzgardi }: { kompaniyaId: number; obyektId: number; aktId: number; versiya: number; qoralama: boolean; onOzgardi: () => void }) {
-  const qc = useQueryClient();
-  const kalit = ['tekshiruv-akt', kompaniyaId, aktId];
-  const q = useQuery({ queryKey: kalit, retry: false, queryFn: () => tekshiruvAktTakliflari(kompaniyaId, aktId) });
+  // Provider/react-query ga bog'liq emas va xatoga chidamli: yuklanmasa blok shunchaki ko'rinmaydi (F-2 sahifasi buzilmaydi).
+  const [data, setData] = useState<Awaited<ReturnType<typeof tekshiruvAktTakliflari>> | null>(null);
+  const yangila = useCallback(async () => { try { setData(await tekshiruvAktTakliflari(kompaniyaId, aktId)); } catch { setData(null); } }, [kompaniyaId, aktId, versiya]);
+  useEffect(() => { void yangila(); }, [yangila]);
   const [rad, setRad] = useState<{ id: number; sabab: string } | null>(null);
   const [j, setJ] = useState<Jarayon | null>(null);
   const [diskTaklif, setDiskTaklif] = useState<number | null>(null);
-  const d = q.data && q.data.ok ? q.data : null;
+  const d = data && data.ok ? data : null;
   if (!d || d.takliflar.length === 0) return null;
   const xulosa = takliflarXulosasi(d.takliflar);
-  const yangila = async () => { await qc.invalidateQueries({ queryKey: kalit }); };
 
   const qaror = async (x: AktTaklif, qr: 'qabul' | 'rad' | 'keyinroq', sabab?: string) => {
     const r = await tekshiruvQaror(x.id, qr, sabab ?? null);

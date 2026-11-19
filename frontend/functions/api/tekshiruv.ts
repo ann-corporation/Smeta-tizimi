@@ -59,7 +59,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   if (u.searchParams.get('amal') === 'akt') {
     const kid = Number(u.searchParams.get('kompaniya_id')); const akt = Number(u.searchParams.get('akt_id'));
     if (!Number.isSafeInteger(kid) || kid <= 0 || !Number.isSafeInteger(akt) || akt <= 0) return json({ ok: false, code: 'TALAB_NOTOGRI' }, 400);
-    const r = await imzoRpc(ctx.env, 't2_tekshiruv_akt_takliflari_v1', { p_actor_id: a.id, p_kompaniya_id: kid, p_akt_id: akt });
+    const r = await imzoRpc(ctx.env, 't2_f2_tekshiruv_akt_takliflari_v1', { p_actor_id: a.id, p_kompaniya_id: kid, p_akt_id: akt });
     return r?.ok ? json(r) : rpcXato(r);
   }
   const token = u.searchParams.get('token');
@@ -84,12 +84,12 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     if (!Number.isSafeInteger(taklifId) || taklifId <= 0) return talab();
     if (b.amal === 'qaror') {
       if (!['qabul', 'rad', 'keyinroq', 'kutilmoqda'].includes(String(b.qaror))) return talab();
-      const r = await imzoRpc(env, 't2_tekshiruv_qaror_v1', { p_actor_id: a.id, p_taklif_id: taklifId, p_qaror: b.qaror, p_sabab: typeof b.sabab === 'string' ? b.sabab.slice(0, 1000) : null });
+      const r = await imzoRpc(env, 't2_f2_tekshiruv_qaror_v1', { p_actor_id: a.id, p_taklif_id: taklifId, p_qaror: b.qaror, p_sabab: typeof b.sabab === 'string' ? b.sabab.slice(0, 1000) : null });
       return r?.ok ? json({ ok: true, qaror: r.qaror }) : rpcXato(r);
     }
     const fayl = b.fayl_id === null || b.fayl_id === undefined ? null : Number(b.fayl_id);
     if (fayl !== null && (!Number.isSafeInteger(fayl) || fayl <= 0)) return talab();
-    const r = await imzoRpc(env, 't2_tekshiruv_hujjat_v1', { p_actor_id: a.id, p_taklif_id: taklifId, p_hujjat_id: fayl });
+    const r = await imzoRpc(env, 't2_f2_tekshiruv_hujjat_v1', { p_actor_id: a.id, p_taklif_id: taklifId, p_hujjat_id: fayl });
     return r?.ok ? json({ ok: true }) : rpcXato(r);
   }
   const token = b.token;
