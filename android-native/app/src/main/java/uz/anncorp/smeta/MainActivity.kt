@@ -151,6 +151,7 @@ private const val HUJJAT = "hujjat"
 private const val AYLANISH = "aylanish?xat={xat}"
 private const val SMETA = "smeta/{id}"
 private const val F2LIST = "f2/{id}"
+private const val F2DRAFT = "f2draft/{id}/{akt}"
 private const val DOCS = "docs/{id}?f2={f2}"
 private const val NOTIFICATIONS = "notifications"
 private const val F2REG = "f2reestr"
@@ -281,9 +282,10 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
         composable(SMETA, idArg) { SmetaBrowseScreen(onBack = { nav.popBackStack() }, onDraft = { nav.navigate("draft/$it") }, onJarvis = { nav.navigate("$JARVIS?obyekt=$it") }) }
         composable(F2LIST, idArg) {
             F2ListScreen(
-                onBack = { nav.popBackStack() }, onDocs = { nav.navigate("docs/$it?f2=true") },
+                onBack = { nav.popBackStack() }, onDocs = { nav.navigate("docs/$it?f2=true") }, onOpenAct = { o, a -> nav.navigate("f2draft/$o/$a") },
             )
         }
+        composable(F2DRAFT, idArg + listOf(navArgument("akt") { type = NavType.LongType })) { uz.anncorp.smeta.feature.f2.F2DraftScreen(onBack = { nav.popBackStack() }) }
         composable(DOCS, idArg + listOf(navArgument("f2") { type = NavType.BoolType; defaultValue = false })) { DocumentsScreen(onBack = { nav.popBackStack() }) }
         composable(NOTIFICATIONS) { NotificationsScreen(onBack = { nav.popBackStack() }, onOpenApproval = { nav.navigate("approval/$it") }, onOpenLetter = { nav.navigate("aylanish?xat=$it") }) }
         composable(PEOPLE_INVITE) { CompanyInviteScreen(onBack = { nav.popBackStack() }) }
