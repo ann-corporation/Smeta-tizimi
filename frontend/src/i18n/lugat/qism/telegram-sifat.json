@@ -1,0 +1,13 @@
+{
+  "Til o‘zgartirildi: {til}.": { "ru": "Язык изменён: {til}.", "en": "Language changed: {til}." },
+  "Tilni tanlang:": { "ru": "Выберите язык:", "en": "Choose a language:" },
+  "tilni o‘zgartirish (uz, ru, en)": { "ru": "сменить язык (uz, ru, en)", "en": "change language (uz, ru, en)" },
+  "Qaysi obyektga? Raqamini yozing (masalan: 240):": { "ru": "К какому объекту? Напишите номер (например: 240):", "en": "Which object? Send its number (e.g. 240):" },
+  "Qaysi obyekt? Raqamini yozing (masalan: 240):": { "ru": "Какой объект? Напишите номер (например: 240):", "en": "Which object? Send its number (e.g. 240):" },
+  "Qaysi obyektga fakt yoziladi? Raqamini yozing (masalan: 240):": { "ru": "К какому объекту записать факт? Напишите номер (например: 240):", "en": "Which object is the fact for? Send its number (e.g. 240):" },
+  "Fakt: nima bajarilganini va hajmini yozing. Obyekt: {obyekt}. Masalan: 12,5 m3 beton quyildi.": { "ru": "Факт: напишите, что выполнено и в каком объёме. Объект: {obyekt}. Например: уложено 12,5 м3 бетона.", "en": "Fact: write what was done and how much. Object: {obyekt}. Example: 12.5 m3 of concrete poured." },
+  "Endi nima bajarilganini va hajmini yozing. Masalan: 12,5 m3 beton quyildi.": { "ru": "Теперь напишите, что выполнено и в каком объёме. Например: уложено 12,5 м3 бетона.", "en": "Now write what was done and how much. Example: 12.5 m3 of concrete poured." },
+  "Kimni taklif qilamiz? @username, telefon yoki email yozing.": { "ru": "Кого пригласить? Напишите @username, телефон или email.", "en": "Whom to invite? Send an @username, phone or email." },
+  "Qaysi rolda? Yozing: {rollar}": { "ru": "В какой роли? Напишите: {rollar}", "en": "In which role? Send one of: {rollar}" },
+  "Savolingizni yozing — shu suhbatda davom etamiz.": { "ru": "Напишите вопрос — продолжим в этом диалоге.", "en": "Type your question — we will continue in this conversation." }
+}

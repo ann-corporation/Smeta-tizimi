@@ -9,16 +9,17 @@
  *    faqat «ulang» ko'rsatmasini oladi. Ulangan foydalanuvchi FAQAT o'z t2_foydalanuvchi sifatida (t2_men_v1).
  */
 import {
-  type TgEnv, type TgTil, fonda, miniAppTugma, saytUrl, tgApi, tgRpc, tgT, tilAniqla, ulashKodXesh, ulashKodYaroqli, webhookSirTekshir, xabarYubor,
+  type TgEnv, type TgTil, fonda, miniAppTugma, saytUrl, tgApi, tgRpc, tgT, ulashKodXesh, ulashKodYaroqli, webhookSirTekshir, xabarYubor,
 } from '../../_shared/telegram';
 import { type BotJavob, type Callback, type TgRasm, bugunJavobi, fotoAmali, jarvisJavobi, kunlikAmali, obyektlarJavobi, yordamMatni } from '../../_shared/telegram-bot';
 import { callbackIshlaV2, faktTaklif, fotoQidiruv, menyuTugmasi, qidiruvKonteksti } from '../../_shared/telegram-bot-oqim';
-import { startTugmalari } from '../../_shared/telegram-tugma';
+import { hisobTili, holatOch, holatOl, holatYoz, tilOzgartir, tilYaroqli } from '../../_shared/telegram-holat';
+import { type Aloqa, faktKirish, kutilganIshla, oddiyMatnIshla, taklifBosh } from '../../_shared/telegram-sifat';
 import { omborBuyruq, omborCallback, omborSavolCallback } from '../../_shared/telegram-ombor';
 import { NONCE_PREFIKS, kalitYaroqli, nonceYaroqli, xesh, yoqilgan } from '../../_shared/kirish-emailsiz';
 import { type KanalEnv, kanalCallback, kanalCallbackmi, kanalTahrirJavobi, tahrirBelgisi } from '../../_shared/telegram-kanal';
 import { DISK_CB, type TgHujjat, diskCallback, diskFayl } from '../../_shared/telegram-disk';
-import { menUsernameQatori, taklifJavobi, usernameCallback, usernameJavobi, usernameTaklifi } from '../../_shared/telegram-username';
+import { menUsernameQatori, usernameCallback, usernameJavobi, usernameTaklifi } from '../../_shared/telegram-username';
 import { chuqurHavolaOl, toliqCallback, toliqMatn } from '../../_shared/telegram-toliq';
 import { asosiyMenyuJavobi, doimiyMenyu, menyuAmali, rolOl } from '../../_shared/telegram-toliq-yadro';
 import { type RelizEnv, relizElon, relizTop, relizYubor, relizlarniOl } from '../../_shared/telegram-reliz';
@@ -44,7 +45,21 @@ const ulangMatni = (env: TgEnv, til: TgTil) =>
 type Men = { ok?: boolean; foydalanuvchi?: { ism?: string | null; login?: string | null }; platform_role?: string;
   azoliklar?: { nom?: string; rol?: string }[] };
 
-const yubor = (env: TgEnv, chatId: number, j: BotJavob) => xabarYubor(env, chatId, j.matn, j.markup ? { reply_markup: j.markup } : {});
+const yubor = async (env: TgEnv, chatId: number, j: BotJavob) => {
+  const ok = await xabarYubor(env, chatId, j.matn, { ...(j.markup ? { reply_markup: j.markup } : {}), ...(j.entities ? { entities: j.entities } : {}) });
+  if (j.kutish) await holatYoz(chatId, 'kutish', j.kutish);   // bot savol berdi — keyingi oddiy xabar shuni yakunlaydi
+  return ok;
+};
+
+const TIL_NOMI: Record<TgTil, string> = { uz: 'O‘zbekcha', ru: 'Русский', en: 'English' };
+/** /til [uz|ru|en] va `tl:` tugmalari: HISOB tili o'zgaradi (sayt/ilova/bot — hammasida bir xil). */
+async function tilQoy(env: TgEnv, uid: number, chatId: number, eski: TgTil, yangi: TgTil): Promise<string> {
+  if (!await tilOzgartir(env, uid, yangi)) { await xabarYubor(env, chatId, tgT('Sozlamani saqlab bo‘lmadi. Birozdan keyin urinib ko‘ring.', eski)); return 'til_xato'; }
+  await xabarYubor(env, chatId, tgT('Til o‘zgartirildi: {til}.', yangi, { til: TIL_NOMI[yangi] }), { reply_markup: doimiyMenyu(yangi, (await rolOl(env, uid))?.ijro ?? false) });
+  return 'til';
+}
+const tilTanlash = (env: TgEnv, chatId: number, til: TgTil) =>
+  xabarYubor(env, chatId, tgT('Tilni tanlang:', til), { reply_markup: { inline_keyboard: [(['uz', 'ru', 'en'] as const).map((t) => ({ text: TIL_NOMI[t], callback_data: 'tl:' + t }))] } });
 async function jarvisYubor(env: TgEnv, chatId: number, reply: JarvisBotReply) {
   for (const page of reply.transcript ?? []) if (!await xabarYubor(env, chatId, page, reply.transcriptOptions)) return;
   await xabarYubor(env, chatId, reply.matn, reply.options);
@@ -85,10 +100,17 @@ async function callbackAjrat(env: TgEnv, cb: Callback, tgId: number | undefined)
     if (cb.id) await javobBer();
     return 'etibor_yoq';
   }
-  const til = tilAniqla(cb.from?.language_code);
+  let til: TgTil = 'uz';   // til — hisob tilidan (Telegram language_code dan emas); ulanmagan — o'zbek lotin
   if (cb.data === 'rl:y') { await javobBer(); return relizlarniYubor(env, chat.id as number, til); }   // RELIZ: ochiq fayllar, hisob ulanishi shart emas
   const a = await tgRpc<{ ok?: boolean; ulangan?: boolean; foydalanuvchi_id?: number }>(env, 't2_telegram_aniqla_v1', { p_telegram_user_id: tgId });
   if (!a?.ok || !a.ulangan || !a.foydalanuvchi_id) { await javobBer(tgT('Avval hisobni ulang', til)); return 'cb_ulanmagan'; }
+  til = await hisobTili(env, a.foydalanuvchi_id);
+  if (typeof cb.data === 'string' && /^tl:(uz|ru|en)$/.test(cb.data)) {
+    await javobBer();
+    const yangi = cb.data.slice(3) as TgTil;
+    if (Number.isSafeInteger(cb.message?.message_id)) await tgApi(env, 'editMessageReplyMarkup', { chat_id: chat.id, message_id: cb.message?.message_id, reply_markup: { inline_keyboard: [] } });
+    return 'cb:' + await tilQoy(env, a.foydalanuvchi_id, chat.id as number, til, yangi);
+  }
   if (typeof cb.data === 'string' && cb.data.startsWith('j:')) {
     await javobBer();
     await jarvisYubor(env, chat.id as number, await telegramJarvisSelect(env, a.foydalanuvchi_id, tgId as number, til, cb.data, cb.message));
@@ -152,8 +174,8 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
   if (u.callback_query) return callbackAjrat(env, u.callback_query, tgId);
   if (!msg || !msg.chat || msg.chat.type !== 'private' || !Number.isSafeInteger(msg.chat.id) || !Number.isSafeInteger(tgId) || msg.from?.is_bot) return 'etibor_yoq';
   const chatId = msg.chat.id as number;
-  const til = tilAniqla(msg.from?.language_code);
-  const b = buyruqAjrat(String(msg.text || '')) ?? (menyuAmali(String(msg.text || '')) === 'jarvis' ? { buyruq: 'jarvis', arg: '' } : null);
+  let til: TgTil = 'uz';   // hisob tilidan (ulangandan keyin); Telegram language_code javob tilini belgilamaydi — bir chatda til almashmaydi
+  let b = buyruqAjrat(String(msg.text || '')) ?? (menyuAmali(String(msg.text || '')) === 'jarvis' ? { buyruq: 'jarvis', arg: '' } : null);
 
   /* Emailsiz kirish (20261217200000): telefonni Telegram kontakti bilan tasdiqlash. Faqat shu oqim — hisob/sessiya bu yerda
      BERILMAYDI (brauzer nonce + o'z siri bilan /api/kirish-telegram dan oladi). contact.user_id == from.id SQL da ham tekshiriladi. */
@@ -183,16 +205,29 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
     return 'kirish_start';
   }
 
+  let r: { ok?: boolean; code?: string; ism?: string | null } | null = null;
   if (b?.buyruq === 'start' && b.arg && !chuqurHavolaOl(b.arg)) {
     if (!ulashKodYaroqli(b.arg)) { await xabarYubor(env, chatId, tgT('Havola yaroqsiz. Saytdan yangi havola oling.', til)); return 'kod_format'; }
-    const r = await tgRpc<{ ok?: boolean; code?: string; ism?: string | null }>(env, 't2_telegram_ulash_v1', {
-      p_kod_xesh: await ulashKodXesh(b.arg), p_telegram_user_id: tgId, p_chat_id: chatId, p_til: til, p_operation_id: crypto.randomUUID(),
+    r = await tgRpc<{ ok?: boolean; code?: string; ism?: string | null }>(env, 't2_telegram_ulash_v1', {
+      p_kod_xesh: await ulashKodXesh(b.arg), p_telegram_user_id: tgId, p_chat_id: chatId, p_til: null, p_operation_id: crypto.randomUUID(),
     });
     if (r?.ok) {
-      await xabarYubor(env, chatId, tgT('Tayyor! Telegram hisobingiz tizimga ulandi{ism}. Endi shu yerdan tizimni ochishingiz va xabarlarni olishingiz mumkin.', til,
-        { ism: r.ism ? ` (${r.ism})` : '' }) + '\n\n' + yordamMatni(til), { reply_markup: miniAppTugma(env, til) });
+      // BITTA xabar: ulandi + doimiy menyu klaviaturasi (ilgari yordam ro'yxati + keyingi /start salomi takrorlanardi).
+      const a1 = await tgRpc<{ ok?: boolean; ulangan?: boolean; foydalanuvchi_id?: number }>(env, 't2_telegram_aniqla_v1', { p_telegram_user_id: tgId });
+      const u1 = a1?.ulangan && a1.foydalanuvchi_id ? a1.foydalanuvchi_id : null;
+      const t1 = u1 ? await hisobTili(env, u1) : til;
+      await xabarYubor(env, chatId, tgT('Tayyor! Telegram hisobingiz tizimga ulandi{ism}. Endi shu yerdan tizimni ochishingiz va xabarlarni olishingiz mumkin.', t1,
+        { ism: r.ism ? ` (${r.ism})` : '' }) + '\n\n' + tgT('Menyu pastda: obyekt tanlang, fakt kiriting, F-2 va hujjatlarni oching, tasdiqlang.', t1),
+      { reply_markup: doimiyMenyu(t1, u1 ? (await rolOl(env, u1))?.ijro ?? false : false) });
+      if (u1) await menyuTugmasi(env, u1, t1, chatId);
+      await holatYoz(chatId, 'start', { t: Date.now() }, 20);
       return 'ulandi';
     }
+    // Havola eskirgan/ishlatilgan, lekin foydalanuvchi ALLAQACHON ulangan: xato emas — oddiy /start (asosiy menyu, bir marta).
+    const ulangan0 = await tgRpc<{ ok?: boolean; ulangan?: boolean; foydalanuvchi_id?: number }>(env, 't2_telegram_aniqla_v1', { p_telegram_user_id: tgId });
+    if (ulangan0?.ok && ulangan0.ulangan && ulangan0.foydalanuvchi_id) b = { buyruq: 'start', arg: '' };
+  }
+  if (b?.buyruq === 'start' && b.arg && !chuqurHavolaOl(b.arg)) {
     const XATO: Record<string, string> = {
       KOD_ISHLATILGAN: 'Bu havola allaqachon ishlatilgan. Saytdan yangi havola oling.',
       KOD_MUDDATI_OTGAN: 'Havolaning muddati tugagan (10 daqiqa). Saytdan yangi havola oling.',
@@ -209,6 +244,8 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
   if (!a?.ok) { await xabarYubor(env, chatId, tgT('Server bilan aloqa yo‘q. Birozdan keyin urinib ko‘ring.', til)); return 'baza_xato'; }
   if (!a.ulangan || !a.foydalanuvchi_id) { await xabarYubor(env, chatId, ulangMatni(env, til)); return 'ulanmagan'; }
   const uid = a.foydalanuvchi_id;
+  til = await hisobTili(env, uid);   // YAGONA til: hisob tili (sayt profili bilan bir xil), standart — o'zbek lotin
+  if (b) await holatOch(chatId, 'kutish');   // yangi buyruq eski savolni bekor qiladi (fakt/taklif o'z holatini qaytadan yozadi)
 
   // KANAL-BOSHQARUV: «Tahrirlash» xabariga javob — qoralama matni yangilanadi (chiqarilmaydi).
   const kpId = tahrirBelgisi(msg.reply_to_message);
@@ -219,12 +256,16 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
     const g = data ? await toliqCallback(env, uid, til, { data }, chatId) : null;
     if (g?.xabar) { await yubor(env, chatId, g.xabar); return 'chuqur_havola'; }
   }
-  if (!b && typeof msg.text === 'string') { const t = await toliqMatn(env, uid, til, chatId, { text: msg.text, reply_to_message: msg.reply_to_message }); if (t) return t; }  // OMBOR-OVOZ: ovozli xabar / oddiy matn → omborchi buyrug'i (preview + tasdiq tugmalari). Omborchi bo'lmasa — oddiy oqim davom etadi.
+  if (!b && typeof msg.text === 'string') {
+    if (menyuAmali(msg.text)) await holatOch(chatId, 'kutish');   // doimiy menyu tugmasi eski savolni bekor qiladi
+    const t = await toliqMatn(env, uid, til, chatId, { text: msg.text, reply_to_message: msg.reply_to_message }); if (t) return t;
+  }
+  // OMBOR-OVOZ: ovozli xabar → omborchi buyrug'i (preview + tasdiq tugmalari). Oddiy MATN ombor yo'liga faqat ombor niyatida (keldi/berdim/qoldiq…) ketadi — pastda (oddiyMatnIshla).
   const ovoz = msg.voice?.file_id ?? msg.audio?.file_id;
-  if (ovoz || (!b && typeof msg.text === 'string' && msg.text.trim() && !qidiruvKonteksti(msg.reply_to_message))) {
-    const j = await omborBuyruq(env, uid, til, ovoz ? { fileId: ovoz } : { matn: String(msg.text) });
-    if (j) { await yubor(env, chatId, j); return ovoz ? 'ombor_ovoz' : 'ombor_matn'; }
-    if (ovoz) { await xabarYubor(env, chatId, tgT('Ovozli buyruq faqat omborchilar uchun.', til)); return 'ovoz_ruxsatsiz'; }
+  if (ovoz) {
+    const j = await omborBuyruq(env, uid, til, { fileId: ovoz });
+    if (j) { await yubor(env, chatId, j); return 'ombor_ovoz'; }
+    await xabarYubor(env, chatId, tgT('Ovozli buyruq faqat omborchilar uchun.', til)); return 'ovoz_ruxsatsiz';
   }
 
   // Fayl (document) -> Hujjat maydoni: bot "qaysi papkaga?" deb so'raydi (guruhlar yuqorida rad etilgan).
@@ -232,6 +273,7 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
 
   // Rasm (izoh bilan yoki izohsiz) → foto-dalil (umumiy, faktga biriktirilmagan). Fakt summasi/hajmi yozilmaydi.
   if (Array.isArray(msg.photo) && msg.photo.length) {
+    await holatOch(chatId, 'kutish');
     const j = await fotoAmali(env, uid, til, msg.photo.slice(0, 10), String(msg.caption || '').slice(0, 600));
     await yubor(env, chatId, j);
     if (j.obyektId) await menyuTugmasi(env, uid, til, chatId, j.obyektId);   // Mini App tugmasi oxirgi obyektda ochiladi
@@ -246,15 +288,23 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
       const reply = await telegramJarvisReply(env, uid, chatId, til, msg.reply_to_message, msg.text);
       if (reply) { await jarvisYubor(env, chatId, reply); return 'jarvis_reply'; }
     }
+    if (msg.text.trim()) {
+      // Bot savol bergan bo'lsa («240», «@user», fakt matni) — shuni yakunlaydi; aks holda mazmuni bo'yicha: ombor / fakt / Jarvis (yordam ro'yxati emas).
+      const aloqa: Aloqa = { yubor: (j) => yubor(env, chatId, j), jarvisYubor: (r) => jarvisYubor(env, chatId, r), matn: (s) => xabarYubor(env, chatId, s) };
+      return await kutilganIshla(env, uid, til, chatId, msg.text, aloqa) ?? await oddiyMatnIshla(env, uid, til, chatId, chatId === tgId, msg.text.slice(0, 1000), aloqa);
+    }
   }
 
   switch (b?.buyruq) {
     case 'start': {
+      // Ulash xabaridan keyingi avtomatik /start (20 soniya ichida) — jim; aks holda BITTA xabar: salom + doimiy menyu klaviaturasi.
+      if (await holatOl(chatId, 'start')) { await holatOch(chatId, 'start'); return 'salom_takror'; }
       const m = await tgRpc<Men>(env, 't2_men_v1', { p_actor_id: uid });
       const ism = m?.ok ? (m.foydalanuvchi?.ism || m.foydalanuvchi?.login || '') : '';
       await xabarYubor(env, chatId, [tgT('Assalomu alaykum! QURAI boti.', til),
-        ism ? tgT('Hisob ulangan: {ism}', til, { ism }) : tgT('Hisob ulangan.', til), '', yordamMatni(til)].join('\n'), { reply_markup: startTugmalari(env, til) });
-      await xabarYubor(env, chatId, tgT('Menyu pastda: obyekt tanlang, fakt kiriting, F-2 va hujjatlarni oching, tasdiqlang.', til), { reply_markup: doimiyMenyu(til, (await rolOl(env, uid))?.ijro ?? false) });
+        ism ? tgT('Hisob ulangan: {ism}', til, { ism }) : tgT('Hisob ulangan.', til), '',
+        tgT('Menyu pastda: obyekt tanlang, fakt kiriting, F-2 va hujjatlarni oching, tasdiqlang.', til)].join('\n'),
+      { reply_markup: doimiyMenyu(til, (await rolOl(env, uid))?.ijro ?? false) });
       await menyuTugmasi(env, uid, til, chatId);
       /* USERNAME-V1: QURAI username bo'sh va Telegram username mos bo'lsa — tasdiq so'raladi (jimgina yozilmaydi). */
       const taklif = await usernameTaklifi(env, uid, til, msg.from?.username);
@@ -276,7 +326,18 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
       else if (chatId === tgId) await jarvisYubor(env, chatId, await telegramJarvisMenu(env, uid, til));
       return 'jarvis';
     case 'kunlik': await yubor(env, chatId, await kunlikAmali(env, uid, til, b?.arg ?? '')); return 'kunlik';
-    case 'fakt': await yubor(env, chatId, await faktTaklif(env, uid, til, b?.arg ?? '')); return 'fakt';
+    case 'fakt': {
+      // /fakt <obyekt#> <matn> — mavjud yo'l; /fakt yoki /fakt <matn> (obyektsiz) — kontekst: standart obyekt, yo'q bo'lsa «qaysi obyekt?» (kutilgan niyat).
+      const arg = b?.arg ?? '';
+      await yubor(env, chatId, /^#?\d{1,12}\s+\S/.test(arg) ? await faktTaklif(env, uid, til, arg) : await faktKirish(env, uid, til, chatId, arg));
+      return 'fakt';
+    }
+    case 'til': {
+      const t = (b?.arg ?? '').trim().toLowerCase();
+      if (tilYaroqli(t)) return tilQoy(env, uid, chatId, til, t);
+      await tilTanlash(env, chatId, til);
+      return 'til_sorov';
+    }
     case 'hisobot': case 'qoldiq': case 'ostatka': {
       // OMBOR: /hisobot o'tgan oy sement · /qoldiq 2026-11-01 — matn omborchi buyrug'i bilan bir xil yo'ldan (tahlil → kartochka) o'tadi.
       const j = await omborBuyruq(env, uid, til, { matn: (b?.buyruq === 'hisobot' ? 'hisobot ' : 'qoldiq ') + (b?.arg ?? '') });
@@ -305,7 +366,7 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
       return 'men';
     }
     case 'username': await xabarYubor(env, chatId, await usernameJavobi(env, uid, til, b?.arg ?? '')); return 'username';
-    case 'taklif': await xabarYubor(env, chatId, await taklifJavobi(env, uid, til, b?.arg ?? '')); return 'taklif';
+    case 'taklif': await xabarYubor(env, chatId, await taklifBosh(env, uid, til, chatId, b?.arg ?? '')); return 'taklif';
     case 'chiqish': case 'logout': {
       const r = await tgRpc<{ ok?: boolean; uzildi?: boolean }>(env, 't2_telegram_uz_v1', { p_actor_id: null, p_telegram_user_id: tgId, p_manba: 'bot', p_operation_id: crypto.randomUUID() });
       await xabarYubor(env, chatId, r?.ok ? tgT('Telegram hisobingiz tizimdan uzildi. Qayta ulash uchun saytdagi «Telegramni ulash» tugmasidan foydalaning.', til)

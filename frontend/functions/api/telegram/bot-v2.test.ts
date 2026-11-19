@@ -13,6 +13,7 @@ import { kontekstKeshTozala } from '../../_shared/agent-kontekst-kesh';
 import { vakolatKeshTozala } from '../../_shared/role-authority';
 import { bildirishnomaTugmalari } from '../../_shared/telegram-tugma';
 import { limitTozala } from '../../_shared/telegram-bot';
+import { holatTozalaTest } from '../../_shared/telegram-holat';
 import { onRequestPost as kunlik } from './kunlik';
 import { bogliqlik } from '../bildirishnoma-yetkaz';
 import { updateIshla } from './webhook';
@@ -60,9 +61,11 @@ const men = (perms: string[] = ALL, rol = 'pto', kompaniyalar = [17]) => () => (
 });
 /** PostgREST kabi: Content-Range bilan (sb sahifalash shunga tayanadi). */
 const satrlar = (rows: unknown[]) => new Response(JSON.stringify(rows), { status: 200, headers: { 'Content-Range': rows.length ? `0-${rows.length - 1}/${rows.length}` : '*/0', 'Content-Type': 'application/json' } });
+let HISOB_TIL = 'uz';   // hisob tili (t2_foydalanuvchi.til) — bot javob tili shundan; Telegram language_code e'tiborga olinmaydi
+beforeEach(() => { HISOB_TIL = 'uz'; holatTozalaTest(); });
 const aniqla = () => ({ ok: true, ulangan: true, foydalanuvchi_id: UID });
 const qabul = () => ({ ok: true, yangi: true, limit: false });
-const asos = (extra: Record<string, Handler> = {}) => ({ t2_telegram_update_qabul_v1: qabul, t2_telegram_aniqla_v1: aniqla, t2_men_v1: men(), ...extra });
+const asos = (extra: Record<string, Handler> = {}) => ({ t2_telegram_update_qabul_v1: qabul, t2_telegram_aniqla_v1: aniqla, t2_men_v1: men(), t2_profil_ol_v1: () => ({ ok: true, profil: { til: HISOB_TIL } }), ...extra });
 
 let uid = 100;
 const msg = (text: string, extra: Record<string, unknown> = {}) => ({ update_id: ++uid, message: { text, chat: { id: TG, type: 'private' }, from: { id: TG, language_code: 'uz' }, ...extra } });
@@ -83,10 +86,10 @@ describe('/start (ulangan) — holat va asosiy menyu', () => {
     const c = net(asos());
     expect(await updateIshla(ENV, msg('/start') as never)).toBe('salom');
     const m = c.tg.find((x) => x.metod === 'sendMessage')!.yuk;
-    expect(m.text).toContain('Sinov PTO'); expect(m.text).toContain('/bugun');
-    const tugmalar = m.reply_markup.inline_keyboard.flat();
-    expect(tugmalar.some((t: any) => t.web_app?.url === SITE + '/tg')).toBe(true);
-    expect(tugmalar.map((t: any) => t.callback_data).filter(Boolean)).toEqual(['m:b', 'm:o', 'm:y', 'rl:y']);
+    // BITTA xabar: salom + doimiy menyu klaviaturasi (yordam ro'yxati va ikkinchi «Menyu pastda» xabari yo'q).
+    expect(m.text).toContain('Sinov PTO'); expect(m.text).toContain('Menyu pastda');
+    expect(m.reply_markup.is_persistent).toBe(true);
+    expect(c.tg.filter((x) => x.metod === 'sendMessage')).toHaveLength(1);
   });
   it('ulanmagan foydalanuvchi — hech bir yangi buyruq ishlamaydi', async () => {
     const c = net({ t2_telegram_update_qabul_v1: qabul, t2_telegram_aniqla_v1: () => ({ ok: true, ulangan: false }) });
@@ -123,7 +126,8 @@ describe('/bugun — faqat o‘qish, DB foydalanuvchisi sifatida', () => {
   });
   it('ru tilida matn ruscha', async () => {
     const c = net(asos({ t2_hujjat_kiruvchi_v1: () => ({ ok: true, sanoq: { zanjir: 0 } }), t2_akt: aktSoni(0, 0) }));
-    const u = msg('/bugun'); (u.message.from as any).language_code = 'ru';
+    HISOB_TIL = 'ru';   // til hisobdan (Telegram language_code 'en' bo'lsa ham)
+    const u = msg('/bugun'); (u.message.from as any).language_code = 'en';
     await updateIshla(ENV, u as never);
     expect(javobMatni(c)).toContain('Документов ждут вашего согласования: 0');
   });
@@ -134,7 +138,7 @@ describe('/obyektlar', () => {
     const c = net(asos({ t2_obyekt: () => satrlar([{ id: 79, nom: 'Fast Food 1-etaj', kompaniya_id: 17 }, { id: 80, nom: 'Sinov bog', kompaniya_id: 17 }]) }));
     expect(await updateIshla(ENV, msg('/obyektlar') as never)).toBe('obyektlar');
     const m = c.tg.find((x) => x.metod === 'sendMessage')!.yuk;
-    expect(m.text).toContain('#79 Fast Food 1-etaj'); expect(m.text).toContain('#80 Sinov bog');
+    expect(m.text).toContain('#79 Fast Food 1-etaj'); expect(m.text).not.toContain('#80');   // sinov obyekt haqiqiy ro'yxatda chiqmaydi
     expect(m.reply_markup.inline_keyboard.flat()[0].web_app.url).toBe(SITE + '/tg?to=' + encodeURIComponent('/admin/obyektlar'));
     const url = decodeURIComponent(c.urls.find((u) => u.includes('/t2_obyekt'))!);
     expect(url).toContain('kompaniya_id=in.(17)'); expect(url).toContain('holat=eq.faol');
@@ -270,7 +274,7 @@ describe('/kunlik on|off', () => {
 describe('rasm → foto-dalil (umumiy, biriktirilmagan; summa yozilmaydi)', () => {
   const rasm = (caption?: string) => msg('', { text: undefined, caption, photo: [{ file_id: 'AgACsmall1234567890', width: 90, height: 90 }, { file_id: 'AgACbig123456789012', width: 1280, height: 960, file_size: 5 }] });
   const yukHandlers = (): Record<string, Handler> => ({
-    t2_obyekt: (_b, url) => (url.search.includes('select=kompaniya_id') ? [{ kompaniya_id: 17 }] : satrlar([{ id: 79, nom: 'Fast Food', kompaniya_id: 17 }, { id: 80, nom: 'Sinov bog', kompaniya_id: 17 }])),
+    t2_obyekt: (_b, url) => (url.search.includes('select=kompaniya_id') ? [{ kompaniya_id: 17 }] : satrlar([{ id: 79, nom: 'Fast Food', kompaniya_id: 17 }, { id: 80, nom: 'Boshqa bino', kompaniya_id: 17 }])),
     t2_document_registry: () => [{ kompaniya_id: 17 }],
     t2_document_canonical_reserve_v1: () => ({ ok: true, document_id: 55, r2_key: 'k/55', canonical_storage_status: 'reserved' }),
     t2_document_canonical_finalize_v1: () => ({ ok: true, revision_seq: 1, sha256: 'x', sha256_verified: true, versiya: 1 }),
@@ -568,7 +572,8 @@ describe('rasm → fakt qatori: Bo‘lim → so‘z → qator → foto-dalil yan
   it('javob bot xabariga emas / belgisiz / buzilgan belgi — qidiruv ishlamaydi (oddiy matn e’tiborsiz)', async () => {
     const c = net(asos(fotoH));
     for (const reply of [{ from: { is_bot: false }, text: '[fq:9:79:101]' }, { from: { is_bot: true }, text: 'salom' }, { from: { is_bot: true }, text: '[fq:9:x:101]' }, undefined]) {
-      expect(await updateIshla(ENV, msg('beton', { reply_to_message: reply }) as never)).toBe('nomalum');
+      // Qidiruv belgisisiz oddiy matn — qator qidiruvi emas; yordam ro'yxati o'rniga Jarvis'ga ketadi (kutilgan niyat yo'q).
+      expect(await updateIshla(ENV, msg('beton', { reply_to_message: reply }) as never)).toBe('jarvis_matn');
     }
     expect(c.rpc).not.toContain('t2_qator');
   });
@@ -592,7 +597,8 @@ describe('rasm → fakt qatori: Bo‘lim → so‘z → qator → foto-dalil yan
   });
   it('ruscha: tugma va xabarlar ruscha', async () => {
     const c = net(asos(fotoH));
-    const u = cb('fb:9:79'); (u.callback_query.from as any).language_code = 'ru';
+    HISOB_TIL = 'ru';
+    const u = cb('fb:9:79'); (u.callback_query.from as any).language_code = 'en';
     await updateIshla(ENV, u as never);
     expect(javobMatni(c)).toContain('К какому разделу');
   });
@@ -645,9 +651,9 @@ describe('/fakt <obyekt#> <matn> — AI taklifi → ko‘rib chiqish → faqat Q
   });
   it('begona obyekt / format / uzun matn / limit: AI chaqirilmaydi', async () => {
     const c = net(hamma());
-    for (const t of ['/fakt', '/fakt beton', '/fakt 999 beton 5', '/fakt 79 ' + 'x'.repeat(501)]) await updateIshla(envAi as never, msg(t) as never);
+    for (const t of ['/fakt', '/fakt 999 beton 5', '/fakt 79 ' + 'x'.repeat(501)]) await updateIshla(envAi as never, msg(t) as never);
     expect(ai.hisobli).not.toHaveBeenCalled();
-    const j = javobMatni(c); expect(j).toContain('Format: /fakt'); expect(j).toContain('sizga ochiq emas'); expect(j).toContain('juda uzun');
+    const j = javobMatni(c); expect(j).toContain('Fakt: nima bajarilganini'); expect(j).toContain('sizga ochiq emas'); expect(j).toContain('juda uzun');
     ai.hisobli.mockResolvedValue(niyat()); limitTozala();
     for (let i = 0; i < 7; i++) await updateIshla(envAi as never, msg('/fakt 79 beton quyish ' + i) as never);
     expect(ai.hisobli).toHaveBeenCalledTimes(5); expect(javobMatni(c)).toContain('Juda ko‘p so‘rov');

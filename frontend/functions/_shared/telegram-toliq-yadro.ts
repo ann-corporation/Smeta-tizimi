@@ -81,6 +81,7 @@ export function asosiyMenyuJavobi(til: TgTil, ijro: boolean): BotJavob {
       [b('Hujjatlar paketi', 'g:pk')],
       [b('Bildirishnomalar', 'g:n:0'), b('Bugun', 'm:b')],
       [b('Xatlar', 'g:q:0'), b('Topshiriqlar', 'g:z:0:0'), b('Tokenlar', 'g:tk')],
+      [b('📥 Ilovani yuklab olish', 'rl:y')],   // /start dagi alohida tugma qatori o'rniga (bitta salom xabari)
     ] },
   };
 }
