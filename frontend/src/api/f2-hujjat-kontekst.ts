@@ -7,7 +7,7 @@ import { t2ObyektNakrutka, type NakrutkaKoeffitsientlar } from './t2-nakrutka';
 import { obyektPodvaliOqi, ustamaKontekstXatosi } from './t2-nakrutka-podval';
 import { obyektImzoNomlari, shartnomaImzoNomlari } from '../lib/obyekt-imzochi';
 import { obyektImzochilarOl } from './obyekt-imzochi';
-import { kompaniyaSozlamaOl, type KompaniyaSozlama } from './kompaniya-sozlama';
+import { kompaniyaSozlamaOl, type KompaniyaSozlama } from './kompaniya-sozlama-yuklovchi';
 import { dizaynTozala, hujjatDizayniniOrnat, hujjatDizayniniSaqla, type ImzoNomlar } from '../lib/hujjat-yozuvchi';
 
 /**
