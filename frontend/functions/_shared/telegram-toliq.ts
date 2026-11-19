@@ -14,13 +14,19 @@ import { bolimlarJavobi, kompaniyaTanlash, obyektKarta, obyektQidiruviSorovi, ob
 import {
   f2AktXulosasi, f2HajmSorovi, f2Royxati, f2TahrirPreview, faktHajmSorovi, faktPreview, faktQatorlari, faktQidiruviSorovi, yozuvBekori, yozuvTasdiqi,
 } from './telegram-toliq-fakt';
+import {
+  bildirishnomaOqildi, faktJurnali, faktYozuvi, lifecycleBajar, lifecycleRadPreview, lifecycleSorovi, tokenBalansi, topshiriqBajar, topshiriqOchish, topshiriqRadPreview, topshiriqSorovi, topshiriqlarRoyxati,
+  xatJavobPreview, xatJavobSorovi, xatJavobYubor, xatOchish, xatQabulBajar, xatQabulSorovi, xatlarRoyxati,
+} from './telegram-toliq-qoshimcha';
 import { bildirishnomalarRoyxati, hujjatBerish, hujjatSorovi, hujjatlarRoyxati, radBajar, radSorovi, tasdiqlarRoyxati } from './telegram-toliq-hujjat';
 
 /** `/start <param>` chuqur havolalar → callback_data. Ulash kodlari (≥16 belgi) bilan to'qnashmaydi. */
 export function chuqurHavolaOl(arg: string): string | null {
   const m = /^([ofyh])_(\d{1,12})$/.exec(arg.trim());
   if (m) return { o: 'g:k:', f: 'g:f:', y: 'g:y:', h: 'g:h:' }[m[1] as 'o' | 'f' | 'y' | 'h'] + m[2];
-  return ({ t: 'g:t:0', n: 'g:n:0', m: 'g:m' } as Record<string, string>)[arg.trim()] ?? null;
+  const j = /^j_(\d{1,12})$/.exec(arg.trim());   // fakt jurnali
+  if (j) return `g:j:${j[1]}:0:0`;
+  return ({ t: 'g:t:0', n: 'g:n:0', m: 'g:m', x: 'g:q:0', z: 'g:z:0:0', k: 'g:tk' } as Record<string, string>)[arg.trim()] ?? null;
 }
 export const chuqurHavola = (env: TgEnv, param: string) => `https://t.me/${botNomi(env)}?start=${param}`;
 
@@ -80,6 +86,41 @@ export async function toliqCallback(env: BotEnv, uid: number, til: TgTil, cb: Ca
   if (t) return javob('g_tasdiqlar', await tasdiqlarRoyxati(env, uid, til, t[0]), T);
   const n = sonlar(d, 'g:n:', 1, 1);
   if (n) return javob('g_bildirish', await bildirishnomalarRoyxati(env, uid, til, n[0]), T);
+  /* PR 2: fakt jurnali, F-2 lifecycle, «o'qildi», token, xat, topshiriq (telegram-toliq-qoshimcha.ts) */
+  const j = sonlar(d, 'g:j:', 3, 3);
+  if (j) return javob('g_jurnal', await faktJurnali(env, uid, til, j[0], j[1] || null, j[2]), T);
+  const jd = sonlar(d, 'g:jd:', 4, 4);
+  if (jd) return javob('g_jurnal_yozuv', await faktYozuvi(env, uid, til, jd[0], jd[1], jd[2], jd[3]), T);
+  const lq = sonlar(d, 'g:lq:', 3, 3);
+  if (lq) return javob('g_lc_sorov', await lifecycleSorovi(env, uid, til, lq[0], lq[1], lq[2]));
+  const lo = sonlar(d, 'g:lo:', 4, 4);
+  if (lo) return lifecycleBajar(env, uid, til, cb, lo[0], lo[1], lo[2], lo[3]);
+  const nr = sonlar(d, 'g:nr:', 2, 2);
+  if (nr) return bildirishnomaOqildi(env, uid, til, nr[0], nr[1]);
+  const na = sonlar(d, 'g:na:', 1, 1);
+  if (na) return bildirishnomaOqildi(env, uid, til, null, na[0]);
+  const tk = d === 'g:tk' ? [] : sonlar(d, 'g:tk:', 1, 1);
+  if (tk) return javob('g_token', await tokenBalansi(env, uid, til, tk[0] ?? null), T);
+  const q = sonlar(d, 'g:q:', 1, 1);
+  if (q) return javob('g_xatlar', await xatlarRoyxati(env, uid, til, q[0]), T);
+  const qo = sonlar(d, 'g:qo:', 2, 2);
+  if (qo) return javob('g_xat', await xatOchish(env, uid, til, qo[0], qo[1]), T);
+  const qa = sonlar(d, 'g:qa:', 2, 2);
+  if (qa) return javob('g_xat_qabul_sorov', xatQabulSorovi(til, qa[0], qa[1]));
+  const qk = sonlar(d, 'g:qk:', 2, 2);
+  if (qk) return xatQabulBajar(env, uid, til, qk[0], qk[1]);
+  const qj = sonlar(d, 'g:qj:', 2, 2);
+  if (qj) return javob('g_xat_javob_sorov', xatJavobSorovi(til, qj[0], qj[1]));
+  const qy = sonlar(d, 'g:qy:', 2, 2);
+  if (qy) return xatJavobYubor(env, uid, til, cb, qy[0], qy[1]);
+  const z = sonlar(d, 'g:z:', 2, 2);
+  if (z) return javob('g_topshiriqlar', await topshiriqlarRoyxati(env, uid, til, z[0], z[1]), T);
+  const zo = sonlar(d, 'g:zo:', 3, 3);
+  if (zo) return javob('g_topshiriq', await topshiriqOchish(env, uid, til, zo[0], zo[1], zo[2]), T);
+  const zs = sonlar(d, 'g:zs:', 4, 4);
+  if (zs) return javob('g_top_sorov', await topshiriqSorovi(env, uid, til, zs[0], zs[1], zs[2], zs[3]));
+  const zk = sonlar(d, 'g:zk:', 5, 5);
+  if (zk) return topshiriqBajar(env, uid, til, cb, zk[0], zk[1], zk[2], zk[3], zk[4]);
   const rq = sonlar(d, 'g:rq:', 1, 1);
   if (rq) return radSorovi(env, uid, til, rq[0]);
   const ry = /^g:ry:(\d{1,15}):(\d{1,6}-\d{1,4})$/.exec(d);
@@ -98,6 +139,9 @@ export async function toliqMatn(env: BotEnv, uid: number, til: TgTil, chatId: nu
     else if (k.tur === 'gq') await yubor(await faktQatorlari(env, uid, til, k.a, t));
     else if (k.tur === 'gh' && k.b) await yubor(await faktPreview(env, uid, til, k.a, k.b, t));
     else if (k.tur === 'ge' && k.b && k.c) await yubor(await f2TahrirPreview(env, uid, til, k.a, k.b, k.c, t));
+    else if (k.tur === 'gz' && k.b) await yubor(await lifecycleRadPreview(env, uid, til, k.a, k.b, t));
+    else if (k.tur === 'gy' && k.b) await yubor(await xatJavobPreview(env, uid, til, k.a, k.b, matn.slice(0, 1500)));
+    else if (k.tur === 'gv' && k.b && k.c != null) await yubor(await topshiriqRadPreview(env, uid, til, k.a, k.b, k.c, t));
     else return null;
     return 'g_javob_' + k.tur;
   }

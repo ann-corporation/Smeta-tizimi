@@ -20,6 +20,7 @@ import kanalMatnlar from '../../src/i18n/lugat/qism/telegram-kanal.json';
 import omborSiklMatnlar from '../../src/i18n/lugat/qism/ombor-ideal-sikl.json';
 import omborSavolMatnlar from '../../src/i18n/lugat/qism/telegram-ombor-savol.json';
 import toliqBotMatnlar from '../../src/i18n/lugat/qism/telegram-toliq-bot.json';
+import toliqBot2Matnlar from '../../src/i18n/lugat/qism/telegram-toliq-bot-2.json';
 import bildirishnomaMatnlar from '../../src/i18n/lugat/qism/bildirishnoma.json';
 import relizMatnlar from '../../src/i18n/lugat/qism/telegram-reliz.json';
 import { KANONIK_ORIGIN, publicOrigin } from '../../src/lib/sayt-manzil';
@@ -45,7 +46,7 @@ export const miniAppUrl = (env: TgEnv) => saytUrl(env) + '/tg';
 export const tokenBormi = (env: TgEnv) => /^\d+:[A-Za-z0-9_-]{20,}$/.test(String(env.TELEGRAM_BOT_TOKEN || '').trim());
 
 /* ───────── i18n (lugat/qism/telegram-bot.json; kalit = o'zbek lotin matn) ───────── */
-const LUG = { ...(bildirishnomaMatnlar as Record<string, { ru: string; en: string }>), ...(matnlar as Record<string, { ru: string; en: string }>), ...(kirishMatnlar as Record<string, { ru: string; en: string }>), ...(bot2Matnlar as Record<string, { ru: string; en: string }>), ...(usernameMatnlar as Record<string, { ru: string; en: string }>), ...(kanalMatnlar as Record<string, { ru: string; en: string }>), ...(omborSiklMatnlar as Record<string, { ru: string; en: string }>), ...(omborSavolMatnlar as Record<string, { ru: string; en: string }>), ...(toliqBotMatnlar as Record<string, { ru: string; en: string }>), ...(relizMatnlar as Record<string, { ru: string; en: string }>) };
+const LUG = { ...(bildirishnomaMatnlar as Record<string, { ru: string; en: string }>), ...(matnlar as Record<string, { ru: string; en: string }>), ...(kirishMatnlar as Record<string, { ru: string; en: string }>), ...(bot2Matnlar as Record<string, { ru: string; en: string }>), ...(usernameMatnlar as Record<string, { ru: string; en: string }>), ...(kanalMatnlar as Record<string, { ru: string; en: string }>), ...(omborSiklMatnlar as Record<string, { ru: string; en: string }>), ...(omborSavolMatnlar as Record<string, { ru: string; en: string }>), ...(toliqBotMatnlar as Record<string, { ru: string; en: string }>), ...(toliqBot2Matnlar as Record<string, { ru: string; en: string }>),...(relizMatnlar as Record<string, { ru: string; en: string }>) };
 export function tilAniqla(languageCode: unknown): TgTil {
   const s = String(languageCode || '').toLowerCase();
   return s.startsWith('ru') ? 'ru' : s.startsWith('en') ? 'en' : 'uz';

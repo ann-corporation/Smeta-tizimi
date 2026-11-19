@@ -87,10 +87,12 @@ export async function bildirishnomalarRoyxati(env: BotEnv, uid: number, til: TgT
     const h = bildirishnomaHavolasi({ havola: b.havola, mavzu: String(b.mavzu), parametrlar: b.parametrlar });
     return h?.startsWith('/admin') ? [[miniAppYoliTugma(env, til, h, 'Ko‘rish')]] : [];
   });
+  const oqilmagan = qism.filter((b) => !b.oqildi);
+  const oqildiQatori = [...oqilmagan.slice(0, 4).map((b) => ({ text: `${tgT('O‘qildi', til)} #${b.id}`, callback_data: `g:nr:${b.id}:${sah}` })), ...((r.body.oqilmagan ?? 0) > 0 ? [{ text: tgT('Hammasi o‘qildi', til), callback_data: `g:na:${sah}` }] : [])];
   return {
     matn: [sarlavha, tgT('O‘qilmagan: {n}', til, { n: r.body.oqilmagan ?? '—' }),
       ...qism.map((b) => `• ${b.oqildi ? '' : tgT('yangi', til) + ' · '}${bosh(b.yaratildi, 16).replace('T', ' ')} — ${matnOl(b)}`)].join('\n'),
-    markup: { inline_keyboard: [...tugmalar.slice(0, 5), ...navQatori(sah, jami, (n) => `g:n:${n}`), orqaQatori(til, 'g:m')] },
+    markup: { inline_keyboard: [...tugmalar.slice(0, 5), ...(oqildiQatori.length ? [oqildiQatori] : []), ...navQatori(sah, jami, (n) => `g:n:${n}`), orqaQatori(til, 'g:m')] },
   };
 }
 

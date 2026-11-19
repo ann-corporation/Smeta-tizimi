@@ -34,7 +34,26 @@ Callback grammatikasi (`g:` prefiks, ≤ 64 bayt): `m` menyu · `c` kompaniya ·
 | F-2 | oy bo'yicha ro'yxat, akt xulosasi (3 shakl), qoralama qatorini tahrirlash (`f2_qoralama_tahrir`) | muzlagan F-2 tahrirlanmaydi |
 | Hujjatlar | `hujjat-yarat` ro'yxati → tasdiq (token ogohlantirishi) → XLSX/PDF Telegram hujjati sifatida | qayta yuklash bepul; **F-2 rasmiy Excel server dvigateli** — `claude/mcp-f2-excel` PR si (TODO: u qo'shilgach `hujjat-yarat` f2 turi avtomatik yangilanadi, bot kodi o'zgarmaydi) |
 | Tasdiqlar | kiruvchi quti, Tasdiqlash (mavjud `tq:` oqimi) / Rad (`g:rq` → `g:ry`, qadam belgisi bilan) | PIN/biometrik talab — Mini App ga yo'naltiriladi |
-| Bildirishnomalar | ro'yxat, o'qilmagan soni, tasdiq tugmasi | «o'qildi» belgilash — keyingi PR |
+| Bildirishnomalar | ro'yxat, o'qilmagan soni, tasdiq tugmasi | «o'qildi» belgilash — PR 2 (2b) |
+
+## 2b. Yetkazilgan oqimlar (PR 2: `telegram-toliq-qoshimcha.ts`)
+
+Yangi yozish yo'li yo'q; har yozish — so'rov ekrani + tasdiq tugmasi (versiya callback da, `operation_id` deterministik → takroriy bosish takror yozmaydi). Erkin matn (rad sababi, xat javobi) — bot xabari oxiridagi belgi (`#SB:` / `#TX:`).
+
+| Oqim | Qanday | Eslatma |
+|---|---|---|
+| Fakt jurnali | obyekt kartasi → «Fakt jurnali»: oy (‹ ›), 5 tadan sahifa, yozuv tafsiloti (`f2-buyruq` `fakt_jurnal`, o'qish) | qator nomi `sb`; summa QQS siz |
+| F-2 lifecycle | akt xulosasida holatga mos tugma: yuborish → tekshirildi → tasdiqlash, «tekshirilgan» da **rad (sabab majburiy)**; `sb-yoz` `akt_lifecycle_transition_v1` | ruxsat/SoD/versiya serverda; PIN/biometrik (STEP_UP) → Mini App; bekor/tuzatish — Mini App |
+| Bildirishnoma «o'qildi» | har o'qilmagan qatorga tugma + «Hammasi o'qildi» (`hujjat-aylanish` `bildirishnoma_oqildi`) | ro'yxat yangilanadi |
+| Tokenlar | balans, obuna, oxirgi 5 sarf (`sb` `token_holat_v1`); ish joyi tanlash | to'ldirish — Mini App havolasi |
+| Xat / murojaat | kiruvchi xatlar (kechikkan belgisi), ochish, «Qabul qildim», javob xati (`xat_qabul` / `xat_yubor`) | murojaatlar — faqat soni + Mini App |
+| Topshiriqlar | menga / men bergan, ochish, holat o'zgartirish (`/api/topshiriq` `otish`), rad — sabab bilan | jadval `src/api/t2-topshiriq` bilan bir xil (test) |
+
+Callback: `j:o:ym:p` jurnal · `jd:o:yozuv:ym:p` · `lq:o:akt:k` / `lo:o:akt:k:ver` lifecycle · `nr:id:p` / `na:p` · `tk[:k]` · `q:p` / `qo:k:id` / `qa` / `qk` / `qj` / `qy` xat · `z:y:p` / `zo:k:id:y` / `zs:k:id:y:h` / `zk:k:id:y:h:ver` topshiriq. Chuqur havola: `j_<obyekt>`, `x`, `z`, `k`.
+
+**TODO (boshqa agent): «Hujjatlar paketi» adapteri.** Universal paket endpointi `claude/hujjat-paket-universal` branchida quriladi. U `main` ga tushgach `telegram-toliq-hujjat.ts` dagi `hujjatlarRoyxati` ga «Paket yuborish» tugmasi qo'shiladi (`hujjat-yarat`/yangi endpoint → bitta tanlov → Telegram hujjati; token ogohlantirishi va tasdiq shu yerdagi `g:d`/`g:x` naqshida). Bot hozir paket endpointiga **bog'lanmagan**.
+
+**Ro'yxatdan o'tish (o'zi register) — amalga oshirilmagan**: egasi qarori kutilmoqda (ADR — PR #678).
 
 ## 3. Matritsa
 
@@ -60,13 +79,13 @@ Ustunlar: **O'** o'qish · **Y** yozish · **H** hujjat/fayl · **B** bildirishn
 | /admin/narxlar | ❌ | ❌ | — | ❌ | ❌ → ❌ | narx signali bildirishnomasi (PR 5) |
 | /admin/narx-manbalari | ❌ | ❌ | — | — | ❌ → ❌ | PR 5 |
 | /admin/oferta | ❌ | ❌ | ❌ | ❌ | ❌ → ❌ | tender oferta holati (PR 6) |
-| /admin/fakt | qisman | ✅ | — | — | qisman → qisman | fakt jurnali/tarixi o'qish (PR 2); kiritish — shu PR |
+| /admin/fakt | ✅ | ✅ | — | — | qisman → ✅ | kiritish (PR 1) + fakt jurnali: oy/sahifa/tafsilot (PR 2) |
 | /admin/naryad | ❌ | ❌ | ❌ | ❌ | ❌ → ❌ | brigada topshirig'i: prorab uchun ro'yxat + «bajarildi» (PR 3) |
 | /admin/foto | ✅ | ✅ | — | — | qisman → qisman | foto-dalil ro'yxati (o'qish) (PR 2) |
 | /admin/m29 | ❌ | ❌ | ✅ | — | ❌ → qisman | hujjat shu PR da (`hujjat-yarat` m29); kiritish PR 3 |
 | /admin/f2-tayyorlash | ❌ | ❌ | ❌ | — | ❌ → ❌ | AI F-2 tayyorlash: Jarvis + preview (Codex PR-6 bilan) |
 | /admin/f2 | ❌ | ❌ | — | — | ❌ → ❌ | F-2 Excel faylini botga tashlash → import preview (PR 3) |
-| /admin/f2-tarix | ✅ | qisman | ✅ | ✅ | qisman → qisman | «F-2 → tasdiqqa yuborish» (lifecycle) — PR 2 |
+| /admin/f2-tarix | ✅ | qisman | ✅ | ✅ | qisman → qisman | lifecycle: yuborish/tekshirildi/tasdiqlash/rad (PR 2); bekor va tuzatish — Mini App |
 | /admin/f2-reestr | ✅ | — | ✅ | — | qisman → qisman | reestr bo'yicha oylar kesimi (PR 2) |
 | /admin/nakopitelniy | ❌ | ❌ | ✅ | — | ❌ → qisman | hujjat shu PR da; jadval ko'rinishi PR 2 |
 | /admin/solishtiruv | ❌ | — | ❌ | — | ❌ → ❌ | PR 4 |
@@ -86,11 +105,11 @@ Ustunlar: **O'** o'qish · **Y** yozish · **H** hujjat/fayl · **B** bildirishn
 | /admin/nazorat/jurnal | ❌ | — | — | — | ❌ → ❌ | PR 6 |
 | /admin/zakazchik | ❌ | ❌ | ❌ | ❌ | ❌ → ❌ | buyurtmachi kabineti (PR 6) |
 | /admin/taqdimlar | ❌ | ❌ | ❌ | ❌ | ❌ → ❌ | PR 6 |
-| /admin/murojaatlar | ❌ | ❌ | — | ❌ | ❌ → ❌ | kiruvchi qutidagi murojaat/xat (PR 2) |
+| /admin/murojaatlar | qisman | ❌ | — | ❌ | ❌ → qisman | kiruvchi xatlar + soni (PR 2); murojaatga javob — Mini App |
 | /admin/chizmalar | ❌ | ❌ | ❌ | ❌ | ❌ → ❌ | chizma revizyasi bildirishnomasi bor; ko'rish PR 6 |
 | /admin/loyihachi | ❌ | ❌ | ❌ | ❌ | ❌ → ❌ | PR 6 |
 | /admin/laboratoriya | ❌ | ❌ | ❌ | ❌ | ❌ → ❌ | PR 6 |
-| /admin/hujjat-aylanish | qisman | ✅ | ❌ | ✅ | qisman → qisman | tasdiq/rad shu PR da; xat/murojaat — PR 2 |
+| /admin/hujjat-aylanish | qisman | ✅ | ❌ | ✅ | qisman → qisman | tasdiq/rad (PR 1); xat ochish/qabul/javob (PR 2) |
 | /admin/logistika | qisman | qisman | qisman | — | qisman → qisman | ombor ovoz/hisobot bor; to'liq — **Codex PR-3 (ombor) + PR-6** |
 | /admin/zayavka | ❌ | ❌ | — | ❌ | ❌ → ❌ | zayavka yaratish: bitta kiritish → AI → bir bosish (PR 3) |
 | /admin/tender | ❌ | ❌ | ❌ | ❌ | ❌ → ❌ | PR 6 |
@@ -108,12 +127,12 @@ Ustunlar: **O'** o'qish · **Y** yozish · **H** hujjat/fayl · **B** bildirishn
 | /admin/system-control | ❌ | ❌ | — | ❌ | ❌ → ❌ | faqat superadmin: audit signali (PR 6) |
 | /admin/tizim-sozlama | ❌ | ❌ | — | — | ❌ → ❌ | Mini App |
 | /admin/hujjat-dizayn | ❌ | ❌ | ❌ | — | ❌ → ❌ | Mini App |
-| /admin/tokenlar | ❌ | ❌ | — | ❌ | ❌ → ❌ | balans + to'ldirish havolasi (PR 2) |
+| /admin/tokenlar | ✅ | ❌ | — | ❌ | ❌ → qisman | balans + oxirgi sarflar (PR 2); to'ldirish — Mini App havolasi |
 | /admin/ai-agentlar | ❌ | ❌ | — | — | ❌ → ❌ | Jarvis orqali |
 | /admin/korzinka | ❌ | ❌ | — | — | ❌ → ❌ | PR 6 |
 | /admin/ish-joylarim | ❌ | ❌ | — | — | ❌ → qisman | kompaniya tanlash (shu PR); yangi kompaniya/ro'yxatdan o'tish — PR 2 |
 | /admin/kurs | ❌ | ❌ | — | — | ❌ → ❌ | rolga mos kurs qadamlari (PR 6) |
-| /admin/topshiriqlar | qisman | ❌ | — | ✅ | qisman → qisman | topshiriq ro'yxati + «bajarildi» (PR 2) |
+| /admin/topshiriqlar | ✅ | ✅ | — | ✅ | qisman → ✅ | menga/men bergan ro'yxat + holat o'zgartirish tasdiq bilan (PR 2) |
 | /admin/mutaxassis | ❌ | ❌ | — | ❌ | ❌ → ❌ | PR 6 |
 | /admin/osuvchi | ❌ | ❌ | — | — | ❌ → ❌ | PR 6 |
 | /admin/akkaunt | qisman | qisman | — | qisman | qisman → qisman | `/men`, `/username`, `/kunlik`, `/chiqish` bor; ro'yxatdan o'tish botda — PR 2 |
@@ -129,8 +148,11 @@ Ustunlar: **O'** o'qish · **Y** yozish · **H** hujjat/fayl · **B** bildirishn
 
 | | ✅ | qisman | ❌ |
 |---|---|---|---|
-| Shu PR gacha | 1 | 14 | 66 |
-| Shu PR dan keyin | 1 | 18 | 62 |
+| PR 1 gacha | 1 | 14 | 66 |
+| PR 1 dan keyin | 1 | 18 | 62 |
+| PR 2 dan keyin | 3 | 18 | 60 |
+
+PR 2: `/admin/fakt` va `/admin/topshiriqlar` qisman→✅; `/admin/murojaatlar` va `/admin/tokenlar` ❌→qisman (murojaat javobi/to'ldirish — Mini App havolasi).
 
 Sahifa darajasidagi o'sish kichik, chunki shu PR **yadro oqimlarni** (menyu, kontekst, karta, fakt, F-2, hujjat, tasdiq) quradi — ular PR 2–6 dagi ko'p sahifalarning umumiy asosi. Qamrov ko'rsatkichi sifatida yadro oqimlar:
 karta ❌→✅, fakt kiritish (preview→Tasdiqlash) qisman→✅, F-2 ro'yxat/xulosa/tahrir ❌→✅ (lifecycle ❌), hujjat fayli ❌→✅, tasdiq+rad qisman→✅, bildirishnoma ro'yxati ❌→✅.
