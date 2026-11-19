@@ -24,7 +24,7 @@ const actStatuses = {
 } as const;
 const billingUsage = { inputTokens: 180, outputTokens: 40 };
 const baseCategories = ['obyektlar', 'smeta_pul', 'f2_fakt_pul', 'ombor'];
-let configuration = { categories: baseCategories, missingFooter: false, foreignResponse: false, writePermission: false };
+let configuration = { categories: baseCategories, missingFooter: false, foreignResponse: false, writePermission: false, readPermission: true };
 
 const remote = vi.fn(async (input: string, init?: RequestInit) => {
   const name = input.split('/').at(-1);
@@ -34,7 +34,7 @@ const remote = vi.fn(async (input: string, init?: RequestInit) => {
   const project = evalProjects.find(row => row.id === args.p_obyekt_id);
   switch (name) {
     case 't2_agent_kasb_v1': return Response.json({ ok: true, nom: 'Sinov PTO', rol: 'pto', profil: 'pto_smeta', vazifa: 'Sinov', boshqalar: [], namuna_savollar: [], kategoriyalar: configuration.categories, harakatlar: ['ombor_kirim'] });
-    case 't2_men_v1': return Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: evalCompany, permissions: ['warehouse.read', 'f2.read', ...(configuration.writePermission ? ['f2.prepare', 'fakt.write'] : [])] }] });
+    case 't2_men_v1': return Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: evalCompany, permissions: ['warehouse.read', 'f2.read', ...(configuration.readPermission ? ['smeta.read'] : []), ...(configuration.writePermission ? ['f2.prepare', 'fakt.write'] : [])] }] });
     case 't2_agent_fakt_v1': return Response.json({ ok: true, fakt: { obyektlar: args.p_obyekt_id == null ? objects : objects.filter(row => row.id === args.p_obyekt_id) }, ishlatilgan: configuration.categories });
     case 't2_obyekt_nakrutka_v1': {
       if (!project) return Response.json({ ok: false, code: 'OBJECT_SCOPE' }, { status: 403 });
@@ -58,7 +58,7 @@ const remote = vi.fn(async (input: string, init?: RequestInit) => {
 });
 
 beforeEach(() => {
-  configuration = { categories: baseCategories, missingFooter: false, foreignResponse: false, writePermission: false };
+  configuration = { categories: baseCategories, missingFooter: false, foreignResponse: false, writePermission: false, readPermission: true };
   boundary.auth.mockResolvedValue({ foydalanuvchi_id: evalActor, kompaniyalar: [{ kompaniya_id: evalCompany }] });
   boundary.model.mockReset();
   boundary.preview.mockReset();
@@ -181,6 +181,15 @@ it.each(fixtures)('permission/finance $key', async ({ language, lexicon, project
   const { body } = await query(lexicon.money(project.name));
   expect(body.rad).toBe(true);
   expect(body.javob).toContain(localized[language].denied);
+  expect(moneyValues(body.javob ?? '')).toEqual([]);
+  expect(rpc('t2_obyekt_nakrutka_v1')).toEqual([]);
+  expect(boundary.model).not.toHaveBeenCalled();
+});
+
+it.each(fixtures)('permission/source-capability $key', async ({ lexicon, project }) => {
+  configuration.readPermission = false;
+  const { body } = await query(lexicon.money(project.name));
+  expect(body.rad).toBe(true);
   expect(moneyValues(body.javob ?? '')).toEqual([]);
   expect(rpc('t2_obyekt_nakrutka_v1')).toEqual([]);
   expect(boundary.model).not.toHaveBeenCalled();
