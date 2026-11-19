@@ -49,6 +49,7 @@ begin
            jsonb_array_length(public._t2_f2_oy_takror_v1(array[a.obyekt_id], date_trunc('month', a.oy_sana)::date, array[a.id])) > 0 as takror,
            (select count(*) from public.t2_akt_qator q where q.akt_id = a.id)::integer as qator_soni
       from akt a join ob2 on ob2.obyekt_id = a.obyekt_id
+     where not a.taxminiy  -- PR #670 qoidasi: «taxminiy / prorab tasdig'i» qoralama tashqi paketga hech qachon kirmaydi
   ), f3 as (
     select 'forma3'::text, 'f3:' || f.id, 'F-3 ' || chr(8470) || coalesce(nullif(f.raqam, ''), f.id::text),
            case when f.holat in ('tayyor', 'imzolangan') then 'tasdiqlangan' else 'qoralama' end,
