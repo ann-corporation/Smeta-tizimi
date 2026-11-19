@@ -79,6 +79,7 @@ export function asosiyMenyuJavobi(til: TgTil, ijro: boolean): BotJavob {
       ...(ijro ? [[b('Fakt kiritish', 'g:y'), b('F-2', 'g:f')]] : []),
       [b('Hujjatlar', 'g:h'), b('Tasdiqlar', 'g:t:0')],
       [b('Bildirishnomalar', 'g:n:0'), b('Bugun', 'm:b')],
+      [b('Xatlar', 'g:q:0'), b('Topshiriqlar', 'g:z:0:0'), b('Tokenlar', 'g:tk')],
     ] },
   };
 }
@@ -124,8 +125,8 @@ export function xatoMatni(til: TgTil, status: number): string {
 }
 
 /* ───────── force_reply belgilari: [gs:kid] [gq:oid] [gh:oid:qid] [ge:oid:akt:qid] ───────── */
-export const BELGI = /\[(gs|gq|gh|ge):(\d{1,15})(?::(\d{1,15}))?(?::(\d{1,15}))?\]/;
-export type GKontekst = { tur: 'gs' | 'gq' | 'gh' | 'ge'; a: number; b: number | null; c: number | null };
+export const BELGI = /\[(gs|gq|gh|ge|gz|gv|gy):(\d{1,15})(?::(\d{1,15}))?(?::(\d{1,15}))?\]/;
+export type GKontekst = { tur: 'gs' | 'gq' | 'gh' | 'ge' | 'gz' | 'gv' | 'gy'; a: number; b: number | null; c: number | null };
 export function gKonteksti(reply: { from?: { is_bot?: boolean }; text?: string } | undefined): GKontekst | null {
   if (!reply?.from?.is_bot || typeof reply.text !== 'string') return null;
   const m = BELGI.exec(reply.text);

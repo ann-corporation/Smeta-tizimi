@@ -315,7 +315,7 @@ export async function faktTaklif(env: BotEnv, uid: number, til: TgTil, arg: stri
 export const bugunToshkent = (hozir = Date.now()) => new Date(hozir + 5 * 3600_000).toISOString().slice(0, 10);
 
 /** Deterministik UUID (v5 shakli): bir xabardagi takroriy bosish ikkinchi qoralama yaratmasin. */
-async function opId(manba: string): Promise<string> {
+export async function opId(manba: string): Promise<string> {
   const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(manba)))].slice(0, 16);
   h[6] = (h[6] & 0x0f) | 0x50; h[8] = (h[8] & 0x3f) | 0x80;
   const x = h.map((b) => b.toString(16).padStart(2, '0')).join('');

@@ -79,7 +79,7 @@ export async function obyektKarta(env: BotEnv, uid: number, til: TgTil, oid: num
     matn: [yol(til, tgT('Obyektlar', til), `#${oid} ${ob.nom}`), ...satrlar, tgT('Summalar so‘mda; birlik narxi QQS siz.', til)].join('\n'),
     markup: { inline_keyboard: [
       [...(rol?.ijro ? [b('Fakt kiritish', `g:y:${oid}`)] : []), b('F-2', `g:f:${oid}`)],
-      [b('Bo‘limlar', `g:b:${oid}:0`), b('Hujjatlar', `g:h:${oid}`)],
+      [b('Bo‘limlar', `g:b:${oid}:0`), b('Hujjatlar', `g:h:${oid}`), b('Fakt jurnali', `g:j:${oid}:0:0`)],
       [miniAppYoliTugma(env, til, `/admin/obyektlar?obyekt=${oid}`, 'Mini App da ochish')],
       orqaQatori(til, 'g:o:0'),
     ] },

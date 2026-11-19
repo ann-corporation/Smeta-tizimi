@@ -12,6 +12,7 @@ import { botChaqiruv } from './telegram-amal';
 import { type BotJavob, type Callback, limitOshdi } from './telegram-bot';
 import { bugunToshkent, hajmSon, obyektOl, pulMatni, qatorMatni, qidiruvSozlari, qatorQidir, sbOqi } from './telegram-bot-oqim';
 import { type BotEnv, type CbNatija, XATO_OQISH, bosh, musbat, orqaQatori, soraydi, xatoMatni, yol } from './telegram-toliq-yadro';
+import { lifecycleTugmalari, oyKaliti, oyNav } from './telegram-toliq-qoshimcha';
 import { tokenTekshir } from './f2-buyruq-yadro';
 import { f2XatoMatni } from '../../src/lib/yordamchi/vosita/f2-mcp-liniya';
 import type { F2Javob, F2Preview, F2Uchlik } from '../../src/lib/jarvis/f2-javob';
@@ -94,8 +95,6 @@ export async function faktPreview(env: BotEnv, uid: number, til: TgTil, oid: num
 
 /* ═════════ F-2 ═════════ */
 type Akt = { id?: number; raqam?: string | null; oy?: string | null; sana?: string | null; holat?: string | null; lifecycle_status?: string | null; hujjat_jami?: number | string | null };
-const oyKaliti = (ym: number) => `${Math.floor(ym / 100)}-${String(ym % 100).padStart(2, '0')}`;
-const oyNav = (ym: number, d: number) => { const y = Math.floor(ym / 100), m = (ym % 100) - 1 + d; return (y + Math.floor(m / 12)) * 100 + (((m % 12) + 12) % 12) + 1; };
 const qoralamami = (a: Akt) => a.lifecycle_status === 'draft' || a.holat === 'qoralama';
 
 export async function f2Royxati(env: BotEnv, uid: number, til: TgTil, oid: number, ymKirish: number | null): Promise<BotJavob> {
@@ -136,6 +135,7 @@ export async function f2AktXulosasi(env: BotEnv, uid: number, til: TgTil, oid: n
       ...(tahrir ? [tgT('Qoralama: qatorni tanlab hajmini o‘zgartirish mumkin (preview + Tasdiqlash).', til)] : [tgT('Bu F-2 muzlagan (qoralama emas) — tahrirlanmaydi.', til)])].join('\n'),
     markup: { inline_keyboard: [
       ...(tahrir ? qator.map((x, i) => [{ text: `${tgT('Tahrir', til)} ${i + 1}`, callback_data: `g:l:${oid}:${aktId}:${x.qator_id}` }]) : []),
+      ...lifecycleTugmalari(til, oid, aktId, b.akt.lifecycle_status),
       [{ text: tgT('Bo‘limlar', til), callback_data: `g:b:${oid}:0` }, miniAppYoliTugma(env, til, `/admin/f2-tarix?obyekt=${oid}`, 'Mini App da ochish')],
       orqaQatori(til, `g:f:${oid}`),
     ] },
