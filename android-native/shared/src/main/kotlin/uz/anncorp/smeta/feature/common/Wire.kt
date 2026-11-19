@@ -67,6 +67,16 @@ fun parseObjs(body: JsonElement?): List<Obj>? = parseSb(body)?.rows?.mapNotNull 
 
 data class ActRow(val qatorId: Long, val kod: String?, val nom: String, val birlik: String?, val hajm: Double?, val narx: Double?, val summa: Double?)
 
+/**
+ * Direct (ustamasiz, QQS siz) total of act rows. A row without a sum is "unpriced": it is counted separately and never added as 0
+ * (owner rule: null != 0). [total] is null when no row has a sum at all, so the screen shows a dash instead of "0".
+ */
+data class ActDirect(val total: Double?, val priced: Int, val unpriced: Int)
+
+fun actDirect(rows: List<ActRow>): ActDirect {
+    val sums = rows.mapNotNull { it.summa }
+    return ActDirect(if (sums.isEmpty()) null else sums.sum(), sums.size, rows.size - sums.size)
+}
 fun f2ActRowsRequest(aktId: Long): JsonObject = buildJsonObject {
     put("jadval", "t2_akt_qator"); put("filtr", "akt_id=eq.$aktId"); put("ustunlar", "id,akt_id,qator_id,hajm,narx,summa"); put("tartib", "id.asc"); put("limit", 20000)
 }
