@@ -97,10 +97,8 @@ internal fun Page(title: String, sub: String? = null, content: @Composable andro
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) { QPageHead(title, desc = sub); content() }
 }
 
-private fun statusUz(s: F2Status, raw: String?): String = when (s) {
-    F2Status.DRAFT -> "Qoralama"; F2Status.SUBMITTED -> "Yuborilgan"; F2Status.CHECKED -> "Tekshirilgan"; F2Status.APPROVED -> "Tasdiqlangan"
-    F2Status.REJECTED -> "Rad etilgan"; F2Status.CANCELLED -> "Bekor qilingan"; F2Status.SUPERSEDED -> "Almashtirilgan"; F2Status.UNKNOWN -> raw ?: T_DASH
-}
+/** Labels come from design/tokens.json (same as the site and Android): one wording for every platform. */
+private fun statusUz(s: F2Status, raw: String?): String = uz.anncorp.smeta.core.ui.DesignTokens.status["f2"]?.get(s.code)?.label ?: raw ?: T_DASH
 
 private const val T_DASH = "\u2014"
 

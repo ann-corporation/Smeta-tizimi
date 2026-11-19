@@ -1,0 +1,27 @@
+{
+  "$comment": "Raqam/summa/hajm/foiz formatlash namunalari. TS (frontend/src/lib/format-yagona.test.ts) va Kotlin (android-native/shared FormatFixtureTest) bir xil faylni o'qiydi. Guruh ajratgich = NBSP (U+00A0), kasr = vergul, noma'lum (null) = «—», nol = nol.",
+  "money": [
+    { "in": 1234567.89, "out": "1 234 567,89" },
+    { "in": 0, "out": "0,00" },
+    { "in": -1000.5, "out": "-1 000,50" },
+    { "in": 999.99, "out": "999,99" },
+    { "in": 999.995, "out": "1 000,00" },
+    { "in": 1614935115.6, "out": "1 614 935 115,60" },
+    { "in": 100, "out": "100,00" },
+    { "in": null, "out": "—" }
+  ],
+  "volume": [
+    { "in": 12.5, "out": "12,5" },
+    { "in": 1234.5678, "out": "1 234,568" },
+    { "in": 3, "out": "3" },
+    { "in": 0, "out": "0" },
+    { "in": -2.5, "out": "-2,5" },
+    { "in": null, "out": "—" }
+  ],
+  "percent": [
+    { "in": 12.34, "out": "12,3%" },
+    { "in": 100, "out": "100,0%" },
+    { "in": 0, "out": "0,0%" },
+    { "in": null, "out": "—" }
+  ]
+}

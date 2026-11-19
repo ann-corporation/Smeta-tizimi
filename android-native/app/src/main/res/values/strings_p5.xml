@@ -70,12 +70,12 @@
     <string name="f2_minus_rows">Minusli qatorlar</string>
     <string name="f2_sums_on_web">Aktning summalari (QQS bilan, ustamali va ustamasiz) saytdagi F-2 reestrida ko\'rsatiladi.</string>
     <string name="f2_st_draft">Qoralama</string>
-    <string name="f2_st_submitted">Yuborilgan</string>
+    <string name="f2_st_submitted">Tekshirishga yuborilgan</string>
     <string name="f2_st_checked">Tekshirilgan</string>
-    <string name="f2_st_approved">Qabul qilingan</string>
+    <string name="f2_st_approved">Tasdiqlangan</string>
     <string name="f2_st_rejected">Rad etilgan</string>
     <string name="f2_st_cancelled">Bekor qilingan</string>
-    <string name="f2_st_superseded">Almashtirilgan</string>
+    <string name="f2_st_superseded">Yangi tahrir bilan almashtirilgan</string>
     <string name="f2_st_unknown">Noma\'lum</string>
     <string name="f2_ex_draft">Qoralama: hujjat hali tayyorlanmoqda, buyurtmachiga yuborilmagan.</string>
     <string name="f2_ex_submitted">Yuborilgan: hujjat tekshiruvga yuborilgan, javob kutilmoqda.</string>
