@@ -27,6 +27,7 @@ import { onRequestGet as telegramGet, onRequestPost as telegramPost } from '../t
 import { onRequestPost as omborBuyruqPost } from '../ombor-buyruq';
 import { onRequestPost as omborOvozPost } from '../ombor-ovoz';
 import { onRequestPost as f2BuyruqPost } from '../f2-buyruq';
+import { onRequestGet as tekshiruvGet, onRequestPost as tekshiruvPost } from '../tekshiruv';
 import { onRequestPost as yukTashishPost } from '../yuk-tashish';
 import { yukTashishAmalmi } from '../../_shared/yuk-tashish';
 
@@ -69,10 +70,12 @@ const handlers: Record<string, Record<string, PagesFunction<Env>>> = {
   '/api/ombor-ovoz': { POST: omborOvozPost },
   // Jarvis F2/fakt vositalari (smeta MCP o'qish + yozish): yozish faqat server dry_run preview + tasdiq tokeni bilan; ruxsat/aktor/token serverda.
   '/api/f2-buyruq': { POST: f2BuyruqPost },
+  // PTO: texnadzor takliflari F-2 muharririda (faqat mal=akt o'qish va mal=qaror qarori). Aktor va ruxsat endpointning o'zida (RPC) tekshiriladi.
+  '/api/tekshiruv': { GET: tekshiruvGet, POST: tekshiruvPost },
   // Logistika yuk birjasi (haydovchi/yuk egasi): web bilan bir xil handler; aktor sessiyadan, ruxsat/tenant RPC ichida. Faqat oq ro'yxatdagi amallar.
   '/api/yuk-tashish': { POST: yukTashishPost },
 } as never;
-export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|obyekt-tugun-summa|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol|agent-ish|qulf|hujjat-royxat|hujjat-ol|hujjat-maydoni|hujjat-maydoni-ol|hujjat-buyruq|hujjat-yarat|tomon|telegram|ombor-buyruq|ombor-ovoz|f2-buyruq|yuk-tashish)(?:\?[^#\s]*)?$/;
+export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|obyekt-tugun-summa|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol|agent-ish|qulf|hujjat-royxat|hujjat-ol|hujjat-maydoni|hujjat-maydoni-ol|hujjat-buyruq|hujjat-yarat|tomon|telegram|ombor-buyruq|ombor-ovoz|f2-buyruq|tekshiruv|yuk-tashish)(?:\?[^#\s]*)?$/;
 /** /api/profil also hosts account-security actions (parol, google/telegram ulash, hisob_birlashtir, usul_uz, birlashtir_*): the native device token may NOT reach them.
  *  Exposed: GET (own profile + session window), the @username / people-search / invite-answer actions (USERNAME_V1), `yangila` (name, phone, language, avatar colour)
  *  and `boshqa_sessiyalar_chiqish` (sign out everywhere; the BFF re-enrols THIS device so it stays signed in, see reissueDevice). */
@@ -86,6 +89,8 @@ export const MOBIL_TELEGRAM_AMAL: ReadonlySet<string> = new Set(['sozlama']);
 export const MOBIL_OMBOR_AMAL: ReadonlySet<string> = new Set(['kontekst','qoldiq','royxat','tarix','eslatma','taklif','hisobot','vosita','narx_qoy','tahlil','tasdiq','yoz','tuzat']);
 /** /api/f2-buyruq: Jarvis F2/fakt vositalari. `vosita` (o'qish yoki preview) va `tasdiq` (token + tasdiqlayman). Ruxsat, aktor, token yechish serverda. */
 export const MOBIL_F2_AMAL: ReadonlySet<string> = new Set(['vosita', 'tasdiq']);
+/** /api/tekshiruv: the device reaches ONLY the PTO side (GET amal=akt: suggestions of an act; POST amal=qaror: accept / reject / later). Token-based texnadzor access, codes, import, links and files stay web-only. */
+export const MOBIL_TEKSHIRUV_AMAL: ReadonlySet<string> = new Set(['qaror']);
 /** /api/kirish-taklif is public-by-design (qabul = sign-up without a session): the device may only reach yarat (director creates a phone invite link/code). */
 export const MOBIL_TAKLIF_AMAL: ReadonlySet<string> = new Set(['yarat']);
 const amalRuxsat = (amallar: ReadonlySet<string>, method: string, body: unknown): boolean => {
@@ -108,6 +113,7 @@ export function yolRuxsat(target: URL, method: string, body: unknown): boolean {
     case '/api/agent-ish': return amalRuxsat(MOBIL_AGENT_AMAL, method, body);
     case '/api/ombor-buyruq': return amalRuxsat(MOBIL_OMBOR_AMAL, method, body);
     case '/api/f2-buyruq': return amalRuxsat(MOBIL_F2_AMAL, method, body);
+    case '/api/tekshiruv': return method === 'GET' ? target.searchParams.get('amal') === 'akt' && !target.searchParams.has('token') : amalRuxsat(MOBIL_TEKSHIRUV_AMAL, method, body);
     case '/api/ombor-ovoz': return method === 'POST';
     case '/api/yuk-tashish': return method === 'POST' && yukTashishAmalRuxsat(body);
     case '/api/telegram': return method === 'GET' || amalRuxsat(MOBIL_TELEGRAM_AMAL, method, body);
