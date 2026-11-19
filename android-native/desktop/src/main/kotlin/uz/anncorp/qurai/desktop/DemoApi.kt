@@ -95,6 +95,10 @@ class DesktopDemoApi(private val json: Json) : BffApi {
                     jadval == "t2_shartnoma_bog_kompaniya" -> ok(asset("ier_bog"))
                     jadval == "t2_obyekt_jami" -> ok(asset("objects"))
                     jadval == "t2_qator_holat" -> ok(asset("resurs_rows"))
+                    // "Fakt = F2" sources (approved F2 acts / live fakt documents and their rows): demo has one approved F2 and no fakt documents.
+                    jadval == "t2_akt" && s("filtr")?.contains("tur=eq.f2") == true -> ok("""{"ok":true,"qatorlar":[{"id":501}]}""")
+                    jadval == "t2_akt" && s("filtr")?.contains("tur=eq.fakt") == true -> ok("""{"ok":true,"qatorlar":[]}""")
+                    jadval == "t2_akt_qator" -> ok("""{"ok":true,"qatorlar":[]}""")
                     jadval == "t2_akt" -> ok(asset("akt501"))
                     else -> denied()
                 }

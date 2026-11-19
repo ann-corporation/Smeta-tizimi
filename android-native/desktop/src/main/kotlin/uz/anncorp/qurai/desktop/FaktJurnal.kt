@@ -86,6 +86,12 @@ import uz.anncorp.smeta.core.fakt.bajarilmadiTaklif
 import uz.anncorp.smeta.core.fakt.bajarilmadiXato
 import uz.anncorp.smeta.core.fakt.chiqarilganlarOl
 import uz.anncorp.smeta.core.fakt.parseBajarilmadiRoyxat
+import uz.anncorp.smeta.core.fakt.EskiF2Akt
+import uz.anncorp.smeta.core.fakt.TenglashReja
+import uz.anncorp.smeta.core.fakt.bolimIshlariYigish
+import uz.anncorp.smeta.core.fakt.faktF2Reja
+import uz.anncorp.smeta.core.fakt.obyektF2Reja
+import uz.anncorp.smeta.core.fakt.tenglashManbaOqi
 import uz.anncorp.smeta.core.fakt.QiymatUchlik
 import uz.anncorp.smeta.core.fakt.SummaKesim
 import uz.anncorp.smeta.core.fakt.UstamaMalumot
@@ -137,6 +143,8 @@ private fun FaktJurnalScreen(c: Ctx, o: Obj) {
     val bajRoyxat = bajYuk.orEmpty()
     val bajHajm = remember(bajYuk) { bajarilmadiHajmlar(bajRoyxat) }
     var bajDialog by remember(o.id) { mutableStateOf<JurnalQator?>(null) }
+    var tenglash by remember(o.id) { mutableStateOf<TenglashOyna?>(null) }
+    var tenglashYuk by remember(o.id) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var sana by remember(o.id) { mutableStateOf(LocalDate.now().toString()) }
     var qidiruv by remember(o.id) { mutableStateOf("") }
@@ -222,6 +230,20 @@ private fun FaktJurnalScreen(c: Ctx, o: Obj) {
             for (s in satrlar) { val q = s.qator() ?: continue; if (s is FResurs && s.avto) continue; if (!faktQoldaKiritiladimi(q.tur) || (q.smeta ?: 0.0) == 0.0) continue; yangi[q.id] = Kiritma(Rejim.Teng, "$p%") }
             qoy(yangi)
         }
+        /** "Fakt = F2": read the F2 prices / own fakt (a failed read must NOT open the dialog), build the plan with the ported faktF2Reja / obyektF2Reja. */
+        fun tenglashOch(sarlavha: String, guruhlar: List<Pair<String, List<JurnalIsh>>>?, ishlar: List<JurnalIsh> = emptyList()) {
+            if (tenglashYuk) return
+            if (ozgarishSoni > 0) msg = tx("Saqlanmagan kiritmalar bor — qamrov serverdagi faktdan hisoblanadi; avval saqlang yoki tozalang.") to QTone.Warn
+            tenglashYuk = true
+            scope.launch {
+                val m = tenglashManbaOqi(c.sv.api, o.id)
+                tenglashYuk = false
+                if (m == null) { msg = tx("F2 narxlari yuklanmadi — «Fakt = F2» ochilmadi. Qayta urinib ko‘ring.") to QTone.Danger; return@launch }
+                val ktx = m.kontekst { id -> holat[id]?.smetaNarx ?: rowById[id]?.narx }
+                tenglash = TenglashOyna(sarlavha, if (guruhlar != null) obyektF2Reja(guruhlar, holat, ktx) else faktF2Reja(ishlar, holat, null, ktx), m.manba.eskiAktlar)
+            }
+        }
+        val bolimBolalari = model.bolimlar.filter { it.otaId != null }.groupBy({ it.otaId!! }, { it.id })
         /** Cancels the latest active "not done" mark of a row (site bajBekor): the same /api/sb-yoz amal bajarilmadi_bekor. */
         fun bajBekor(qatorId: Long) {
             val z = bajRoyxat.filter { it.qatorId == qatorId && it.holat == "faol" }.maxByOrNull { it.id } ?: return
@@ -273,6 +295,9 @@ private fun FaktJurnalScreen(c: Ctx, o: Obj) {
                 }
             }
             msg?.let { QNote(it.first, tone = it.second) }
+            tenglash?.let { oy ->
+                FaktTenglashDialog(c, o.id, sana, oy.sarlavha, oy.reja, oy.eskiAktlar, ustama, ustamaYuk.first, { tenglash = null }) { tenglash = null; msg = tx("Fakt = F2") + " ✓" to QTone.Ok; bump++ }
+            }
             bajDialog?.let { q ->
                 BajarilmadiDialog(c, o.id, sana, q, bajHajm[q.id] ?: 0.0, ::tx, { bajDialog = null }) { m -> bajDialog = null; msg = m to QTone.Ok; bump++ }
             }
@@ -316,6 +341,8 @@ private fun FaktJurnalScreen(c: Ctx, o: Obj) {
                             Text(tx("Jami %:"), style = Q.type.labelSmall, color = Q.colors.textMute)
                             listOf(25, 50, 75, 100).forEach { p -> QButton("$p%", { foizChip(p) }, kind = QButtonKind.Secondary) }
                         }
+                        if (tanlangan != null) QButton(tx("Fakt = F2"), { tenglashOch(tanlangan.nom, null, bolimIshlariYigish(tanlangan.id, model.bolimIshlari, bolimBolalari, true)) }, kind = QButtonKind.Secondary, enabled = !tenglashYuk)
+                        if (model.bolimlar.isNotEmpty() || model.ildizIshlari.isNotEmpty()) QButton(tx("Fakt = F2: obyekt"), { tenglashOch(tx("Butun obyekt (barcha bo‘limlar)"), model.bolimlar.map { it.nom to model.bolimIshlari[it.id].orEmpty() } + (tx("Bo‘limsiz") to model.ildizIshlari)) }, kind = QButtonKind.Secondary, enabled = !tenglashYuk)
                         QButton(if (hammaYopiq) tx("Hammasini ochish") else tx("Hammasini yopish"), { hammaYopiq = !hammaYopiq }, kind = QButtonKind.Ghost, icon = if (hammaYopiq) QIcons.ChevronRight else QIcons.ChevronDown)
                     }
                     if (qq.isEmpty() && tanlangan != null) BolimSummaQatori(summalar[tanlangan.id], ustama, ustamaYuk.first, ::tx, lang)
@@ -415,7 +442,7 @@ private fun BolimSummaQatori(s: uz.anncorp.smeta.core.fakt.BolimSumma?, ustama: 
 }
 
 @Composable
-private fun SummaUchlik(nom: String, k: SummaKesim, ustama: UstamaMalumot?, tayyor: Boolean, t: (String) -> String) {
+internal fun SummaUchlik(nom: String, k: SummaKesim, ustama: UstamaMalumot?, tayyor: Boolean, t: (String) -> String) {
     val q = remember(k, ustama) { ustama.uchlik(k.kesim, k.ustamasiz) }
     Column {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Bottom) {
@@ -464,3 +491,5 @@ private fun BajarilmadiDialog(c: Ctx, obyektId: Long, sana: String, q: JurnalQat
         }
     }
 }
+
+private class TenglashOyna(val sarlavha: String, val reja: TenglashReja, val eskiAktlar: List<EskiF2Akt>)
