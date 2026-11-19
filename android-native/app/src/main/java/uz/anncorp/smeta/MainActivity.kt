@@ -152,6 +152,7 @@ private const val AYLANISH = "aylanish?xat={xat}"
 private const val SMETA = "smeta/{id}"
 private const val F2LIST = "f2/{id}"
 private const val F2DRAFT = "f2draft/{id}/{akt}"
+private const val PAKET = "paket"
 private const val DOCS = "docs/{id}?f2={f2}"
 private const val NOTIFICATIONS = "notifications"
 private const val F2REG = "f2reestr"
@@ -259,7 +260,7 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
         composable(PICK_RESURS) { PickObjectScreen(R.string.p8_rv_title, onBack = { nav.popBackStack() }) { nav.navigate("resurs/$it") } }
         composable(F2REG) {
             uz.anncorp.smeta.feature.f2.F2RegistryScreen(
-                onBack = { nav.popBackStack() }, onOpenF2 = { nav.navigate("f2/$it") }, onDocs = { nav.navigate("docs/$it?f2=true") }, onNakop = { nav.navigate("nakop/$it") },
+                onBack = { nav.popBackStack() }, onOpenF2 = { nav.navigate("f2/$it") }, onDocs = { nav.navigate("docs/$it?f2=true") }, onNakop = { nav.navigate("nakop/$it") }, onPaket = { nav.navigate(PAKET) },
             )
         }
         composable(NAKOP, idArg) {
@@ -303,6 +304,7 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
                 "nakop" -> nav.navigate(if (obyekt != null) "nakop/$obyekt" else PICK_NAKOP); "m29" -> nav.navigate(M29); "naryad" -> nav.navigate(NARYAD)
             }
         }) }
+        composable(PAKET) { uz.anncorp.smeta.feature.hujjat.PaketScreen(onBack = { nav.popBackStack() }) }
         composable(OUTBOX) { OutboxScreen(onBack = { nav.popBackStack() }, onEditDraft = { nav.navigate("draft/$it") }) }
     }
     uz.anncorp.smeta.feature.jarvis.JarvisOverlay(visible = !jarvisHidden, epoch = jarvisEpoch, scrollHidden = fabHidden)

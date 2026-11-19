@@ -97,6 +97,25 @@ internal class DemoF2Draft(private val json: Json) {
         return ok(buildJsonObject { put("ok", true); put("holat", "yozildi") })
     }
 
+    /** Demo of GET /api/hujjat-maydoni?amal=paket_royxat | filtr_royxat (Hujjatlar paketi). Filters are applied to three canned candidates. */
+    fun paket(path: String): ApiResult {
+        if (path.contains("amal=filtr_royxat")) return ok(buildJsonObject { put("ok", true); put("filtrlar", buildJsonArray { add(buildJsonObject { put("id", 1); put("nom", "Texnadzor to'plami"); put("filtr", buildJsonObject { put("turlar", buildJsonArray { add(JsonPrimitive("f2")) }) }) }) }) })
+        val q = java.net.URLDecoder.decode(path.substringAfter("filtr=", "{}").substringBefore('&'), "UTF-8")
+        val f = runCatching { json.parseToJsonElement(q) as JsonObject }.getOrDefault(buildJsonObject {})
+        val turlar = (f["turlar"] as? JsonArray).orEmpty().map { (it as JsonPrimitive).content }.toSet()
+        val holatlar = (f["holatlar"] as? JsonArray).orEmpty().map { (it as JsonPrimitive).content }.toSet()
+        fun c(k: String, tur: String, t: String, holat: String, oy: String, fayl: Long?, takror: Boolean = false) = buildJsonObject {
+            put("kalit", k); put("tur", tur); put("sarlavha", t); put("holat", holat); put("obyekt_id", 101); put("obyekt_nom", "Demo korpus A"); put("oy", oy); put("shartnoma_id", 4); put("shartnoma_raqam", "17")
+            put("akt_id", 503); put("forma3_id", JsonNull); put("taxminiy", false); put("takror", takror); put("fayl_id", fayl); put("versiya", if (fayl != null) 3 else null); put("yangilandi", if (fayl != null) java.time.Instant.now().minusSeconds(150).toString() else null); put("yasash", true); put("yangilanmoqda", false); put("navbat_holat", JsonNull)
+        }
+        val all = listOf(c("f2:503", "f2", "F-2 2026-11", "qoralama", "2026-11", null), c("f2:502", "f2", "F-2 2026-10", "tasdiqlangan", "2026-10", 99), c("f2:501", "f2", "F-2 2026-10 (2)", "tasdiqlangan", "2026-10", 98, true), c("nk:1", "nakopitelniy", "Nakopitelniy 2026-11", "tasdiqlangan", "2026-11", null))
+        val rows = all.filter { r -> (turlar.isEmpty() || (r["tur"] as JsonPrimitive).content in turlar) && (holatlar.isEmpty() || (r["holat"] as JsonPrimitive).content in holatlar) }
+        return ok(buildJsonObject {
+            put("ok", true); put("jami", rows.size); put("kesilgan", false); put("offset", 0); put("nomzodlar", JsonArray(rows)); put("barcha_kalitlar", buildJsonArray { rows.forEach { add(it["kalit"]!!) } })
+            if (path.contains("variantlar")) put("variantlar", buildJsonObject { put("shartnomalar", buildJsonArray { add(buildJsonObject { put("id", 4); put("raqam", "17") }) }); put("obyektlar", buildJsonArray { add(buildJsonObject { put("id", 101); put("nom", "Demo korpus A"); put("shartnoma_id", 4) }) }) })
+        })
+    }
+
     fun tekshiruv(method: String, body: JsonObject?): ApiResult {
         if (method == "POST") {
             val id = body?.l("taklif_id") ?: return err(400, "TALAB_NOTOGRI")
