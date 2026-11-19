@@ -1,3 +1,6 @@
-﻿/* MCP exceljs ni o'rnatmaydi; frontend `hujjat-yozuvchi/exceljs-dizayn.ts` faqat `import type { Worksheet }` qiladi.
+/* MCP exceljs ni o'rnatmaydi; frontend `hujjat-yozuvchi/exceljs-dizayn.ts` faqat `import type { Worksheet }` qiladi.
  * Tip tekshiruvi CI'da yiqilmasligi uchun minimal soya tip (ish vaqtida exceljs MCP'da ishlatilmaydi). */
 export type Worksheet = any;
+/** frontend wait import('exceljs') (faqat sayt eksporti; MCP yo'lida chaqirilmaydi — build'da external). */
+declare const ExcelJS: any;
+export default ExcelJS;

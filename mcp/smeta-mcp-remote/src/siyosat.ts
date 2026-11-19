@@ -4,7 +4,7 @@
  *
  * Ochilmaganlar (v1): sql_yozish, rpc (xom yozish), sql_oqish (xom SQL — tenant filtrini kafolatlab bo'lmaydi; admin uchun ham
  * v1 da yo'q), sxema, aktor/aktor_tanla (aktor OAuth dan), qator_tahrir/qator_qosh/qator_ochir (asl smeta const — domen
- * toollari bor), f2_import (lokal fayl yo'li), fakt_qamrov.
+ * toollari bor), f2_import (lokal fayl yo'li), f2_excel (lokal fayl yozadi, token yechadi), fakt_qamrov.
  */
 import { z } from 'zod';
 import type { Muhit } from '../../smeta-mcp/src/muhit';
@@ -22,7 +22,7 @@ export const YOZISH: ToolTarif[] = [faktYoz, f2QoralamaYarat, f2QoralamaTahrir, 
 export const MASOFAVIY_TOOLLAR: ToolTarif[] = [...OQISH, ...YOZISH];
 
 /** Hech qachon masofadan ochilmaydigan toollar (test bilan qo'riqlanadi). */
-export const TAQIQLANGAN = ['sql_yozish', 'rpc', 'sql_oqish', 'sxema', 'aktor', 'aktor_tanla', 'qator_tahrir', 'qator_qosh', 'qator_ochir', 'f2_import'];
+export const TAQIQLANGAN = ['sql_yozish', 'rpc', 'sql_oqish', 'sxema', 'aktor', 'aktor_tanla', 'qator_tahrir', 'qator_qosh', 'qator_ochir', 'f2_import', 'f2_excel'];
 
 /** Doirasiz (id siz) chaqirilishi mumkin bo'lgan o'qish toollari — natija `mu.kompaniyaDoira` bilan filtrlanadi. */
 const DOIRASIZ = new Set(['obyektlar']);
