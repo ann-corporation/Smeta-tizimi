@@ -16,7 +16,7 @@
       "machine": "Anvar",
       "branch": "codex/jarvis-m3-f2-write",
       "base_sha": "548ce612",
-      "status": "ready_for_review",
+      "status": "completed",
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md"],
       "owns": [
