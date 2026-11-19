@@ -360,7 +360,7 @@ export function F2TayyorlashNative() {
    * Sukut manba (A-10): obyektda fakt bor bo'lsa — `fakt` (hamma fakt allaqachon F2 qilingan bo'lsa ham; jim `smeta` ga o'tib,
    * butun smeta qoldig'ini taklif qilmaydi). Fakt umuman yo'q — `smeta` (faktsiz F2). Qoralamada saqlangan manba tiklanadi.
    */
-  const faktBor = useMemo(() => holat.some((h) => h.fakt_hajm != null && Number(h.fakt_hajm) !== 0) || holat.some((h) => Number(h.f2_mumkin_hajm) > 0), [holat]);
+  const faktBor = useMemo(() => holat.some((h) => h.fakt_hajm != null && Number(h.fakt_hajm) !== 0) || holat.some((h) => Number(h.f2_mumkin_hajm) !== 0), [holat]);
   const manba: F2Manba = manbaTanlov ?? (faktBor ? 'fakt' : 'smeta');
   const bajHajm = useMemo(() => bajarilmadiHajmlar(baj), [baj]);
   /** Ishdan chiqarilgan resurslar (faol «bajarilmaydi» butun smeta hajmini qoplaydi) — F2 ga kirmaydi. */

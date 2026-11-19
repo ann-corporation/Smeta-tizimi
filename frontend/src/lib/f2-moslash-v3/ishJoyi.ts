@@ -863,7 +863,7 @@ export function yozishManbasi(ind: F2Indeks, ij: IshJoyi, S?: SmetaIndeks): Yozi
     let nd: F2ExactManbaTugun;
     // Resurslari bor ish — faqat hajm; pul uning resurslarida (ikki marta sanalmaydi).
     if (tarkibIsh) {
-      const narx = t.narx != null && t.narx > 0 ? t.narx : (t.summa != null && t.hajm > 0 ? t.summa / t.hajm : undefined);
+      const narx = t.narx != null && t.narx > 0 ? t.narx : (t.summa != null && t.hajm !== 0 ? t.summa / t.hajm : undefined);
       nd = { uid: t.uid, hajm: t.hajm, narx, summa: t.summa, tur: 'bl', summaYozilgan: t.summa != null };
     } else if (t.tur === 'bl' && !t.barg) nd = { uid: t.uid, hajm: t.hajm, narx: undefined, summa: undefined, tur: 'bl' };
     else {
