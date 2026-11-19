@@ -233,7 +233,7 @@ private fun OmborStock(c: Ctx, w: Warehouse) {
         st.Banner()
         val rows = st.valueOrNull().orEmpty().filter { q.isBlank() || uz.anncorp.smeta.feature.ombor.matchesQuery(it.nomi, q) }
         QHint("${w.nomi}: ${applied ?: "bugungi"} qoldiq, ${rows.size} ta material")
-        QTable(
+        GridTable(
             rows, listOf(
                 QCol("Material", 420.dp, sort = { it.nomi.lowercase() }) { it.nomi },
                 QCol("Birlik", 80.dp, sort = { it.birligi }) { uz.anncorp.smeta.core.data.displayUnit(it.birligi) },
@@ -297,7 +297,7 @@ private fun OmborReport(c: Ctx, w: Warehouse) {
                 QSecondaryButton(onClick = { go((offset - 500).coerceAtLeast(0)) }, enabled = offset > 0 && !busy) { Text("Oldingi 500") }
                 QSecondaryButton(onClick = { go(offset + 500) }, enabled = s.first.size >= 500 && !busy) { Text("Keyingi 500") }
             }
-            QTable(
+            GridTable(
                 s.first, listOf(
                     QCol("Sana", 100.dp, sort = { it.sana }) { formatDate(it.sana) },
                     QCol("Amal", 70.dp, sort = { it.op }) { it.op },
@@ -329,7 +329,7 @@ private fun OmborObjects(c: Ctx) {
         val names = c.objects.associate { it.id to it.nom }
         val rows: List<StockRow> = filterStock(st.valueOrNull().orEmpty(), OmborScope.AllObjects, q)
         QHint("${rows.size} ta qator")
-        QTable(
+        GridTable(
             rows, listOf(
                 QCol("Obyekt", 300.dp, sort = { (it.obyektId?.let { id -> names[id] } ?: "").lowercase() }) { it.obyektId?.let { id -> names[id] } ?: "#${it.obyektId}" },
                 QCol("Material", 420.dp, sort = { it.nomi.lowercase() }) { it.nomi },

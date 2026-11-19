@@ -11,6 +11,10 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -83,7 +87,7 @@ fun <R> DataGrid(
     rows: List<R>, cols: List<GridCol<R>>, key: (R) -> Any, state: GridState, onState: (GridState) -> Unit, modifier: Modifier = Modifier,
     focus: FocusRequester = remember { FocusRequester() }, showFilters: Boolean = false, empty: String = "Ma'lumot yo'q",
     rowTone: (R) -> QTone? = { null }, cellMark: (R, GridCol<R>) -> CellMark = { _, _ -> CellMark.None },
-    onEdit: ((R, GridCol<R>, String) -> Unit)? = null, onDelete: ((List<R>) -> Unit)? = null, onOpen: ((R) -> Unit)? = null,
+    cellsKey: Any? = null, onEdit: ((R, GridCol<R>, String) -> Unit)? = null, onDelete: ((List<R>) -> Unit)? = null, onOpen: ((R) -> Unit)? = null,
     actions: List<GridAction<R>> = emptyList(), onFind: () -> Unit = {}, onExport: ((List<R>) -> Unit)? = null,
 ) {
     val c = Q.colors
@@ -116,6 +120,24 @@ fun <R> DataGrid(
     }
     fun commit() { val e = edit ?: return; edit = null; val r = view.firstOrNull { key(it) == e.first } ?: return; val col = cols.firstOrNull { it.id == e.second } ?: return; if (editText != col.value(r)) onEdit?.invoke(r, col, editText) }
 
+    val widths = remember(shown, state.widths) { shown.map { GridLogic.widthOf(it, state) } }
+    val totalW = widths.sum()
+    val ids = remember(shown) { shown.map { it.id } }
+    // Latest callbacks live in ONE stable holder, so a row is skipped by Compose unless its own inputs (selection, text) changed.
+    val hooks = remember { RowHooks<R>() }
+    hooks.mark = cellMark
+    hooks.press = { k, idx, ctrl, shift, now ->
+        focus.requestFocus(); if (edit != null) commit()
+        val dbl = now - hooks.lastPress < 350 && hooks.lastKey == k && !ctrl && !shift
+        hooks.lastPress = now; hooks.lastKey = k
+        if (dbl) view.firstOrNull { key(it) == k }?.let { if (onEdit != null) startEdit(it, null) else onOpen?.invoke(it) }
+        else onState(GridLogic.click(st, keys, idx, ctrl, shift))
+    }
+    hooks.menuKey = { k -> hooks.lastMenu = k; if (k !in st.selected) onState(GridLogic.click(st, keys, keys.indexOf(k).coerceAtLeast(0), false, false)) }
+    hooks.commit = { commit() }
+    hooks.cancel = { edit = null; focus.requestFocus() }
+    hooks.editText = { editText = it }
+
     Column(
         modifier.border(androidx.compose.foundation.BorderStroke(1.dp, c.border), Q.shape.medium).background(c.surface, Q.shape.medium)
             .onKeyEvent { e ->
@@ -139,111 +161,66 @@ fun <R> DataGrid(
                 true
             }.focusRequester(focus).focusable(),
     ) {
-        // ---- header (right-click: columns menu) ----
-        ContextMenuArea(items = {
-            buildList {
-                shown.forEachIndexed { i, col -> add(ContextMenuItem("Muzlatish: shu ustungacha (${col.title})") { onState(st.copy(frozen = i + 1)) }) }
-                add(ContextMenuItem("Muzlatishni olib tashlash") { onState(st.copy(frozen = 0)) })
-                cols.forEach { col -> add(ContextMenuItem((if (col.id in st.hidden) "Ko'rsatish: " else "Yashirish: ") + col.title) { onState(GridLogic.toggleHidden(st, col.id)) }) }
-                add(ContextMenuItem("Ustunlarni asl holiga qaytarish") { onState(st.copy(order = emptyList(), widths = emptyMap(), hidden = emptySet(), frozen = 0)) })
-            }
-        }) {
-            Row(Modifier.fillMaxWidth().background(c.surface2).height(32.dp)) {
-                @Composable fun head(col: GridCol<R>) {
-                    val w = GridLogic.widthOf(col, st)
-                    val k = st.sort.indexOfFirst { it.colId == col.id }
-                    val mark = if (k < 0) "" else (if (st.sort[k].asc) "\u0020\u25B2" else "\u0020\u25BC") + (if (st.sort.size > 1) "${k + 1}" else "")
-                    Box(Modifier.width(w.dp).height(32.dp)) {
-                        Text(
-                            col.title.uppercase() + mark, Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 7.dp)
-                                .pointerInput(col.id) { awaitPointerEventScope { while (true) { val e = awaitPointerEvent(); if (e.type == PointerEventType.Press && e.buttons.isPrimaryPressed && col.sortKey != null) onState(GridLogic.toggleSort(st, col.id, e.keyboardModifiers.isPtrShift)) } } },
-                            style = Q.type.labelSmall, color = if (k >= 0) c.accentText else c.textMute, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                            textAlign = if (col.numeric) TextAlign.End else TextAlign.Start, fontWeight = FontWeight.SemiBold,
-                        )
-                        Box(Modifier.align(Alignment.CenterEnd).width(6.dp).fillMaxHeight().pointerInput(col.id) {
-                            detectHorizontalDragGestures { _, dx -> onState(GridLogic.resize(st, col.id, GridLogic.widthOf(col, st), dx / density.density)) }
-                        })
-                    }
-                }
-                frozenCols.forEach { head(it) }
-                Box(Modifier.weight(1f).horizontalScroll(hs)) { Row { scrollCols.forEach { head(it) } } }
-            }
-        }
-        if (showFilters) Row(Modifier.fillMaxWidth().background(c.surface2).padding(bottom = 2.dp)) {
-            @Composable fun f(col: GridCol<R>) = BasicTextField(
-                st.filters[col.id].orEmpty(), { onState(GridLogic.setFilter(st, col.id, it)) },
-                Modifier.width(GridLogic.widthOf(col, st).dp).padding(horizontal = 6.dp).background(c.surface, Q.shape.small).padding(horizontal = 6.dp, vertical = 3.dp),
-                singleLine = true, textStyle = Q.type.bodySmall.copy(color = c.text), cursorBrush = SolidColor(c.accent),
-            )
-            frozenCols.forEach { f(it) }
-            Box(Modifier.weight(1f).horizontalScroll(hs)) { Row { scrollCols.forEach { f(it) } } }
-        }
-        uz.anncorp.qurai.ui.components.QDivider()
-        if (view.isEmpty()) Box(Modifier.fillMaxWidth().weight(1f).padding(24.dp), contentAlignment = Alignment.Center) { Text(empty, color = c.textMute, style = Q.type.bodyMedium) }
-        else LazyColumn(Modifier.fillMaxWidth().weight(1f), state = list) {
-            itemsIndexed(view, key = { _, r -> key(r) }) { idx, r ->
-                val k = key(r)
-                val sel = k in state.selected
-                val act = k == state.active
-                val tone = rowTone(r)
-                val bg = when {
-                    sel -> c.accentSoft
-                    tone == QTone.Danger -> c.dangerSoft
-                    tone == QTone.Warn -> c.warnSoft
-                    tone == QTone.Ok -> c.okSoft
-                    else -> Color.Transparent
-                }
-                ContextMenuArea(items = {
-                    if (k !in st.selected) onState(GridLogic.click(st, keys, idx, false, false))
-                    val rowsNow = selectedRows().ifEmpty { listOf(r) }
-                    buildList {
-                        add(ContextMenuItem("Nusxalash (Ctrl+C)") { copy(false) })
-                        add(ContextMenuItem("Sarlavha bilan nusxalash (Ctrl+Shift+C)") { copy(true) })
-                        if (onExport != null) add(ContextMenuItem("Excelga eksport (CSV)") { onExport(rowsNow) })
-                        if (onEdit != null) add(ContextMenuItem("Tahrirlash (F2)") { startEdit(r, null) })
-                        actions.filter { it.enabled(rowsNow) }.forEach { a -> add(ContextMenuItem(a.label) { a.run(rowsNow) }) }
-                        if (onDelete != null) add(ContextMenuItem("O'chirish (Del)") { onDelete(rowsNow) })
-                    }
-                }) {
-                    Row(
-                        Modifier.fillMaxWidth().heightIn(min = rowH).background(bg).then(if (act) Modifier.border(androidx.compose.foundation.BorderStroke(1.dp, c.accent)) else Modifier)
-                            .pointerInput(k) {
-                                awaitPointerEventScope { while (true) {
-                                    val e = awaitPointerEvent()
-                                    if (e.type == PointerEventType.Press && e.buttons.isPrimaryPressed) { focus.requestFocus(); if (edit != null) commit(); onState(GridLogic.click(st, keys, keys.indexOf(k).coerceAtLeast(0), e.keyboardModifiers.isPtrCtrl, e.keyboardModifiers.isPtrShift)) }
-                                } }
-                            }
-                            .pointerInput(k) { detectTapGestures(onDoubleTap = { if (onEdit != null) startEdit(r, null) else onOpen?.invoke(r) }) },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        @Composable fun cell(col: GridCol<R>) {
-                            val m = cellMark(r, col)
-                            val bgc = when (m) { CellMark.Changed -> c.infoSoft; CellMark.Invalid -> c.dangerSoft; else -> Color.Transparent }
-                            val editing = edit?.let { it.first == k && it.second == col.id } == true
-                            Box(Modifier.width(GridLogic.widthOf(col, st).dp).background(bgc).padding(horizontal = 10.dp, vertical = 6.dp)) {
-                                if (editing) {
-                                    val fr = remember { FocusRequester() }
-                                    LaunchedEffect(Unit) { runCatching { fr.requestFocus() } }
-                                    BasicTextField(
-                                        editText, { editText = it },
-                                        Modifier.fillMaxWidth().focusRequester(fr).onPreviewKeyEvent { e ->
-                                            if (e.type != KeyEventType.KeyDown) false else when (e.key) {
-                                                Key.Enter -> { commit(); focus.requestFocus(); true }
-                                                Key.Escape -> { edit = null; focus.requestFocus(); true }
-                                                else -> false
-                                            }
-                                        },
-                                        singleLine = true, textStyle = Q.type.bodyMedium.copy(color = c.text, textAlign = if (col.numeric) TextAlign.End else TextAlign.Start), cursorBrush = SolidColor(c.accent),
+        // ONE horizontal scroll for header + body (not one per row); frozen columns are shifted by the scroll offset so they stay in view.
+        BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
+            val tableW = maxOf(totalW, maxWidth.value).dp
+            Box(Modifier.fillMaxSize().horizontalScroll(hs)) {
+                Column(Modifier.width(tableW).fillMaxHeight()) {
+                    ContextMenuArea(items = {
+                        buildList {
+                            shown.forEachIndexed { i, col -> add(ContextMenuItem("Muzlatish: shu ustungacha (${col.title})") { onState(st.copy(frozen = i + 1)) }) }
+                            add(ContextMenuItem("Muzlatishni olib tashlash") { onState(st.copy(frozen = 0)) })
+                            cols.forEach { col -> add(ContextMenuItem((if (col.id in st.hidden) "Ko'rsatish: " else "Yashirish: ") + col.title) { onState(GridLogic.toggleHidden(st, col.id)) }) }
+                            add(ContextMenuItem("Ustunlarni asl holiga qaytarish") { onState(st.copy(order = emptyList(), widths = emptyMap(), hidden = emptySet(), frozen = 0)) })
+                        }
+                    }) {
+                        Row(Modifier.fillMaxWidth().background(c.surface2).height(32.dp)) {
+                            shown.forEachIndexed { i, col ->
+                                val k = st.sort.indexOfFirst { it.colId == col.id }
+                                val mark = if (k < 0) "" else (if (st.sort[k].asc) "\u0020\u25B2" else "\u0020\u25BC") + (if (st.sort.size > 1) "${k + 1}" else "")
+                                Box(Modifier.width(widths[i].dp).height(32.dp).then(if (i < frozenN) Modifier.offset { IntOffset(hs.value, 0) }.zIndex(1f).background(c.surface2) else Modifier)) {
+                                    Text(
+                                        col.title.uppercase() + mark, Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 7.dp)
+                                            .pointerInput(col.id) { awaitPointerEventScope { while (true) { val e = awaitPointerEvent(); if (e.type == PointerEventType.Press && e.buttons.isPrimaryPressed && col.sortKey != null) onState(GridLogic.toggleSort(st, col.id, e.keyboardModifiers.isPtrShift)) } } },
+                                        style = Q.type.labelSmall, color = if (k >= 0) c.accentText else c.textMute, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                        textAlign = if (col.numeric) TextAlign.End else TextAlign.Start, fontWeight = FontWeight.SemiBold,
                                     )
-                                } else Text(
-                                    col.value(r), Modifier.fillMaxWidth(),
-                                    style = if (col.mono) Q.type.bodySmall else Q.type.bodyMedium, fontFamily = if (col.mono) FontFamily.Monospace else null,
-                                    color = if (col.mono) c.textMute else c.text, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = if (col.numeric) TextAlign.End else TextAlign.Start,
-                                )
+                                    Box(Modifier.align(Alignment.CenterEnd).width(6.dp).fillMaxHeight().pointerInput(col.id) {
+                                        detectHorizontalDragGestures { _, dx -> onState(GridLogic.resize(st, col.id, GridLogic.widthOf(col, st), dx / density.density)) }
+                                    })
+                                }
                             }
                         }
-                        frozenCols.forEach { cell(it) }
-                        Box(Modifier.weight(1f).horizontalScroll(hs)) { Row { scrollCols.forEach { cell(it) } } }
+                    }
+                    if (showFilters) Row(Modifier.fillMaxWidth().background(c.surface2).padding(bottom = 2.dp)) {
+                        shown.forEachIndexed { i, col ->
+                            BasicTextField(
+                                st.filters[col.id].orEmpty(), { onState(GridLogic.setFilter(st, col.id, it)) },
+                                Modifier.width(widths[i].dp).padding(horizontal = 6.dp).background(c.surface, Q.shape.small).padding(horizontal = 6.dp, vertical = 3.dp),
+                                singleLine = true, textStyle = Q.type.bodySmall.copy(color = c.text), cursorBrush = SolidColor(c.accent),
+                            )
+                        }
+                    }
+                    uz.anncorp.qurai.ui.components.QDivider()
+                    if (view.isEmpty()) Box(Modifier.fillMaxWidth().weight(1f).padding(24.dp), contentAlignment = Alignment.Center) { Text(empty, color = c.textMute, style = Q.type.bodyMedium) }
+                    else ContextMenuArea(items = {
+                        val rowsNow = selectedRows().ifEmpty { view.filter { key(it) == hooks.lastMenu } }
+                        buildList {
+                            add(ContextMenuItem("Nusxalash (Ctrl+C)") { copy(false) })
+                            add(ContextMenuItem("Sarlavha bilan nusxalash (Ctrl+Shift+C)") { copy(true) })
+                            if (onExport != null) add(ContextMenuItem("Excelga eksport (CSV)") { onExport(rowsNow) })
+                            if (onEdit != null) add(ContextMenuItem("Tahrirlash (F2)") { rowsNow.firstOrNull()?.let { startEdit(it, null) } })
+                            actions.filter { it.enabled(rowsNow) }.forEach { a -> add(ContextMenuItem(a.label) { a.run(rowsNow) }) }
+                            if (onDelete != null) add(ContextMenuItem("O'chirish (Del)") { onDelete(rowsNow) })
+                        }
+                    }) {
+                        LazyColumn(Modifier.fillMaxWidth().fillMaxHeight(), state = list) {
+                            itemsIndexed(view, key = { _, r -> key(r) }, contentType = { _, _ -> "row" }) { idx, r ->
+                                val k = key(r)
+                                val ed = edit?.takeIf { it.first == k }?.second
+                                GridRow(r, k, idx, shown, ids, widths, frozenN, hs, k in state.selected, k == state.active, rowTone(r), cellsKey, ed, if (ed != null) editText else "", rowH, hooks)
+                            }
+                        }
                     }
                 }
             }
@@ -254,3 +231,95 @@ fun <R> DataGrid(
     }
 }
 
+/** Callbacks + click bookkeeping shared by all rows: one stable object, so rows do not recompose when a lambda is re-created. */
+@androidx.compose.runtime.Stable
+class RowHooks<R> {
+    var mark: (R, GridCol<R>) -> CellMark = { _, _ -> CellMark.None }
+    var press: (Any, Int, Boolean, Boolean, Long) -> Unit = { _, _, _, _, _ -> }
+    var menuKey: (Any) -> Unit = {}
+    var commit: () -> Unit = {}
+    var cancel: () -> Unit = {}
+    var editText: (String) -> Unit = {}
+    var lastPress = 0L
+    var lastKey: Any? = null
+    var lastMenu: Any? = null
+}
+
+/**
+ * One row. Its inputs are plain values (booleans, an enum, a version key, fixed widths), so Compose SKIPS it while the selection moves
+ * elsewhere: only the row that lost the cursor and the row that gained it recompose. Fixed height keeps the lazy list's layout cheap.
+ */
+@Composable
+private fun <R> GridRow(
+    r: R, k: Any, idx: Int, cols: List<GridCol<R>>, ids: List<String>, widths: List<Float>, frozenN: Int, hs: androidx.compose.foundation.ScrollState,
+    selected: Boolean, active: Boolean, tone: QTone?, @Suppress("UNUSED_PARAMETER") cellsKey: Any?, editCol: String?, editText: String, rowH: androidx.compose.ui.unit.Dp, hooks: RowHooks<R>,
+) {
+    val c = Q.colors
+    val bg = when { selected -> c.accentSoft; tone == QTone.Danger -> c.dangerSoft; tone == QTone.Warn -> c.warnSoft; tone == QTone.Ok -> c.okSoft; else -> Color.Transparent }
+    Row(
+        Modifier.fillMaxWidth().height(rowH).background(bg).then(if (active) Modifier.border(androidx.compose.foundation.BorderStroke(1.dp, c.accent)) else Modifier)
+            .pointerInput(k) {
+                awaitPointerEventScope { while (true) {
+                    val e = awaitPointerEvent()
+                    if (e.type == PointerEventType.Press) {
+                        if (e.buttons.isPrimaryPressed) hooks.press(k, idx, e.keyboardModifiers.isPtrCtrl, e.keyboardModifiers.isPtrShift, System.currentTimeMillis())
+                        else hooks.menuKey(k)
+                    }
+                } }
+            },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        cols.forEachIndexed { i, col ->
+            val m = hooks.mark(r, col)
+            val cellBg = when (m) { CellMark.Changed -> c.infoSoft; CellMark.Invalid -> c.dangerSoft; else -> Color.Transparent }
+            val frozen = i < frozenN
+            if (!frozen && m == CellMark.None && editCol != col.id) {   // the common cell: ONE node (no wrapper Box) - cheapest to compose while scrolling
+                Text(
+                    col.value(r), Modifier.width(widths[i].dp).padding(horizontal = 10.dp), style = if (col.mono) Q.type.bodySmall else Q.type.bodyMedium, fontFamily = if (col.mono) FontFamily.Monospace else null,
+                    color = if (col.mono) c.textMute else c.text, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = if (col.numeric) TextAlign.End else TextAlign.Start,
+                )
+                return@forEachIndexed
+            }
+            Box(
+                Modifier.width(widths[i].dp).fillMaxHeight().then(if (frozen) Modifier.offset { IntOffset(hs.value, 0) }.zIndex(1f).background(c.surface) else Modifier).background(cellBg).padding(horizontal = 10.dp),
+                contentAlignment = if (col.numeric) Alignment.CenterEnd else Alignment.CenterStart,
+            ) {
+                if (editCol == col.id) {
+                    val fr = remember { FocusRequester() }
+                    LaunchedEffect(Unit) { runCatching { fr.requestFocus() } }
+                    BasicTextField(
+                        editText, { hooks.editText(it) },
+                        Modifier.fillMaxWidth().focusRequester(fr).onPreviewKeyEvent { e ->
+                            if (e.type != KeyEventType.KeyDown) false else when (e.key) { Key.Enter -> { hooks.commit(); true }; Key.Escape -> { hooks.cancel(); true }; else -> false }
+                        },
+                        singleLine = true, textStyle = Q.type.bodyMedium.copy(color = c.text, textAlign = if (col.numeric) TextAlign.End else TextAlign.Start), cursorBrush = SolidColor(c.accent),
+                    )
+                } else Text(
+                    col.value(r), style = if (col.mono) Q.type.bodySmall else Q.type.bodyMedium, fontFamily = if (col.mono) FontFamily.Monospace else null,
+                    color = if (col.mono) c.textMute else c.text, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = if (col.numeric) TextAlign.End else TextAlign.Start,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Drop-in for the old read-only `QTable`: the same columns, now a full grid (resize, multi-sort, filter box via Ctrl+F is not needed here,
+ * multi-select, keyboard, Ctrl+C = Excel TSV, CSV export from the right-click menu). A single click on a row calls [onClick] (master-detail
+ * screens keep working); Enter / double-click too.
+ */
+@Composable
+fun <R> GridTable(
+    rows: List<R>, cols: List<uz.anncorp.qurai.ui.components.QCol<R>>, modifier: Modifier = Modifier, key: ((R) -> Any)? = null,
+    onClick: ((R) -> Unit)? = null, selected: ((R) -> Boolean)? = null, empty: String = "Ma'lumot yo'q",
+) {
+    val gcols = remember(cols) {
+        cols.mapIndexed { i, q -> GridCol<R>("c$i", q.title, q.width.value, numeric = q.numeric, mono = q.mono, sortKey = q.sort, value = q.text) }
+    }
+    val keyOf: (R) -> Any = key ?: remember(rows) { val ids = java.util.IdentityHashMap<R, Int>(); rows.forEachIndexed { i, r -> ids[r] = i }; { r: R -> ids[r] ?: -1 } }
+    var st by remember { mutableStateOf(GridState()) }
+    val click by rememberUpdatedState(onClick)
+    LaunchedEffect(st.active) { val a = st.active ?: return@LaunchedEffect; rows.firstOrNull { keyOf(it) == a }?.let { click?.invoke(it) } }
+    val csv: (List<R>) -> Unit = { r -> saveAndOpen("jadval.csv", GridLogic.toCsv(r, gcols, st).toByteArray(Charsets.UTF_8)) }
+    DataGrid(rows, gcols, key = keyOf, state = st, onState = { st = it }, modifier = modifier, empty = empty, onOpen = onClick, onExport = csv)
+}
