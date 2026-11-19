@@ -11,6 +11,7 @@ import { solishtir, type Chip, type Natija, type QoralamaQator } from '../../lib
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 
 type Filtr = 'ozgargan' | 'hammasi' | Chip;
 const KO_RSATISH_CHEGARA = 400;
@@ -71,7 +72,7 @@ export function F2TexnadzorSolishtir({ qoralama, aktRaqam, onYop, obyektId }: { 
     const bytes = await solishtirHisobotiXlsx(korinadi, sarlavha, (n) => `${holatNomi(n)}${n.chip ? ` / ${chipNomi(n.chip)}` : ''}`);
     const faylNomi = `texnadzor-solishtirish-${aktRaqam || 'f2'}.xlsx`;
     if (!kid) { toast(t('Kompaniya tanlanmagan'), 'danger'); return; }
-    const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'TEXNADZOR_SOLISHTIRISH', obyekt: obyektId ?? null, sabab: `Сверка с технадзором · Ф-2 ${aktRaqam}`.slice(0, 120) }, () => downloadBlob(bytes, faylNomi));
+    const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'TEXNADZOR_SOLISHTIRISH', obyekt: obyektId ?? null, sabab: `Сверка с технадзором · Ф-2 ${aktRaqam}`.slice(0, 120), disk: diskJoy({ tur: 'texnadzor_solishtir', kompaniyaId: kid, obyektId: obyektId ?? null, qism: aktRaqam || 'f2', qismNom: aktRaqam ? `F-2 №${aktRaqam}` : null, faylNomi }) }, () => downloadBlob(bytes, faylNomi));
     toast(r.ok ? (r.xabar || t('Hisobot tayyor')) : r.xabar, r.ok ? 'ok' : 'danger');
   }
 
