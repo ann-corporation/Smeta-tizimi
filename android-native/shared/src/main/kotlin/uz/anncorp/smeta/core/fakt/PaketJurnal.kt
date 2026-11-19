@@ -30,9 +30,6 @@ private fun JsonObject.sparse(key: String): Map<Long, Double?> {
     return o.entries.associate { (k, v) -> k.toLong() to (if (v is JsonNull) null else v.num()) }
 }
 
-private fun qoldiq(smeta: Double?, f2: Double?, almashtirilgan: Double?): Double? =
-    if (smeta == null || !smeta.isFinite()) null else yaxlit2(smeta - (f2 ?: 0.0) - (almashtirilgan ?: 0.0))
-
 /** Quantity-only signed availability (`holat.ts mumkinHajm`): positive row max(0, fakt - F2), minus row min(0, fakt - F2); unknown fakt stays unknown. */
 fun mumkinHajm(fakt: Double?, f2: Double?, smeta: Double?): Double? {
     if (fakt == null || !fakt.isFinite()) return null
