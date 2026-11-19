@@ -99,7 +99,7 @@ private const val T_DASH = "\u2014"
 /** The server sum package in the owner's order: QQS bilan first, then ustamali (ITOGO-4), then ustamasiz (direct). */
 @Composable
 fun PackStrip(label: String, p: SumPack?) {
-    Row {
+    Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {
         Column(Modifier.width(150.dp)) { Text(label, fontWeight = FontWeight.SemiBold) }
         QKv("QQS bilan", money(p?.qqsBilan)); QKv("Ustamali (QQS siz)", money(p?.ustamali)); QKv("Ustamasiz (QQS siz)", money(p?.ustamasiz))
     }
@@ -144,15 +144,15 @@ fun SmetaScreen(c: Ctx) = NeedObject(c) { o ->
         }
         val vis = remember(p, expanded, q) { visibleNodes(p.nodes, if (q.isBlank()) expanded else p.nodes.filter { it.hasChildren }.map { it.id }.toSet(), q) }
         Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant).padding(vertical = 6.dp)) {
-            HeadCell("Kod / nom", 560.dp); HeadCell("Birlik", 70.dp); HeadCell("Hajm", 100.dp, true); HeadCell("Narx", 110.dp, true); HeadCell("Smeta summa", 150.dp, true); HeadCell("Fakt", 140.dp, true); HeadCell("F-2", 140.dp, true)
+            Text("Kod / nom", Modifier.weight(1f).padding(horizontal = 6.dp), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge); HeadCell("Birlik", 70.dp); HeadCell("Hajm", 100.dp, true); HeadCell("Narx", 110.dp, true); HeadCell("Smeta summa", 150.dp, true); HeadCell("Fakt", 140.dp, true); HeadCell("F-2", 140.dp, true)
         }
         LazyColumn(Modifier.weight(1f)) {
             items(vis, key = { it.id }) { x ->
                 val sum = if (x.isRz) x.roll else x.summa
                 Row(Modifier.fillMaxWidth().clickable(enabled = x.hasChildren) { expanded = if (x.id in expanded) expanded - x.id else expanded + x.id }.padding(vertical = 4.dp)) {
-                    val mark = if (x.hasChildren) (if (x.id in expanded || q.isNotBlank()) "в–ѕ " else "в–ё ") else "   "
+                    val mark = if (x.hasChildren) (if (x.id in expanded || q.isNotBlank()) "\u25BE " else "\u25B8 ") else "   "
                     Text(
-                        mark + (x.kod?.let { "$it  " } ?: "") + x.nom, Modifier.width(560.dp).padding(start = (x.depth * 16).dp, end = 6.dp),
+                        mark + (x.kod?.let { "$it  " } ?: "") + x.nom, Modifier.weight(1f).padding(start = (x.depth * 16).dp, end = 6.dp),
                         fontWeight = if (x.isRz) FontWeight.Bold else if (x.isBl) FontWeight.Medium else FontWeight.Normal, maxLines = 2,
                     )
                     DataCell(uz.anncorp.smeta.core.data.displayUnit(x.birlik), 70.dp); DataCell(if (x.isRz) "" else qty(x.hajm), 100.dp, true); DataCell(if (x.isRz) "" else money(x.narx), 110.dp, true)
@@ -225,9 +225,9 @@ private fun ActRows(c: Ctx, o: Obj, a: F2Act) {
     Text("Akt ${a.raqam ?: a.id} qatorlari", fontWeight = FontWeight.SemiBold)
     if (rows == null) { QLoading(); return }
     rows.Banner()
-    val r = rows.valueOrNull().orEmpty()
-    val direct = r.sumOf { it.summa ?: 0.0 }
-    Row { QKv("Qatorlar soni", r.size.toString()); QKv("Qatorlar summasi (ustamasiz, QQS siz)", money(direct)) }
+    val r = rows.valueOrNull() ?: return // load failed: the banner explains why; never show "0 rows" for an unknown list
+    val direct = uz.anncorp.smeta.feature.common.actDirect(r)
+    Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) { QKv("Qatorlar soni", r.size.toString()); QKv("Qatorlar summasi (ustamasiz, QQS siz)", money(direct.total)); if (direct.unpriced > 0) QKv("Narxsiz qatorlar", direct.unpriced.toString()) }
     QHint("Ustamali va QQS bilan summalar faqat serverdan (yuqorida, obyekt bo'yicha qabul qilingan F-2). Akt qatorlari summasi: faqat ustamasiz.")
     Box(Modifier.fillMaxWidth().height(260.dp)) {
         QTable(
@@ -287,7 +287,7 @@ fun FaktScreen(c: Ctx) = NeedObject(c) { o ->
                 journal.valueOrNull().orEmpty(), listOf(
                     QCol("Raqam", 140.dp, sort = { it.raqam }) { it.raqam ?: "#${it.id}" },
                     QCol("Oy", 100.dp, sort = { it.oy }) { f2MonthLabel(it.oy) ?: T_DASH },
-                    QCol("Holat", 130.dp, sort = { it.status }) { it.status ?: T_DASH },
+                    QCol("Holat", 130.dp, sort = { it.status }) { statusUz(F2Status.of(it.status), it.status) },
                     QCol("Jami (hujjat)", 160.dp, true, { it.jami }) { money(it.jami) },
                 ), key = { it.id },
             )
@@ -418,8 +418,8 @@ fun MoneyScreen(c: Ctx) {
     var tab by remember { mutableStateOf(0) }
     Page("Moliya", "Hamma summa: QQS bilan, ustamali, ustamasiz (serverdan, qurilmada hisoblanmaydi)") {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            QSecondaryButton(onClick = { tab = 0 }) { Text(if (tab == 0) "в—Џ Obyektlar bo'yicha" else "Obyektlar bo'yicha") }
-            QSecondaryButton(onClick = { tab = 1 }) { Text(if (tab == 1) "в—Џ Qarzdorlar" else "Qarzdorlar") }
+            QSecondaryButton(onClick = { tab = 0 }) { Text(if (tab == 0) "\u25CF Obyektlar bo'yicha" else "Obyektlar bo'yicha") }
+            QSecondaryButton(onClick = { tab = 1 }) { Text(if (tab == 1) "\u25CF Qarzdorlar" else "Qarzdorlar") }
         }
         if (tab == 0) {
             if (mny == null) { QLoading(); return@Page }
@@ -451,7 +451,7 @@ fun MoneyScreen(c: Ctx) {
             debts.Banner()
             val rows = debts.valueOrNull().orEmpty()
             val known = rows.mapNotNull { it.debt }
-            Row { QKv("Qarz jami (ma'lum qatorlar)", money(if (known.isEmpty()) null else known.sum())); QKv("Shartnoma", rows.size.toString()) }
+            Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) { QKv("Qarz jami (ma'lum qatorlar)", money(if (known.isEmpty()) null else known.sum())); QKv("Shartnoma", rows.size.toString()) }
             QTable(
                 rows, listOf(
                     QCol("Kontragent", 260.dp, sort = { it.counterparty?.lowercase() }) { it.counterparty ?: "" },
@@ -605,7 +605,7 @@ fun NotifScreen(c: Ctx, onRead: () -> Unit) {
         }
         QTable(
             v.items, listOf(
-                QCol("", 30.dp) { if (it.oqildi) "" else "в—Џ" },
+                QCol("", 30.dp) { if (it.oqildi) "" else "\u25CF" },
                 QCol("Mavzu", 420.dp, sort = { it.mavzu }) { notifKind(it.mavzu).label() },
                 QCol("Vaqt", 170.dp, sort = { it.yaratildi }) { it.yaratildi?.let { s -> formatIsoStamp(s) } ?: "" },
             ), modifier = Modifier.weight(1f), key = { it.id },
