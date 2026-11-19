@@ -50,6 +50,7 @@ class DesktopDemoApi(private val json: Json) : BffApi {
             path.startsWith("/api/ish-joyi") -> ok(session["ish_joyi"].toString())
             path.startsWith("/api/profil") -> ok("""{"ok":true,"profil":{"ism":"Demo foydalanuvchi","telefon":"+998 90 000 00 00","email":"demo@example.test"}}""")
             path.startsWith("/api/obyekt-paket") -> ok(asset("paket"))
+            path.startsWith("/api/foto-dalil") -> ok(asset("foto"))
             path.startsWith("/api/sb-yoz") -> ok(asset("fakt_ok"))
             path.startsWith("/api/agent-ish") && (((body as? JsonObject)?.get("savol") as? JsonPrimitive)?.content.orEmpty().lowercase().let { it.contains("hajmini") || it.contains("kirim qil") }) ->
                 ok("""{"ok":true,"provider":"demo","javob":"**Yozishdan oldin ko\u2018rib chiqing** (hali saqlanmagan)\n\n- Demo qator: hajm 10 \u2192 2","f2_preview":{"ok":true,"holat":"tasdiq_kerak","token":"demo-preview-token"}}""")
