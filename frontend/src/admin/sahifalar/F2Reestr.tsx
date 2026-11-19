@@ -10,6 +10,8 @@
  */
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { F2BittaBanner } from './F2BittaBanner';
+import { oyTakrorlari } from '../../lib/f2-bitta-qoida';
 import { AlertTriangle, ChevronDown, ChevronRight, ExternalLink, RefreshCw } from 'lucide-react';
 import { Sahifa, Skelet } from '../../umumiy/ui/Sahifa';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
@@ -298,6 +300,7 @@ export default function F2Reestr() {
 
       {reestr && <XulosaTasma jami={reestr.jami} qatorlar={reestr.qatorlar} f2Paket={f2Paket} f2Jami={f2Jami} />}
       <F2DavomRoyxat kompaniyaId={kompaniyaId} />
+      {malumot && <F2BittaBanner takrorlar={oyTakrorlari(malumot.aktlar)} obyektNom={(id) => malumot.obyektlar.find((o) => o.id === id)?.nom ?? null} />}
       {malumot && <F2Takrorlar malumot={malumot} />}
       {malumot && kompaniyaId != null && <F2Portfel kompaniyaId={kompaniyaId} malumot={malumot} tashkilot={joriy?.nom ?? null} yangila={yangilaJim} />}
       {malumot && kompaniyaId != null && <F2OylikPaket kompaniyaId={kompaniyaId} malumot={malumot} tashkilot={joriy?.nom ?? null} yangila={yangilaJim} />}
