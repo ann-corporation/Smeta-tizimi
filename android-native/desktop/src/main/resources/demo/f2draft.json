@@ -1,0 +1,13 @@
+{"ok":true,"akt":{"id":503,"raqam":"F2-0014","versiya":3,"holat":"qoralama","lifecycle_status":"draft"},"summa":{"qqs_bilan":415520000,"ustamali":371000000,"ustamasiz":330000000},"qatorlar":[
+  {"id":1,"qator_id":11,"kod":"C310-1001","nom":"Beton og'ir B25","birlik":"m3","hajm":120.5,"narx":785000,"summa":94592500,"izoh":null},
+  {"id":2,"qator_id":12,"kod":"C310-1002","nom":"Armatura A500C d12","birlik":"t","hajm":8.4,"narx":9800000,"summa":82320000,"izoh":null},
+  {"id":3,"qator_id":13,"kod":"C310-1003","nom":"G'isht keramik","birlik":"1000 dona","hajm":15,"narx":3200000,"summa":48000000,"izoh":null},
+  {"id":4,"qator_id":14,"kod":"C310-1004","nom":"Qum qurilish","birlik":"m3","hajm":60,"narx":95000,"summa":5700000,"izoh":null},
+  {"id":5,"qator_id":15,"kod":"C310-1005","nom":"Shag'al fr. 20-40","birlik":"m3","hajm":45,"narx":180000,"summa":8100000,"izoh":null},
+  {"id":6,"qator_id":16,"kod":"C310-1006","nom":"Sement M400","birlik":"t","hajm":-3.2,"narx":1150000,"summa":-3680000,"izoh":null},
+  {"id":7,"qator_id":17,"kod":"C310-1007","nom":"Opalubka qalqonli","birlik":"m2","hajm":210,"narx":null,"summa":null,"izoh":null},
+  {"id":8,"qator_id":18,"kod":"C310-1008","nom":"Issiqlik izolyatsiyasi","birlik":"m2","hajm":320,"narx":72000,"summa":23040000,"izoh":null},
+  {"id":9,"qator_id":19,"kod":"C310-1009","nom":"Gidroizolyatsiya rulonli","birlik":"m2","hajm":410,"narx":48000,"summa":19680000,"izoh":null},
+  {"id":10,"qator_id":20,"kod":"C310-1010","nom":"Gipsli suvoq","birlik":"m2","hajm":880,"narx":31000,"summa":27280000,"izoh":null},
+  {"id":11,"qator_id":21,"kod":"C310-1011","nom":"Keramogranit plitka","birlik":"m2","hajm":150,"narx":185000,"summa":27750000,"izoh":null},
+  {"id":12,"qator_id":22,"kod":"C310-1012","nom":"Fasad bo'yog'i","birlik":"kg","hajm":95,"narx":64000,"summa":6080000,"izoh":null}],"keyingi_offset":null}

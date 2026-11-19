@@ -23,6 +23,26 @@ class DesktopDemoApi(private val json: Json) : BffApi {
     override suspend fun upload(companyId: Long, obyektId: Long, body: okhttp3.RequestBody): ApiResult = ok("""{"ok":true}""")
     override suspend fun diskUpload(body: okhttp3.RequestBody): ApiResult = ok("""{"ok":true,"fayl_id":99}""")
 
+    /** /api/f2-buyruq in the demo: the draft sheet, a preview built from the edit request (old -> new), and the confirmation. Nothing is stored. */
+    private fun demoF2(o: JsonObject?): ApiResult {
+        fun s(k: String) = (o?.get(k) as? JsonPrimitive)?.content
+        if (s("amal") == "tasdiq") return ok("""{"ok":true,"holat":"yozildi"}""")
+        if (s("nom") == "f2") return ok(asset("f2draft"))
+        val args = o?.get("args") as? JsonObject
+        val rows = (json.parseToJsonElement(asset("f2draft")).jsonObject["qatorlar"] as kotlinx.serialization.json.JsonArray).map { it.jsonObject }
+        fun txt(r: JsonObject, k: String) = (r[k] as JsonPrimitive).content
+        fun row(qid: Long) = rows.first { txt(it, "qator_id").toLong() == qid }
+        val edits = (args?.get("ozgartir") as? kotlinx.serialization.json.JsonArray).orEmpty().map { it.jsonObject }.joinToString(",") { e ->
+            val r = row(txt(e, "qator_id").toLong())
+            val ch = listOf("hajm", "narx").filter { e[it] != null }.joinToString(",") { f -> """{"maydon":"$f","oldin":${txt(r, f)},"keyin":${txt(e, f)}}""" }
+            """{"qator_id":${txt(r, "qator_id")},"kod":"${txt(r, "kod")}","nom":"${txt(r, "nom")}","birlik":"${txt(r, "birlik")}","ozgarish":[$ch]}"""
+        }
+        val removed = (args?.get("olib_tashla") as? kotlinx.serialization.json.JsonArray).orEmpty().joinToString(",") { q ->
+            val r = row((q as JsonPrimitive).content.toLong()); """{"qator_id":${txt(r, "qator_id")},"kod":"${txt(r, "kod")}","nom":"${txt(r, "nom")}","ozgarish":[],"olib_tashlandi":true}"""
+        }
+        val all = listOf(edits, removed).filter { it.isNotEmpty() }.joinToString(",")
+        return ok("""{"ok":true,"holat":"tasdiq_kerak","token":"demo-f2-token","tavsif":"Demo: F-2 qoralama tahriri","ogohlantirish":["Demo rejimi: hech narsa saqlanmaydi"],"preview":{"qatorlar":[$all],"jami":{"oldin":{"qqs_bilan":415520000,"ustamali":371000000,"ustamasiz":330000000},"keyin":{"qqs_bilan":401200000,"ustamali":358200000,"ustamasiz":318400000},"farq":{"qqs_bilan":-14320000,"ustamali":-12800000,"ustamasiz":-11600000}},"natijalar":[{"rpc":"t2_f2_qoralama_yangila_v1","ok":true}]}}""")
+    }
     override suspend fun bff(path: String, method: String, body: JsonElement?, etag: String?): ApiResult {
         val session = json.parseToJsonElement(asset("session")).jsonObject
         return when {
@@ -33,7 +53,8 @@ class DesktopDemoApi(private val json: Json) : BffApi {
             path.startsWith("/api/sb-yoz") -> ok(asset("fakt_ok"))
             path.startsWith("/api/agent-ish") && (((body as? JsonObject)?.get("savol") as? JsonPrimitive)?.content.orEmpty().lowercase().let { it.contains("hajmini") || it.contains("kirim qil") }) ->
                 ok("""{"ok":true,"provider":"demo","javob":"**Yozishdan oldin ko\u2018rib chiqing** (hali saqlanmagan)\n\n- Demo qator: hajm 10 \u2192 2","f2_preview":{"ok":true,"holat":"tasdiq_kerak","token":"demo-preview-token"}}""")
-            path.startsWith("/api/f2-buyruq") -> ok("""{"ok":true,"holat":"yozildi"}""")
+            path.startsWith("/api/f2-buyruq") -> demoF2(body as? JsonObject)
+            path.startsWith("/api/tekshiruv") -> if (method == "POST") ok("""{"ok":true,"qaror":"qabul"}""") else ok(asset("f2taklif"))
             path.startsWith("/api/ombor-ovoz") -> ok("""{"ok":true,"text":"817 F-2 da 1074871 hajmini 2 qil","draft_only":true}""")
             (path.startsWith("/api/agent-ish") || path.startsWith("/api/ai-savol")) -> ok("""{"ok":true,"agent":"Jarvis","javob":"**Demo rejimi.** Bugun 3 ta ish bor:\n\n- 2 ta fakt kiritish\n- 1 ta tasdiqlash\n\nBirinchi navbatda **tasdiqlashni** ko'rib chiqing.","provider":"demo"}""")
             path.startsWith("/api/ombor-buyruq") -> when (((body as? JsonObject)?.get("amal") as? JsonPrimitive)?.content) {
