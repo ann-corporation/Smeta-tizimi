@@ -227,11 +227,14 @@ describe('mobil BFF: ombor-buyruq (omborchi matn/ovoz buyrug\'i)', () => {
   it('MOBIL_PATH ombor-ovoz (Jarvis ovozli kiritish) ni o\'tkazadi, qo\'shnilarini emas', () => {
     expect(MOBIL_PATH.test('/api/ombor-ovoz')).toBe(true);
     expect(MOBIL_PATH.test('/api/ombor-ovoz-x')).toBe(false);
+    expect(MOBIL_PATH.test('/api/ombor-ovozX')).toBe(false);
+    expect(MOBIL_PATH.test('/api/ombor-ovoz/x')).toBe(false);
   });
   it('MOBIL_PATH ombor-buyruq ni o\'tkazadi, qo\'shnilarini emas', () => {
     expect(MOBIL_PATH.test('/api/ombor-buyruq')).toBe(true);
-    expect(MOBIL_PATH.test('/api/ombor-ovoz')).toBe(false);
+    expect(MOBIL_PATH.test('/api/ombor-buyruqX')).toBe(false);
     expect(MOBIL_PATH.test('/api/ombor-buyruq-x')).toBe(false);
+    expect(MOBIL_PATH.test('/api/ombor-eksport')).toBe(false);
   });
   it('matn: tahlil → preview + token → tasdiq → RPC (aktor sessiyadan, qurilma tokenidan)', async () => {
     const t1 = await bff('/api/ombor-buyruq', 'POST', { amal: 'tahlil', kompaniya_id: 8, sklad_id: 3, til: 'uz', matn: '50 kg mix keldi' });
