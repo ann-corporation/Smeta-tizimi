@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ol_title">Ombor lugati</string>
+    <string name="ol_hint">Tizim tushungan va siz tasdiqlagan iboralar. Keyingi safar shu iboralar darhol topiladi.</string>
+    <string name="ol_material">Material</string>
+    <string name="ol_supplier">Yetkazuvchi</string>
+    <string name="ol_notlinked">Lugat hali ulanmagan.</string>
+    <string name="ol_empty">Lugat hozircha bosh. Tasdiqlangan moslashuvlar shu yerda paydo boladi.</string>
+    <string name="ol_phrase">Ibora</string>
+    <string name="ol_name">Mavjud nom</string>
+    <string name="ol_used">Ishlatilgan</string>
+    <string name="ol_save">Saqlash</string>
+    <string name="ol_cancel">Bekor</string>
+    <string name="ol_rename">Nomini ozgartirish</string>
+    <string name="ol_remove">Olib tashlash</string>
+    <string name="ol_saved">Saqlandi</string>
+    <string name="ol_removed">Olib tashlandi</string>
+    <string name="ol_merge_name">Birlashtirilgan nom</string>
+    <string name="ol_merge">Birlashtirish</string>
+    <string name="ol_merged">Birlashtirildi</string>
+    <string name="ol_pick">Birlashtirish uchun tanlash</string>
+    <string name="ol_added">Qoshildi</string>
+    <string name="ol_add">Qoshish</string>
+</resources>

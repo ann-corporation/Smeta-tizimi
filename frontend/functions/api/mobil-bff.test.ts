@@ -248,6 +248,13 @@ describe('mobil BFF: ombor-buyruq (omborchi matn/ovoz buyrug\'i)', () => {
     const yoz = rpcs.find(r => r.nom === 't2_ombor_prixod_v1')!;
     expect(yoz.body).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 8, p_sklad_id: 3, p_miqdor: '50' });
   });
+  it('ombor lug\'ati: lugat_royxat / lugat_tahrir BFF orqali (sayt bilan bir xil RPC; aktor qurilmadan, kompaniya tekshiruvi serverda); alias/eksport yopiq', async () => {
+    expect((await bff('/api/ombor-buyruq', 'POST', { amal: 'lugat_royxat', kompaniya_id: 8, sklad_id: 3 })).status).not.toBe(400);
+    expect(rpcs.find(r => r.nom === 't2_ombor_lugat_royxat_v1')!.body).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 8, p_sklad_id: 3 });
+    expect((await bff('/api/ombor-buyruq', 'POST', { amal: 'lugat_tahrir', kompaniya_id: 8, sklad_id: 3, lugat_amal: 'qosh', yuk: { tur: 'material', ibora: 'mix', kanonik: 'Mix 20 kg' } })).status).not.toBe(400);
+    expect(rpcs.find(r => r.nom === 't2_ombor_lugat_yoz_v1')!.body).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 8, p_amal: 'qosh' });
+    for (const amal of ['alias', 'eksport', 'eksport_reja']) expect((await bff('/api/ombor-buyruq', 'POST', { amal, kompaniya_id: 8, sklad_id: 3 })).status).toBe(400);
+  });
   it('eslatma (autocomplete) va ostatka o\'qish BFF orqali ishlaydi', async () => {
     expect((await bff('/api/ombor-buyruq', 'POST', { amal: 'eslatma', kompaniya_id: 8, sklad_id: 3, q: 'sem' })).status).not.toBe(400);
     const q = await bff('/api/ombor-buyruq', 'POST', { amal: 'qoldiq', kompaniya_id: 8, sklad_id: 3 });

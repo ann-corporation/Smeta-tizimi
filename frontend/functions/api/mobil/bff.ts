@@ -86,7 +86,7 @@ export const MOBIL_TOMON_YOZISH: ReadonlySet<string> = new Set(['nazorat_qaror',
 /** /api/telegram: status + notification preferences only (never kod / uz / admin_*). */
 export const MOBIL_TELEGRAM_AMAL: ReadonlySet<string> = new Set(['sozlama']);
 /** /api/ombor-buyruq: omborchi buyrug'i va o'qishlar. eksport (ikkilik fayl, token yechiladi) va lias (variant birlashtirish) qurilmaga ochilmaydi. Ruxsat va yozish tokeni serverda. */
-export const MOBIL_OMBOR_AMAL: ReadonlySet<string> = new Set(['kontekst','qoldiq','royxat','tarix','eslatma','taklif','hisobot','vosita','narx_qoy','tahlil','tasdiq','yoz','tuzat']);
+export const MOBIL_OMBOR_AMAL: ReadonlySet<string> = new Set(['kontekst','qoldiq','royxat','tarix','eslatma','taklif','hisobot','vosita','narx_qoy','tahlil','tasdiq','yoz','tuzat','lugat_royxat','lugat_tahrir']);
 /** /api/f2-buyruq: Jarvis F2/fakt vositalari. `vosita` (o'qish yoki preview) va `tasdiq` (token + tasdiqlayman). Ruxsat, aktor, token yechish serverda. */
 export const MOBIL_F2_AMAL: ReadonlySet<string> = new Set(['vosita', 'tasdiq']);
 /** /api/tekshiruv: the device reaches ONLY the PTO side (GET amal=akt: suggestions of an act; POST amal=qaror: accept / reject / later). Token-based texnadzor access, codes, import, links and files stay web-only. */

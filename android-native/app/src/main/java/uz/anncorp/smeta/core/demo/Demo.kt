@@ -186,6 +186,8 @@ private class DemoBff(private val context: Context, private val json: Json, priv
             path.startsWith("/api/ombor-buyruq") -> {
                 val o = body as? JsonObject
                 when ((o?.get("amal") as? JsonPrimitive)?.content) {
+                    "lugat_royxat" -> ok("""{"ok":true,"qatorlar":[{"id":5,"tur":"material","ibora":"mix","kanonik":"Mix 20 kg","birlik":"qop","soni":3},{"id":6,"tur":"material","ibora":"sement","kanonik":"Sement M400 (qop 50 kg)","birlik":"qop","soni":9}]}""")
+                    "lugat_tahrir" -> ok("""{"ok":true,"amal":"nomla","id":5,"son":1}""")
                     "eslatma" -> ok("""{"ok":true,"takliflar":[{"nomi":"Sement M400 (qop 50 kg)","birligi":"qop","soni":4,"oxirgi_sana":"2026-11-10","postavshik":"Demo MChJ","qabul_qiluvchi":null,"narx":null}]}""")
                     "tasdiq" -> ok("""{"ok":true,"takror":false,"harakat_id":1}""")
                     "hisobot" -> ok(asset("ombor_hisobot.json"))
