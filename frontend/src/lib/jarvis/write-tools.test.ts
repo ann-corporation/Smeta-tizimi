@@ -22,8 +22,8 @@ it('preserves a negative fact delta and rejects invalid payloads', () => {
   expect(parseJarvisWriteCall({ name: 'f2_tasdiq', arguments: { token: 'x', tasdiqlayman: true } })).toBeNull();
   expect(parseJarvisWriteCall({ ...call, arguments: { akt_id: 41, ozgartir: [{ qator_id: 53, hajm: null }] } })).toBeNull();
 });
-it('accepts a model conclusion only with unchanged evidence numbers', () => {
-  expect(toolSummary('{"javob":"Jami 12,50 va -2"}', 'Sinov 12,50; -2')).toBe('Jami 12,50 va -2');
+it('accepts only referenced source text instead of a numeric rewrite', () => {
+  expect(toolSummary('{"javob":"","summary_refs":["r0p0"]}', 'Sinov 12,50; -2')).toBe('Sinov 12,50; -2');
   expect(toolSummary('{"javob":"Jami 1250"}', 'Sinov 12,50')).toBeNull();
   expect(toolSummary('{"javob":"Jami 2","tool_call":{}}', '2')).toBeNull();
 });

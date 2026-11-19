@@ -3,13 +3,20 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "JARVIS-EVIDENCE-SUMMARY-20261119", "title": "Bind read conclusions to exact source paragraphs",
+      "owner": "codex", "machine": "Anvar", "branch": "codex/jarvis-m3-evidence-summary", "base_sha": "6b733cbc",
+      "status": "active", "depends_on": [], "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md"], "production_write_allowed": false,
+      "owns": ["frontend/src/lib/jarvis/tool-evidence.ts", "frontend/src/lib/jarvis/tool-evidence.test.ts", "frontend/src/lib/jarvis/write-tools.ts", "frontend/src/lib/jarvis/write-tools.test.ts", "frontend/functions/_shared/jarvis/chat.ts", "frontend/functions/_shared/jarvis/jarvis-eval.test.ts", "docs/architecture/JARVIS_YADRO.md", ".github/workflows/android-native.yml"],
+      "note": "Proven 1e6/million bypass of old numeric token guard. Model selects exact source paragraphs. No business writer or permission changes."
+    },
+    {
       "id": "JARVIS-M3-F2-WRITE-20261119",
       "title": "Jarvis F2 and fact tools through existing preview and confirmation",
       "owner": "codex",
       "machine": "Anvar",
       "branch": "codex/jarvis-m3-f2-write",
       "base_sha": "548ce612",
-      "status": "ready_for_review",
+      "status": "completed",
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md"],
       "owns": [
