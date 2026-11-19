@@ -130,7 +130,8 @@ describe('Bot buyruqlari va ulash', () => {
   });
   it('yaroqsiz format kod bazaga yuborilmaydi', async () => {
     const c = tarmoq({ t2_telegram_update_qabul_v1: () => ({ ok: true, yangi: true }) });
-    expect(await updateIshla(ENV, upd('/start x'))).toBe('kod_format');
+    // «x» endi xatlar uchun chuqur havola (PR2) — yaroqsiz kod sifatida boshqa matn ishlatiladi.
+    expect(await updateIshla(ENV, upd('/start yaroqsiz-kod'))).toBe('kod_format');
     expect(c.rpc).not.toContain('t2_telegram_ulash_v1');
   });
   it('takror update_id — hech narsa yuborilmaydi (idempotent); limit — jim', async () => {
