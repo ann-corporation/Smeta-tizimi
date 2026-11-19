@@ -10,6 +10,7 @@
  *   GET  ?amal=ol&k=<r2 kalit> -> R2 dagi tayyor paket (aktorniki va muddati tugamagan bo'lsa)
  */
 import { sessiyaAktor, type HmEnv } from '../_shared/hujjat-maydoni';
+import { r2Yoz } from '../_shared/r2-saqlash';
 import { PAKET_BAYT_CHEGARA, PAKET_HAVOLA_DAQIQA, paketBaho, paketKalitAktorniki, paketR2Kalit, paketYigServer, type PaketChiqish } from '../_shared/hujjat-paket-yig';
 import { onRequestGet as maydonGet } from './hujjat-maydoni';
 import { onRequestGet as maydonOlGet } from './hujjat-maydoni-ol';
@@ -131,6 +132,6 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   }
   if (!ctx.env.R2_CANONICAL) return json({ ok: false, code: 'R2_YOQ', xato: 'Katta paketni saqlab bo\'lmadi' }, 503);
   const kalit = paketR2Kalit(a.actorId, crypto.randomUUID(), natija.nom);
-  await ctx.env.R2_CANONICAL.put(kalit, natija.bytes, { httpMetadata: { contentType: natija.mime }, customMetadata: { muddat: String(Date.now() + PAKET_HAVOLA_DAQIQA * 60_000) } });
+  await r2Yoz(ctx.env.R2_CANONICAL, kalit, natija.bytes, { httpMetadata: { contentType: natija.mime }, customMetadata: { muddat: String(Date.now() + PAKET_HAVOLA_DAQIQA * 60_000) } });
   return json({ ok: true, havola: `/api/hujjat-paket?amal=ol&k=${encodeURIComponent(kalit)}`, hajm: natija.bytes.byteLength, soni: natija.soni, xatolar });
 };
