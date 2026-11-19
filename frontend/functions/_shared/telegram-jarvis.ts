@@ -9,6 +9,8 @@ import { limitOshdi } from './telegram-bot';
 import { saytUrl, tengSatr, tgRpc, tgT, type TgEnv, type TgTil } from './telegram';
 import { holatOl, holatYoz, type JarvisHolat } from './telegram-holat';
 import { validJarvisTurns, type JarvisTurn as Turn } from '../../src/lib/jarvis/conversation-contract';
+import { telegramJarvisDelivery } from './jarvis/telegram-read-delivery';
+import { suhbatKonteksti } from '../../src/lib/ai-yordamchi/suhbat-kontekst';
 
 type Chat = { id: string; sarlavha: string };
 type Snapshot =
@@ -84,7 +86,7 @@ async function prompt(env: TgEnv, actor: number, telegram: number, til: TgTil, t
   await holatYoz(telegram, 'jarvis', { company: target.company, id: target.id, mode: target.mode } satisfies JarvisHolat, 3600);
   const guide = tgT('Savolingizni yozing — shu suhbatda davom etamiz.', til);
   const url = `${saytUrl(env)}/admin${PREFIX}${value}:${signature}`;
-  return { matn: body ? `${guide}\n\n${body.slice(0, 3800)}` : guide, options: {
+  return { ...telegramJarvisDelivery(body, guide), options: {
     reply_markup: FORCE_REPLY,
     entities: [{ type: 'text_link', offset: 0, length: guide.length, url }],
   } };
@@ -205,7 +207,7 @@ async function jarvisSuhbat(env: TgEnv, actor: number, telegram: number, til: Tg
   if (!sent(r.status) || r.body?.ok !== true || chat?.id !== id) return unavailable(til);
   if (chat.holat === 'missing' ? mode !== 'n' :
     chat.holat !== 'changed' || chat.arxivlangan || !validJarvisTurns(chat.xabarlar) || !VERSION.test(chat.etag)) return unavailable(til);
-  const tarix = chat.holat === 'changed' ? chat.xabarlar?.slice(-6).map(x => ({ rol: x.r === 'user' ? 'user' : 'assistant', matn: x.m })) : [];
+  const tarix = chat.holat === 'changed' ? suhbatKonteksti(chat.xabarlar?.map(x => ({ rol: x.r === 'user' ? 'user' : 'assistant', matn: x.m }))).xabarlar : [];
   const answer = await call<{ ok?: boolean; javob?: string; xabar?: string; error?: string; sahifalar?: Array<{ yol?: string }>; f2_preview?: F2Javob }>(env, actor,
     { amal: 'kasb_savol', kompaniya_id: company, savol, tarix, sahifa: '/telegram/jarvis' });
   const javob = typeof answer.body?.javob === 'string' ? answer.body.javob : '';
@@ -220,14 +222,14 @@ async function jarvisSuhbat(env: TgEnv, actor: number, telegram: number, til: Tg
     xabarlar: [{ r: 'user', m: savol }, { r: 'ai', m: javob }],
   });
   if (!sent(result.status) || result.body?.ok !== true || result.body.id !== id || !VERSION.test(result.body.etag ?? '')) {
-    return { matn: tgT('Xabar suhbatga saqlanmadi. /jarvis orqali yangilangan suhbatni oching.', til) + '\n\n' + javob.slice(0, 3700) };
+    return telegramJarvisDelivery(javob, tgT('Xabar suhbatga saqlanmadi. /jarvis orqali yangilangan suhbatni oching.', til));
   }
   const links = Array.isArray(answer.body?.sahifalar) ? answer.body.sahifalar.slice(0, 3).flatMap(page => {
     if (typeof page?.yol !== 'string' || page.yol.length > 240 || !/^\/admin(?:$|[/?#])/.test(page.yol)) return [];
     const url = new URL(saytUrl(env) + page.yol);
     return url.pathname === '/admin' || url.pathname.startsWith('/admin/') ? [url.href] : [];
   }) : [];
-  const body = links.length ? [javob.slice(0, 2900), ...links].join('\n\n') : javob;
+  const body = links.length ? [javob, ...links].join('\n\n') : javob;
   const preview = answer.body.f2_preview;
   if (preview?.holat === 'tasdiq_kerak' && typeof preview.token === 'string') {
     const marker = '\n#JF:' + preview.token;
