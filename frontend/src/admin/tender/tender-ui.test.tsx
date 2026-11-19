@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { oddiyProbel } from '../../tests/matn-yordam';
 import { HolatBelgi, isoDanLokal, lokaldanIso, TenderPul, tenderXato } from './tender-ui';
 
 describe('tender ui', () => {
@@ -7,7 +8,7 @@ describe('tender ui', () => {
     render(<TenderPul ndsSiz={1000000} foiz={12} />);
     expect(screen.getByText(/QQS bilan/)).toBeTruthy();
     expect(screen.getByText(/QQS siz/)).toBeTruthy();
-    expect(document.body.textContent).toContain('1 120 000');
+    expect(oddiyProbel(document.body.textContent)).toContain('1 120 000');
   });
   it('pul: noma\'lum — «kiritilmagan», 0 emas', () => {
     render(<TenderPul ndsSiz={null} foiz={12} />);
