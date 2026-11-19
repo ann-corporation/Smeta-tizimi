@@ -89,6 +89,23 @@ class DiskRepository(private val api: BffApi) {
     suspend fun versions(fileId: Long): List<DiskVersion>? = api.diskVersions(fileId)
     suspend fun fetch(file: DiskFile, version: Int?): DiskBytes = api.diskFetch(file, version)
 
+    private fun mapWrite(r: uz.anncorp.smeta.core.data.ApiResult): DiskOp =
+        diskOpResult(r.status, r.code ?: (r.body.obj()?.get("code")).str(), (r.body.obj()?.get("ok") as? JsonPrimitive)?.booleanOrNull)
+
+    /** Folder action through the site's own endpoint (POST /api/hujjat-maydoni {amal: papka}); permission/name rules are the server's. */
+    suspend fun folder(companyId: Long?, op: String, folderId: Long? = null, name: String? = null, parentId: Long? = null): DiskOp =
+        mapWrite(api.bff("/api/hujjat-maydoni", "POST", diskFolderBody(companyId, op, folderId, name, parentId)))
+
+    /** File action (POST /api/hujjat-maydoni {amal: fayl}): nomla | kochir | savat | tikla. */
+    suspend fun file(fileId: Long, op: String, name: String? = null, folderId: Long? = null): DiskOp =
+        mapWrite(api.bff("/api/hujjat-maydoni", "POST", diskFileBody(fileId, op, name, folderId)))
+
+    /** Uploads one file (<= [DISK_UPLOAD_MAX_BYTES]) through /api/mobil/hujjat-yukla; the same [operationId] on a retry makes the server answer "already done". */
+    suspend fun upload(name: String, mime: String, bytes: ByteArray, companyId: Long?, folderId: Long?, operationId: String = java.util.UUID.randomUUID().toString()): DiskOp {
+        if (bytes.size > DISK_UPLOAD_MAX_BYTES) return DiskOp.TOO_LARGE
+        return mapWrite(api.diskUpload(diskUploadForm(name, mime, bytes, operationId, companyId, folderId)))
+    }
+
     suspend fun load(tab: DiskTab, companyId: Long?, folderId: Long? = null): DiskResult {
         if ((tab == DiskTab.COMPANY) && companyId == null) return DiskResult.Failed(offline = false, forbidden = true)
         val r = api.bff(diskListPath(tab, companyId, folderId))
@@ -102,11 +119,11 @@ class DiskRepository(private val api: BffApi) {
 // ---------- one presenter for both apps ----------
 
 /** A drive row as plain values; the apps map it to their own row widget (QDiskRow in :ui-common). */
-data class DiskRowModel(val key: String, val folder: Boolean, val id: Long, val name: String, val sub: String?, val meta: String?)
+data class DiskRowModel(val key: String, val folder: Boolean, val id: Long, val name: String, val sub: String?, val meta: String?, val trash: Boolean = false, val system: Boolean = false)
 
 fun DiskListing.toRows(): List<DiskRowModel> =
-    folders.map { DiskRowModel("p${it.id}", true, it.id, it.name, null, null) } +
-        files.map { f -> DiskRowModel("f${f.id}", false, f.id, f.name, listOfNotNull(formatBytes(f.bytes).ifBlank { null }, f.version?.let { "v$it" }).joinToString("  \u00B7  ").ifBlank { null }, f.updated?.let { uz.anncorp.smeta.core.data.formatDate(it) }) }
+    folders.map { DiskRowModel("p${it.id}", true, it.id, it.name, null, null, system = it.system) } +
+        files.map { f -> DiskRowModel("f${f.id}", false, f.id, f.name, listOfNotNull(formatBytes(f.bytes).ifBlank { null }, f.version?.let { "v$it" }).joinToString("  \u00B7  ").ifBlank { null }, f.updated?.let { uz.anncorp.smeta.core.data.formatDate(it) }, trash = f.inTrash, system = f.system) }
 
 fun List<DiskSharedItem>.toRows(): List<DiskRowModel> = map { DiskRowModel("${it.kind.take(1)}${it.id}", it.kind == "papka", it.id, it.name, it.from, it.until?.let { u -> uz.anncorp.smeta.core.data.formatDate(u) }) }
 
@@ -136,7 +153,13 @@ class DiskController(private val repo: DiskRepository, private val scope: kotlin
     data class State(
         val tab: DiskTab = DiskTab.MINE, val stack: List<DiskCrumb> = emptyList(), val rows: List<DiskRowModel> = emptyList(),
         val status: Status = Status.LOADING, val offline: Boolean = false, val forbidden: Boolean = false, val detail: DiskDetail? = null,
-    ) { val canGoUp get() = stack.isNotEmpty() }
+        /** Last result of a write (upload / folder / file action); the host shows it once and calls [clearOp]. */
+        val op: DiskOp? = null, val working: Boolean = false,
+    ) {
+        val canGoUp get() = stack.isNotEmpty()
+        /** Folder/file actions exist in the two drives only; Savat only restores, Ulashilgan is read-only. */
+        val canWrite get() = tab == DiskTab.MINE || tab == DiskTab.COMPANY
+    }
 
     private val _state = kotlinx.coroutines.flow.MutableStateFlow(State())
     val state: kotlinx.coroutines.flow.StateFlow<State> = _state
@@ -153,7 +176,9 @@ class DiskController(private val repo: DiskRepository, private val scope: kotlin
         _state.value = _state.value.copy(detail = DiskDetail(f))
         detailJob = scope.launch {
             val v = repo.versions(f.id)
-            _state.value.detail?.takeIf { it.file.id == f.id }?.let { d -> _state.value = _state.value.copy(detail = d.copy(versions = v, versionsFailed = v == null)) }
+            // The card header shows the CURRENT version of the version list, so it can never disagree with the "joriy" row below it (QA B-O2).
+            val cur = v?.firstOrNull { it.current }?.number
+            _state.value.detail?.takeIf { it.file.id == f.id }?.let { d -> _state.value = _state.value.copy(detail = d.copy(file = if (cur != null) d.file.copy(version = cur) else d.file, versions = v, versionsFailed = v == null)) }
         }
     }
 
@@ -184,6 +209,67 @@ class DiskController(private val repo: DiskRepository, private val scope: kotlin
         if (t.module != null && t.module in h.modules) h.openModule(t.module, t.objectId) else h.openWeb(t.webPath)
     }
 
+    // ---------- writes (upload, folders, file actions): the same endpoints as the site, no second write path ----------
+
+    fun clearOp() { _state.value = _state.value.copy(op = null) }
+
+    /** The host refused something before any request (a file over the limit, an unreadable file): shown like any write result. */
+    fun report(op: DiskOp) { _state.value = _state.value.copy(op = op) }
+
+    private fun folderCompany(): Long? = if (_state.value.tab == DiskTab.COMPANY) companyId() else null
+    private fun currentFolder(): Long? = _state.value.stack.lastOrNull()?.id
+
+    /** Runs one write, then shows its result and refreshes the list when it worked. [closeCard] also closes the open file card. */
+    private fun write(closeCard: Boolean = false, afterOk: () -> Unit = {}, call: suspend () -> DiskOp) {
+        if (_state.value.working) return
+        _state.value = _state.value.copy(working = true, op = null)
+        scope.launch {
+            val r = try { call() } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { DiskOp.FAILED }
+            _state.value = _state.value.copy(working = false, op = r, detail = if (closeCard && r == DiskOp.DONE) null else _state.value.detail)
+            if (r == DiskOp.DONE) { afterOk(); reload() }
+        }
+    }
+
+    /** Uploads one picked file (camera / gallery / file picker) into the open folder of the open drive. */
+    fun upload(name: String, mime: String, bytes: ByteArray) {
+        if (!_state.value.canWrite) return
+        write { repo.upload(name, mime, bytes, folderCompany(), currentFolder()) }
+    }
+
+    fun createFolder(name: String) {
+        if (!_state.value.canWrite || name.isBlank()) return
+        write { repo.folder(folderCompany(), "yarat", name = name.trim(), parentId = currentFolder()) }
+    }
+
+    /** The open folder (last crumb): rename / delete / move up. */
+    fun renameFolder(name: String) { val id = currentFolder() ?: return; if (name.isBlank()) return
+        write(afterOk = { val s = _state.value; _state.value = s.copy(stack = s.stack.dropLast(1) + DiskCrumb(id, name.trim())) }) { repo.folder(folderCompany(), "nomla", folderId = id, name = name.trim()) } }
+    fun deleteFolder() { val id = currentFolder() ?: return
+        write(afterOk = { val s = _state.value; _state.value = s.copy(stack = s.stack.dropLast(1)) }) { repo.folder(folderCompany(), "ochir", folderId = id) } }
+    fun moveFolder(targetId: Long?) { val id = currentFolder() ?: return
+        write(afterOk = { val s = _state.value; _state.value = s.copy(stack = s.stack.dropLast(1)) }) { repo.folder(folderCompany(), "kochir", folderId = id, parentId = targetId) } }
+
+    /**
+     * Where a file ([forFolder] = false) or the open folder can be moved: the drive root ([DiskCrumb.id] 0, the UI names it), the folders above this one,
+     * and - for a file only - the sub-folders of the open level. A folder is never offered a place inside itself.
+     */
+    fun moveTargets(forFolder: Boolean): List<DiskCrumb> {
+        val s = _state.value
+        val out = ArrayList<DiskCrumb>()
+        if (s.stack.isNotEmpty()) { out += DiskCrumb(0L, ""); out += s.stack.dropLast(1).asReversed() }
+        if (!forFolder) s.rows.filter { it.folder }.forEach { out += DiskCrumb(it.id, it.name) }
+        return out.distinctBy { it.id }
+    }
+    /** File actions on the open card. */
+    fun renameFile(name: String) { val d = _state.value.detail ?: return; if (name.isBlank()) return
+        write(afterOk = { _state.value = _state.value.copy(detail = _state.value.detail?.let { c -> c.copy(file = c.file.copy(name = name.trim())) }) }) { repo.file(d.file.id, "nomla", name = name.trim()) } }
+    fun moveFile(targetId: Long?) { val d = _state.value.detail ?: return; write(closeCard = true) { repo.file(d.file.id, "kochir", folderId = targetId) } }
+    fun trashFile() { val d = _state.value.detail ?: return; write(closeCard = true) { repo.file(d.file.id, "savat") } }
+    fun restoreFile() { val d = _state.value.detail ?: return; write(closeCard = true) { repo.file(d.file.id, "tikla") } }
+
+    /** A file row as the picker of "Diskdan tanlash" returns it: the file plus its current bytes (the host attaches them to its own upload). */
+    fun fileOf(rowKey: String): DiskFile? = known[rowKey]
+    suspend fun bytesOf(file: DiskFile): DiskBytes = repo.fetch(file, null)
     fun reload() {
         job?.cancel()
         val s = _state.value

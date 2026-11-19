@@ -132,6 +132,7 @@ private class DemoBff(private val context: Context, private val json: Json, priv
             path.startsWith("/api/tomon") -> tomon(path, method, body as? JsonObject)
             path.startsWith("/api/kirish-taklif") && method == "POST" -> ok("""{"ok":true,"kod":"48213907","havola":"https://qurai.uz/taklif/DEMOTOKEN"}""")
             path.startsWith("/api/agent-ish") && method == "POST" -> agentIsh(body as? JsonObject)
+            path.startsWith("/api/hujjat-maydoni") && method == "POST" -> ok("""{"ok":true}""")
             path.startsWith("/api/f2-buyruq") && method == "POST" -> ok("""{"ok":true,"holat":"yozildi"}""")
             path.startsWith("/api/ombor-ovoz") && method == "POST" -> ok("""{"ok":true,"text":"817 F-2 da 1074871 hajmini 2 qil","draft_only":true}""")
             path.startsWith("/api/ai-savol") && method == "POST" -> {
@@ -556,6 +557,7 @@ private class DemoBff(private val context: Context, private val json: Json, priv
         }
     }
     override suspend fun upload(companyId: Long, obyektId: Long, body: okhttp3.RequestBody): ApiResult = ok("""{"ok":true,"document_id":777}""")
+    override suspend fun diskUpload(body: okhttp3.RequestBody): ApiResult = ok("""{"ok":true,"fayl_id":99}""")
 
     /** Demo document download: ids 9001/9002 are a generated 2-page PDF, 9003 an .xlsx stand-in (no preview), anything else is missing. */
     override suspend fun bffBytes(path: String, maxBytes: Long): uz.anncorp.smeta.core.data.BytesResult {

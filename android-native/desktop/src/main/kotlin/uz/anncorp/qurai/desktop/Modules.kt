@@ -507,6 +507,31 @@ fun DiskScreen(c: Ctx, onOpenModule: (String, Long?) -> Unit = { _, _ -> }) {
     }
     LaunchedEffect(ctl, host) { ctl.host = host }
     LaunchedEffect(c.place.companyId, c.tick) { ctl.reload() }
+    // ----- Disk writes: Windows file picker -> DiskController.upload -> /api/mobil/hujjat-yukla (same server code as the site) -----
+    var dlg by remember { mutableStateOf("") }
+    val wl = uz.anncorp.qurai.ui.screens.QDiskWriteLabels(
+        upload = I18n.s("qa4_disk_upload", "Yuklash"), newFolder = I18n.s("qa4_disk_new_folder", "Yangi papka"), renameFolder = I18n.s("qa4_disk_rename_folder", "Papka nomi"),
+        moveFolder = I18n.s("qa4_disk_move_folder", "Papkani ko'chirish"), deleteFolder = I18n.s("qa4_disk_delete_folder", "Papkani o'chirish"), ok = I18n.s("qa4_disk_ok", "Saqlash"),
+        cancel = I18n.s("qa4_disk_cancel", "Bekor qilish"), name = I18n.s("qa4_disk_name", "Nomi"), root = I18n.s("qa4_disk_root", "Asosiy papka"),
+        moveTitle = I18n.s("qa4_disk_move_title", "Qayerga ko'chiriladi?"), sourceTitle = I18n.s("qa4_disk_source_title", "Nimani yuklaymiz?"), camera = I18n.s("qa4_disk_camera", "Kamera"),
+        gallery = I18n.s("qa4_disk_gallery", "Galereya"), file = I18n.s("qa4_disk_file", "Fayl"),
+    )
+    val opText = st.op?.let { op -> when (op) {
+        uz.anncorp.smeta.feature.disk.DiskOp.DONE -> I18n.s("qa4_disk_op_done", "Bajarildi"); uz.anncorp.smeta.feature.disk.DiskOp.OFFLINE -> Tx.offlineWrite
+        uz.anncorp.smeta.feature.disk.DiskOp.FORBIDDEN -> I18n.s("qa4_disk_op_forbidden", "Bu amal uchun ruxsat yo'q"); uz.anncorp.smeta.feature.disk.DiskOp.TOO_LARGE -> I18n.s("qa4_disk_op_too_large", "Fayl 25 MB dan katta. Katta faylni saytdan yuklang")
+        uz.anncorp.smeta.feature.disk.DiskOp.QUOTA -> I18n.s("qa4_disk_op_quota", "Disk to'ldi"); uz.anncorp.smeta.feature.disk.DiskOp.BAD_TYPE -> I18n.s("qa4_disk_op_bad_type", "Bu turdagi faylni yuklab bo'lmaydi")
+        uz.anncorp.smeta.feature.disk.DiskOp.EXISTS -> I18n.s("qa4_disk_op_exists", "Bu joyda shu nomli fayl yoki papka bor"); uz.anncorp.smeta.feature.disk.DiskOp.NOT_EMPTY -> I18n.s("qa4_disk_op_not_empty", "Papka bo'sh emas")
+        uz.anncorp.smeta.feature.disk.DiskOp.FAILED -> I18n.s("qa4_disk_op_failed", "Bajarib bo'lmadi, qayta urinib ko'ring")
+    } }
+    fun pickAndUpload() {
+        val f = pickFile(I18n.s("qa4_disk_file", "Fayl")) ?: return
+        scope.launch {
+            if (f.length() > uz.anncorp.smeta.feature.disk.DISK_UPLOAD_MAX_BYTES) { ctl.report(uz.anncorp.smeta.feature.disk.DiskOp.TOO_LARGE); return@launch }
+            val bytes = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { runCatching { f.readBytes() }.getOrNull() }
+            val mime = runCatching { java.nio.file.Files.probeContentType(f.toPath()) }.getOrNull() ?: "application/octet-stream"
+            if (bytes == null) ctl.report(uz.anncorp.smeta.feature.disk.DiskOp.FAILED) else ctl.upload(f.name, mime, bytes)
+        }
+    }
     val tabs = listOf(
         uz.anncorp.qurai.ui.screens.QDiskTab("mine", I18n.s("qa2_disk_mine", "Mening diskim")), uz.anncorp.qurai.ui.screens.QDiskTab("company", I18n.s("qa2_disk_company", "Kompaniya diski")),
         uz.anncorp.qurai.ui.screens.QDiskTab("shared", I18n.s("qa2_disk_shared", "Ulashilgan")), uz.anncorp.qurai.ui.screens.QDiskTab("trash", I18n.s("qa2_disk_trash", "Savat")),
@@ -520,6 +545,12 @@ fun DiskScreen(c: Ctx, onOpenModule: (String, Long?) -> Unit = { _, _ -> }) {
                 "shared" -> ctl.select(uz.anncorp.smeta.feature.disk.DiskTab.SHARED); "trash" -> ctl.select(uz.anncorp.smeta.feature.disk.DiskTab.TRASH)
             }
         })
+        uz.anncorp.qurai.ui.screens.QDiskWriteBar(
+            visible = st.canWrite, inFolder = st.canGoUp, working = st.working, labels = wl, onUpload = { pickAndUpload() }, onNewFolder = { dlg = "newfolder" },
+            onRenameFolder = { dlg = "rename_folder" }, onMoveFolder = { dlg = "move_folder" }, onDeleteFolder = { dlg = "del_folder" },
+        )
+        opText?.let { uz.anncorp.qurai.ui.components.QNote(it, tone = if (st.op == uz.anncorp.smeta.feature.disk.DiskOp.DONE) uz.anncorp.qurai.ui.components.QTone.Ok else uz.anncorp.qurai.ui.components.QTone.Danger, modifier = Modifier.padding(bottom = 6.dp)) }
+        LaunchedEffect(st.op) { if (st.op != null) { kotlinx.coroutines.delay(4000); ctl.clearOp() } }
         uz.anncorp.qurai.ui.screens.QDiskList(
             rows = st.rows.map { uz.anncorp.qurai.ui.screens.QDiskRow(it.key, it.folder, it.name, it.sub, it.meta) },
             state = when (st.status) {
@@ -552,7 +583,25 @@ fun DiskScreen(c: Ctx, onOpenModule: (String, Long?) -> Unit = { _, _ -> }) {
             busy = d.busy, notice = notice, noticeOk = d.notice == uz.anncorp.smeta.feature.disk.DiskNotice.SAVED, labels = labels,
             onOpen = { ctl.deliver(null, true) }, onDownload = { ctl.deliver(null, false) }, onVersion = { ctl.deliver(it, false) },
             onSystem = if (ctl.systemTarget() != null) ({ ctl.openInSystem() }) else null, onClose = { ctl.closeFile() },
+            actions = when {
+                d.file.inTrash -> uz.anncorp.qurai.ui.screens.QDiskFileActions(onRestore = { ctl.restoreFile() })
+                st.canWrite && !d.file.system -> uz.anncorp.qurai.ui.screens.QDiskFileActions(onRename = { dlg = "rename_file" }, onMove = { dlg = "move_file" }, onTrash = { ctl.trashFile() })
+                else -> uz.anncorp.qurai.ui.screens.QDiskFileActions()
+            },
         )
+    }
+    when (dlg) {
+        "newfolder" -> uz.anncorp.qurai.ui.screens.QDiskNameDialog(wl.newFolder, "", wl, { dlg = ""; ctl.createFolder(it) }, { dlg = "" })
+        "rename_folder" -> uz.anncorp.qurai.ui.screens.QDiskNameDialog(wl.renameFolder, st.stack.lastOrNull()?.name.orEmpty(), wl, { dlg = ""; ctl.renameFolder(it) }, { dlg = "" })
+        "rename_file" -> uz.anncorp.qurai.ui.screens.QDiskNameDialog(I18n.s("qa4_disk_rename", "Nomini o'zgartirish"), st.detail?.file?.name.orEmpty(), wl, { dlg = ""; ctl.renameFile(it) }, { dlg = "" })
+        "move_folder", "move_file" -> {
+            val forFolder = dlg == "move_folder"
+            uz.anncorp.qurai.ui.screens.QDiskChoiceDialog(wl.moveTitle, ctl.moveTargets(forFolder).map { it.id to it.name.ifBlank { wl.root } }, wl.cancel, { id ->
+                dlg = ""; val target = id.takeIf { it != 0L }
+                if (forFolder) ctl.moveFolder(target) else ctl.moveFile(target)
+            }, { dlg = "" })
+        }
+        "del_folder" -> uz.anncorp.qurai.ui.screens.QDiskChoiceDialog(wl.deleteFolder + ": " + st.stack.lastOrNull()?.name.orEmpty(), listOf(1L to wl.deleteFolder), wl.cancel, { dlg = ""; ctl.deleteFolder() }, { dlg = "" })
     }
 }
 
