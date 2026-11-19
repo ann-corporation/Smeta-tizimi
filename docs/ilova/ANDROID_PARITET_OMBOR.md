@@ -18,7 +18,7 @@ Saytda hamma narsa **bitta omborga (`skladId`)** bog'langan: ish joyi tanlangan 
 | 7 | Qoldiq jadvali: qidiruv (lotin/kirill), sana bo'yicha ostatka (`omborQoldiqSana`), tur filtri, «Faqat ostatkasi bor», 50 tadan sahifalash, Excel eksport | Ostatka ro'yxati + qidiruv + skaner; sanali ostatka, tur filtri, Excel yo'q | GAP |
 | 8 | Material kartasi: tarix (100), «Tuzatish» (miqdor + sabab) va bekor qilish, teskari yozuv chizilgan | Material varag'i (`ItemSheet`) + tarix; tuzatish/bekor yo'q | GAP |
 | 9 | Hisobot paneli (`OmborHisobotPaneli`): davr, jami birlik bo'yicha, summa QQS siz/bilan, narxsiz kirim soni | `OmborReportPanel` mavjud | TEKSHIRILMAGAN (matnlar va maydonlar) |
-| 10 | Ombor lug'ati (`OmborLugat`: nom variantlarini birlashtirish) | yo'q | GAP (BFF `lias` Android'ga ataylab yopilgan, ochish kerakmi — qaror kerak) |
+| 10 | Ombor lug'ati (`OmborLugat`: iboralar, nomini o'zgartirish, birlashtirish, olib tashlash, qo'shish; Material / Yetkazuvchi) | «Ombor lugati» tabi: `lugat_royxat` / `lugat_tahrir` (BFF ochildi, sayt bilan bir xil RPC va kompaniya tekshiruvi), matnlar sayt kalitlari | OK (o'qish emulyatorda sinaldi; yozish faqat omborchi ruxsati bilan, demo rolda tekshirilmagan) |
 | 11 | Matnlar: sayt i18n kalitlari (`Kirim`, `Chiqim`, `Saqlash`, `Tasdiqlash`, `Ostatka`, ...) | `strings.xml` o'z matnlari | GAP (SiteI18n ga o'tkazish) |
 
 ## Tavsiya etilgan tartib (har biri alohida PR, mantiq serverdan)

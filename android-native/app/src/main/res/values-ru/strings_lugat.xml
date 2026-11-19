@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ol_title">Словарь склада</string>
+    <string name="ol_hint">Фразы, которые система поняла и вы подтвердили. В следующий раз они находятся сразу.</string>
+    <string name="ol_material">Материал</string>
+    <string name="ol_supplier">Поставщик</string>
+    <string name="ol_notlinked">Словарь ещё не подключён.</string>
+    <string name="ol_empty">Словарь пока пуст. Подтверждённые соответствия появятся здесь.</string>
+    <string name="ol_phrase">Фраза</string>
+    <string name="ol_name">Существующее название</string>
+    <string name="ol_used">Использовано</string>
+    <string name="ol_save">Сохранить</string>
+    <string name="ol_cancel">Отменить</string>
+    <string name="ol_rename">Переименовать</string>
+    <string name="ol_remove">Удалить</string>
+    <string name="ol_saved">Сохранено</string>
+    <string name="ol_removed">Убрано</string>
+    <string name="ol_merge_name">Общее название</string>
+    <string name="ol_merge">Объединить</string>
+    <string name="ol_merged">Объединено</string>
+    <string name="ol_pick">Выбрать для объединения</string>
+    <string name="ol_added">Добавлено</string>
+    <string name="ol_add">Добавить</string>
+</resources>
