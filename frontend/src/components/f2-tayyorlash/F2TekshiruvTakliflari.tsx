@@ -6,13 +6,14 @@
  * olib tashlash - f2_qoralama_tahrir + bajarilmadi; ikkalasi ham preview ko'rsatiladi va PTO «Tasdiqlayman» bosadi.
  * «Qo'shish» taklifi: qator F-2 muharririda qo'lda qo'shiladi (mavjud yozuv yo'li shu), so'ng «Qabul» faqat qaror sifatida yoziladi.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, ClipboardList, FileText, X } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
 import { DiskdanTanlash } from '../../hujjat-maydoni/DiskdanTanlash';
 import { f2Tasdiq, f2Vosita, type F2Javob } from '../../api/f2-buyruq';
 import { tekshiruvAktTakliflari, tekshiruvHujjatBiriktir, tekshiruvQaror, tekshiruvXatoMatni } from '../../api/t2-tekshiruv';
+import { takliflarOrnat, takliflarTozala, type TaklifAmallari } from './f2-takliflar-store';
 import { qabulQadamlari, takliflarXulosasi, type AktTaklif, type QabulQadam } from '../../lib/tekshiruv/pto';
 
 const BAYROQ_MATN = { olib_tashlansin: 'Olib tashlansin', hajm_notogri: 'Hajm noto‘g‘ri', hujjat_kerak: 'Hujjat kerak', qabul: 'Qabul' } as const;
@@ -29,8 +30,6 @@ export function F2TekshiruvTakliflari({ kompaniyaId, obyektId, aktId, versiya, q
   const [j, setJ] = useState<Jarayon | null>(null);
   const [diskTaklif, setDiskTaklif] = useState<number | null>(null);
   const d = data && data.ok ? data : null;
-  if (!d || d.takliflar.length === 0) return null;
-  const xulosa = takliflarXulosasi(d.takliflar);
 
   const qaror = async (x: AktTaklif, qr: 'qabul' | 'rad' | 'keyinroq', sabab?: string) => {
     const r = await tekshiruvQaror(x.id, qr, sabab ?? null);
@@ -62,6 +61,15 @@ export function F2TekshiruvTakliflari({ kompaniyaId, obyektId, aktId, versiya, q
     await qaror(x, 'qabul'); onOzgardi(); toast(t('F-2 yangilandi va qaror yozildi'), 'ok');
   };
 
+  // Har qator ustida ham ko'rsatish uchun takliflar va amallar umumiy xotiraga beriladi (F2QatorTakliflari); amallar barqaror, eng yangi holatga ishora qiladi.
+  const amalRef = useRef<TaklifAmallari | null>(null);
+  amalRef.current = { qabul: (x) => { void qadamBosh(x).then(() => document.querySelector('[data-testid="tekshiruv-preview"]')?.scrollIntoView?.({ block: 'center' })); }, qaror, band: !!j };
+  const [barqaror] = useState<TaklifAmallari>(() => ({ qabul: (x) => amalRef.current?.qabul(x), qaror: (x, q, s) => amalRef.current?.qaror(x, q, s) ?? Promise.resolve(false), get band() { return amalRef.current?.band ?? false; } }));
+  const takliflarKalit = d ? d.takliflar : null;
+  useEffect(() => { takliflarOrnat({ aktId, takliflar: takliflarKalit ?? [], amallar: barqaror }); }, [aktId, takliflarKalit, barqaror, j]);
+  useEffect(() => () => takliflarTozala(aktId), [aktId]);
+  if (!d || d.takliflar.length === 0) return null;
+  const xulosa = takliflarXulosasi(d.takliflar);
   return (
     <section className="fz-card p-3 flex flex-col gap-2" data-testid="tekshiruv-takliflari">
       <h2 className="m-0 text-[14px] font-semibold flex items-center gap-2"><ClipboardList size={16} aria-hidden="true" /> {t('Texnadzor takliflari')}</h2>
