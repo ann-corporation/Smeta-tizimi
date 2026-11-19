@@ -77,6 +77,9 @@ enum class CellMark { None, Changed, Invalid }
 /** One entry of the right-click menu (the grid adds copy / export / column items itself). */
 class GridAction<R>(val label: String, val enabled: (List<R>) -> Boolean = { it.isNotEmpty() }, val run: (List<R>) -> Unit)
 
+/** A header group above the column header (two-level header of the site's journal): [cols] are the ids of ADJACENT visible columns; [right] aligns the text to the right. */
+class GridGroup(val title: String, val sub: String, val cols: List<String>, val right: Boolean = false)
+
 /**
  * The Windows data grid: virtualized rows (10 000+ stay smooth), sticky header, resizable / hideable / freezable columns, multi-column sort
  * (Shift+click), quick + per-column filters, multi-select (click, Ctrl, Shift, Ctrl+A), keyboard navigation, Ctrl+C = TSV that pastes into
@@ -89,6 +92,9 @@ fun <R> DataGrid(
     rowTone: (R) -> QTone? = { null }, cellMark: (R, GridCol<R>) -> CellMark = { _, _ -> CellMark.None },
     cellsKey: Any? = null, onEdit: ((R, GridCol<R>, String) -> Unit)? = null, onDelete: ((List<R>) -> Unit)? = null, onOpen: ((R) -> Unit)? = null,
     actions: List<GridAction<R>> = emptyList(), onFind: () -> Unit = {}, onExport: ((List<R>) -> Unit)? = null,
+    groups: List<GridGroup>? = null,
+    /** A row drawn as ONE full-width block instead of cells (the in-table section header with its cards): its height and content; not selectable. */
+    fullRow: ((R) -> Pair<androidx.compose.ui.unit.Dp, @Composable () -> Unit>?)? = null,
 ) {
     val c = Q.colors
     val st by rememberUpdatedState(state)
@@ -166,6 +172,20 @@ fun <R> DataGrid(
             val tableW = maxOf(totalW, maxWidth.value).dp
             Box(Modifier.fillMaxSize().horizontalScroll(hs)) {
                 Column(Modifier.width(tableW).fillMaxHeight()) {
+                    if (groups != null) Row(Modifier.fillMaxWidth().background(c.surface2).height(46.dp)) {
+                        var i = 0
+                        while (i < shown.size) {
+                            val g = groups.firstOrNull { shown[i].id in it.cols }
+                            var j = i; while (j < shown.size && g != null && shown[j].id in g.cols) j++
+                            if (g == null) { Box(Modifier.width(widths[i].dp).height(46.dp)); i++; continue }
+                            val w = widths.subList(i, j).sum()
+                            Column(Modifier.width(w.dp).height(46.dp).padding(horizontal = 10.dp, vertical = 4.dp), horizontalAlignment = if (g.right) Alignment.End else Alignment.Start) {
+                                Text(g.title.uppercase(), style = Q.type.labelSmall, color = c.textMute, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(g.sub, style = Q.type.labelSmall, color = c.textMute, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                            i = j
+                        }
+                    }
                     ContextMenuArea(items = {
                         buildList {
                             shown.forEachIndexed { i, col -> add(ContextMenuItem("Muzlatish: shu ustungacha (${col.title})") { onState(st.copy(frozen = i + 1)) }) }
@@ -217,6 +237,8 @@ fun <R> DataGrid(
                         LazyColumn(Modifier.fillMaxWidth().fillMaxHeight(), state = list) {
                             itemsIndexed(view, key = { _, r -> key(r) }, contentType = { _, _ -> "row" }) { idx, r ->
                                 val k = key(r)
+                                val full = fullRow?.invoke(r)
+                                if (full != null) { Box(Modifier.fillMaxWidth().height(full.first)) { full.second() }; return@itemsIndexed }
                                 val ed = edit?.takeIf { it.first == k }?.second
                                 GridRow(r, k, idx, shown, ids, widths, frozenN, hs, k in state.selected, k == state.active, rowTone(r), cellsKey, ed, if (ed != null) editText else "", rowH, hooks)
                             }

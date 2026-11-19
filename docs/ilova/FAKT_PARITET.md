@@ -114,3 +114,7 @@ Saytda menyuda emas, modul ro'yxati orqali ochiladi; Windows'da Fakt toolbar'ida
 | Yuklash kartasi (FotoDalil) | UploadBar | ✅ |
 | Lenta: guruhlar, thumbnail, izoh, Jami | FotoScreen | ✅ |
 | Foto-hisobot (Excel/PDF, token) | yo'q | ⬜ |
+
+## PR-C3: butun Fakt ekrani saytning etaloniga (SAYT_FAKT_ETALON.md)
+
+Ramka, zanjir, kartalar, daraxt, guruhli jadval, jadval ichidagi bo'lim kartalari va amallar (tiklash, Qamrov %, Egizak, Smetadan tashqari, Tahlil, Xotiradan, Daraxt) ishlaydi. Ochiq: tiklashning «Kompaniya bo'yicha» xulosasi; IshAbc normativ katalog/AI; Xotiradan «Boshqa joydan olish»; Daraxt narx nazorati/asl smetadan farq/maydon tahriri; zanjirda AOSR/Forma 3/To'lov/Slichitelniy ma'lumoti (hozir Noma'lum); nakopitelniy farq ogohlantirishi; «Fakt bo'yicha F2 qoralama →» F2 modulini ochadi; Zamena/resursni chiqarish tugmalari.
