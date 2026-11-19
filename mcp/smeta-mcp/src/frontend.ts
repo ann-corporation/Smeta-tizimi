@@ -36,3 +36,5 @@ export { versiyaFiltri } from '../../../frontend/functions/_shared/versiya-oqish
 export { tizimImzosiniQoy } from '../../../frontend/src/lib/hujjat-yozuvchi/tizim-imzo';
 export { hujjatDizayniniYukla } from '../../../frontend/src/api/f2-hujjat-kontekst';
 export { hujjatDizayniniOrnat } from '../../../frontend/src/lib/hujjat-yozuvchi/dizayn';
+// Hujjatlar paketi (hujjat_paket): sayt bilan bir xil toza reja/qoidalar (ikkinchi marta yozilmaydi).
+export { paketReja, qoidaBilanAjrat, tokenBahosi, TUR_NOMI, type Nomzod } from '../../../frontend/src/lib/hujjat-paket/nomzod';

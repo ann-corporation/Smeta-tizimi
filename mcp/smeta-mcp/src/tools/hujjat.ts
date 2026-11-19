@@ -67,7 +67,7 @@ type Bitta = {
   token: TokenNatija; yacheyka?: number; fayl?: string; hajm_bayt: number; disk?: string;
 };
 
-async function bittaAkt(mu: Muhit, a: AktSatr, o: { tasdiq: boolean; papka: string; disk: boolean }): Promise<Bitta> {
+export async function bittaAkt(mu: Muhit, a: AktSatr, o: { tasdiq: boolean; papka: string; disk: boolean }): Promise<Bitta> {
   const aktor = mu.aktorKerak();
   const kid = a.kompaniya_id;
   if (kid == null) throw new Rad(404, 'KOMPANIYA_YOQ', `Akt #${a.id}: obyekt kompaniyasi aniqlanmadi.`);
