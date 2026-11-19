@@ -153,7 +153,8 @@ jobs:
           name: android-native-aab
           path: ${{ env.AAB_PATH }}
           if-no-files-found: error
-          retention-days: 30      - uses: actions/upload-artifact@v4
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
         with:
           name: android-native-apk
           path: |
