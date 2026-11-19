@@ -160,10 +160,10 @@ describe('/api/tekshiruv - PTO qarori', () => {
 
 describe('/api/tekshiruv - Excel import koprigi', () => {
   it('import: aktor sessiyadan, takliflar tozalanadi; noto\'g\'ri taklif/bosh royxat 400; begona 403', async () => {
-    const f = mockFetch({ t2_tekshiruv_excel_import_v1: (b: any) => (b.p_kompaniya_id === 99 ? { ok: false, code: 'RUXSAT_YOQ' } : { ok: true, qoshildi: b.p_takliflar.length, otkazildi: 0 }) });
+    const f = mockFetch({ t2_f2_tekshiruv_excel_import_v1: (b: any) => (b.p_kompaniya_id === 99 ? { ok: false, code: 'RUXSAT_YOQ' } : { ok: true, qoshildi: b.p_takliflar.length, otkazildi: 0 }) });
     const j = await J(await post({ amal: 'import', kompaniya_id: 17, akt_id: 41, fayl_nomi: 'f.xlsx', p_actor_id: 99, takliflar: [{ qator_id: 5, bayroq: 'hajm_notogri', taklif_hajm: 1 }] }));
     expect(j).toEqual({ ok: true, qoshildi: 1, otkazildi: 0 });
-    expect(body(f, 't2_tekshiruv_excel_import_v1')).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 17, p_akt_id: 41, p_fayl_nomi: 'f.xlsx' });
+    expect(body(f, 't2_f2_tekshiruv_excel_import_v1')).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 17, p_akt_id: 41, p_fayl_nomi: 'f.xlsx' });
     expect((await post({ amal: 'import', kompaniya_id: 17, akt_id: 41, takliflar: [] })).status).toBe(400);
     expect((await post({ amal: 'import', kompaniya_id: 17, akt_id: 41, takliflar: [{ qator_id: 5, bayroq: 'yomon' }] })).status).toBe(400);
     expect((await post({ amal: 'import', kompaniya_id: 99, akt_id: 41, takliflar: [{ qator_id: 5, izoh: 'x' }] })).status).toBe(403);

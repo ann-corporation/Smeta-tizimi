@@ -98,7 +98,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     if (!Number.isSafeInteger(kid) || kid <= 0 || !Number.isSafeInteger(akt) || akt <= 0 || !Array.isArray(b.takliflar) || b.takliflar.length < 1 || b.takliflar.length > 3000) return talab();
     const toza = [];
     for (const x of b.takliflar) { const t = x && typeof x === 'object' ? tekshiruvTalabi(x as Record<string, unknown>) : null; if (!t) return talab(); toza.push(t); }
-    const r = await imzoRpc(env, 't2_tekshiruv_excel_import_v1', { p_actor_id: a.id, p_kompaniya_id: kid, p_akt_id: akt, p_takliflar: toza, p_fayl_nomi: typeof b.fayl_nomi === 'string' ? b.fayl_nomi.slice(0, 160) : null });
+    const r = await imzoRpc(env, 't2_f2_tekshiruv_excel_import_v1', { p_actor_id: a.id, p_kompaniya_id: kid, p_akt_id: akt, p_takliflar: toza, p_fayl_nomi: typeof b.fayl_nomi === 'string' ? b.fayl_nomi.slice(0, 160) : null });
     return r?.ok ? json({ ok: true, qoshildi: r.qoshildi, otkazildi: r.otkazildi }) : rpcXato(r);
   }
   const token = b.token;

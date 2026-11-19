@@ -23,8 +23,8 @@ type Jarayon = { taklif: AktTaklif; qadamlar: QabulQadam[]; i: number; javob: F2
 export function F2TekshiruvTakliflari({ kompaniyaId, obyektId, aktId, versiya, qoralama, onOzgardi }: { kompaniyaId: number; obyektId: number; aktId: number; versiya: number; qoralama: boolean; onOzgardi: () => void }) {
   // Provider/react-query ga bog'liq emas va xatoga chidamli: yuklanmasa blok shunchaki ko'rinmaydi (F-2 sahifasi buzilmaydi).
   const [data, setData] = useState<Awaited<ReturnType<typeof tekshiruvAktTakliflari>> | null>(null);
-  const yangila = useCallback(async () => { try { setData(await tekshiruvAktTakliflari(kompaniyaId, aktId)); } catch { setData(null); } }, [kompaniyaId, aktId, versiya]);
-  useEffect(() => { void yangila(); }, [yangila]);
+  const yangila = useCallback(async () => { try { setData(await tekshiruvAktTakliflari(kompaniyaId, aktId)); } catch { setData(null); } }, [kompaniyaId, aktId]);
+  useEffect(() => { void yangila(); }, [yangila, versiya]);
   const [rad, setRad] = useState<{ id: number; sabab: string } | null>(null);
   const [j, setJ] = useState<Jarayon | null>(null);
   const [diskTaklif, setDiskTaklif] = useState<number | null>(null);
