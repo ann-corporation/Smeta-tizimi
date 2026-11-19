@@ -59,7 +59,7 @@ export function taklifBelgilari(t: { bayroq: Bayroq | null; izoh: string | null;
 export type PanelQator = { akt_qator_id: number; qator_id: number; kod: string | null; nom: string | null; birlik: string | null; tur: string; ota_id: number | null; bolim: string | null; hajm: number | null };
 export type PanelTaklif = {
   id: number; tekshiruv_id: number; qator_id: number; bayroq: Bayroq | null; izoh: string | null; taklif_hajm: number | null; rang: Rang | null; hujjat_turi: string | null;
-  qosh: boolean; qaror: Qaror; qaror_sabab: string | null; nom?: string | null; kod?: string | null; birlik?: string | null;
+  qosh: boolean; qaror: Qaror; qaror_sabab: string | null; hujjat_bor?: boolean; nom?: string | null; kod?: string | null; birlik?: string | null;
 };
 export type PanelTekshiruv = { id: number; tekshiruvchi_id: number; tekshiruvchi: string; holat: TekshiruvHolat; izoh: string | null; yangilandi: string; meniki: boolean };
 export type PanelJavob = {

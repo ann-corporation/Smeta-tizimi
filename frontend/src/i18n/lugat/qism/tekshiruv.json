@@ -55,6 +55,7 @@
   "Foto-hisobot": { "ru": "Фотоотчёт", "en": "Photo report" },
   "Texnadzor: shu F-2 ni tekshirish paneliga o‘tish (izoh, hajm taklifi, qator qo‘shish).": { "ru": "Технадзор: перейти к панели проверки этой Ф-2 (комментарии, предложения по объёму, добавление строк).", "en": "Technical supervision: open the review panel for this F-2 (comments, volume proposals, adding rows)." },
   "Tekshirishni boshlash": { "ru": "Начать проверку", "en": "Start the review" },
+  "Hujjat biriktirildi": { "ru": "Документ приложен", "en": "Document attached" },
   "Kirish kerak": { "ru": "Нужно войти", "en": "Sign-in required" },
   "Bu tekshiruvga ruxsatingiz yo‘q": { "ru": "У вас нет доступа к этой проверке", "en": "You have no access to this review" },
   "Tekshiruv topilmadi": { "ru": "Проверка не найдена", "en": "Review not found" },

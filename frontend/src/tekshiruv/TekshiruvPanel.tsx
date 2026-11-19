@@ -93,6 +93,7 @@ function QatorKarta({ q, takliflar, saqla, mening }: { q: PanelQator; takliflar:
           <div className="flex flex-wrap gap-2 items-center">
             {x.bayroq && <span className="rounded px-2" style={{ background: '#ddf4ff' }}>{t(BAYROQ_MATN[x.bayroq])}{x.hujjat_turi ? ` · ${x.hujjat_turi}` : ''}</span>}
             {x.taklif_hajm != null && <span className="rounded px-2" style={{ background: '#fff8c5' }}>{t('Taklif')}: {sonMatn(x.taklif_hajm)}</span>}
+            {x.hujjat_bor && <span className="rounded px-2" style={{ background: '#dafbe1' }}>{t('Hujjat biriktirildi')}</span>}
             {x.qaror !== 'kutilmoqda' && <span className="rounded px-2" style={{ background: x.qaror === 'qabul' ? '#dafbe1' : '#ffebe9' }}>{t(QAROR_MATN[x.qaror])}</span>}
           </div>
           {x.izoh && <p className="m-0">{x.izoh}</p>}

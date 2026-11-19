@@ -59,6 +59,7 @@ create table if not exists public.t2_tekshiruv_taklif (
   qaror_sabab text check (qaror_sabab is null or length(qaror_sabab) <= 1000),
   qaror_id bigint references public.t2_foydalanuvchi(id),
   qaror_vaqt timestamptz,
+  hujjat_id bigint references public.t2_document_registry(id),   -- "hujjat kerak" talabiga PTO biriktirgan hujjat (Disk)
   yaratildi timestamptz not null default now(),
   yangilandi timestamptz not null default now(),
   unique (tekshiruv_id, qator_id),
@@ -145,7 +146,7 @@ begin
     from public.t2_tekshiruv t join public.t2_foydalanuvchi u on u.id = t.tekshiruvchi_id
    where t.bog_id = b.id and (v_rol = 'pto' or t.tekshiruvchi_id = p_actor_id);
   select coalesce(jsonb_agg(jsonb_build_object('id', k.id, 'tekshiruv_id', k.tekshiruv_id, 'qator_id', k.qator_id, 'bayroq', k.bayroq, 'izoh', k.izoh,
-           'taklif_hajm', k.taklif_hajm, 'rang', k.rang, 'hujjat_turi', k.hujjat_turi, 'qosh', k.qosh, 'qaror', k.qaror, 'qaror_sabab', k.qaror_sabab,
+           'taklif_hajm', k.taklif_hajm, 'rang', k.rang, 'hujjat_turi', k.hujjat_turi, 'qosh', k.qosh, 'qaror', k.qaror, 'qaror_sabab', k.qaror_sabab, 'hujjat_bor', k.hujjat_id is not null,
            'nom', case when k.qosh then q.nom end, 'kod', case when k.qosh then q.kod end, 'birlik', case when k.qosh then q.birlik end) order by k.id), '[]'::jsonb) into v_tak
     from public.t2_tekshiruv_taklif k join public.t2_tekshiruv t on t.id = k.tekshiruv_id join public.t2_qator q on q.id = k.qator_id
    where t.bog_id = b.id and (v_rol = 'pto' or t.tekshiruvchi_id = p_actor_id);
