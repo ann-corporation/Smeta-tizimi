@@ -58,7 +58,7 @@ begin
   if not found then return jsonb_build_object('ok', false, 'code', 'AKT_TOPILMADI'); end if;
   select coalesce(jsonb_agg(jsonb_build_object('id', t.id, 'tekshiruvchi', left(coalesce(nullif(btrim(u.ism), ''), u.login), 120), 'holat', t.holat, 'izoh', t.izoh,
            'akt_versiya', b.akt_versiya, 'eskirgan', b.akt_versiya is distinct from a.versiya, 'yangilandi', t.yangilandi, 'token', n.token) order by t.id desc), '[]'::jsonb) into v_tek
-    from public.t2_tekshiruv t join public.t2_tekshiruv_bog b on b.id = t.bog_id join public.t2_nashr n on n.id = b.nashr_id join public.t2_foydalanuvchi u on u.id = t.tekshiruvchi_id
+    from public.t2_tekshiruv t join public.t2_tekshiruv_bog b on b.id = t.bog_id left join public.t2_nashr n on n.id = b.nashr_id join public.t2_foydalanuvchi u on u.id = t.tekshiruvchi_id
    where b.akt_id = a.id;
   select coalesce(jsonb_agg(jsonb_build_object('id', k.id, 'tekshiruv_id', k.tekshiruv_id, 'qator_id', k.qator_id, 'kod', q.kod, 'nom', q.nom, 'birlik', q.birlik, 'bayroq', k.bayroq, 'izoh', k.izoh,
            'taklif_hajm', k.taklif_hajm, 'rang', k.rang, 'hujjat_turi', k.hujjat_turi, 'qosh', k.qosh, 'qaror', k.qaror, 'qaror_sabab', k.qaror_sabab,
