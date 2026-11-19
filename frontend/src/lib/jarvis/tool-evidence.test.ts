@@ -15,7 +15,7 @@ it('selects exact fields with their labels, units, zeros and negative signs', ()
 it('ignores fabricated facts even when the model also selects a valid reference', () => {
   expect(toolSummary(conclusion(['r0p0'], 'Jami 7 million som'), ['Qator ID 7'])).toBe('Qator ID 7');
 });
-it.each([[], ['r0p99'], ['__proto__'], [1], ['r0p0', 'r0p0'], ['r0p0', 'r1p0', 'r2p0', 'r3p0', 'r4p0']])('rejects invalid or repeated references %j', refs => {
+it.each([[], ['r0p99'], ['__proto__'], [1], ['r0p0', 'r0p0'], ['r0p0', 'r1p0', 'r2p0', 'r3p0', 'r4p0']].map(refs => ({ refs })))('rejects invalid or repeated references $refs', ({ refs }) => {
   expect(toolSummary(conclusion(refs), ['Verified 1'])).toBeNull();
 });
 it('never clips a number when the model-context budget is exhausted', () => {
