@@ -2,8 +2,8 @@
  * /api/tekshiruv - TEXNADZOR TEKSHIRUVI (egasi 2026-11-19): F-2 dagi QR -> tekshiruv paneli (/tekshiruv/<token>).
  *
  * `token` = hujjat nashri tokeni (t2_nashr, QR dagi `/t/<token>` bilan bir xil). Aktor FAQAT sessiyadan; ruxsatni RPC hal qiladi
- * (_t2_tekshiruv_rol_v1: PTO a'zosi | buyurtmachi/texnadzor tomon granti | PTO bergan bir martalik kod). Texnadzor F-2 ga YOZMAYDI:
- * hamma narsa taklif (t2_tekshiruv_taklif); F-2 ga yozuv faqat PTO qarori bilan, mavjud /api/f2-buyruq preview->tasdiq yo'lida.
+ * (_t2_f2_tekshiruv_rol_v1: PTO a'zosi | buyurtmachi/texnadzor tomon granti | PTO bergan bir martalik kod). Texnadzor F-2 ga YOZMAYDI:
+ * hamma narsa taklif (t2_f2_tekshiruv_taklif); F-2 ga yozuv faqat PTO qarori bilan, mavjud /api/f2-buyruq preview->tasdiq yo'lida.
  *
  * GET  ?token=...                                                   -> panel (rol, akt, qatorlar smeta tartibida, takliflar)
  * POST {amal:'bog', token, akt_id}                                  -> nashr tokenini (akt, versiya) ga bog'lash (eksport qiluvchi, PTO a'zosi)
@@ -64,7 +64,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   }
   const token = u.searchParams.get('token');
   if (!tokenMi(token)) return json({ ok: false, code: 'TOPILMADI' }, 404);
-  const j = await imzoRpc(ctx.env, 't2_tekshiruv_ochish_v1', { p_actor_id: a.id, p_token: token });
+  const j = await imzoRpc(ctx.env, 't2_f2_tekshiruv_ochish_v1', { p_actor_id: a.id, p_token: token });
   return j?.ok ? json(j) : rpcXato(j);
 };
 
@@ -99,37 +99,37 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     case 'bog': {
       const akt = Number(b.akt_id);
       if (!Number.isSafeInteger(akt) || akt <= 0) return talab();
-      const j = await imzoRpc(env, 't2_tekshiruv_bog_v1', { p_actor_id: a.id, p_token: token, p_akt_id: akt });
+      const j = await imzoRpc(env, 't2_f2_tekshiruv_bog_v1', { p_actor_id: a.id, p_token: token, p_akt_id: akt });
       return j?.ok ? json({ ok: true, yangi: j.yangi === true }) : rpcXato(j);
     }
     case 'saqla': {
       const t = tekshiruvTalabi(b);
       if (!t) return talab();
-      const j = await imzoRpc(env, 't2_tekshiruv_saqla_v1', { p_actor_id: a.id, p_token: token, p_qator_id: t.qator_id, p_bayroq: t.bayroq, p_izoh: t.izoh, p_taklif_hajm: t.taklif_hajm, p_rang: t.rang, p_hujjat_turi: t.hujjat_turi, p_qosh: t.qosh });
+      const j = await imzoRpc(env, 't2_f2_tekshiruv_saqla_v1', { p_actor_id: a.id, p_token: token, p_qator_id: t.qator_id, p_bayroq: t.bayroq, p_izoh: t.izoh, p_taklif_hajm: t.taklif_hajm, p_rang: t.rang, p_hujjat_turi: t.hujjat_turi, p_qosh: t.qosh });
       return j?.ok ? json({ ok: true, id: j.id ?? null, ochirildi: j.ochirildi === true }) : rpcXato(j);
     }
     case 'holat': {
       const h = typeof b.holat === 'string' ? b.holat : '';
       if (!['qoralama', 'korib_chiqildi', 'qaytarildi', 'qabul'].includes(h)) return talab();
-      const j = await imzoRpc(env, 't2_tekshiruv_holat_v1', { p_actor_id: a.id, p_token: token, p_holat: h, p_izoh: typeof b.izoh === 'string' ? b.izoh.slice(0, 2000) : null });
+      const j = await imzoRpc(env, 't2_f2_tekshiruv_holat_v1', { p_actor_id: a.id, p_token: token, p_holat: h, p_izoh: typeof b.izoh === 'string' ? b.izoh.slice(0, 2000) : null });
       return j?.ok ? json({ ok: true, holat: j.holat }) : rpcXato(j);
     }
     case 'qidir': {
       const q = typeof b.q === 'string' ? b.q.trim() : '';
       if (q.length < 2 || q.length > 80) return talab();
-      const j = await imzoRpc(env, 't2_tekshiruv_qidir_v1', { p_actor_id: a.id, p_token: token, p_q: q });
+      const j = await imzoRpc(env, 't2_f2_tekshiruv_qidir_v1', { p_actor_id: a.id, p_token: token, p_q: q });
       return j?.ok ? json({ ok: true, qatorlar: j.qatorlar }) : rpcXato(j);
     }
     case 'kod_ber': {
       const kod = tasodifiyToken();
       const soat = b.soat === undefined ? 72 : Number(b.soat);
       if (!Number.isSafeInteger(soat) || soat < 1 || soat > 336) return talab();
-      const j = await imzoRpc(env, 't2_tekshiruv_kod_ber_v1', { p_actor_id: a.id, p_token: token, p_kod_xesh: await sha256Matn(kod), p_ism: typeof b.ism === 'string' ? b.ism.slice(0, 120) : null, p_soat: soat });
+      const j = await imzoRpc(env, 't2_f2_tekshiruv_kod_ber_v1', { p_actor_id: a.id, p_token: token, p_kod_xesh: await sha256Matn(kod), p_ism: typeof b.ism === 'string' ? b.ism.slice(0, 120) : null, p_soat: soat });
       return j?.ok ? json({ ok: true, kod, soat }) : rpcXato(j);
     }
     case 'kod_ol': {
       if (!tokenMi(b.kod) || urinish.oshdi('k:' + a.id, 8, 15 * 60_000)) return talab();
-      const j = await imzoRpc(env, 't2_tekshiruv_kod_ol_v1', { p_actor_id: a.id, p_token: token, p_kod_xesh: await sha256Matn(b.kod as string) });
+      const j = await imzoRpc(env, 't2_f2_tekshiruv_kod_ol_v1', { p_actor_id: a.id, p_token: token, p_kod_xesh: await sha256Matn(b.kod as string) });
       return j?.ok ? json({ ok: true }) : rpcXato(j);
     }
     default: return talab();
