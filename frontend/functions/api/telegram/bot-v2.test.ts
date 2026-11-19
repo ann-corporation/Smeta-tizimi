@@ -86,7 +86,7 @@ describe('/start (ulangan) — holat va asosiy menyu', () => {
     expect(m.text).toContain('Sinov PTO'); expect(m.text).toContain('/bugun');
     const tugmalar = m.reply_markup.inline_keyboard.flat();
     expect(tugmalar.some((t: any) => t.web_app?.url === SITE + '/tg')).toBe(true);
-    expect(tugmalar.map((t: any) => t.callback_data).filter(Boolean)).toEqual(['m:b', 'm:o', 'm:y']);
+    expect(tugmalar.map((t: any) => t.callback_data).filter(Boolean)).toEqual(['m:b', 'm:o', 'm:y', 'rl:y']);
   });
   it('ulanmagan foydalanuvchi — hech bir yangi buyruq ishlamaydi', async () => {
     const c = net({ t2_telegram_update_qabul_v1: qabul, t2_telegram_aniqla_v1: () => ({ ok: true, ulangan: false }) });

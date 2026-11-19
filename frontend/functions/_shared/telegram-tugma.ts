@@ -54,5 +54,6 @@ export function startTugmalari(env: TgEnv, til: TgTil) {
     [{ text: tgT('Tizimni ochish', til), web_app: { url: saytUrl(env) + '/tg' } }],
     [{ text: tgT('Bugun', til), callback_data: 'm:b' }, { text: tgT('Obyektlar', til), callback_data: 'm:o' }],
     [{ text: tgT('Yordam', til), callback_data: 'm:y' }],
+    [{ text: tgT('📥 Ilovani yuklab olish', til), callback_data: 'rl:y' }],
   ] };
 }
