@@ -21,7 +21,7 @@ begin
   update public.t2_f2_tekshiruv_taklif set qaror = p_qaror, qaror_sabab = case when p_qaror in ('rad', 'keyinroq') then v_sabab else qaror_sabab end,
          qaror_id = case when p_qaror = 'kutilmoqda' then null else p_actor_id end, qaror_vaqt = case when p_qaror = 'kutilmoqda' then null else now() end, yangilandi = now()
    where id = k.id;
-  perform public.t2_audit_yoz(b.kompaniya_id, 'tekshiruv_qaror', 'tekshiruv', k.id, format('taklif=%s qator=%s qaror=%s', k.id, k.qator_id, p_qaror), 'actor:' || p_actor_id, null);
+  perform public.t2_audit_yoz(b.kompaniya_id, 'tekshiruv_qaror', 'tekshiruv', b.obyekt_id, format('taklif=%s qator=%s qaror=%s', k.id, k.qator_id, p_qaror), 'actor:' || p_actor_id, null);
   return jsonb_build_object('ok', true, 'qaror', p_qaror);
 end $$;
 
@@ -41,7 +41,7 @@ begin
     return jsonb_build_object('ok', false, 'code', 'FAYL_TOPILMADI');
   end if;
   update public.t2_f2_tekshiruv_taklif set hm_fayl_id = p_hujjat_id, yangilandi = now() where id = k.id;
-  perform public.t2_audit_yoz(b.kompaniya_id, 'tekshiruv_hujjat', 'tekshiruv', k.id, format('taklif=%s hujjat=%s', k.id, coalesce(p_hujjat_id::text, '-')), 'actor:' || p_actor_id, null);
+  perform public.t2_audit_yoz(b.kompaniya_id, 'tekshiruv_hujjat', 'tekshiruv', b.obyekt_id, format('taklif=%s hujjat=%s', k.id, coalesce(p_hujjat_id::text, '-')), 'actor:' || p_actor_id, null);
   return jsonb_build_object('ok', true, 'hujjat_id', p_hujjat_id);
 end $$;
 

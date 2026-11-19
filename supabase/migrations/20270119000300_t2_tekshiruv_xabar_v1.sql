@@ -101,7 +101,7 @@ begin
     if found then v_ok := v_ok + 1; else v_otkazildi := v_otkazildi + 1; end if;
   end loop;
   update public.t2_f2_tekshiruv set izoh = left('Excel: ' || coalesce(nullif(btrim(p_fayl_nomi), ''), 'fayl'), 2000), yangilandi = now() where id = t.id;
-  perform public.t2_audit_yoz(a.kompaniya_id, 'tekshiruv_excel_import', 'tekshiruv', t.id, format('akt=%s qoshildi=%s otkazildi=%s', a.id, v_ok, v_otkazildi), 'actor:' || p_actor_id, null);
+  perform public.t2_audit_yoz(a.kompaniya_id, 'tekshiruv_excel_import', 'tekshiruv', a.obyekt_id, format('akt=%s qoshildi=%s otkazildi=%s', a.id, v_ok, v_otkazildi), 'actor:' || p_actor_id, null);
   return jsonb_build_object('ok', true, 'qoshildi', v_ok, 'otkazildi', v_otkazildi);
 end $$;
 
