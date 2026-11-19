@@ -18,12 +18,12 @@ import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { serverQaytar, serverSarfla, sarfRad } from '../_shared/hujjat-sarf';
 import { ichkiRejimda } from '../_shared/hujjat-ichki';
-import { sbT2AktReestrOl, sbT2KompaniyalarOl, sbT2ObyektlarOlKomp } from '../../src/api/supabase';
+import { sbT2AktReestrOl } from '../../src/api/supabase';
 import { hujjatDizayniniYukla } from '../../src/api/f2-hujjat-kontekst';
 import { Rad, f2Yasa, rad, type Tayyor } from '../_shared/hujjat-f2';
 import { shartnomaSvodOl } from '../../src/api/t2-nakopitelniy';
-import { sotuvF3lar, type SvodShartnoma } from '../../src/lib/nakopitelniy-svod';
-import { f3ShaklTozala, forma3SotuvdanXlsx } from '../../src/lib/forma3-export';
+import { f3Yasa, obyektHujjati } from '../_shared/hujjat-boshqa';
+import { sotuvF3lar } from '../../src/lib/nakopitelniy-svod';
 import { hujjatKorinishi } from '../../src/lib/hujjat-yozuvchi/korinish';
 import { korinishdanPdf } from '../../src/lib/hujjat-pdf/pdf';
 import { tekshirBazasi } from '../../src/lib/brend';
@@ -31,12 +31,7 @@ import { imzoRpc } from '../_shared/imzo';
 import { hujjatMazmunXeshi } from '../../src/lib/imzo/mazmun';
 import { tasodifiyToken } from '../../src/lib/imzo/yadro';
 import { tizimImzoKodi, tizimImzosiniQoy } from '../../src/lib/hujjat-yozuvchi/tizim-imzo';
-import { mazmunXeshi } from '../../src/api/mazmun-xesh';
-import { nakopitelniyPaketFayli } from '../../src/lib/oylik-hujjat/nakopitelniy';
-import { ostatkaPaketFayli, paketImzosiOl } from '../../src/lib/oylik-hujjat/ostatka-slichitelniy';
-import { m29PaketFayli, pudratchiNomiOl } from '../../src/lib/oylik-hujjat/m29';
 import { NDS_SUKUT_FOIZ } from '../../src/lib/nakopitelniy-vedomost-export';
-import { forma3Manba, obyektHujjatManba, type DiskManba } from '../../src/lib/disk-hujjat';
 import { diskArxivla, diskHolatiMatni, type DiskArxivNatija } from '../_shared/disk-yoz';
 import { f2DiskdanTayyor } from '../_shared/hujjat-tayyor';
 import { hmRpc } from '../_shared/hujjat-maydoni';
@@ -86,33 +81,6 @@ async function royxat(kompaniyaId: number, obyektId: number) {
     }
   }
   return hujjatlar;
-}
-
-async function f3Yasa(kompaniyaId: number, obyektId: number, shartnomaId: number, f3Id: number, shakl: unknown): Promise<Tayyor> {
-  const [svod, komp] = await Promise.all([shartnomaSvodOl(kompaniyaId), sbT2KompaniyalarOl()]);
-  if (!svod.ok) throw new Rad(502, 'SVOD_OQILMADI', 'Shartnoma svodi o‘qilmadi');
-  const sh: SvodShartnoma | undefined = svod.natija.shartnomalar.find((x) => x.id === shartnomaId);
-  if (!sh || !sh.obyektlar.some((o) => o.id === obyektId)) throw new Rad(404, 'SHARTNOMA_TOPILMADI', 'Shartnoma topilmadi');
-  const tashkilot = (komp.qatorlar ?? []).find((k) => k.id === kompaniyaId)?.nom ?? null;
-  const h = forma3SotuvdanXlsx(sh, f3Id, { tashkilot, shakl: f3ShaklTozala(shakl) });
-  if (!h) throw new Rad(409, 'F3_HISOBLANMADI', 'Форма № 3 hisoblanmadi (sana/summa yo‘q)');
-  const f3q = sotuvF3lar(sh).find((x) => x.id === f3Id);
-  return { bytes: h.bytes, faylNomi: h.faylNomi, turi: 'f3', obyektId, davr: null, xesh: await mazmunXeshi(h.bytes), arxivla: true,
-    manba: forma3Manba({ forma3Id: f3Id, shartnomaId: sh.id, raqam: f3q?.raqam ?? null, shartnomaRaqam: sh.raqam ?? null, davr: (f3q?.sotuv_sana ?? '').slice(0, 7) || null }) };
-}
-
-/** Oylik/obyekt hujjatlari: sayt sahifalari va oylik paket ishlatadigan AYNAN o'sha `*PaketFayli` quruvchilari (paket.test: sahifa yo'li bilan bayt-bayt teng). */
-async function obyektHujjati(tur: 'nakopitelniy' | 'm29' | 'slichitelniy' | 'ostatka', kompaniyaId: number, obyektId: number, oySon: number | null, ndsFoiz: number | null): Promise<Tayyor> {
-  const [obyektlar, imzo] = await Promise.all([sbT2ObyektlarOlKomp(kompaniyaId), paketImzosiOl(kompaniyaId, obyektId)]);
-  const ob = (obyektlar.qatorlar ?? []).find((o) => o.id === obyektId);
-  if (!ob) throw new Rad(404, 'OBYEKT_TOPILMADI', 'Obyekt topilmadi');
-  const oy = oySon ? `${String(oySon).slice(0, 4)}-${String(oySon).slice(4, 6)}` : null;
-  if ((tur === 'nakopitelniy' || tur === 'm29') && (!oy || !OY.test(oy))) throw new Rad(400, 'PARAMETR_YOQ', 'oy_son (YYYYMM) kerak');
-  const r = tur === 'nakopitelniy' ? await nakopitelniyPaketFayli({ kompaniyaId, obyektId, obyektNom: ob.nom, oy: oy!, imzo, ndsFoiz })
-    : tur === 'm29' ? await m29PaketFayli({ kompaniyaId, obyektId, obyektNom: ob.nom, oy: oy!, imzo, pudratchi: await pudratchiNomiOl(kompaniyaId).catch(() => null) })
-      : await ostatkaPaketFayli({ kompaniyaId, obyektId, obyektNom: ob.nom, imzo, tur });
-  if (!r.ok) throw new Rad(409, r.bosh ? 'HUJJAT_BOSH' : 'HUJJAT_TUZILMADI', r.xato.slice(0, 200));
-  return { bytes: r.bytes, faylNomi: r.nom, turi: tur, obyektId, davr: oy, xesh: await mazmunXeshi(r.bytes), arxivla: true, manba: obyektHujjatManba({ tur, obyektId, obyekt: ob.nom ?? null, oy }) };
 }
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
