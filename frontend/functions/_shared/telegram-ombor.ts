@@ -180,7 +180,7 @@ export async function javobYasa(env: BotEnv, uid: number, ombor: { id: number; k
     try { belgi = SAVOL_BELGI + await tokenYarat(String(env.SESSIYA_KALIT), { a: uid, k: ombor.kompaniya_id, s: ombor.id, op: 'sv', p: { matn: c.matn, t: c.t, r: c.r, n: ombor.nomi, v: variantlar.map((x) => x.tanlov) } satisfies Record<string, unknown> }); } catch { belgi = ''; }
   }
   if (j.holat === 'tasdiq_kerak' && j.token) {
-    const qatorlar: Record<string, unknown>[][] = [[{ text: tgT('Tasdiqlash', til), callback_data: OMBOR_HA }, { text: tgT('Bekor', til), callback_data: OMBOR_YOQ }]];
+    const qatorlar: Record<string, unknown>[][] = [[...(narxSorov ? [] : [{ text: tgT('Tasdiqlash', til), callback_data: OMBOR_HA }]), { text: tgT('Bekor', til), callback_data: OMBOR_YOQ }]];
     if (narxSorov && belgi) qatorlar.push([{ text: tgT('QQS bilan', til), callback_data: 'os:r:b' }, { text: tgT('QQS siz', til), callback_data: 'os:r:s' }]);
     return { matn: `${tgT('Ombor', til)}: ${ombor.nomi}\n${karta}\n\n${belgi ? belgi + '\n' : ''}${TOKEN_BELGI}${j.token}`, markup: { inline_keyboard: qatorlar } };
   }

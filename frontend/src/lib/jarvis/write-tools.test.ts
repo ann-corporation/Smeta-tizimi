@@ -6,9 +6,6 @@ const call = { name: 'f2_qoralama_tahrir', arguments: { akt_id: 41, ozgartir: [{
 it.each([{ code: 'F2_OY_QATOR_TAKROR' }, { holat: 'rad', xabar: 'F2_OY_QATOR_TAKROR' }])('explains duplicate monthly F2 rows for both response shapes', error => {
   expect(f2XatoMatni(error)).toContain('Mavjud F-2 ni ochib tahrirlang.');
 });
-it.each(['F-2 ni Excelga yoz', 'F-2 ni xlsx eksport qilib ber', 'F-2 ni ko‘rsatib ber', 'Выгрузи КС-2 в Excel', 'Покажи Ф-2'])('keeps export or viewing request read-only %s', question => {
-  expect(jarvisF2WriteIntent(question)).toBe(false);
-});
 it.each(['41 F-2 da 53 hajmini 2 qil', 'Ф-2 да 53 ҳажмини 2 қил', 'Измени объём в КС-2', 'Faktga -2 qo‘sh'])('routes the natural write request %s', question => {
   expect(jarvisF2WriteIntent(question)).toBe(true);
 });

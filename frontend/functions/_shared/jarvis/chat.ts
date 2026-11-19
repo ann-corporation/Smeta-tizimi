@@ -245,6 +245,8 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
     request.jsonSchema = { ...schema, schema: { ...schema.schema, properties: { ...properties,
       tool_call: { anyOf: [...(calls?.anyOf ?? [{ type: 'null' }]), warehouseToolSchema] } } } };
   }
+  request.system += '\nJarvis actions use registered preview tools and manual confirmation. Do not claim the whole assistant is read-only or cannot write. ' +
+    'For an unavailable action explain which integration is missing and link an existing page. Report missing permission as a permission issue.';
   const askModel = (input: AiRequest) => callJarvisModel(env, actor, kid, kasb.profil, input);
   let r = await askModel(request);
   let kir = r.usage?.inputTokens ?? 0;
@@ -256,6 +258,14 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
     let proposed: unknown;
     try { proposed = (JSON.parse(r.text) as { tool_call?: unknown } | null)?.tool_call; } catch { break; }
     if (proposed == null) break;
+    const proposedName = typeof proposed === 'object' && !Array.isArray(proposed) ? (proposed as { name?: unknown }).name : null;
+    if (typeof proposedName === 'string' && proposedName !== warehouseTool.name && !Object.hasOwn(jarvisTools, proposedName) &&
+        !jarvisWriteTools.some(tool => tool.nom === proposedName)) {
+      const page = sahifaQidirish(savol, 1)[0];
+      await telemetriyaYoz(env, { actor, kompaniyaId: kid, yuza: 'jarvis', vositalar: ['unknown_tool'], manba: 'tool', ok: false, xatoKod: 'TOOL_YOQ' });
+      return { status: 200, body: { ok: true, code: 'TOOL_YOQ', javob:
+        'Bu amal hali Jarvis’da yo‘q, mana bu sahifada qiling: ' + `[${page?.nom ?? 'Tizim'}](${page?.yol ?? '/admin'})` } };
+    }
     const warehouse = warehouseCall(proposed);
     if (warehouse && warehouseVisible && env.jarvisWarehouse && Date.now() < deadline) {
       const started = Date.now();

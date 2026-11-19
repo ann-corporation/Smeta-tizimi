@@ -19,10 +19,6 @@ export async function warehouseBotReply(env: TgEnv, actor: number, til: TgTil, s
   const selected = snapshot.warehouses.find(row => row.id === snapshot.warehouseId);
   if (selected && snapshot.result) {
     const card = await javobYasa(env, actor, selected, snapshot.result, til, { matn: snapshot.question, t: {} });
-    if ((snapshot.result.preview as { narx_rejim_sorov?: boolean } | undefined)?.narx_rejim_sorov && card.markup) {
-      card.markup.inline_keyboard = (card.markup.inline_keyboard as Array<Array<{ callback_data?: string }>>)
-        .map(row => row.filter(button => button.callback_data !== 'ob:y')).filter(row => row.length);
-    }
     if (snapshot.result.holat !== 'tasdiq_kerak' && !['javob', 'hisobot'].includes(String(snapshot.result.holat))) {
       const token = await tokenYarat(String(env.SESSIYA_KALIT ?? ''), { a: actor, k: snapshot.company,
         s: selected.id, op: 'jarvis-warehouse-question', p: { question: snapshot.question } });

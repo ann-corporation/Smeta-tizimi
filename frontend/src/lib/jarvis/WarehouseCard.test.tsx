@@ -39,7 +39,7 @@ it('appends missing facts to original command and blocks concurrent sends', asyn
   release(preview); await screen.findByRole('button', { name: 'Tasdiqlash' }); expect(omborTasdiq).not.toHaveBeenCalled();
 });
 it('merges material choices and invalidates old confirmation when reanalysis fails', async () => {
-  const nomzod = { kalit: 'mix', nomi: 'Mix', birligi: 'kg', qoldiq: 5 };
+  const nomzod = { kalit: 'mix', nomi: 'Mix', birligi: 'kg', qoldiq: 5, ball: 0.8, variantlar_soni: 1 };
   vi.mocked(omborTahlilMatn).mockResolvedValueOnce({ ...preview, nomzodlar: [nomzod] }).mockResolvedValueOnce({ ok: false, code: 'NETWORK' }).mockResolvedValue(preview);
   render(<WarehouseCard snapshot={{ ...snapshot, warehouseId: 1, result: preview }} onDone={vi.fn()} />);
   fireEvent.click(screen.getByRole('button', { name: 'QQS siz' }));

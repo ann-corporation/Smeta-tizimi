@@ -13,6 +13,13 @@ beforeEach(() => {
   boundary.rpc.mockResolvedValue({ ok: true, status: 200, data: { fakt: {}, ishlatilgan: ['ombor'], qoidalar: [], xotira: [], manbalar: [] } });
   boundary.model.mockResolvedValue({ model: 'synthetic', provider: 'stub', text: JSON.stringify({ javob: '', harakatlar: [], tool_call: { name: 'warehouse_command', arguments: {} } }) });
 });
+it('reports an unavailable tool with a valid page instead of claiming write is impossible', async () => {
+  boundary.model.mockResolvedValue({ model: 'synthetic', text: JSON.stringify({ tool_call: { name: 'unavailable_action', arguments: {} } }) });
+  const result = await kasbQuvur({ jarvisWarehouse: vi.fn() } as never, 7, 17, { savol: '10 qop sement kirim qil' }, () => {});
+  expect(result.body).toMatchObject({ code: 'TOOL_YOQ' });
+  expect(result.body.javob).toContain('Bu amal hali Jarvis’da yo‘q');
+  expect(result.body.javob).toContain('(/admin');
+});
 it.each(['interactive', 'read-only'] as const)('shared core mode %s enforces warehouse preview access', async mode => {
   const transport = vi.fn().mockResolvedValueOnce({ ok: true, omborlar: [{ id: 3, kompaniya_id: 17, nomi: 'Ombor', yozish: true }] })
     .mockResolvedValueOnce({ ok: true, holat: 'tasdiq_kerak', token: 'signed', preview: { nomi: 'sement', miqdor: 10, birligi: 'qop', tur: 'prixod' } });

@@ -64,7 +64,7 @@ describe('Telegram ombor: aniqlovchi savol tugmalari (to\'liq oqim)', () => {
     javoblar = [kontekst, tasdiq(true)];
     const j = await omborBuyruq(env, 7, 'uz', { matn: 'sement 10 qop 1120 dan keldi' });
     const kb = (j!.markup as Kb).inline_keyboard;
-    expect(kb[0].map((x) => x.callback_data)).toEqual(['ob:y', 'ob:n']);
+    expect(kb[0].map((x) => x.callback_data)).toEqual(['ob:n']);
     expect(kb[1].map((x) => [x.text, x.callback_data])).toEqual([['QQS bilan', 'os:r:b'], ['QQS siz', 'os:r:s']]);
     expect(j!.matn).toMatch(/#OS:[\w-]+\.[\w-]+\n#OB:a\.b$/);
 
