@@ -53,6 +53,14 @@ class JarvisJournalTest {
         assertEquals(ChatCursor("chat", "b".repeat(32)), journal.savedCursor)
     }
 
+    @Test fun cancellingTheSenderLeavesTheAlreadyEncryptedPairRecoverable() = runBlocking {
+        val store = Store()
+        val journal = JarvisJournal(store, "device", 17) { _, _ -> throw kotlinx.coroutines.CancellationException("Synthetic cancellation") }
+        try { journal.submit(draft); fail("Expected cancellation") } catch (_: kotlinx.coroutines.CancellationException) { }
+        assertEquals(draft, store.value)
+        assertEquals(draft, journal.pending)
+    }
+
     @Test fun failedEncryptionAndUnreadableSlotsNeverReachTheServer() = runBlocking {
         val store = Store().apply { badStore = true }; var calls = 0
         val journal = JarvisJournal(store, "device", 17) { _, _ -> calls++; ChatWrite.Failed }

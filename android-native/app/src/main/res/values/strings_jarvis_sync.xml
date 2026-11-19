@@ -1,0 +1,10 @@
+<resources>
+    <string name="jarvis_sync_loading">Suhbat tarixi yuklanmoqda…</string>
+    <string name="jarvis_sync_stale">Suhbat boshqa qurilmada o‘zgargan. Saqlanmagan xabarlarni yangi suhbatga nusxalash mumkin.</string>
+    <string name="jarvis_sync_unreadable">Shifrlangan xabarlar o‘qilmadi. Navbat o‘chirilmadi; yangi xabar yuborish to‘xtatildi.</string>
+    <string name="jarvis_sync_device">Qurilma sessiyasi o‘zgargan. Qayta kiring.</string>
+    <string name="jarvis_sync_failed">Xabarlar saqlanmadi. Qayta urinishgacha ilovani yopmang.</string>
+    <string name="jarvis_sync_retry">Qayta saqlash</string>
+    <string name="jarvis_sync_fork">Saqlanmagan xabarlarni yangi suhbatga saqlash</string>
+    <string name="jarvis_sync_wait">Avval saqlashni yakunlang</string>
+</resources>

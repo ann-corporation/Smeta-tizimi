@@ -338,19 +338,19 @@ fun JarvisPanel(sv: Services, p: Workplace, obj: Obj?, st: JarvisState, focusTic
             } },
             headerExtra = { QButton("", onClose, kind = QButtonKind.Ghost, icon = QIcons.X) },
             focus = focus,
-            onConfirm = { token -> if (st.busy || st.saveIssue != null || device != sv.jarvisOutbox.deviceId()) "Avval saqlashni yakunlang" else sv.jarvis.confirm(p.companyId, token) },
+            onConfirm = { token -> if (st.busy || st.saveIssue != null || device != sv.jarvisOutbox.deviceId()) I18n.s("jarvis_sync_wait", "Avval saqlashni yakunlang") else sv.jarvis.confirm(p.companyId, token) },
             voice = voice,
             belowHeader = {
-                if (st.needsHistory && st.saveIssue == null) Text("Suhbat tarixi yuklanmoqda…", modifier = Modifier.padding(12.dp))
+                if (st.needsHistory && st.saveIssue == null) Text(I18n.s("jarvis_sync_loading", "Suhbat tarixi yuklanmoqda…"), modifier = Modifier.padding(12.dp))
                 if (st.saveIssue != null) Column(Modifier.padding(12.dp)) {
                     Text(when (st.saveIssue) {
-                        JournalIssue.STALE -> "Suhbat boshqa qurilmada o‘zgargan. Saqlanmagan xabarlarni yangi suhbatga nusxalash mumkin."
-                        JournalIssue.UNREADABLE -> "Shifrlangan xabarlar o‘qilmadi. Navbat o‘chirilmadi; yangi xabar yuborish to‘xtatildi."
-                        JournalIssue.DEVICE -> "Qurilma sessiyasi o‘zgargan. Qayta kiring."
-                        else -> "Xabarlar saqlanmadi. Qayta urinishgacha ilovani yopmang."
+                        JournalIssue.STALE -> I18n.s("jarvis_sync_stale", "Suhbat boshqa qurilmada o‘zgargan.")
+                        JournalIssue.UNREADABLE -> I18n.s("jarvis_sync_unreadable", "Shifrlangan xabarlar o‘qilmadi.")
+                        JournalIssue.DEVICE -> I18n.s("jarvis_sync_device", "Qurilma sessiyasi o‘zgargan. Qayta kiring.")
+                        else -> I18n.s("jarvis_sync_failed", "Xabarlar saqlanmadi. Ilovani yopmang.")
                     }, color = Q.colors.danger)
-                    if (st.saveIssue == JournalIssue.RETRY) QButton("Qayta saqlash", { scope.launch { retry() } }, enabled = !st.busy)
-                    if (st.saveIssue == JournalIssue.STALE) QButton("Saqlanmagan xabarlarni yangi suhbatga saqlash", { scope.launch { retry(true) } }, enabled = !st.busy)
+                    if (st.saveIssue == JournalIssue.RETRY) QButton(I18n.s("jarvis_sync_retry", "Qayta saqlash"), { scope.launch { retry() } }, enabled = !st.busy)
+                    if (st.saveIssue == JournalIssue.STALE) QButton(I18n.s("jarvis_sync_fork", "Saqlanmagan xabarlarni yangi suhbatga saqlash"), { scope.launch { retry(true) } }, enabled = !st.busy)
                 }
             },
         )

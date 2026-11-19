@@ -1,6 +1,8 @@
 package uz.anncorp.qurai.desktop
 
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import uz.anncorp.smeta.core.data.ChatWrite
@@ -39,12 +41,16 @@ class JarvisJournal(
 
     suspend fun restore(): PendingJarvisWrite? = mutex.withLock { if (!sameDevice()) null else { load(); pending } }
 
-    suspend fun submit(write: PendingJarvisWrite): String? = mutex.withLock {
-        load()
-        if (!loaded || !sameDevice() || issue == JournalIssue.UNREADABLE || pending != null) return@withLock null
-        savedCursor = null
-        pending = write
-        attempt()
+    suspend fun submit(write: PendingJarvisWrite): String? {
+        val durable = withContext(NonCancellable) { mutex.withLock {
+            load()
+            if (!loaded || !sameDevice() || issue == JournalIssue.UNREADABLE || pending != null) return@withLock false
+            savedCursor = null
+            pending = write
+            issue = JournalIssue.RETRY
+            outbox.store(device, company, write)
+        } }
+        return if (durable) retry() else null
     }
 
     suspend fun retry(): String? = mutex.withLock {
