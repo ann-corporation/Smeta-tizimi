@@ -302,3 +302,24 @@ private fun <R> GridRow(
         }
     }
 }
+
+/**
+ * Drop-in for the old read-only `QTable`: the same columns, now a full grid (resize, multi-sort, filter box via Ctrl+F is not needed here,
+ * multi-select, keyboard, Ctrl+C = Excel TSV, CSV export from the right-click menu). A single click on a row calls [onClick] (master-detail
+ * screens keep working); Enter / double-click too.
+ */
+@Composable
+fun <R> GridTable(
+    rows: List<R>, cols: List<uz.anncorp.qurai.ui.components.QCol<R>>, modifier: Modifier = Modifier, key: ((R) -> Any)? = null,
+    onClick: ((R) -> Unit)? = null, selected: ((R) -> Boolean)? = null, empty: String = "Ma'lumot yo'q",
+) {
+    val gcols = remember(cols) {
+        cols.mapIndexed { i, q -> GridCol<R>("c$i", q.title, q.width.value, numeric = q.numeric, mono = q.mono, sortKey = q.sort, value = q.text) }
+    }
+    val keyOf: (R) -> Any = key ?: remember(rows) { val ids = java.util.IdentityHashMap<R, Int>(); rows.forEachIndexed { i, r -> ids[r] = i }; { r: R -> ids[r] ?: -1 } }
+    var st by remember { mutableStateOf(GridState()) }
+    val click by rememberUpdatedState(onClick)
+    LaunchedEffect(st.active) { val a = st.active ?: return@LaunchedEffect; rows.firstOrNull { keyOf(it) == a }?.let { click?.invoke(it) } }
+    val csv: (List<R>) -> Unit = { r -> saveAndOpen("jadval.csv", GridLogic.toCsv(r, gcols, st).toByteArray(Charsets.UTF_8)) }
+    DataGrid(rows, gcols, key = keyOf, state = st, onState = { st = it }, modifier = modifier, empty = empty, onOpen = onClick, onExport = csv)
+}
