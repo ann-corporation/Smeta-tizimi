@@ -3,6 +3,7 @@ package uz.anncorp.qurai.desktop
 import uz.anncorp.smeta.core.data.formatDate
 
 import uz.anncorp.qurai.ui.components.*
+import uz.anncorp.qurai.ui.icons.QIcons
 
 import uz.anncorp.smeta.core.data.Loaded
 import uz.anncorp.smeta.feature.common.*
@@ -201,8 +202,10 @@ fun F2Screen(c: Ctx) = NeedObject(c) { o ->
     val mny = load(c.place.companyId, c.tick) { c.repo.money(c.place.companyId) }
     val gen = load(o.id, c.tick) { Loaded.Fresh(DocGenRepository(c.sv.api).list(c.place.companyId, o.id).orEmpty()) }
     var pick by remember(o.id) { mutableStateOf<F2Act?>(null) }
+    var editing by remember(o.id) { mutableStateOf<F2Act?>(null) }
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf<String?>(null) }
+    editing?.let { e -> F2DraftScreen(c, o, e) { editing = null; refreshF2++ }; return@NeedObject }
     Page("F-2 aktlar: ${o.nom}", "Qatorni bosing: akt qatorlari ochiladi") {
         if (acts == null) { QLoading(); return@Page }
         acts.Banner()
@@ -225,6 +228,7 @@ fun F2Screen(c: Ctx) = NeedObject(c) { o ->
         val a = pick
         if (a != null) AktSummaStrip(c, a.id)
         if (a != null) F2StepBar(c, a) { pick = null; refreshF2++ }
+        if (a != null) QButton("F-2 tayyorlash: qatorlarni tahrirlash", { editing = a }, kind = QButtonKind.Primary, icon = QIcons.Pencil)
         if (a != null) ActRows(c, o, a)
         val f2docs = gen.valueOrNull().orEmpty().filter { it.isF2 }
         if (f2docs.isNotEmpty()) {
