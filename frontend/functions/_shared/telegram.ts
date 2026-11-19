@@ -21,6 +21,7 @@ import omborSiklMatnlar from '../../src/i18n/lugat/qism/ombor-ideal-sikl.json';
 import omborSavolMatnlar from '../../src/i18n/lugat/qism/telegram-ombor-savol.json';
 import toliqBotMatnlar from '../../src/i18n/lugat/qism/telegram-toliq-bot.json';
 import bildirishnomaMatnlar from '../../src/i18n/lugat/qism/bildirishnoma.json';
+import relizMatnlar from '../../src/i18n/lugat/qism/telegram-reliz.json';
 import { KANONIK_ORIGIN, publicOrigin } from '../../src/lib/sayt-manzil';
 
 export type TgEnv = {
@@ -44,7 +45,7 @@ export const miniAppUrl = (env: TgEnv) => saytUrl(env) + '/tg';
 export const tokenBormi = (env: TgEnv) => /^\d+:[A-Za-z0-9_-]{20,}$/.test(String(env.TELEGRAM_BOT_TOKEN || '').trim());
 
 /* ───────── i18n (lugat/qism/telegram-bot.json; kalit = o'zbek lotin matn) ───────── */
-const LUG = { ...(bildirishnomaMatnlar as Record<string, { ru: string; en: string }>), ...(matnlar as Record<string, { ru: string; en: string }>), ...(kirishMatnlar as Record<string, { ru: string; en: string }>), ...(bot2Matnlar as Record<string, { ru: string; en: string }>), ...(usernameMatnlar as Record<string, { ru: string; en: string }>), ...(kanalMatnlar as Record<string, { ru: string; en: string }>), ...(omborSiklMatnlar as Record<string, { ru: string; en: string }>), ...(omborSavolMatnlar as Record<string, { ru: string; en: string }>), ...(toliqBotMatnlar as Record<string, { ru: string; en: string }>) };
+const LUG = { ...(bildirishnomaMatnlar as Record<string, { ru: string; en: string }>), ...(matnlar as Record<string, { ru: string; en: string }>), ...(kirishMatnlar as Record<string, { ru: string; en: string }>), ...(bot2Matnlar as Record<string, { ru: string; en: string }>), ...(usernameMatnlar as Record<string, { ru: string; en: string }>), ...(kanalMatnlar as Record<string, { ru: string; en: string }>), ...(omborSiklMatnlar as Record<string, { ru: string; en: string }>), ...(omborSavolMatnlar as Record<string, { ru: string; en: string }>), ...(toliqBotMatnlar as Record<string, { ru: string; en: string }>), ...(relizMatnlar as Record<string, { ru: string; en: string }>) };
 export function tilAniqla(languageCode: unknown): TgTil {
   const s = String(languageCode || '').toLowerCase();
   return s.startsWith('ru') ? 'ru' : s.startsWith('en') ? 'en' : 'uz';
@@ -147,6 +148,18 @@ export async function tgApi<T = unknown>(env: TgEnv, metod: string, yuk: Record<
     const r = await fetch(`https://api.telegram.org/bot${token}/${metod}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(yuk),
     });
+    const j = await r.json().catch(() => null) as { ok?: boolean; result?: T; description?: string } | null;
+    const desc = typeof j?.description === 'string' ? j.description.split(token).join('***').slice(0, 200) : undefined;
+    return { ok: !!j?.ok, result: j?.result, description: desc };
+  } catch { return { ok: false, description: 'TARMOQ' }; }
+}
+
+/** Xom tana (multipart/form-data, oqim) bilan Bot API chaqiruvi — fayl yuborish uchun (reliz). Token hech qachon qaytmaydi. */
+export async function tgApiHam<T = unknown>(env: TgEnv, metod: string, tana: BodyInit, sarlavhalar: Record<string, string>): Promise<{ ok: boolean; result?: T; description?: string }> {
+  const token = String(env.TELEGRAM_BOT_TOKEN || '').trim();
+  if (!tokenBormi(env) || !/^[A-Za-z]+$/.test(metod)) return { ok: false, description: 'TOKEN_YOQ' };
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${token}/${metod}`, { method: 'POST', headers: sarlavhalar, body: tana });
     const j = await r.json().catch(() => null) as { ok?: boolean; result?: T; description?: string } | null;
     const desc = typeof j?.description === 'string' ? j.description.split(token).join('***').slice(0, 200) : undefined;
     return { ok: !!j?.ok, result: j?.result, description: desc };

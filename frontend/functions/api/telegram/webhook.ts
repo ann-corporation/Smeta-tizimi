@@ -21,6 +21,8 @@ import { DISK_CB, type TgHujjat, diskCallback, diskFayl } from '../../_shared/te
 import { menUsernameQatori, taklifJavobi, usernameCallback, usernameJavobi, usernameTaklifi } from '../../_shared/telegram-username';
 import { chuqurHavolaOl, toliqCallback, toliqMatn } from '../../_shared/telegram-toliq';
 import { asosiyMenyuJavobi, doimiyMenyu, menyuAmali, rolOl } from '../../_shared/telegram-toliq-yadro';
+import { type RelizEnv, relizElon, relizTop, relizYubor, relizlarniOl } from '../../_shared/telegram-reliz';
+import { superadminUid } from '../../_shared/telegram-kanal';
 import { telegramJarvisMenu, telegramJarvisReply, telegramJarvisSelect, type JarvisBotReply, type JarvisReplyTo } from '../../_shared/telegram-jarvis';
 
 type Xabar = { message_id?: number; reply_to_message?: JarvisReplyTo & { text?: string }; text?: string; caption?: string; photo?: TgRasm[]; document?: TgHujjat; voice?: { file_id?: string; file_size?: number }; audio?: { file_id?: string; file_size?: number }; contact?: { phone_number?: string; user_id?: number }; chat?: { id?: number; type?: string }; from?: { id?: number; is_bot?: boolean; language_code?: string; username?: string } };
@@ -48,6 +50,33 @@ async function jarvisYubor(env: TgEnv, chatId: number, reply: JarvisBotReply) {
   await xabarYubor(env, chatId, reply.matn, reply.options);
 }
 
+/** RELIZ: «📥 Ilovani yuklab olish» / /yuklash — ochiq reliz fayllari (ulanmagan foydalanuvchiga ham; manifestlar ochiq). Fayl ≤ 50 MB: sendDocument, aks holda URL tugma. */
+export async function relizlarniYubor(env: TgEnv, chatId: number, til: TgTil): Promise<string> {
+  const r = await relizlarniOl(env as RelizEnv);
+  if (!r.length) { await xabarYubor(env, chatId, tgT('Hozircha yuklab olinadigan reliz topilmadi.', til)); return 'reliz_yoq'; }
+  await xabarYubor(env, chatId, tgT('QURAI ilovasining oxirgi versiyalari yuborilmoqda.', til));
+  for (const x of r) await relizYubor(env as RelizEnv, chatId, x, til);
+  return 'reliz_yuklash';
+}
+
+/** RELIZ: /reliz_elon [android|windows] [versiya] — FAQAT superadmin; qayta e'lon (kanal + guruh), majburiy. */
+async function relizElonBuyruq(env: TgEnv, uid: number, til: TgTil, arg: string): Promise<{ matn: string; amal: string }> {
+  if (!await superadminUid(env as never, uid)) return { matn: tgT('Bu buyruq faqat superadmin uchun.', til), amal: 'reliz_elon_ruxsatsiz' };
+  const q = arg.split(/\s+/).filter(Boolean);
+  const platforma = q[0] === 'android' || q[0] === 'windows' ? q.shift() as 'android' | 'windows' : null;
+  const versiya = q.shift() ?? null;
+  const joriy = await relizlarniOl(env as RelizEnv);
+  let tanlangan = joriy.filter((x) => !platforma || x.platforma === platforma);
+  if (versiya) {
+    const t = await Promise.all((platforma ? [platforma] : ['android', 'windows'] as const).map((p) => relizTop(env as RelizEnv, p, versiya, joriy)));
+    tanlangan = t.filter((x): x is NonNullable<typeof x> => !!x);
+  }
+  if (!tanlangan.length) return { matn: tgT('Reliz topilmadi. Namuna: /reliz_elon android 0.1.21', til), amal: 'reliz_elon_yoq' };
+  const n = await relizElon(env as RelizEnv, { relizlar: tanlangan, majbur: true, kim: uid });
+  const sana = (h: string) => n.filter((x) => x.holat === h).length;
+  return { matn: tgT('Reliz e’loni: yuborildi {yuborildi}, o‘tkazildi {otkazildi}, xato {xato}.', til, { yuborildi: sana('yuborildi'), otkazildi: sana('otkazildi'), xato: sana('xato') }), amal: 'reliz_elon' };
+}
+
 /** Inline tugma bosildi. Faqat shaxsiy chat (chat.id == from.id) va BOG'LANGAN foydalanuvchi; amal ruxsati — mavjud qatlamda (telegram-bot.ts). */
 async function callbackAjrat(env: TgEnv, cb: Callback, tgId: number | undefined): Promise<string> {
   const chat = cb.message?.chat;
@@ -57,6 +86,7 @@ async function callbackAjrat(env: TgEnv, cb: Callback, tgId: number | undefined)
     return 'etibor_yoq';
   }
   const til = tilAniqla(cb.from?.language_code);
+  if (cb.data === 'rl:y') { await javobBer(); return relizlarniYubor(env, chat.id as number, til); }   // RELIZ: ochiq fayllar, hisob ulanishi shart emas
   const a = await tgRpc<{ ok?: boolean; ulangan?: boolean; foydalanuvchi_id?: number }>(env, 't2_telegram_aniqla_v1', { p_telegram_user_id: tgId });
   if (!a?.ok || !a.ulangan || !a.foydalanuvchi_id) { await javobBer(tgT('Avval hisobni ulang', til)); return 'cb_ulanmagan'; }
   if (typeof cb.data === 'string' && cb.data.startsWith('j:')) {
@@ -173,6 +203,8 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
     return 'ulash_rad:' + (r?.code || 'xato');
   }
 
+  if (b?.buyruq === 'yuklash' || b?.buyruq === 'download') return relizlarniYubor(env, chatId, til);   // RELIZ: ochiq (ulanmagan ham)
+
   const a = await tgRpc<{ ok?: boolean; ulangan?: boolean; foydalanuvchi_id?: number }>(env, 't2_telegram_aniqla_v1', { p_telegram_user_id: tgId });
   if (!a?.ok) { await xabarYubor(env, chatId, tgT('Server bilan aloqa yo‘q. Birozdan keyin urinib ko‘ring.', til)); return 'baza_xato'; }
   if (!a.ulangan || !a.foydalanuvchi_id) { await xabarYubor(env, chatId, ulangMatni(env, til)); return 'ulanmagan'; }
@@ -236,6 +268,7 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
       return 'menyu';
     }
     case 'tasdiqlar': { const g = await toliqCallback(env, uid, til, { data: 'g:t:0' }, chatId); if (g?.xabar) await yubor(env, chatId, g.xabar); return 'tasdiqlar'; }
+    case 'reliz_elon': { const j = await relizElonBuyruq(env, uid, til, b?.arg ?? ''); await xabarYubor(env, chatId, j.matn); return j.amal; }
     case 'bugun': await yubor(env, chatId, await bugunJavobi(env, uid, til)); return 'bugun';
     case 'obyektlar': await yubor(env, chatId, await obyektlarJavobi(env, uid, til)); return 'obyektlar';
     case 'jarvis':

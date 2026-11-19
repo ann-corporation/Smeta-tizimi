@@ -1,0 +1,52 @@
+name: reliz-elon
+
+# Yangi dastur relizi (frontend/public/mobile-release.json yoki desktop-release.json o'zgarsa) — Telegram kanal va guruhda e'lon (fayli bilan).
+# Idempotent: bir versiya bir chatga bir marta (server R2 yozuvi); qayta ishga tushirish xavfsiz. Qo'lda: Actions → reliz-elon → Run workflow.
+# Sozlash: GitHub sir BILDIRISHNOMA_CRON_KALIT + repo o'zgaruvchisi PROD_URL (telegram-kunlik bilan bir xil). Sozlanmasa jim o'tkazib yuboriladi.
+# Doc: docs/ops/TELEGRAM_RELIZ.md
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/public/mobile-release.json'
+      - 'frontend/public/desktop-release.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reliz-elon
+  cancel-in-progress: false
+
+jobs:
+  elon:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      BILDIRISHNOMA_CRON_KALIT: ${{ secrets.BILDIRISHNOMA_CRON_KALIT }}
+      PROD_URL: ${{ vars.PROD_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy tayyor bo'lguncha kutish va e'lon
+        run: |
+          if [ -z "$BILDIRISHNOMA_CRON_KALIT" ] || [ -z "$PROD_URL" ]; then
+            echo "BILDIRISHNOMA_CRON_KALIT yoki PROD_URL sozlanmagan — o'tkazib yuborildi."; exit 0
+          fi
+          kutilgan_a=$(jq -r '.android.version // empty' frontend/public/mobile-release.json)
+          kutilgan_w=$(jq -r '.version // empty' frontend/public/desktop-release.json)
+          # Sayt yangi manifestni berguncha (Pages deploy) kutamiz — fayl R2 da va manifest ochiq bo'lishi shart.
+          for i in $(seq 1 40); do
+            jonli_a=$(curl -fsS --max-time 20 "$PROD_URL/mobile-release.json" | jq -r '.android.version // empty' || true)
+            jonli_w=$(curl -fsS --max-time 20 "$PROD_URL/desktop-release.json" | jq -r '.version // empty' || true)
+            if [ "$jonli_a" = "$kutilgan_a" ] && [ "$jonli_w" = "$kutilgan_w" ]; then break; fi
+            echo "Deploy kutilmoqda ($i/40)"; sleep 30
+          done
+          if [ "$jonli_a" != "$kutilgan_a" ] || [ "$jonli_w" != "$kutilgan_w" ]; then
+            echo "::warning::Sayt manifesti repo bilan mos kelmadi — e'lon o'tkazib yuborildi (qo'lda qayta ishga tushiring)."; exit 0
+          fi
+          code=$(curl -sS -o resp.json -w '%{http_code}' -X POST "$PROD_URL/api/telegram/reliz" \
+            -H 'Content-Type: application/json' -H "X-Cron-Kalit: $BILDIRISHNOMA_CRON_KALIT" \
+            --data '{"amal":"elon"}' --max-time 300 || echo 000)
+          echo "HTTP $code"; head -c 600 resp.json; echo
+          if [ "$code" != "200" ]; then echo "::warning::reliz-elon muvaffaqiyatsiz (HTTP $code)"; exit 1; fi
