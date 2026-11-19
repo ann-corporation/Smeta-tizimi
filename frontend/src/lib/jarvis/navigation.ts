@@ -2,6 +2,7 @@ import { SAHIFALAR } from '../reestr/sahifa';
 import { qidiruvKaliti } from '../../i18n/lotin-kirill';
 
 export type JarvisOpen = { kalit: string; yol: string; parametrlar: Record<string, number> };
+export const navigationKey = (path: string): string | null => SAHIFALAR.find(page => page.yol === path)?.kalit ?? null;
 export const navigationTool = { name: 'navigate', mode: 'read', description: 'Offer a registered page to open. Never performs a business operation.' } as const;
 export const navigationSchema = { type: 'object', additionalProperties: false, required: ['name', 'arguments'], properties: {
   name: { const: navigationTool.name }, arguments: { type: 'object', additionalProperties: false, required: ['page_key'],

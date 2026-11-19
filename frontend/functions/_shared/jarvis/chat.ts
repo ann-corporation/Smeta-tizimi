@@ -16,8 +16,8 @@ import type { AiRequest } from '../ai';
 import { jarvisF2WriteIntent, jarvisWriteTools, jarvisWriteSchemas, parseJarvisWriteCall, toolSummary, type JarvisPreviewCall } from '../../../src/lib/jarvis/write-tools';
 import { previewMatni, f2XatoMatni } from '../../../src/lib/yordamchi/vosita/f2-mcp-liniya';
 import { jarvisHasPermission } from './authority';
-import { navigationCall, navigationIntent, navigationSchema, navigationTool } from '../../../src/lib/jarvis/navigation';
-import { navigationAnswer, verifiedPageContext } from './navigation';
+import { navigationCall, navigationIntent, navigationKey, navigationSchema, navigationTool } from '../../../src/lib/jarvis/navigation';
+import { navigationAnswer, navigationVisible, verifiedPageContext } from './navigation';
 import { telemetriyaYoz } from '../ai-telemetriya';
 import { jarvisLanguage, jarvisText } from './reply-language';
 import { callJarvisModel, type JarvisModelEnv } from './model';
@@ -338,6 +338,8 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
   const modelYoli = yolTekshir(ajr.otish);
   const qidirish = navigatsiyaSorovi(savol) ? sahifaQidirish(savol, 2) : [];
   for (const y of [...(modelYoli ? [{ yol: modelYoli, nom: sahifaQidirish(modelYoli.replace(/[/-]/g, ' '), 1)[0]?.nom ?? modelYoli }] : []), ...qidirish]) {
+    const key = navigationKey(y.yol);
+    if (!key || !navigationVisible(men ?? null, kid, key)) continue;
     if (!sahifalar.some((x) => x.yol === y.yol)) sahifalar.push(y);
   }
   if (sahifalar.length) qd('🧭', `Tegishli sahifa: ${sahifalar.map((x) => x.nom).join(', ')}`);
