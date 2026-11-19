@@ -22,6 +22,7 @@ import { narxProtokolXlsx, protokolNomzodlari } from '../../lib/narx-protokol-hu
 import type { ImzoNomlar } from '../../lib/hujjat-yozuvchi';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
+import { DiskdanTanlashTugma } from '../../hujjat-maydoni/DiskdanTanlash';
 
 const pul = (v: number | null | undefined) => (v == null ? '—' : Number(v).toLocaleString('ru-RU', { maximumFractionDigits: 2 }));
 const keyingiOy = () => { const d = new Date(); d.setMonth(d.getMonth() + 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
@@ -165,7 +166,7 @@ export function NarxProtokolPanel(p: { kompaniyaId: number; obyektId: number; ob
                     {imzoForma?.id === pr.id && (
                       <div className="mt-2 flex flex-wrap items-end justify-end gap-2 rounded border border-accent/30 p-2">
                         <label className="text-text-dim">{t('Imzolangan nusxa (PDF/skan)')}
-                          <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xlsx" className="mt-1 block" onChange={(e) => setImzoForma((f) => f && { ...f, fayl: e.target.files?.[0] ?? null })} /></label>
+                          <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xlsx" className="mt-1 block" onChange={(e) => setImzoForma((f) => f && { ...f, fayl: e.target.files?.[0] ?? null })} /></label><DiskdanTanlashTugma accept=".pdf,.jpg,.jpeg,.png,.xlsx" onFayllar={(fl) => setImzoForma((f) => f && { ...f, fayl: fl[0] ?? null })} />
                         <label className="text-text-dim">{t('Kuchga kirish oyi')}
                           <input type="month" value={imzoForma.oy} onChange={(e) => setImzoForma((f) => f && { ...f, oy: e.target.value })} className="mt-1 block rounded border px-2 py-1" /></label>
                         <button type="button" disabled={!imzoForma.fayl || band2} onClick={() => void tasdiqla()} className="inline-flex items-center gap-1 rounded bg-accent px-3 py-1 text-white disabled:opacity-40"><CheckCircle2 size={13} /> {t('Tasdiqlash')}</button>

@@ -9,6 +9,7 @@ import { bankKalitlari, bankParse, csvGrid } from '../../lib/buxgalteriya/bank';
 import { readWorkbookGrids } from '../../lib/qarzdorlik/parse';
 import { Izoh, Son, XatoQator } from './umumiy';
 import { ddmmyyyy, td, th } from './yordamchi';
+import { DiskdanTanlashTugma } from '../../hujjat-maydoni/DiskdanTanlash';
 
 /** Bank: ko'chirma qatorlari navbati. Har qatorga taklif (ball + sabab); bir bosishda qabul (to'lov yoki oylik); aniqlanmaganlar navbatda qoladi. */
 export function BankAniq({ kid, versiya, yozadi, onOzgardi }: { kid: number; versiya: number; yozadi: boolean; onOzgardi: () => void }) {
@@ -55,7 +56,7 @@ export function BankAniq({ kid, versiya, yozadi, onOzgardi }: { kid: number; ver
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[13px] font-semibold">{t('Bank: aniqlash navbati (выписка банка)')}</span>
         <Izoh matn={t('Ko‘chirma qatorlari navbatga tushadi. Har qatorga shartnoma raqami, STIR/nom va ochiq qarz summasi bo‘yicha taklif beriladi (ball va sabab bilan). «Qabul» — to‘lov yoziladi va provodka bir marta hosil bo‘ladi. Ish haqi qatorlari tasdiqlangan oylikka bog‘lanadi. Aniqlanmaganlar navbatda qoladi.')} />
-        {yozadi && <label className="fz-btn cursor-pointer"><FileUp size={14} /> {t('Ko‘chirma yuklash')}<input type="file" className="hidden" accept=".csv,.txt,.xlsx,.xls" aria-label={t('Bank ko‘chirmasi fayli')} disabled={band} onChange={(e) => void faylTanla(e.target.files?.[0])} /></label>}
+        {yozadi && <label className="fz-btn cursor-pointer"><FileUp size={14} /> {t('Ko‘chirma yuklash')}<input type="file" className="hidden" accept=".csv,.txt,.xlsx,.xls" aria-label={t('Bank ko‘chirmasi fayli')} disabled={band} onChange={(e) => void faylTanla(e.target.files?.[0])} /></label>}{yozadi && <DiskdanTanlashTugma accept=".csv,.txt,.xlsx,.xls" disabled={band} onFayllar={(f) => faylTanla(f[0])} onXato={setXato} />}
         {d && <span className="text-[12px] text-text-mute">{t('Navbatda: {n}; qabul qilingan: {q}', { n: d.jami.kutmoqda, q: d.jami.qabul })}</span>}
       </div>
       <div className="max-h-[70vh] overflow-auto">

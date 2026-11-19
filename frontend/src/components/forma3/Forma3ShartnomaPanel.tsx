@@ -181,7 +181,7 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
         f3Id = Number(j.forma3_id) || null;
       } catch (e) {
         const kod = `${(e as { code?: string })?.code ?? ''} ${e instanceof Error ? e.message : ''}`;
-        setXato(/FORMA3_AKT_BAND/.test(kod) ? t('Tanlangan F2 aktlardan biri allaqachon boshqa Forma 3 ga kiritilgan — ro‘yxatni yangilang.')
+        setXato(/FORMA3_F2_TAKROR/.test(kod) ? t('Bu obyekt/oy uchun bir nechta F-2 bor (obyekt x oy = bitta F-2). Ortiqcha F-2 ni bekor qiling.') : /FORMA3_AKT_BAND/.test(kod) ? t('Tanlangan F2 aktlardan biri allaqachon boshqa Forma 3 ga kiritilgan — ro‘yxatni yangilang.')
           : /FORMA3_AKT_INVALID/.test(kod) ? t('Tanlangan aktlar shartnoma/davrga mos kelmadi — ro‘yxatni yangilang.')
           : /DENIED|403/.test(kod) ? t('Forma 3 yaratish uchun ruxsat yo‘q (rahbar/buxgalter kerak).')
           : t('Forma 3 yozuvi yaratilmadi. Qayta urinib ko‘ring.'));

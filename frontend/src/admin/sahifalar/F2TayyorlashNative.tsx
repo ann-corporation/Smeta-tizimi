@@ -73,6 +73,7 @@ import { useAktPodvallar } from '../../umumiy/ui/useAktPodvallar';
 import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 import { eskiBloklarHujjat, pereraschetBaholash, pereraschetBloklari, type PereraschetSmetaQator as PereraschetSmetaQatorT } from '../../lib/f2-pereraschet';
 import { PereraschetPanel } from '../../components/f2-tayyorlash/PereraschetPanel';
+import { F2TexnadzorSolishtir } from '../../components/f2-tayyorlash/F2TexnadzorSolishtir';
 import { obyektPodvali } from '../../api/t2-nakrutka-podval';
 import { sbAosrCoverageOl, type AosrCoverage } from '../../api/t2-aosr';
 import { aosrIshora, AOSR_ISHORA_MATNI, type AosrIshora } from '../../lib/nazorat/aosr-holat';
@@ -193,6 +194,7 @@ export function F2TayyorlashNative() {
   const [kengaygan, setKengaygan] = useState<Set<number>>(new Set());
   /** Resurs vedomosti (tanlangan ishlar resurslari + narxlash) ochiqmi. */
   const [vedomostOchiq, setVedomostOchiq] = useState(false);
+  const [tnOchiq, setTnOchiq] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -211,6 +213,7 @@ export function F2TayyorlashNative() {
   const aktParam = Number(params.get('akt'));
   const aktId = Number.isSafeInteger(aktParam) && aktParam > 0 ? aktParam : null;
   const [akt, setAkt] = useState<TahrirAkt | null>(null);
+  const tnQoralama = useMemo(() => { if (!tnOchiq || !akt) return []; const xr = new Map(rows.map((y) => [y.id, y])); return akt.qatorlar.map((x) => { const r = xr.get(x.qator_id); return { id: x.qator_id, kod: r?.kod ?? null, nom: r?.nom ?? null, tur: r?.tur ?? null, hajm: sonQ(x.hajm ?? x.certified_quantity), narx: sonQ(x.certified_unit_price) }; }); }, [tnOchiq, akt, rows]);
   const [aktXato, setAktXato] = useState('');
   const aktQollandi = useRef<string | null>(null);
   /** Faqat qoralama (draft) akt tahrirlanadi; tasdiqlangan/yuborilgan - faqat ko'rish. */
@@ -1256,6 +1259,7 @@ export function F2TayyorlashNative() {
       )}
       {validId && aktId != null && eskiBloklar.length > 0 && aktPodval.holat === 'xato' && <section role="alert" className="fz-note fz-note--warn" style={{ alignItems: 'center' }}><AlertTriangle /><span className="flex-1">{t('Hujjat podvallari o‘qilmadi — pereraschet jami va Excel hisoblanmaydi.')}</span><button type="button" onClick={aktPodval.qayta} className="fz-btn fz-btn--sm">{t('Qayta urinib ko‘rish')}</button></section>}
       {validId && aktId != null && pereraschetBaho && <PereraschetPanel baho={pereraschetBaho} />}
+        {validId && aktId != null && akt && tnOchiq && <F2TexnadzorSolishtir qoralama={tnQoralama} aktRaqam={akt.raqam ?? ''} obyektId={obyektId} onYop={() => setTnOchiq(false)} />}
       {!validId && <section className="fz-card p-4 text-text-dim">{t('Avval obyektni tanlang.')}</section>}
       {error && validId && <section role="alert" className="fz-note fz-note--danger" style={{ alignItems: 'center' }}><AlertTriangle /><span className="flex-1">{t(error)}</span><button type="button" onClick={() => void yuklash()} className="fz-btn fz-btn--danger fz-btn--sm">{t('Qayta urinib ko‘rish')}</button></section>}
       {loading && <div className="skel min-h-[260px] flex-1 rounded-xl" />}
@@ -1328,6 +1332,7 @@ export function F2TayyorlashNative() {
             <div role="group" aria-label={t('Qo‘shimcha amallar')} className="flex items-center gap-1 border-l border-border pl-3">
               <button type="button" aria-pressed={vedomostOchiq} disabled={qatorlar.length === 0} onClick={() => setVedomostOchiq((o) => !o)} className={`fz-btn fz-btn--sm ${vedomostOchiq ? '' : 'fz-btn--ghost'}`}>{t('Resurs vedomosti')}</button>
               <Link to={`/admin/f2-tarix?obyekt=${obyektId}`} className="fz-btn fz-btn--ghost fz-btn--sm">{t('F2 tarixi')}</Link>
+              {aktId != null && akt && <button type="button" aria-pressed={tnOchiq} onClick={() => setTnOchiq((o) => !o)} className="fz-btn fz-btn--ghost fz-btn--sm">{t('Texnadzor faylini solishtirish')}</button>}
               <button type="button" onClick={() => void excelYuklash(false)} disabled={!(tayyor || eskiBloklar.length > 0) || saving} className="fz-btn fz-btn--ghost fz-btn--sm"><Download aria-hidden="true" />{t('Excel')}</button>
               <button type="button" onClick={() => void excelYuklash(true)} disabled={!(tayyor || eskiBloklar.length > 0) || saving} aria-label="Forma-2 qoralama ko‘rish" title={t('Forma-2 qoralama ko‘rish')} className="fz-btn fz-btn--ghost fz-btn--sm fz-btn--icon"><Eye aria-hidden="true" /></button>
             </div>

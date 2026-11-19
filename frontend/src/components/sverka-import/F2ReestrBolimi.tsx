@@ -13,6 +13,7 @@ import { reestrCsvOqi, reestrMosla, type ReestrTahlil } from '../../lib/sverka-1
 import type { MoslashShartnoma, TizimShartnoma } from '../../lib/sverka-1c/turlar';
 import { pul, raqamUstun } from './yordamchi';
 import { raqamTozala } from '../../lib/raqam-belgi';
+import { DiskdanTanlashTugma } from '../../hujjat-maydoni/DiskdanTanlash';
 
 export function F2ReestrBolimi({ companyId, shartnomalar, moslash, yangila }: { companyId: number; shartnomalar: TizimShartnoma[]; moslash: MoslashShartnoma[]; yangila: () => unknown }) {
   const [tahlil, setTahlil] = useState<ReestrTahlil | null>(null);
@@ -21,7 +22,7 @@ export function F2ReestrBolimi({ companyId, shartnomalar, moslash, yangila }: { 
   const qatorlar = useMemo(() => (tahlil ? reestrMosla(tahlil.qatorlar, shartnomalar, moslash, tanlov) : []), [tahlil, shartnomalar, moslash, tanlov]);
   const mavjud = moslash.reduce((a, m) => a + m.f2_reestr.length, 0);
 
-  async function fayl(list: FileList | null) {
+  async function fayl(list: FileList | File[] | null) {
     const f = list?.[0];
     if (!f) return;
     void aslFaylSaqla(f, { kompaniyaId: companyId, turi: 'asl_f2' });
@@ -48,7 +49,7 @@ export function F2ReestrBolimi({ companyId, shartnomalar, moslash, yangila }: { 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', alignItems: 'center' }}>
         <label className="fz-btn" style={{ cursor: 'pointer' }}>
           <Upload />{t('Reestr CSV yuklash')}
-          <input type="file" accept=".csv,.txt" hidden onChange={(e) => { void fayl(e.target.files); e.target.value = ''; }} />
+          <input type="file" accept=".csv,.txt" hidden onChange={(e) => { void fayl(e.target.files); e.target.value = ''; }} /><DiskdanTanlashTugma accept=".csv,.txt" onFayllar={(f) => fayl(f)} />
         </label>
         <span style={{ fontSize: 12, color: 'var(--text-mute)' }}>№;Lot;Obyekt_ish;Davr;QQSsiz;QQS;QQS_bilan;Holat</span>
         {tahlil && <button type="button" className="fz-btn fz-btn--primary" disabled={band || !qatorlar.some((q) => q.shartnomaId != null)} onClick={() => void yoz()}><Save />{t('Reestrni yozish')}</button>}

@@ -9,6 +9,7 @@
  * Parallel ta'rif yo'q: nom, tavsif, parametrlar — src/lib/jarvis/f2-vositalar.ts reyestridan.
  */
 import { F2_VOSITALAR, OQISH_NOMLARI, YOZISH_NOMLARI, type Vosita as F2Vosita } from '../../jarvis/f2-vositalar';
+import { t } from '../../../i18n/til';
 import type { F2Javob, F2Preview, F2Uchlik } from '../../jarvis/f2-javob';
 import { pulMatn } from './yordam';
 import type { Vosita, VositaJavob, VositaKont } from './tur';
@@ -21,13 +22,15 @@ const son = (n: number | null | undefined) => (n == null ? '—' : String(Math.r
 /** Server xato kodi → tushunarli o'zbekcha (ichki matn ko'rsatilmaydi). */
 export function f2XatoMatni(j: F2Javob): string {
   const m: Record<string, string> = {
+    F2_OY_QATOR_TAKROR: t('Bu qator shu oy uchun boshqa F-2 ga kiritilgan. Mavjud F-2 ni ochib tahrirlang.'),
     PERMISSION_DENIED: 'Bu amalga sizda ruxsat yo\'q.', MODULE_DISABLED: 'Bu modul kompaniyangizda o\'chirilgan.', TOPILMADI: 'Obyekt yoki hujjat topilmadi.', DRY_RUN_YOQ: 'Yozuv hozircha yoqilmagan (server tekshiruvi tayyor emas).',
     TOKEN_YETMAYDI: 'Tokenlar yetarli emas — hisobni to\'ldiring.', TOKEN_MUDDATI_OTGAN: 'Tasdiq muddati o\'tdi — qayta so\'rang.', TOKEN_YAROQSIZ: 'Tasdiq yaroqsiz — qayta so\'rang.',
     MALUMOT_OZGARGAN: 'Ko\'rsatilgandan keyin ma\'lumot o\'zgargan — qayta so\'rang (yozilmadi).', QATOR_FAOL_EMAS: 'Qator joriy (faol) smeta versiyasida emas.', QATOR_TOPILMADI: 'Qator bu obyektda yo\'q.',
     AKT_QORALAMA_EMAS: 'Faqat qoralama F2 tahrirlanadi (tasdiqlangan/yuborilgan F2 muzlagan).', ARGUMENT_TAQIQLANGAN: 'Aktor va kompaniya yuborilmaydi — ular sessiyadan olinadi.',
     OBYEKT_KERAK: 'Obyektni tanlang.', QIDIRUV_BOSH: 'Qidiruv uchun nom, kod yoki tur bering.', SABAB_KERAK: 'Sababni yozing (kamida 3 belgi).', FAQAT_RESURS: 'Faqat resurs (rs/mat/ob) narxi tuzatiladi.',
   };
-  return j.xabar && !m[String(j.code)] ? String(j.xabar) : m[String(j.code)] ?? `Amal bajarilmadi (${String(j.code ?? 'xato')}).`;
+  const code = String(j.code ?? j.xabar ?? '');
+  return m[code] ?? (j.xabar ? String(j.xabar) : `Amal bajarilmadi (${String(j.code ?? 'xato')}).`);
 }
 
 const uchlikQator = (n: string, u: F2Uchlik | null | undefined) => (u ? `- ${n}: ${pul(u.qqs_bilan)} (QQS bilan) · ${pul(u.ustamali)} (ustamali) · ${pul(u.ustamasiz)} (ustamasiz)` : `- ${n}: —`);

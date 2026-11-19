@@ -39,6 +39,7 @@ import { t } from '../../i18n/til';
 import { Bolim } from '../zakazchik/tomon-ui';
 import { TahrirFarqi } from './TahrirFarqi';
 import { inp, tugma, tugmaAsosiy } from '../zakazchik/tomon-yordam';
+import { DiskdanTanlashTugma } from '../../hujjat-maydoni/DiskdanTanlash';
 
 const FARQ_NOMI: Record<FarqTuri, string> = {
   loyihada_bor_smetada_yoq: 'Loyihada bor — smetada yo‘q', smetada_bor_loyihada_yoq: 'Smetada bor — loyihada yo‘q', hajm_farqi: 'Hajm farqi',
@@ -146,7 +147,7 @@ export default function LoyihaSmetaFakt() {
   const smetaById = useMemo(() => new Map(smeta.map((q) => [q.id, q])), [smeta]);
 
   /* ───── 1. PDF yuklash va o'qish ───── */
-  async function faylTanlandi(files: FileList | null) {
+  async function faylTanlandi(files: FileList | File[] | null) {
     if (!files?.length) return;
     setBand(true);
     try {
@@ -312,7 +313,7 @@ export default function LoyihaSmetaFakt() {
               <input className={inp} aria-label={t('Yangi tahrir nomi')} placeholder={t('Yangi tahrir nomi')} value={yangiTahrirNom} onChange={(e) => setYangiTahrirNom(e.target.value)} />
               <button type="button" className={tugma} disabled={!yangiTahrirNom.trim()} onClick={() => void tahrirYarat()}>{t('Tahrir ochish')}</button>
             </div>
-            <input type="file" accept="application/pdf" multiple disabled={band} onChange={(e) => void faylTanlandi(e.target.files)} aria-label={t('Chizma PDF fayllari')} />
+            <input type="file" accept="application/pdf" multiple disabled={band} onChange={(e) => void faylTanlandi(e.target.files)} aria-label={t('Chizma PDF fayllari')} /><DiskdanTanlashTugma kopmi accept="application/pdf" disabled={band} onFayllar={(f) => faylTanlandi(f)} />
             {band && <p className="mt-2 text-xs">{t('O‘qilmoqda…')}</p>}
             {fayllar.length > 0 && (
               <div className="mt-3 space-y-2 text-[13px]">

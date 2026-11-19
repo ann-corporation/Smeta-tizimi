@@ -1,6 +1,6 @@
 import { tokenTekshir, tokenYarat } from '../ombor-buyruq-yadro';
 import { javobYasa } from '../telegram-ombor';
-import { tgT, type TgEnv, type TgTil } from '../telegram';
+import { saytUrl, tgT, type TgEnv, type TgTil } from '../telegram';
 import { botChaqiruv } from '../telegram-amal';
 import { onRequest as middleware } from '../../api/_middleware';
 import { onRequestPost as warehousePost } from '../../api/ombor-buyruq';
@@ -9,6 +9,7 @@ import type { WarehouseSnapshot } from '../../../src/lib/jarvis/warehouse-comman
 import type { JarvisBotReply } from '../telegram-jarvis';
 
 const retry = (til: TgTil) => ({ matn: tgT('Bajarilmadi. Birozdan keyin urinib ko‘ring.', til) });
+const tooLarge = (env: TgEnv) => ({ matn: tgT('Taklif juda katta. Uni web chatda qayta so‘rang.', 'uz') + '\n' + saytUrl(env) + '/admin' });
 const transport = (env: TgEnv, actor: number, choices: Record<string, unknown> = {}) => async (body: Record<string, unknown>) => {
   const result = await botChaqiruv(env, actor, { api: 'ombor-buyruq', json: body.amal === 'tahlil' ? { ...body, ...choices } : body }, middleware, warehousePost);
   return result.status === 200 && result.body ? result.body : { ok: false, code: 'SERVER_XATO' };
@@ -27,13 +28,13 @@ export async function warehouseBotReply(env: TgEnv, actor: number, til: TgTil, s
         s: selected.id, op: 'jarvis-warehouse-question', p: { question: snapshot.question } });
       card.matn += '\n#WQ:' + token;
     }
-    if (card.matn.length > 3900) return { matn: tgT('Taklif juda katta. Uni web chatda qayta so‘rang.', til) };
+    if (card.matn.length > 3900) return tooLarge(env);
     return { matn: card.matn, options: card.markup ? { reply_markup: card.markup } : undefined };
   }
   if (!snapshot.warehouses.length) return retry(til);
   const token = await tokenYarat(String(env.SESSIYA_KALIT ?? ''), { a: actor, k: snapshot.company,
     s: snapshot.warehouses[0].id, op: 'jarvis-warehouse', p: { question: snapshot.question } });
-  if (token.length > 3500) return { matn: tgT('Taklif juda katta. Uni web chatda qayta so‘rang.', til) };
+  if (token.length > 3500) return tooLarge(env);
   const offset = Math.min(Math.floor((snapshot.warehouses.length - 1) / 40) * 40, Math.floor(page / 40) * 40);
   const buttons = snapshot.warehouses.slice(offset, offset + 40).map(row => [{ text: row.nomi.slice(0, 60), callback_data: `j:w:${row.id}` }]);
   if (offset > 0) buttons.push([{ text: '‹', callback_data: `j:w:p:${offset - 40}` }]);

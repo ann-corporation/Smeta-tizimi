@@ -1,0 +1,178 @@
+{
+  "Texnadzor faylini solishtirish": {
+    "ru": "Сравнить файл технадзора",
+    "en": "Compare technical supervisor file"
+  },
+  "Texnadzor qaytargan Excel joriy qoralama bilan solishtiriladi — hech narsa o‘zgarmaydi.": {
+    "ru": "Возвращённый технадзором Excel сравнивается с текущим черновиком — ничего не изменяется.",
+    "en": "The Excel returned by the supervisor is compared with the current draft — nothing is changed."
+  },
+  "Kompyuterdan tanlash": {
+    "ru": "Выбрать с компьютера",
+    "en": "Choose from computer"
+  },
+  "Hisobotni Excelga yuklab olish": {
+    "ru": "Скачать отчёт в Excel",
+    "en": "Download report as Excel"
+  },
+  "Bu tizim F-2 eksporti emas: КАЛИТ ustuni topilmadi": {
+    "ru": "Это не экспорт Ф-2 системы: столбец КАЛИТ не найден",
+    "en": "Not a system F-2 export: KALIT column not found"
+  },
+  "Faylni o‘qib bo‘lmadi": {
+    "ru": "Не удалось прочитать файл",
+    "en": "Could not read the file"
+  },
+  "Texnadzor qo‘shgan — kiritilgan": {
+    "ru": "Добавлено технадзором — внесено",
+    "en": "Added by supervisor — entered"
+  },
+  "Texnadzor qo‘shgan": {
+    "ru": "Добавлено технадзором",
+    "en": "Added by supervisor"
+  },
+  "Hajm farqi": {
+    "ru": "Разница объёма",
+    "en": "Volume difference"
+  },
+  "Narx farqi": {
+    "ru": "Разница цены",
+    "en": "Price difference"
+  },
+  "Tizimda yo‘q": {
+    "ru": "Нет в системе",
+    "en": "Not in system"
+  },
+  "Faylda yo‘q": {
+    "ru": "Нет в файле",
+    "en": "Not in file"
+  },
+  "Teng": {
+    "ru": "Совпадает",
+    "en": "Equal"
+  },
+  "Bajarildi": {
+    "ru": "Выполнено",
+    "en": "Done"
+  },
+  "Bizning tuzatish": {
+    "ru": "Наше исправление",
+    "en": "Our correction"
+  },
+  "Yangi": {
+    "ru": "Новое",
+    "en": "New"
+  },
+  "Hujjat kerak": {
+    "ru": "Нужен документ",
+    "en": "Document needed"
+  },
+  "OCHIQ": {
+    "ru": "ОТКРЫТО",
+    "en": "OPEN"
+  },
+  "Qator №": {
+    "ru": "Строка №",
+    "en": "Row no."
+  },
+  "Shifr": {
+    "ru": "Шифр",
+    "en": "Code"
+  },
+  "Nomi": {
+    "ru": "Наименование",
+    "en": "Name"
+  },
+  "Texnadzor izohi": {
+    "ru": "Комментарий технадзора",
+    "en": "Supervisor comment"
+  },
+  "Fayl hajmi": {
+    "ru": "Объём в файле",
+    "en": "File volume"
+  },
+  "Qoralama hajmi": {
+    "ru": "Объём в черновике",
+    "en": "Draft volume"
+  },
+  "Fayl narxi": {
+    "ru": "Цена в файле",
+    "en": "File price"
+  },
+  "Qoralama narxi": {
+    "ru": "Цена в черновике",
+    "en": "Draft price"
+  },
+  "Holat": {
+    "ru": "Состояние",
+    "en": "Status"
+  },
+  "Yopish": {
+    "ru": "Закрыть",
+    "en": "Close"
+  },
+  "Xulosa": {
+    "ru": "Итог",
+    "en": "Summary"
+  },
+  "Hammasi": {
+    "ru": "Все",
+    "en": "All"
+  },
+  "Qidirish": {
+    "ru": "Поиск",
+    "en": "Search"
+  },
+  "Hajm: fayl / qoralama": {
+    "ru": "Объём: файл / черновик",
+    "en": "Volume: file / draft"
+  },
+  "Narx: fayl / qoralama": {
+    "ru": "Цена: файл / черновик",
+    "en": "Price: file / draft"
+  },
+  "Mos qator yo‘q": {
+    "ru": "Нет подходящих строк",
+    "en": "No matching rows"
+  },
+  "Dastlabki {n} qator ko‘rsatildi — to‘liq ro‘yxat hisobotda": {
+    "ru": "Показаны первые {n} строк — полный список в отчёте",
+    "en": "First {n} rows shown — full list in the report"
+  },
+  "Kompaniya tanlanmagan": {
+    "ru": "Компания не выбрана",
+    "en": "No company selected"
+  },
+  "Hisobot tayyor": {
+    "ru": "Отчёт готов",
+    "en": "Report ready"
+  },
+  "Jadval": {
+    "ru": "Таблица",
+    "en": "Table"
+  },
+  "Asl ko‘rinish": {
+    "ru": "Как в файле",
+    "en": "Original view"
+  },
+  "Ko‘rinish": {
+    "ru": "Вид",
+    "en": "View"
+  },
+  "Faqat belgilangan": {
+    "ru": "Только отмеченные",
+    "en": "Marked only"
+  },
+  "Izoh bor": {
+    "ru": "Есть примечание",
+    "en": "Has note"
+  },
+  "Katak izohi": {
+    "ru": "Примечание ячейки",
+    "en": "Cell note"
+  },
+  "Yana {n} qator": {
+    "ru": "Ещё {n} строк",
+    "en": "{n} more rows"
+  }
+}

@@ -4,7 +4,8 @@ import { onRequestPost as interactivePost } from '../../api/agent-ish';
 import { kontekstKeshTozala } from '../agent-kontekst-kesh';
 import { evalActor, evalCompany, evalLexicon, evalProjects } from './eval-fixture';
 
-const boundary = vi.hoisted(() => ({ auth: vi.fn(), model: vi.fn() }));
+const boundary = vi.hoisted(() => ({ auth: vi.fn(), model: vi.fn(), preview: vi.fn() }));
+vi.mock('../../api/f2-buyruq', () => ({ onRequestPost: boundary.preview }));
 vi.mock('../auth', () => ({ tekshir: boundary.auth }));
 vi.mock('../agent-hisob', async load => ({ ...(await load<typeof import('../agent-hisob')>()), aiHisobli: boundary.model }));
 
@@ -23,7 +24,7 @@ const actStatuses = {
 } as const;
 const billingUsage = { inputTokens: 180, outputTokens: 40 };
 const baseCategories = ['obyektlar', 'smeta_pul', 'f2_fakt_pul', 'ombor'];
-let configuration = { categories: baseCategories, missingFooter: false, foreignResponse: false };
+let configuration = { categories: baseCategories, missingFooter: false, foreignResponse: false, writePermission: false };
 
 const remote = vi.fn(async (input: string, init?: RequestInit) => {
   const name = input.split('/').at(-1);
@@ -33,7 +34,7 @@ const remote = vi.fn(async (input: string, init?: RequestInit) => {
   const project = evalProjects.find(row => row.id === args.p_obyekt_id);
   switch (name) {
     case 't2_agent_kasb_v1': return Response.json({ ok: true, nom: 'Sinov PTO', rol: 'pto', profil: 'pto_smeta', vazifa: 'Sinov', boshqalar: [], namuna_savollar: [], kategoriyalar: configuration.categories, harakatlar: ['ombor_kirim'] });
-    case 't2_men_v1': return Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: evalCompany, permissions: ['warehouse.read', 'f2.read'] }] });
+    case 't2_men_v1': return Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: evalCompany, permissions: ['warehouse.read', 'f2.read', ...(configuration.writePermission ? ['f2.prepare', 'fakt.write'] : [])] }] });
     case 't2_agent_fakt_v1': return Response.json({ ok: true, fakt: { obyektlar: args.p_obyekt_id == null ? objects : objects.filter(row => row.id === args.p_obyekt_id) }, ishlatilgan: configuration.categories });
     case 't2_obyekt_nakrutka_v1': {
       if (!project) return Response.json({ ok: false, code: 'OBJECT_SCOPE' }, { status: 403 });
@@ -57,15 +58,16 @@ const remote = vi.fn(async (input: string, init?: RequestInit) => {
 });
 
 beforeEach(() => {
-  configuration = { categories: baseCategories, missingFooter: false, foreignResponse: false };
+  configuration = { categories: baseCategories, missingFooter: false, foreignResponse: false, writePermission: false };
   boundary.auth.mockResolvedValue({ foydalanuvchi_id: evalActor, kompaniyalar: [{ kompaniya_id: evalCompany }] });
   boundary.model.mockReset();
+  boundary.preview.mockReset();
   kontekstKeshTozala(); remote.mockClear();
   vi.stubGlobal('fetch', remote);
 });
 afterEach(() => vi.unstubAllGlobals());
 
-type ResponseBody = { ok?: boolean; rad?: boolean; javob?: string; xabar?: string; dalil?: unknown; harakatlar?: unknown[] };
+type ResponseBody = { ok?: boolean; rad?: boolean; javob?: string; xabar?: string; dalil?: unknown; harakatlar?: unknown[]; f2_preview?: unknown };
 const query = async (savol: string, payload: Record<string, unknown> = {}, interactive = false) => {
   const request = new Request('https://synthetic.test/api/' + (interactive ? 'agent-ish' : 'ai-savol'), {
     method: 'POST', body: JSON.stringify({ savol, kompaniya_id: evalCompany, actor: 99119, ...(interactive ? { amal: 'kasb_savol' } : {}), ...payload }),
@@ -90,12 +92,15 @@ it('model/tools: limits the billed loop to six verified, scoped read calls', asy
       text: JSON.stringify({ javob: '', harakatlar: [],
         tool_call: { name: 'warehouse_balance', arguments: { query: 'Ombor #7 qoldig‘i: ' + material } } }) });
   }
+  boundary.model.mockResolvedValueOnce({ provider: 'openrouter', model: 'synthetic-eval', usage: billingUsage,
+    text: JSON.stringify({ javob: 'Qoldiqlar manbadan olindi.', harakatlar: [] }) });
   const { body } = await query('Materiallar bo‘yicha mavjud ma’lumotlarni tekshir');
-  expect(boundary.model).toHaveBeenCalledTimes(6);
+  expect(boundary.model).toHaveBeenCalledTimes(7); // Six tools followed by one conclusion without tools.
   expect(rpc('t2_sklad_markaziy_qoldiq_v1').map(args => args.p_qidir)).toEqual(evalProjects.map(row => row.material));
   expect(rpc('t2_ai_telemetriya_yoz_v1').filter(args => args.p_manba === 'tool')).toHaveLength(6);
   expect(rpc('t2_agent_harakat_taklif_v1')).toEqual([]);
   expect(body.javob).toContain(evalProjects[0].material);
+  expect(body.javob).toContain('Qoldiqlar manbadan olindi.');
 });
 
 it('model/tools: never executes a fabricated name or tenant override', async () => {
@@ -243,4 +248,26 @@ it.each(fixtures)('model/document-injection $key', async ({ lexicon, project }) 
   expect(prompt.text).not.toContain(`</TASHQI_MANBA>${lexicon.attack}`);
   expect(prompt.system).toContain('kanonik DB dalili emas');
   expect(rpc('t2_agent_harakat_taklif_v1')).toEqual([]);
+});
+it.each(['f2_qoralama_tahrir', 'fakt_yoz'])('write tool %s returns only a server preview', async name => {
+  configuration.writePermission = true;
+  const args = name === 'fakt_yoz' ? { obyekt_id: 41, qatorlar: [{ qator_id: 53, hajm: -2 }] }
+    : { akt_id: 41, ozgartir: [{ qator_id: 53, hajm: 2 }] };
+  boundary.model.mockResolvedValue({ provider: 'openrouter', model: 'synthetic', text: JSON.stringify({ javob: '', harakatlar: [], tool_call: { name, arguments: args } }) });
+  boundary.preview.mockResolvedValue(Response.json({ ok: true, holat: 'tasdiq_kerak', token: 'synthetic-preview', tavsif: 'Sinov qoralama' }));
+  const { body } = await query('41 F-2 da 53 hajmini 2 qil', {}, true);
+  expect(body.f2_preview, JSON.stringify(body)).toMatchObject({ token: 'synthetic-preview' });
+  const payload = await boundary.preview.mock.calls[0][0].request.json();
+  expect(payload).toMatchObject({ kompaniya_id: evalCompany, amal: 'vosita', nom: name, args });
+  expect(payload).not.toHaveProperty('actor_id');
+  expect(rpc('t2_token_sarfla_v1')).toEqual([]);
+  expect(rpc('t2_agent_harakat_taklif_v1')).toEqual([]);
+});
+it.each([false, true])('read-only or missing capability never invokes preview (%s)', async interactive => {
+  configuration.writePermission = !interactive;
+  boundary.model.mockResolvedValue({ provider: 'openrouter', model: 'synthetic', text: JSON.stringify({ javob: '', harakatlar: [],
+    tool_call: { name: 'f2_qoralama_tahrir', arguments: { akt_id: 41, ozgartir: [{ qator_id: 53, hajm: 2 }] } } }) });
+  const { body } = await query('41 F-2 da 53 hajmini 2 qil', {}, interactive);
+  expect(boundary.preview).not.toHaveBeenCalled();
+  expect(body.f2_preview).toBeUndefined();
 });
