@@ -25,10 +25,6 @@ class HujjatPaketTest {
         val p = parsePaketPage(page)!!
         assertEquals(3, p.rows.size); assertEquals(3, p.total); assertFalse(p.hasMore)
         assertTrue(p.rows[0].onDisk); assertFalse(p.rows[1].onDisk)
-        assertEquals(mapOf("akt_id" to 5L), buildRequest(p.rows[0])!!.params)
-        assertEquals(mapOf("shartnoma_id" to 4L, "f3_id" to 2L), buildRequest(p.rows[1])!!.params)
-        assertEquals(mapOf("oy_son" to 202611L), buildRequest(p.rows[2])!!.params)
-        assertNull(buildRequest(p.rows[0].copy(type = "aosr")))
         assertNull(parsePaketPage(j("""{"ok":false}""")))
     }
     @Test fun filterSendsOnlyValidParts() {
@@ -47,28 +43,36 @@ class HujjatPaketTest {
         assertTrue(searchObjects(listOf(7L to "Korpus A"), "korp", listOf(7)).isEmpty())
         assertEquals("m" to 5L, elapsedBucket(5 * 60_000L)); assertNull(elapsedBucket(10_000L))
         assertTrue(paketListPath(8, PaketFilter(), 0).startsWith("/api/hujjat-maydoni?amal=paket_royxat&kompaniya_id=8&filtr=%7B"))
-        assertEquals("f2", paketBuildBody(8, 7, buildRequest(parsePaketPage(page)!!.rows[0])!!)["tur"].str())
-        assertEquals(1.0, paketBuildBody(8, 7, BuildRequest("f2", mapOf("akt_id" to 5)))["disk_afzal"].num()!!, 0.0)
     }
 
-    private class Fake(val disk: BytesResult, val gen: BytesResult) : BffApi {
-        var diskCalls = 0; var genCalls = 0
-        override suspend fun bff(path: String, method: String, body: kotlinx.serialization.json.JsonElement?, etag: String?) = ApiResult(200, null)
-        override suspend fun bffBytes(path: String, maxBytes: Long): BytesResult { diskCalls++; return disk }
-        override suspend fun bffPostBytes(path: String, body: kotlinx.serialization.json.JsonElement, maxBytes: Long): BytesResult { genCalls++; return gen }
+    private class Fake(val handler: (String, String, kotlinx.serialization.json.JsonElement?) -> ApiResult, val bytes: BytesResult) : BffApi {
+        val calls = ArrayList<Pair<String, kotlinx.serialization.json.JsonElement?>>()
+        override suspend fun bff(path: String, method: String, body: kotlinx.serialization.json.JsonElement?, etag: String?): ApiResult { calls += path to body; return handler(path, method, body) }
+        override suspend fun bffBytes(path: String, maxBytes: Long): BytesResult { calls += path to null; return bytes }
         override suspend fun upload(companyId: Long, obyektId: Long, body: okhttp3.RequestBody) = ApiResult(404, null)
     }
 
-    @Test fun diskCopyIsFreeAndEngineIsTheFallback() = runBlocking {
-        val rows = parsePaketPage(page)!!.rows
-        val api = Fake(BytesResult(200, byteArrayOf(1, 2), "application/x", "a.xlsx"), BytesResult(200, byteArrayOf(9), null, null))
-        val r = PaketRepository(api).fetch(8, rows[0]) as GenResult.Ready
-        assertEquals("a.xlsx", r.name); assertEquals(1, api.diskCalls); assertEquals(0, api.genCalls)
-        val g = PaketRepository(api).fetch(8, rows[1]) as GenResult.Ready
-        assertEquals(1, api.genCalls); assertTrue(g.name.endsWith(".xlsx"))
-        // Disk read failed -> engine; no engine for the type -> Failed
-        val api2 = Fake(BytesResult(404, null), BytesResult(402, null, null, null, "TOKEN_YETMAYDI"))
-        assertTrue(PaketRepository(api2).fetch(8, rows[0]) is GenResult.NoTokens)
-        assertTrue(PaketRepository(api2).fetch(8, rows[0].copy(type = "aosr", fileId = null)) is GenResult.Failed)
+    @Test fun serverBuildsAndThePhoneOnlyDownloads() = runBlocking {
+        val link = j("""{"ok":true,"havola":"/api/hujjat-paket?amal=ol&k=paket%2Fu1%2Fx","hajm":3,"soni":2,"xatolar":["bir hujjat olinmadi"]}""")
+        val api = Fake({ _, _, _ -> ApiResult(200, link) }, BytesResult(200, byteArrayOf(1, 2, 3), "application/zip", "hujjatlar-paketi.zip"))
+        val r = PaketRepository(api).build(8, PaketFilter(turlar = setOf("f2")), listOf("f2:5"), PaketFormat.ZIP, "HUJJATLAR PAKETI") as PaketBuild.Ready
+        assertEquals("hujjatlar-paketi.zip", r.name); assertEquals(listOf("bir hujjat olinmadi"), r.errors)
+        val body = api.calls[0].second as kotlinx.serialization.json.JsonObject
+        assertEquals("yig", body["amal"].str()); assertEquals("zip", body["chiqish"].str()); assertEquals("havola", body["yetkazish"].str())
+        assertEquals("f2:5", (body["kalitlar"] as kotlinx.serialization.json.JsonArray)[0].str())
+        assertTrue(api.calls[1].first.startsWith("/api/hujjat-paket?amal=ol"))
+        // tokens: the server refuses -> NoTokens; nothing is downloaded
+        val api2 = Fake({ _, _, _ -> ApiResult(402, null, "TOKEN_YETMAYDI") }, BytesResult(404, null))
+        assertTrue((PaketRepository(api2).build(8, PaketFilter(), emptyList(), PaketFormat.EXCEL, "P") as PaketBuild.Failed).result is GenResult.NoTokens)
+        assertEquals(1, api2.calls.size)
+    }
+
+    @Test fun estimateIsAServerAnswerAndChargesNothing() = runBlocking {
+        val e = parsePaketEstimate(j("""{"ok":true,"tanlangan":3,"tolanadigan":1,"bepul":2,"token":12.5}"""))!!
+        assertEquals(PaketEstimate(3, 1, 2, 12.5), e)
+        assertNull(parsePaketEstimate(j("""{"ok":false}""")).also { assertNull(parsePaketLink(j("""{"ok":true,"havola":"/etc/passwd"}"""))) })
+        val api = Fake({ _, _, _ -> ApiResult(200, j("""{"ok":true,"tanlangan":1,"tolanadigan":0,"bepul":1,"token":0}""")) }, BytesResult(404, null))
+        assertEquals(0.0, PaketRepository(api).estimate(8, PaketFilter(), listOf("a"))!!.token!!, 0.0)
+        assertEquals("baho", (api.calls[0].second as kotlinx.serialization.json.JsonObject)["amal"].str())
     }
 }

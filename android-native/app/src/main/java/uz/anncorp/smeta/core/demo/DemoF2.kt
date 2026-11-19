@@ -116,6 +116,13 @@ internal class DemoF2Draft(private val json: Json) {
         })
     }
 
+    /** Demo of POST /api/hujjat-paket (baho / yig): fixed estimate, the "link" form the phone always asks for. */
+    fun paketPost(body: JsonObject?): ApiResult {
+        val keys = (body?.get("kalitlar") as? JsonArray).orEmpty().size
+        return if ((body?.get("amal") as? JsonPrimitive)?.content == "baho") ok(buildJsonObject { put("ok", true); put("tanlangan", keys); put("tolanadigan", if (keys > 0) 1 else 0); put("bepul", maxOf(0, keys - 1)); put("token", if (keys > 0) 24.0 else 0.0) })
+        else ok(buildJsonObject { put("ok", true); put("havola", "/api/hujjat-paket?amal=ol&k=paket%2Fu1%2Fdemo"); put("hajm", 4096); put("soni", keys); put("xatolar", buildJsonArray {}) })
+    }
+
     fun tekshiruv(method: String, body: JsonObject?): ApiResult {
         if (method == "POST") {
             val id = body?.l("taklif_id") ?: return err(400, "TALAB_NOTOGRI")
