@@ -84,6 +84,7 @@ class DesktopDemoApi(private val json: Json) : BffApi {
                     s("soro") == "qarz_svod_v1" -> ok(asset("qarz_svod"))
                     // Demo markup context (synthetic coefficients, no real object): the same shape as the server's obyekt_nakrutka_v1 / podval list.
                     s("soro") == "obyekt_nakrutka_v1" -> ok("""{"ok":true,"natija":{"ok":true,"koeffitsientlar":{${PodvalTexts.Koef.all.joinToString(",") { "\"$it\":" + (if (it == PodvalTexts.Koef.NDS) "12" else if (it == PodvalTexts.Koef.PROCHIE_PODRYADCHIK) "18" else if (it == PodvalTexts.Koef.TRANSPORT_MATERIAL) "5" else "1") }}}}}""")
+                    s("soro") == "bajarilmadi_royxat_v1" -> ok("""{"ok":true,"natija":{"ok":true,"qatorlar":[]}}""")
                     jadval == "t2_nakrutka_podval_royxat" -> ok("""{"ok":true,"toliq":true,"qatorlar":[]}""")
                     s("soro") == "sklad_markaziy_qoldiq_v1" -> ok(asset("ombor_central"))
                     jadval == "t2_sklad_harakat" -> ok(asset("ombor_moves"))
@@ -94,6 +95,11 @@ class DesktopDemoApi(private val json: Json) : BffApi {
                     jadval == "t2_shartnoma_bog_kompaniya" -> ok(asset("ier_bog"))
                     jadval == "t2_obyekt_jami" -> ok(asset("objects"))
                     jadval == "t2_qator_holat" -> ok(asset("resurs_rows"))
+                    // "Fakt = F2" sources (approved F2 acts / live fakt documents and their rows): demo has one approved F2 and no fakt documents.
+                    jadval == "t2_akt" && s("filtr")?.contains("tur=eq.f2") == true -> ok("""{"ok":true,"qatorlar":[{"id":501}]}""")
+                    jadval == "t2_akt" && s("filtr")?.contains("tur=eq.fakt") == true -> ok("""{"ok":true,"qatorlar":[]}""")
+                    jadval == "t2_akt_qator" && s("filtr")?.contains("501") == true -> ok("""{"ok":true,"qatorlar":[{"id":9001,"akt_id":501,"qator_id":1008,"hajm":60,"narx":215000,"summa":12900000,"certified_quantity":null,"certified_unit_price":null,"certified_amount":null}]}""")
+                    jadval == "t2_akt_qator" -> ok("""{"ok":true,"qatorlar":[]}""")
                     jadval == "t2_akt" -> ok(asset("akt501"))
                     else -> denied()
                 }

@@ -9,14 +9,11 @@ import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import uz.anncorp.smeta.core.data.BffApi
-import uz.anncorp.smeta.core.data.DOC_MAX_BYTES
-import uz.anncorp.smeta.core.data.GEN_PATH
 import uz.anncorp.smeta.core.data.GenResult
 import uz.anncorp.smeta.core.data.arr
 import uz.anncorp.smeta.core.data.mapGenError
 import uz.anncorp.smeta.core.data.num
 import uz.anncorp.smeta.core.data.obj
-import uz.anncorp.smeta.core.data.safeFileName
 import uz.anncorp.smeta.core.data.str
 import java.net.URLEncoder
 
@@ -99,26 +96,61 @@ fun parsePaketPage(body: JsonElement?): PaketPage? {
         o["barcha_kalitlar"].arr()?.mapNotNull { it.str() } ?: rows.map { it.key }, v)
 }
 
-/** What the document engine needs to build one candidate; null = this type exists only on the Disk. Mirror of yasashSorovi (TS). */
-data class BuildRequest(val type: String, val params: Map<String, Long>)
+enum class PaketFormat(val wire: String) { ZIP("zip"), EXCEL("excel") }
 
-fun buildRequest(r: PaketRow): BuildRequest? = when (r.type) {
-    "f2" -> r.aktId?.let { BuildRequest("f2", mapOf("akt_id" to it)) }
-    "forma3" -> if (r.forma3Id != null && r.contractId != null) BuildRequest("forma3", mapOf("shartnoma_id" to r.contractId, "f3_id" to r.forma3Id)) else null
-    "nakopitelniy", "m29" -> r.month?.takeIf { it.length == 7 }?.replace("-", "")?.toLongOrNull()?.let { BuildRequest(r.type, mapOf("oy_son" to it)) }
-    "slichitelniy", "ostatka" -> BuildRequest(r.type, emptyMap())
-    else -> null
+/** Server estimate (POST /api/hujjat-paket baho): nothing is charged. [token] null = price unknown. Mirrors the site's yuklashBahosi (computed on the server). */
+data class PaketEstimate(val selected: Int, val payable: Int, val free: Int, val token: Double?)
+
+const val PAKET_API = "/api/hujjat-paket"
+/** Packages above 100 MB are refused on the phone; the server itself never refuses. */
+const val PAKET_PHONE_MAX = 100L * 1024 * 1024
+
+private fun paketBody(amal: String, companyId: Long, f: PaketFilter, keys: Collection<String>): JsonObject = buildJsonObject {
+    put("amal", amal); put("kompaniya_id", companyId); put("filtr", f.toSavedJson())
+    if (keys.isNotEmpty()) put("kalitlar", buildJsonArray { keys.forEach { add(JsonPrimitive(it)) } })
+}
+fun paketBahoBody(companyId: Long, f: PaketFilter, keys: Collection<String>) = paketBody("baho", companyId, f, keys)
+fun paketYigBody(companyId: Long, f: PaketFilter, keys: Collection<String>, format: PaketFormat, title: String) = JsonObject(paketBody("yig", companyId, f, keys) + mapOf(
+    "chiqish" to JsonPrimitive(format.wire), "sarlavha" to JsonPrimitive(title), "yetkazish" to JsonPrimitive("havola"),
+))
+
+fun parsePaketEstimate(body: JsonElement?): PaketEstimate? {
+    val o = body.obj() ?: return null
+    if ((o["ok"] as? JsonPrimitive)?.booleanOrNull != true) return null
+    return PaketEstimate(o["tanlangan"].num()?.toInt() ?: 0, o["tolanadigan"].num()?.toInt() ?: 0, o["bepul"].num()?.toInt() ?: 0, o["token"].num())
 }
 
-fun paketBuildBody(companyId: Long, objectId: Long, b: BuildRequest): JsonObject = buildJsonObject {
-    put("amal", "yarat"); put("tur", b.type); put("format", "xlsx"); put("kompaniya_id", companyId); put("obyekt_id", objectId)
-    b.params.forEach { (k, v) -> put(k, v) }
-    if (b.type == "f2") put("disk_afzal", 1)   // a newer Disk version is served instantly and free
+/** `{ok, havola, hajm, soni, xatolar[]}` of a finished package (the phone always asks for the link form). */
+data class PaketLink(val path: String, val size: Long, val count: Int, val errors: List<String>)
+fun parsePaketLink(body: JsonElement?): PaketLink? {
+    val o = body.obj() ?: return null
+    if ((o["ok"] as? JsonPrimitive)?.booleanOrNull != true) return null
+    val p = o["havola"].str()?.takeIf { it.startsWith("/api/hujjat-paket?") } ?: return null
+    return PaketLink(p, o["hajm"].num()?.toLong() ?: 0L, o["soni"].num()?.toInt() ?: 0, o["xatolar"].arr().orEmpty().mapNotNull { it.str() })
 }
 
-private const val XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+sealed interface PaketBuild {
+    data class Ready(val name: String, val mime: String, val bytes: ByteArray, val errors: List<String>) : PaketBuild
+    data class Failed(val result: GenResult) : PaketBuild
+}
 
 class PaketRepository(private val api: BffApi) {
+    suspend fun estimate(companyId: Long, f: PaketFilter, keys: Collection<String>): PaketEstimate? {
+        val r = api.bff(PAKET_API, "POST", paketBahoBody(companyId, f, keys))
+        return if (r.ok) parsePaketEstimate(r.body) else null
+    }
+
+    /** The server builds the ZIP / single Excel (site rules: Disk first, the rest through the engine, tokens charged once there); the phone only downloads the file. */
+    suspend fun build(companyId: Long, f: PaketFilter, keys: Collection<String>, format: PaketFormat, title: String): PaketBuild {
+        val r = api.bff(PAKET_API, "POST", paketYigBody(companyId, f, keys, format, title))
+        val link = if (r.ok) parsePaketLink(r.body) else null
+        if (link == null) return PaketBuild.Failed(mapGenError(r.status, r.code ?: r.body.obj()?.get("code").str()))
+        val d = api.bffBytes(link.path, PAKET_PHONE_MAX)
+        if (!d.ok || d.bytes == null || d.bytes!!.isEmpty()) return PaketBuild.Failed(mapGenError(d.status, d.code))
+        val zip = format == PaketFormat.ZIP
+        return PaketBuild.Ready(d.filename ?: if (zip) "hujjatlar-paketi.zip" else "hujjatlar-paketi.xlsx", d.mime?.takeIf { it.isNotBlank() } ?: if (zip) "application/zip" else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", d.bytes!!, link.errors)
+    }
+
     /** null = could not load. */
     suspend fun page(companyId: Long, f: PaketFilter, offset: Int, variants: Boolean = false): PaketPage? {
         val r = api.bff(paketListPath(companyId, f, offset, PAKET_PAGE, variants))
@@ -135,18 +167,6 @@ class PaketRepository(private val api: BffApi) {
     suspend fun delete(companyId: Long, id: Long): Boolean =
         api.bff("/api/hujjat-maydoni", "POST", buildJsonObject { put("amal", "filtr_ochir"); put("kompaniya_id", companyId); put("id", id) }).ok
 
-    /** Disk copy first (free), otherwise the server engine. The result is the final file; nothing is built on the device. */
-    suspend fun fetch(companyId: Long, row: PaketRow): GenResult {
-        if (row.fileId != null) {
-            val d = api.bffBytes("/api/hujjat-maydoni-ol?id=${row.fileId}", DOC_MAX_BYTES)
-            if (d.ok && d.bytes != null && d.bytes!!.isNotEmpty()) return GenResult.Ready(d.filename ?: (safeFileName(row.title, "hujjat") + ".xlsx"), d.mime?.takeIf { it.isNotBlank() } ?: XLSX, d.bytes!!)
-        }
-        val b = buildRequest(row) ?: return GenResult.Failed("DISKDA_YOQ")
-        val oid = row.objectId ?: return GenResult.Failed("OBYEKT_YOQ")
-        val r = api.bffPostBytes(GEN_PATH, paketBuildBody(companyId, oid, b), DOC_MAX_BYTES)
-        if (!r.ok || r.bytes == null || r.bytes!!.isEmpty()) return mapGenError(r.status, r.code)
-        return GenResult.Ready(r.filename ?: (safeFileName(row.title, "hujjat") + ".xlsx"), r.mime?.takeIf { it.isNotBlank() } ?: XLSX, r.bytes!!)
-    }
 }
 
 data class SavedFilter(val id: Long, val name: String, val filter: PaketFilter)

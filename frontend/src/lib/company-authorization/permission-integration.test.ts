@@ -80,6 +80,10 @@ yozish faqat dry_run preview → HMAC tasdiq tokeni (aktor/kompaniya/obyekt, 15 
          HAR amalda (o'qish ham, yozish ham) RPC ichida rol tekshiriladi (_t2_tekshiruv_rol_v1: hujjat kompaniyasi a'zosi | buyurtmachi/texnadzor tomon granti | PTO bergan muddatli bir martalik kod);
          begona kompaniya/rol - 403. Texnadzor F-2 ga yozmaydi, faqat taklif (tekshiruv.test.ts; acceptance 20270119000100). */
       'tekshiruv',
+      /* Hujjat paketi (2026-11-19): /api/hujjat-paket - actor FAQAT sessiyadan (sessiyaAktor). O'zi ma'lumot o'qimaydi: ro'yxat, token holati va
+         hujjat yasash o'sha sessiya bilan hujjat-maydoni / sb / hujjat-yarat handlerlari orqali (har biri kompaniya a'zoligini o'zi tekshiradi).
+         R2 dagi tayyor paket kaliti aktorga bog'langan (paket/u<aktor>/...), begona aktor - 404, muddati 15 daqiqa (hujjat-paket-yig.test.ts). */
+      'hujjat-paket',
       /* Bildirishnoma yetkazish (2026-11-05): sessiyasiz FON ISHI (GitHub Actions). Kirish faqat X-Cron-Kalit == BILDIRISHNOMA_CRON_KALIT
          (sozlanmagan → 503, noto'g'ri → 403); kompaniya ma'lumoti qaytmaydi, faqat service_role navbat RPC lari (bildirishnoma-yetkaz.test.ts). */
       'bildirishnoma-yetkaz',

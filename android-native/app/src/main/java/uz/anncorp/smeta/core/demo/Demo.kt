@@ -133,6 +133,7 @@ private class DemoBff(private val context: Context, private val json: Json, priv
             path.startsWith("/api/tomon") -> tomon(path, method, body as? JsonObject)
             path.startsWith("/api/kirish-taklif") && method == "POST" -> ok("""{"ok":true,"kod":"48213907","havola":"https://qurai.uz/taklif/DEMOTOKEN"}""")
             path.startsWith("/api/agent-ish") && method == "POST" -> agentIsh(body as? JsonObject)
+            path.startsWith("/api/hujjat-paket") && method == "POST" -> f2Draft.paketPost(body as? JsonObject)
             path.startsWith("/api/hujjat-maydoni") && method == "GET" && (path.contains("amal=paket_royxat") || path.contains("amal=filtr_royxat")) -> f2Draft.paket(path)
             path.startsWith("/api/hujjat-maydoni") && method == "POST" -> ok("""{"ok":true}""")
             path.startsWith("/api/f2-buyruq") && method == "POST" -> f2Draft.buyruq(body as? JsonObject)
@@ -566,6 +567,7 @@ private class DemoBff(private val context: Context, private val json: Json, priv
 
     /** Demo document download: ids 9001/9002 are a generated 2-page PDF, 9003 an .xlsx stand-in (no preview), anything else is missing. */
     override suspend fun bffBytes(path: String, maxBytes: Long): uz.anncorp.smeta.core.data.BytesResult {
+        if (path.startsWith("/api/hujjat-paket?amal=ol")) return uz.anncorp.smeta.core.data.BytesResult(200, ByteArray(4096) { 5 }, "application/zip", "hujjatlar-paketi.zip")
         val id = Regex("[?&]id=(\\d+)").find(path)?.groupValues?.get(1)?.toLongOrNull() ?: return uz.anncorp.smeta.core.data.BytesResult(404, null)
         return when (id) {
             9001L, 9002L -> uz.anncorp.smeta.core.data.BytesResult(200, demoPdf(id), "application/pdf", "F-2 demo.pdf")

@@ -192,6 +192,14 @@ describe('mobil BFF: P10 profile, sessions, texnadzor, notification preferences'
     await notTarget(await bff('/api/tomon', 'POST', { amal: 'nazorat_qaror', kompaniya_id: 8, taqdim_id: 3, qaror: 'rad', izoh: 'Armatura qadami noto\'g\'ri' }));
     for (const amal of ['taklif', 'kod_qabul', 'grant_saqla', 'tolov_qaror', 'taqdim_yarat', 'vakolat_ber', 'qaror', 'ichki_qaror', '']) expect((await bff('/api/tomon', 'POST', { amal })).status).toBe(400);
   });
+  it('hujjat-paket: baho/yig POST va amal=ol GET faqat', async () => {
+    await notTarget(await bff('/api/hujjat-paket', 'POST', { amal: 'baho', kompaniya_id: 8 }));
+    await notTarget(await bff('/api/hujjat-paket', 'POST', { amal: 'yig', kompaniya_id: 8, yetkazish: 'havola' }));
+    await notTarget(await bff('/api/hujjat-paket?amal=ol&k=paket%2Fu1%2Fx'));
+    for (const amal of ['', 'x', 'ol']) expect((await bff('/api/hujjat-paket', 'POST', { amal })).status).toBe(400);
+    expect((await bff('/api/hujjat-paket?amal=baho')).status).toBe(400);
+    expect(MOBIL_PATH.test('/api/hujjat-paket')).toBe(true);
+  });
   it('notification preferences: telegram status read + sozlama only', async () => {
     await notTarget(await bff('/api/telegram'));
     await notTarget(await bff('/api/telegram', 'POST', { amal: 'sozlama', bildirishnoma: { topshiriq: true } }));

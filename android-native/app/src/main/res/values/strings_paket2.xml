@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pk_fmt">Chiqish</string>
+    <string name="pk_fmt_zip">ZIP (papkalar)</string>
+    <string name="pk_fmt_excel">Bitta Excel</string>
+    <string name="pk_tok_wait">Token: narx hisoblanmoqda</string>
+    <string name="pk_tok_free">Bepul (to‘langan)</string>
+    <string name="pk_tok_n">Token: ≈ %1$s (%2$s ta yangi hujjat)</string>
+    <string name="pk_busy">Yig‘ilmoqda %1$s</string>
+    <string name="pk_partial">Paket tayyor, %1$s ta hujjat kiritilmadi (Tarkibga qarang)</string>
+</resources>

@@ -20,11 +20,12 @@ Belgilar: OK = aynan bir xil, GAP = hozircha yo'q (sabab yozilgan), BFF = qurilm
 | 11 | Ro'yxat qatori: obyekt · hujjat · oy · holat (+ «oyga ikkinchi F-2») · yangilik matni · «yangilanmoqda» | bir xil; takror va taxminiy tanlanmaydi | OK |
 | 12 | Yangilik matni: «Excel tayyor · v5 · 2 daqiqa oldin» / «Eski versiya» / «Yangilanmoqda» / «Diskda yo'q» / «Yangilanmadi (qayta uriniladi)» | bir xil | OK |
 | 13 | «Yana N ta» (50 tadan, server sahifalaydi) | bir xil | OK |
-| 14 | Yuklab olish: avval Disk (bepul), yo'qi `/api/hujjat-yarat` (F-2 da `disk_afzal`), takror/taxminiy tashlanadi; bitta xato butun paketni to'xtatmaydi; «Hujjat tanlanmagan» | bir xil (`PaketRepository.fetch`) | OK |
-| 15 | Chiqish formati ZIP (papkalar) | ZIP, papkalar faqat tur nomi bo'yicha (`F-2/fayl.xlsx`); bitta hujjat bo'lsa to'g'ridan-to'g'ri fayl ulashiladi | GAP: saytdagi Loyiha/Shartnoma/Obyekt/Oy/Tur ierarxiyasi va «Tarkib» fayli (`zipYollari`, `tarkibMatni`) umumiy serverga ko'chirilishi kerak, aks holda mantiq ikki joyda takrorlanadi |
-| 16 | Chiqish formati «Bitta Excel» (varaqlar) | yo'q | GAP: saytda `exceljs` bilan mijozda yig'iladi; Android uchun server endpoint kerak |
-| 17 | Token bahosi yuklashdan oldin («Token: ≈ N (k ta yangi hujjat)», «Bepul (to'langan)») | yo'q | GAP + BFF: `/api/sb token_holat_v1` ochiq, lekin `narxHisob` mantiqi mijozda (TS); serverga ko'chirilishi kerak |
-| 18 | Jarayon «Yig'ilmoqda 3/10», natija «Paket tayyor» | bir xil | OK |
+| 14 | Yuklab olish: avval Disk (bepul), yo'qi `/api/hujjat-yarat`; takror/taxminiy tashlanadi; bitta xato butun paketni to'xtatmaydi; «Hujjat tanlanmagan» | server `/api/hujjat-paket` `yig` (saytdagi reja qoidasi bir xil kod); telefon faqat yuklab oladi va ulashadi | OK |
+| 15 | Chiqish formati ZIP (papkalar) + «Tarkib» | server `paketZipi` (sayt bilan bir xil yo'llar va «Tarkib»; test fflate bilan solishtiradi) | OK |
+| 16 | Chiqish formati «Bitta Excel» | server `paketExcel` (`exceljs`); Workers muhitida `exceljs` yuklanishi sinovdan o'tkazilmagan | OK (kod), TEKSHIRILMAGAN (prod) |
+| 17 | Token bahosi yuklashdan oldin («Token: ≈ N (k ta yangi hujjat)», «Bepul (to'langan)», «Token: narx hisoblanmoqda») | server `baho` (`yuklashBahosi`, hech narsa yechilmaydi); matnlar sayt kalitlari | OK || 18 | Jarayon «Yig'ilmoqda 3/10», natija «Paket tayyor» | bir xil | OK |
+
+| 18 | Jarayon «Yig'ilmoqda», natija «Paket tayyor» | bir xil (server yig'adi, telefon «Yig'ilmoqda ...» ko'rsatadi) | OK |
 
 ## Boshqa modullar (hali yozilmagan, keyingi qadam)
 - Ombor (sayt sahifasi `logistika`): Android'da buyruq oqimi, variant tugmalari (`holat savol`) va ovoz bor; sayt sahifasi bilan qadamma-qadam solishtirish hali qilinmagan.
