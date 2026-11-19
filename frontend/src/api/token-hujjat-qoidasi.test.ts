@@ -19,6 +19,7 @@ const BEPUL: Record<string, string> = {
   'components/imzo/ImzoUi.tsx': 'imzolangan nusxa (IMZO varag‘i qo‘shilgan) — avval to‘langan hujjatning qayta yuklanishi; takror yechilmaydi (egasi 2026-11-13), imzolashning o‘zi token yechadi (t2-imzo.ts, hujjat: IMZO)',
   'components/ombor/OmborIshJoyi.tsx': 'ostatka Excel: token SERVERDA yechiladi (/api/ombor-buyruq eksport -> serverSarfla, mazmun xeshi bo‘yicha; qayta yuklash bepul) — klientda ikkinchi marta yechilmaydi',
   'components/ombor/OmborHisobot.tsx': 'kirim-chiqim Excel: token SERVERDA yechiladi (/api/ombor-buyruq eksport tur=hisobot -> serverSarfla, mazmun xeshi bo‘yicha; qayta yuklash bepul) — klientda ikkinchi marta yechilmaydi',
+  'admin/sahifalar/HujjatPaket.tsx': 'Hujjatlar paketi: yasaladigan hujjatlar /api/hujjat-yarat orqali (token SERVERDA yechiladi, serverSarfla; qayta yuklash bepul); Diskdagi versiyalar allaqachon tolangan (qayta yechilmaydi)',
   'lib/lrv-plus-export.ts': '`lrvPlusYuklab` — chaqiruvchisi yo‘q (LRV HolatNative orqali token bilan beriladi)',
 };
 

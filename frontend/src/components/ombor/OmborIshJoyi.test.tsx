@@ -29,11 +29,11 @@ const kirishQatori = async () => screen.findByLabelText('Material yoki buyruq');
 const taklifTanla = async (nom: RegExp) => { fireEvent.change(await kirishQatori(), { target: { value: 'truba' } }); fireEvent.click(await screen.findByRole('option', { name: nom })); };
 
 describe('OmborIshJoyi: sodda tuzilma', () => {
-  it('bitta kiritish qatori + Kirim/Chiqim + uchta yorliq (Bugun, Hisobot, Qoldiq); bugungi ro\'yxat yuklanadi', async () => {
+  it('bitta kiritish qatori + Kirim/Chiqim + yorliqlar (Bugun, Hisobot, Qoldiq + Ombor lugati); bugungi ro\'yxat yuklanadi', async () => {
     montaj();
     await kirishQatori();
     expect(screen.getByRole('button', { name: 'Kirim' })).toBeTruthy(); expect(screen.getByRole('button', { name: 'Chiqim' })).toBeTruthy();
-    expect(screen.getAllByRole('tab').map((x) => x.textContent)).toEqual(['Bugun', 'Hisobot', 'Qoldiq']);
+    expect(screen.getAllByRole('tab').map((x) => x.textContent)).toEqual(['Bugun', 'Hisobot', 'Qoldiq', 'Ombor lugati']);
     await waitFor(() => expect(api.omborHisobot).toHaveBeenCalled());
     expect(api.omborHisobot.mock.calls[0][2]).toMatchObject({ davr: 'bugun' });
   });

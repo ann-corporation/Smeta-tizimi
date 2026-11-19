@@ -142,6 +142,24 @@ Namunalar:
 | `normativ_qidir(obyekt_id, matn, tur?)` | `t2_normativ_qidir_v1` / `t2_resurs_qidir_v1` / `t2_ish_turi_qidir_v1` | ShNK, resurs va ish turi variantlari |
 | `slichitelniy(obyekt_id, faqat?, limit?)` | `t2_aosr_slichitelniy_v1` | slichitelniy tayyorligi: farqli qatorlar + asos (АОСР, texnadzor qarori) + «nima yetishmaydi» (o'qish) |
 
+### Rasmiy Ф-2 Excel — `f2_excel` (brauzersiz)
+
+| Tool | Nima qiladi |
+|---|---|
+| `f2_excel(akt_id \| akt_idlar[], papka?, disk?, tasdiq?, dry_run?)` | saytdagi Ф-2 bilan AYNAN bir hujjat: bo'limlar, podval/nakrutka, imzo, КАЛИТ ustuni, kompaniya dizayni, fayl nomi (`hujjatFaylNomi`); jami: ustamasiz / ustamali / QQS bilan, qator soni |
+
+- **Bitta dvigatel.** Sayt (`/api/hujjat-yarat`) ham, MCP ham `frontend/functions/_shared/hujjat-f2.ts` dagi `f2Yasa` ni chaqiradi; token — `serverSarfla`, Disk — `diskArxivla`
+  (ikkalasi ham `frontend/functions/_shared`). Ikkinchi quruvchi yo'q. Farq faqat ma'lumot manbasida: frontend yuklovchilari (`src/api/*`) nisbiy `/api/sb`, `/api/tomon`,
+  `/api/kompaniya-sozlama` so'rovlari `src/sayt-shim.ts` orqali MCP ning Postgres ulanishiga boradi (oq ro'yxat: 4 ta `soro`, 6 ta jadval, 5 ta RPC; boshqa yo'l — xato).
+  Paritet testi: `test/f2-excel.test.ts` (MCP yo'li saytning `f2AktTayyorla → f2Hujjat` natijasi bilan kolontituldan tashqari bayt-bayt teng).
+- **Token (egasi qoidasi: har hujjat token yechadi, bir xil mazmunni qayta yuklash bepul).** Standart `tasdiq:false` — PREVIEW: hujjat yasaladi, narx haqiqiy `t2_token_sarfla_v1` dan
+  (ROLLBACK) ko'rsatiladi (`token.sarflandi` / `bepul_takror` / yetmasa `yetmaydi, kerak, balans`), fayl yozilmaydi. `tasdiq:true` — token yechiladi (kalit obyekt+oy+raqam, sayt bilan bir xil)
+  va fayl yoziladi; hammasi bitta tranzaksiyada (token yechilmasa — fayl yo'q). Aktor: `SMETA_AKTOR_ID` / `aktor_tanla`.
+- **Rad etiladi:** bekor (`holat='bekor'`) akt; obyektda shu oyga bittadan ortiq bekor qilinmagan F-2 (xatoda akt idlari ko'rsatiladi).
+- **Chiqish papkasi:** `papka` argumenti, aks holda `SMETA_EKSPORT_PAPKA`, aks holda `~/Downloads/smeta-f2`.
+- **Disk:** `disk:true` (+ `tasdiq:true`) — faqat tasdiqlangan F-2, sayt bilan bir xil yo'l (reserve → R2 → finalize → Disk). R2 ga yozish Cloudflare REST orqali:
+  `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` (+ ixtiyoriy `SMETA_R2_BUCKET`) kerak; yo'q bo'lsa token yechilishidan OLDIN xato. (REST orqali `customMetadata` yozilmaydi.)
+- Masofaviy Worker (`smeta-mcp-remote`) da bu tool ochilmaydi (`TAQIQLANGAN`): lokal fayl yozadi va token yechadi.
 ## Ishlatish namunalari
 
 - «153 obyekt holati, 2-darajagacha» → `obyekt_holat {obyekt_id:153, daraja:2}`
@@ -149,13 +167,24 @@ Namunalar:
 - Fakt: `fakt_qamrov {obyekt_id, qamrov_id:<bo'lim>, foiz:70, dry_run:true}`.
 - Xato bo'lsa: `snapshot_royxat` → `snapshot_farq` → `snapshot_qaytar {snapshot_id, tasdiq:true, obyekt_id}`.
 
+## Qayta qurish va ishga tushirish (frontend o'zgarganda ham)
+
+`f2_excel` (va umuman hamma hisob) `frontend/` kodini `dist/index.js` ichiga bundle qiladi — frontend `lib/`, `api/` yoki `functions/_shared/` o'zgarganda **qayta qurish shart**:
+
+```powershell
+cd "<repo>\mcp\smeta-mcp"; npm ci; npm run build     # → dist\index.js
+```
+
+MCP stdio serveri har sessiyada alohida jarayon: build'dan keyin Claude Code / Codex'da MCP'ni qayta ulang (`/mcp` → smeta → Reconnect yoki sessiyani qayta oching).
+**Diqqat:** MCP aniq qaysi papkadan ishga tushayotganini tekshiring (`claude mcp list` / `~/.codex/config.toml`); masalan `C:\smeta-mcp-repo\mcp\smeta-mcp\dist\index.js`
+boshqa checkout bo'lsa — build o'sha papkada (o'sha checkout'da `main` yangilangan bo'lishi kerak), aks holda eski `dist` ishlayveradi.
 ## Ishlab chiquvchi uchun
 
 ```powershell
 npm run typecheck; npm test; npm run build
 ```
 
-- `stubs.mjs`: Node'da brauzer modullari almashtiriladi (`i18n/til` → oddiy `t()`, `api/supabase` → chaqirilsa xato).
+- `stubs.mjs`: Node'da brauzer moduli almashtiriladi (`i18n/til` → oddiy `t()`). `api/supabase` HAQIQIY modul: uning nisbiy `fetch('/api/...')` chaqiruvlari faqat `f2_excel` ichida `src/sayt-shim.ts` orqali Postgres'ga yo'naladi; boshqa joyda `relativFetchQoriqchi` aniq xato beradi.
   Ixtiyoriy modul (`@frontend-ixtiyoriy/fakt-qamrov`) — fayl bo'lsa haqiqiysi, bo'lmasa «yo'q» stubi.
 - Testlar haqiqiy ulanishsiz (mock pg); real mijoz ma'lumoti fixture'larda yo'q.
 - Ulanish satri hech qachon chop etilmaydi: `src/maxfiy.ts` (xato, javob, audit — hammasi `yashir()` dan o'tadi).

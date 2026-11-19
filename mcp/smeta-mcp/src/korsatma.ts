@@ -6,7 +6,8 @@
 /** Qisqa `instructions` (MCP initialize javobi). */
 export const KORSATMA = 'QURAI (T2) bazasi bilan to\'g\'ridan-to\'g\'ri ishlash. Pul: NDS siz; ustamasiz + ustamali (ИТОГО-4), NDS alohida; null — noma\'lum (0 emas). '
   + 'Yozuvchi toollar avtomatik snapshot oladi (snapshot sxemasi bo\'lsa), bazaga audit yozadi; dry_run:true — preview + ROLLBACK. '
-  + 'RPC aktori: SMETA_AKTOR_ID yoki aktor_tanla. Sxema: `sxema` tooli.';
+  + 'RPC aktori: SMETA_AKTOR_ID yoki aktor_tanla. Sxema: `sxema` tooli. '
+  + 'Rasmiy Ф-2 Excel: `f2_excel` (avval preview — token narxi; `tasdiq:true` token yechadi va faylni yozadi).';
 
 /** Domen qoidalari (har LLM to'g'ri ishlatishi uchun; masofaviy serverda `smeta://qoidalar` resursi). */
 export const QOIDALAR = `# QURAI (T2) — domen qoidalari

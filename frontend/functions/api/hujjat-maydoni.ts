@@ -14,6 +14,20 @@ import { yetimAi, yetimKochir, yetimRoyxat } from '../_shared/disk-yetim';
 const num = (v: unknown): number | null => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : null; };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+/** Paket filtri (query `filtr` JSON): faqat ma'lum kalitlar va turlar o'tadi (RPC ga xom JSON ketmaydi). */
+export function paketFiltri(xom: string | null): Record<string, unknown> {
+  let j: Record<string, unknown> = {};
+  try { const p = JSON.parse(xom || '{}'); if (p && typeof p === 'object' && !Array.isArray(p)) j = p as Record<string, unknown>; } catch { /* bo'sh filtr */ }
+  const ids = (v: unknown): number[] => (Array.isArray(v) ? v.map(Number).filter((n) => Number.isSafeInteger(n) && n > 0).slice(0, 200) : []);
+  const txt = (v: unknown): string[] => (Array.isArray(v) ? v.map((x) => String(x).toLowerCase()).filter((x) => /^[a-z0-9_]{1,40}$/.test(x)).slice(0, 20) : []);
+  const oy = (v: unknown): string | null => (typeof v === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(v) ? v : null);
+  const o: Record<string, unknown> = {};
+  for (const [k, v] of [['loyiha_ids', ids(j.loyiha_ids)], ['shartnoma_ids', ids(j.shartnoma_ids)], ['obyekt_ids', ids(j.obyekt_ids)], ['turlar', txt(j.turlar)], ['holatlar', txt(j.holatlar)]] as const) if (v.length) o[k] = v;
+  if (oy(j.oy_dan)) o.oy_dan = oy(j.oy_dan);
+  if (oy(j.oy_gacha)) o.oy_gacha = oy(j.oy_gacha);
+  return o;
+}
+
 async function javob(p: Promise<{ httpOk: boolean; body: any; raw: string }>) {
   const r = await p;
   return rpcOk(r) ? Response.json(r.body) : rpcXato(r);
@@ -43,6 +57,8 @@ export const onRequestGet: PagesFunction<HmEnv> = async (ctx) => {
       case 'taqdim_tafsilot': return R('t2_hm_taqdim_tafsilot_v1', { p_actor: id, p_taqdim_id: num(q.get('taqdim_id')) });
       case 'yetim': return komp ? yetimRoyxat(ctx.env, id, komp) : Response.json({ ok: false, code: 'KOMPANIYA_KERAK' }, { status: 400 });
       case 'tizim': return komp ? R('t2_hm_tizim_hujjat_v1', { p_actor: id, p_kompaniya: komp, p_limit: 200 }) : Response.json({ ok: false, code: 'KOMPANIYA_KERAK' }, { status: 400 });
+      // Hujjatlar paketi (universal): Disk + akt reestri nomzodlari (bitta RPC; sayt, Telegram, MCP, Jarvis). filtr - JSON, faqat ma'lum kalitlar.
+      case 'paket_nomzod': return komp ? R('t2_hujjat_paket_nomzod_v1', { p_actor: id, p_kompaniya: komp, p_filtr: paketFiltri(q.get('filtr')) }) : Response.json({ ok: false, code: 'KOMPANIYA_KERAK' }, { status: 400 });
       case 'odamlar': return R('t2_hm_odamlar_v1', { p_actor: id, p_kompaniya: komp, p_q: (q.get('q') || '').slice(0, 60) });
       case 'admin': return R('t2_hm_admin_v1', { p_actor: id, p_kompaniya: komp });
       case 'sozlama': return komp ? R('t2_hm_sozlama_v1', { p_actor: id, p_kompaniya: komp }) : Response.json({ ok: false, code: 'KOMPANIYA_KERAK' }, { status: 400 });

@@ -12,6 +12,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Download, RefreshCw, Upload } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
+import { F2BittaBanner } from './F2BittaBanner';
+import { oyTakrorlari, paketRadEtish, paketRadXabari } from '../../lib/f2-bitta-qoida';
 import type { ReestrMalumot } from '../../api/t2-f2-reestr';
 import { f3SvodOl } from '../../api/f2-oylik-paket';
 import { aktSummalarParallel } from '../../api/t2-f2-portfel';
@@ -186,6 +188,9 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot, yangila }: { kompaniyaId: 
   const jamiHammasi = useMemo(() => oyJami(rows), [rows]);
   const jamiTanlangan = useMemo(() => oyJami(rows, tanlov), [rows, tanlov]);
   const tanlanganlar = rows.filter((r) => tanlov.has(r.akt.id));
+  // Obyekt x oy = bitta F-2 (egasi 2026-11-19): takror yoki taxminiy qoralama tashqi paketga kirmaydi.
+  const bittaTakrorlar = useMemo(() => oyTakrorlari(rows.map((r) => r.akt)), [rows]);
+  const radXabar = useMemo(() => paketRadXabari(paketRadEtish(rows.map((r) => r.akt), tanlov)), [rows, tanlov]);
 
   // Tayyorgarlik uchun (faqat bitta oy): shartnoma obyektlarining fakt aktlari soni va M-29 holati - BITTA server so'rovi (`f2_oylik_paket_v1`). Faqat o'qish.
   const shObyektKalit = shObyektlar.map((o) => o.id).join(',');
@@ -379,6 +384,7 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot, yangila }: { kompaniyaId: 
 
   async function shartnomaPaketiniYuklash() {
     if (band || !tanlanganShartnoma || !tanlanganlar.length) return;
+    if (radXabar) { toast(radXabar, 'danger'); return; }
     setBand('paket');
     try {
       const x = await shartnomaPaketiniYigish();
@@ -392,6 +398,7 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot, yangila }: { kompaniyaId: 
   /** «Topshirildi» / «Qayta yig'ish»: paketni yig'ib kanonik saqlashga yuklaydi va yangi versiya yozadi (eskisi arxivda qoladi; hech narsani bloklamaydi). */
   async function topshirish() {
     if (band || !tanlanganShartnoma || !tanlanganlar.length || oraliq) return;
+    if (radXabar) { toast(radXabar, 'danger'); return; }
     setBand('topshir');
     topshirishId.current ??= yangiTopshirishId();
     try {
@@ -437,6 +444,7 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot, yangila }: { kompaniyaId: 
   /** Loyiha rejimi: F2 lar papkada, reestr ildizda, Forma-3 (har oy) va MUNDARIJA. */
   async function paketniYukla() {
     if (band || !tanlanganlar.length) return;
+    if (radXabar) { toast(radXabar, 'danger'); return; }
     setBand('paket'); setF3Xabar('');
     const fayllar: Array<{ papka: string; nom: string; bytes: Uint8Array; tur: PaketFaylTuri; meta?: FaylMeta }> = [];
     const otkazilgan: string[] = [];
@@ -542,6 +550,8 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot, yangila }: { kompaniyaId: 
       <b className="text-warn">{t('Forma-3 rekvizitlari yetishmaydi (hujjat mavjud ma’lumot bilan yasaldi):')}</b>
       <ul className="mt-1 list-disc pl-5">{f3Ogoh.map((x, i) => <li key={i}>{x}</li>)}</ul>
     </div>}
+    <F2BittaBanner takrorlar={bittaTakrorlar} obyektNom={(id) => rows.find((r) => r.akt.obyekt_id === id)?.obyektNom ?? null} />
+    {radXabar && <p role="alert" className="text-[12px] text-danger">{radXabar}</p>}
     {sh && tayyorgarlik && <TayyorgarlikJadvali qatorlar={tayyorgarlik.qatorlar} />}
 
     {f3Xabar && <p role="status" className="text-[11.5px] text-text-dim">{f3Xabar}</p>}

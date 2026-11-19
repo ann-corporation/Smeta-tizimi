@@ -25,14 +25,12 @@ export type BotNatija<T = Record<string, unknown>> = { status: number; body: T |
 type Handler = (ctx: any) => Promise<Response> | Response;
 type Mw = TgEnv & { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT?: string };
 
-/** Ichki so'rovni middleware → handler zanjirida bajaradi. `uid` — FAQAT bog'lanishdan (t2_telegram_aniqla_v1) olingan id. */
-export async function botChaqiruv<T = Record<string, unknown>>(
-  env: Mw, uid: number, c: BotChaqiruv, middleware: Handler, handler: Handler,
-): Promise<BotNatija<T>> {
-  if (!Number.isSafeInteger(uid) || uid <= 0 || String(env.SESSIYA_KALIT || '').trim().length < 16) return { status: 503, body: null };
+/** Ichki so'rovni middleware → handler zanjirida bajaradi (umumiy qism). `number` — so'rov qurilmadi (503). */
+async function chaqir(env: Mw, uid: number, c: BotChaqiruv, middleware: Handler, handler: Handler): Promise<Response | number> {
+  if (!Number.isSafeInteger(uid) || uid <= 0 || String(env.SESSIYA_KALIT || '').trim().length < 16) return 503;
   let sess: string;
   try { sess = await imzola({ rol: 'prorab', email: 'telegram-bot', foydalanuvchi_id: uid, kompaniyalar: [] }, String(env.SESSIYA_KALIT)); }
-  catch { return { status: 503, body: null }; }
+  catch { return 503; }
   const url = new URL(saytUrl(env) + '/api/' + c.api);
   for (const [k, v] of Object.entries(c.query ?? {})) url.searchParams.set(k, String(v));
   const method = c.method ?? (c.json !== undefined || c.form ? 'POST' : 'GET');
@@ -47,9 +45,25 @@ export async function botChaqiruv<T = Record<string, unknown>>(
     waitUntil: () => undefined, passThroughOnException: () => undefined,
     next: async () => handler(ctx),
   };
-  try {
-    const r = await middleware(ctx);
-    const j = await r.json().catch(() => null) as T | null;
-    return { status: r.status, body: j };
-  } catch { return { status: 502, body: null }; }
+  try { return await middleware(ctx); } catch { return 502; }
+}
+
+/** Ichki so'rovni middleware → handler zanjirida bajaradi. `uid` — FAQAT bog'lanishdan (t2_telegram_aniqla_v1) olingan id. */
+export async function botChaqiruv<T = Record<string, unknown>>(
+  env: Mw, uid: number, c: BotChaqiruv, middleware: Handler, handler: Handler,
+): Promise<BotNatija<T>> {
+  const r = await chaqir(env, uid, c, middleware, handler);
+  if (typeof r === 'number') return { status: r, body: null };
+  const j = await r.json().catch(() => null) as T | null;
+  return { status: r.status, body: j };
+}
+
+/** Fayl qaytaradigan shlyuz (hujjat-yarat): 200 + JSON bo'lmagan javob — baytlar; aks holda JSON tana (xato). Hech narsa loglanmaydi. */
+export async function botChaqiruvFayl(
+  env: Mw, uid: number, c: BotChaqiruv, middleware: Handler, handler: Handler,
+): Promise<{ status: number; bayt: Uint8Array | null; sarlavhalar: Headers | null; body: Record<string, unknown> | null }> {
+  const r = await chaqir(env, uid, c, middleware, handler);
+  if (typeof r === 'number') return { status: r, bayt: null, sarlavhalar: null, body: null };
+  if (/json/i.test(r.headers.get('Content-Type') || '')) return { status: r.status, bayt: null, sarlavhalar: r.headers, body: await r.json().catch(() => null) as Record<string, unknown> | null };
+  return { status: r.status, bayt: r.status === 200 ? new Uint8Array(await r.arrayBuffer()) : null, sarlavhalar: r.headers, body: null };
 }

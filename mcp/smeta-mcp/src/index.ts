@@ -9,6 +9,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { sozlamaOqi } from './config';
 import { yashir } from './maxfiy';
 import { Muhit } from './muhit';
+import { relativFetchQoriqchi } from './sayt-shim';
 import { serverYasa, TOOLLAR, VERSIYA } from './server';
 import { toolChaqir } from './tool';
 
@@ -24,6 +25,7 @@ async function smoke(mu: Muhit, obyektId: number): Promise<number> {
 }
 
 async function main() {
+  relativFetchQoriqchi();
   const mu = new Muhit(sozlamaOqi());
   const i = process.argv.indexOf('--smoke');
   if (i >= 0) {

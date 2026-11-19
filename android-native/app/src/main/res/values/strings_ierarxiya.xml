@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ier_search">Obyekt, shartnoma yoki loyiha</string>
+    <string name="ier_loyiha">Loyiha</string>
+    <string name="ier_shartnoma">Shartnoma</string>
+    <string name="ier_obyekt">Obyekt</string>
+    <string name="ier_status">Holat</string>
+    <string name="ier_all">Hammasi</string>
+    <string name="ier_expand_all">Hammasini yoyish</string>
+    <string name="ier_collapse_all">Yig\'ish</string>
+    <string name="ier_no_loyiha">Loyihasiz</string>
+    <string name="ier_no_shartnoma">Shartnomasiz</string>
+    <string name="ier_count">Obyekt: %1$d</string>
+    <string name="ier_partial">Summa yo\'q: %1$d</string>
+    <string name="ier_h_faol">Faol</string>
+    <string name="ier_h_tuxtatilgan">To\'xtatilgan</string>
+    <string name="ier_h_yakunlangan">Yakunlangan</string>
+    <string name="ier_h_bekor">Bekor qilingan</string>
+    <string name="ier_context">Kontekst</string>
+    <string name="ier_context_all">Kontekst: hammasi</string>
+    <string name="ier_context_clear">Tozalash</string>
+    <string name="ier_empty">Obyekt topilmadi</string>
+    <string name="ier_flat_note">Loyiha va shartnoma ma\'lumoti o\'qilmadi: oddiy ro\'yxat</string>
+    <string name="ier_pick_hint">Obyektni tanlang: kartasi shu yerda ochiladi</string>
+    <string name="ier_card_smeta">Smeta</string>
+    <string name="ier_card_fakt">Fakt</string>
+    <string name="ier_card_f2">F-2</string>
+    <string name="ier_card_progress">Bajarilish</string>
+    <string name="ier_card_rows">Qatorlar: %1$d</string>
+    <string name="ier_card_unpriced">Narxsiz qatorlar: %1$d</string>
+    <string name="ier_d_title">Qator tafsiloti</string>
+    <string name="ier_d_volume">Hajm</string>
+    <string name="ier_d_price">Narx (QQS siz)</string>
+    <string name="ier_d_sum">Summa</string>
+    <string name="ier_d_left">Qoldiq</string>
+    <string name="ier_d_unit">Birlik</string>
+    <string name="ier_d_pick">Tafsilot uchun qatorni bosing</string>
+    <string name="ier_d_close">Yopish</string>
+    <string name="ier_today_title">Bosh sahifa</string>
+    <string name="ier_today_go">Ochish</string>
+</resources>

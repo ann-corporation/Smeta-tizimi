@@ -1,0 +1,6 @@
+{
+  "Bu obyektda shu oy uchun 2 ta F-2 bor": { "ru": "В этом объекте за этот месяц 2 Ф-2", "en": "This object has 2 F-2 for this month" },
+  "Obyekt x oy = bitta F-2. Ortiqchasini (masalan, taxminiy qoralamani) bekor qiling — aks holda paket va Forma 3 yig‘ilmaydi.": { "ru": "Объект x месяц = один Ф-2. Отмените лишний (например, примерный черновик) — иначе пакет и Форма 3 не соберутся.", "en": "Object x month = one F-2. Cancel the extra one (e.g. the estimated draft) — otherwise the package and Form 3 will not be built." },
+  "taxminiy": { "ru": "примерный", "en": "estimated" },
+  "Bu obyekt/oy uchun bir nechta F-2 bor (obyekt x oy = bitta F-2). Ortiqcha F-2 ni bekor qiling.": { "ru": "Для этого объекта/месяца несколько Ф-2 (объект x месяц = один Ф-2). Отмените лишний Ф-2.", "en": "This object/month has several F-2 (object x month = one F-2). Cancel the extra F-2." }
+}

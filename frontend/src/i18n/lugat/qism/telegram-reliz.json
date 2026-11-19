@@ -1,0 +1,14 @@
+{
+  "📥 Ilovani yuklab olish": { "ru": "📥 Скачать приложение", "en": "📥 Download the app" },
+  "⬇️ Yuklab olish": { "ru": "⬇️ Скачать", "en": "⬇️ Download" },
+  "QURAI ilovasining oxirgi versiyalari yuborilmoqda.": { "ru": "Отправляю последние версии приложения QURAI.", "en": "Sending the latest QURAI app versions." },
+  "Hozircha yuklab olinadigan reliz topilmadi.": { "ru": "Пока нет релизов для скачивания.", "en": "No releases available for download yet." },
+  "Yangi reliz: QURAI {platforma} {versiya}": { "ru": "Новый релиз: QURAI {platforma} {versiya}", "en": "New release: QURAI {platforma} {versiya}" },
+  "QURAI {platforma} {versiya}": { "ru": "QURAI {platforma} {versiya}", "en": "QURAI {platforma} {versiya}" },
+  "Hajmi: {mb} MB": { "ru": "Размер: {mb} МБ", "en": "Size: {mb} MB" },
+  "Nima yangi:": { "ru": "Что нового:", "en": "What's new:" },
+  "Fayl Telegram chegarasidan (50 MB) katta — tugma orqali yuklab oling.": { "ru": "Файл больше лимита Telegram (50 МБ) — скачайте по кнопке.", "en": "The file exceeds Telegram's 50 MB limit — use the button to download." },
+  "Bu buyruq faqat superadmin uchun.": { "ru": "Эта команда только для суперадмина.", "en": "This command is for the superadmin only." },
+  "Reliz e’loni: yuborildi {yuborildi}, o‘tkazildi {otkazildi}, xato {xato}.": { "ru": "Анонс релиза: отправлено {yuborildi}, пропущено {otkazildi}, ошибок {xato}.", "en": "Release announcement: sent {yuborildi}, skipped {otkazildi}, failed {xato}." },
+  "Reliz topilmadi. Namuna: /reliz_elon android 0.1.21": { "ru": "Релиз не найден. Пример: /reliz_elon android 0.1.21", "en": "Release not found. Example: /reliz_elon android 0.1.21" }
+}

@@ -15,6 +15,9 @@
  *   tasdiq    — token bilan tasdiqlash → RPC. Token: HMAC, 15 daqiqa, aktor/ombor bog'langan, operation_id ichida (qayta bosish takror yozmaydi).
  *   taklif    — aqlli takliflar (material, birlik, odatiy miqdor, narx, yetkazuvchi; yetkazuvchi → materiallari). Shu omborning tarixidan, LLM siz.
  *   hisobot   — kirim-chiqim jadvali istalgan davr uchun (filtrlar, QQS siz/bilan jami; storno/qaytarishlarsiz). `qoldiq` ga `sana` berilsa — shu sanadagi ostatka.
+ *   lugat_royxat / lugat_tahrir — «Ombor lug'ati»: kompaniyaning tasdiqlangan sinonimlari (material iborasi → nom, yetkazuvchi aliasi); tahrir: qosh | nomla | birlashtir | ochir.
+ *   tahlil javobiga qo'shilganlar (orqaga mos): `holat:'savol'` + `kod:'material'|'kontragent'` + `variantlar[]` (3–5 mavjud variant + «Yangi»; tugma `tanlov` ni keyingi so'rovga qo'shing:
+ *   {nomi,birligi} | {nomi,yangi:true} | {kontragent} | {kontragent,kontragent_yangi:true} | {obyekt}); preview.yangi_element / yangi_kontragent / narx_taklif ({narx QQS siz, sana} yoki null).
  *   vosita    — Jarvis/agent vositalari (ombor-vositalar.ts): yozuv faqat tasdiq tokeni bilan; qoralama hech narsa yozmaydi.
  *
  * Ruxsat: a'zolik + warehouse.write|document.write (yozish) / warehouse.read|write|document.read (o'qish) — middleware + RPC ichida takror.
@@ -26,7 +29,7 @@ import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shar
 import { AiByudjetXatosi, aiHisobli, type HisobEnv } from '../_shared/ai-hisobli';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { LLM_TIZIM_MATNI, buyruqBirlashtir, buyruqTekshir, llmIshora, llmJsonOl, oddiyTahlil, qismanBuyruq, tokenTekshir, tokenYarat, type Buyruq } from '../_shared/ombor-buyruq-yadro';
-import { savolYasa, tarixNomlari, tarixdanMosla, type Qisman, type TarixNomlari } from '../../src/lib/ombor-moslash/tushun';
+import { savolYasa, tarixNomlari, type Qisman, type TarixNomlari } from '../../src/lib/ombor-moslash/tushun';
 import { onRequestPost as ovozPost } from './ombor-ovoz';
 import { birlikKaliti, nomKaliti } from '../../src/lib/ombor-moslash/moslash';
 import { ESLATMA_MANBALARI, eslatmaYigish, type EslatmaYozuv } from '../../src/lib/ombor-moslash/eslatma';
@@ -36,6 +39,8 @@ import { kontragentTaklif, materialTaklif, type MaterialTaklif, type TaklifYozuv
 import { NDS_SUKUT_FOIZ } from '../../src/lib/hisob-yadro/nds';
 import { narxBilanga, narxRejimTekshir, narxSizga } from '../../src/lib/ombor-moslash/narx';
 import { vositaSorov } from '../_shared/ombor-vositalar';
+import { katalogNomzodlari, lugatYukla, oxirgiNarx, oyrenishSaqla, type OyrenishYozuv } from '../_shared/ombor-lugat';
+import { birlikLugat, kontragentAjrat, lugatKalit, lugatMosla, lugatSavol, nomzodYigish, oyrenishYozuvi } from '../../src/lib/ombor-moslash/lugat';
 import { serverQaytar, serverSarfla, sarfRad } from '../_shared/hujjat-sarf';
 import { RasmiyVaraq, rasmiyKitob } from '../../src/lib/hujjat-yozuvchi/rasmiy';
 
@@ -205,8 +210,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 
   const kid = butun(b.kompaniya_id), sid = butun(b.sklad_id);
   if (!kid || !sid) return fail('COMPANY_REQUIRED', 400);
-  const yozish = ['yoz', 'tuzat', 'alias', 'tahlil', 'tasdiq', 'narx_qoy'].includes(amal);
-  if (!['qoldiq', 'royxat', 'tarix', 'eslatma', 'taklif', 'hisobot', 'eksport', 'eksport_reja', 'narx_qoy', 'yoz', 'tuzat', 'alias', 'tahlil', 'tasdiq'].includes(amal)) return fail('AMAL_NOMALUM', 400);
+  const yozish = ['yoz', 'tuzat', 'alias', 'tahlil', 'tasdiq', 'narx_qoy', 'lugat_tahrir'].includes(amal);
+  if (!['qoldiq', 'royxat', 'tarix', 'eslatma', 'taklif', 'hisobot', 'eksport', 'eksport_reja', 'narx_qoy', 'yoz', 'tuzat', 'alias', 'tahlil', 'tasdiq', 'lugat_royxat', 'lugat_tahrir'].includes(amal)) return fail('AMAL_NOMALUM', 400);
   const rad = ruxsat(s, kid, false) ?? (yozish && amal !== 'tahlil' ? ruxsat(s, kid, true) : null);
   if (rad) return rad;
   const baza = { p_actor_id: aid, p_kompaniya_id: kid, p_sklad_id: sid };
@@ -226,6 +231,22 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       if (r.status === 404) return fail('MIGRATSIYA_YOQ', 501);
       taklifKeshTozala(kid, sid);
       return rpcNatija(r);
+    }
+    case 'lugat_royxat': {
+      // Ombor lug'ati (kompaniyaning tasdiqlangan sinonimlari). Jadval hali qo'llanmagan bo'lsa (404) — 501.
+      const r = await rpc(ctx.env, 't2_ombor_lugat_royxat_v1', { ...baza, p_tur: b.tur === 'material' || b.tur === 'kontragent' ? b.tur : null, p_limit: 1000 });
+      return r.status === 404 ? fail('MIGRATSIYA_YOQ', 501) : rpcNatija(r);
+    }
+    case 'lugat_tahrir': {
+      // qosh {tur, ibora, kanonik, birlik?} | nomla {id, kanonik} | birlashtir {ids[], kanonik} | ochir {id}. Ruxsat va audit RPC ichida.
+      const la = String(b.lugat_amal ?? ''); const y = b.yuk && typeof b.yuk === 'object' && !Array.isArray(b.yuk) ? b.yuk as Record<string, unknown> : {};
+      if (!['qosh', 'nomla', 'birlashtir', 'ochir'].includes(la)) return fail('REQUIRED_FIELD', 400);
+      const tur = y.tur === 'kontragent' ? 'kontragent' : 'material';
+      const yuk = la === 'qosh'
+        ? { tur, ibora: String(y.ibora ?? '').slice(0, 200), ibora_kalit: lugatKalit(String(y.ibora ?? ''), tur).slice(0, 200), kanonik: String(y.kanonik ?? '').slice(0, 500), birlik: y.birlik ? String(y.birlik).slice(0, 40) : null }
+        : { id: butun(y.id), ids: Array.isArray(y.ids) ? y.ids.map(butun).filter((x) => x != null).slice(0, 200) : undefined, kanonik: y.kanonik ? String(y.kanonik).slice(0, 500) : undefined };
+      const r = await rpc(ctx.env, 't2_ombor_lugat_yoz_v1', { ...baza, p_amal: la, p_yuk: yuk });
+      return r.status === 404 ? fail('MIGRATSIYA_YOQ', 501) : rpcNatija(r);
     }
     case 'taklif': return taklif(ctx, aid, kid, sid, b);
     case 'hisobot': return hisobotJavob(ctx.env, kid, sid, b, lim, off);
@@ -307,7 +328,9 @@ async function tahlil(ctx: Context, s: Sess, kid: number, sid: number, b: Record
   let qisman: Qisman | null = null;
   const bugun = new Date(Date.now() + 5 * 3600_000).toISOString().slice(0, 10);
   const javobTil = b.javob_til === 'ru' ? 'ru' : null; // aniqlovchi savol matni tili (mijoz yuboradi; sukut — o'zbek lotin)
-  const tanlov = b.tanlov && typeof b.tanlov === 'object' ? b.tanlov as { nomi?: unknown; birligi?: unknown; amal?: unknown; kontragent?: unknown } : null;
+  const tanlov = b.tanlov && typeof b.tanlov === 'object' ? b.tanlov as { nomi?: unknown; birligi?: unknown; amal?: unknown; kontragent?: unknown; yangi?: unknown; kontragent_yangi?: unknown; obyekt?: unknown } : null;
+  const tanlovYangi = tanlov?.yangi === true; // «Yangi: …» tugmasi bosildi: faqat shundan keyin yangi element (tasdiqdan so'ng yoziladi)
+  const tanlovObyekt = typeof tanlov?.obyekt === 'string' && tanlov.obyekt.trim() ? tanlov.obyekt.trim().slice(0, 80) : null;
   // Aniqlovchi savolga javob (mijoz tugma bosdi): yo'nalish yoki yetkazuvchi tanlovi shu so'rovda qo'llanadi.
   const tanlovAmal = tanlov?.amal === 'prixod' || tanlov?.amal === 'chiqim' ? tanlov.amal : null;
   const tanlovKontragent = typeof tanlov?.kontragent === 'string' && tanlov.kontragent.trim() ? tanlov.kontragent.trim().slice(0, 200) : null;
@@ -388,45 +411,75 @@ async function tahlil(ctx: Context, s: Sess, kid: number, sid: number, b: Record
   // prixod / chiqim
   const tur: 'prixod' | 'chiqim' = buyruq.amal === 'prixod' ? 'prixod' : 'chiqim';
   if (!buyruq.nomi && typeof tanlov?.nomi === 'string' && tanlov.nomi.trim()) buyruq = { ...buyruq, nomi: tanlov.nomi.trim().slice(0, 500) };
+  let kontragentIbora = buyruq.kontragent; // foydalanuvchi aytgan ibora (tanlov bilan almashtirilishidan oldin) — lug'atga o'rganish uchun
   if (tanlovKontragent) buyruq = { ...buyruq, kontragent: tanlovKontragent };
+  if (tanlovObyekt) buyruq = { ...buyruq, obyekt: tanlovObyekt };
   const tn = await tarixOl(env, kid, sid, tur);
   if (!buyruq.nomi || !buyruq.miqdor) {
     const sv = savolYasa({ yonalish: tur, taxmin: null, nomi: buyruq.nomi, miqdor: buyruq.miqdor, kontragent: buyruq.kontragent }, { materiallar: tn?.materiallar, til: javobTil });
     return json({ ...javob, holat: 'toldirish_kerak', yetishmaydi: [!buyruq.nomi && 'nomi', !buyruq.miqdor && 'miqdor'].filter(Boolean), savol: sv?.savol ?? null, variantlar: sv?.variantlar ?? [] });
   }
-  let nomiB: string = buyruq.nomi; const miqdorB: number = buyruq.miqdor;
+  let nomiB: string = buyruq.nomi; let miqdorB: number = buyruq.miqdor;
   const tarixEslatma: string[] = [...(qisman?.eslatmalar ?? [])];
-  // Kontragent va material nomini kompaniyaning O'Z tarixiga moslash (lotin/kirill, imlo xatosi). Aniq — tarixdagi yozilish olinadi;
-  // bir nechta yaqin yetkazuvchi/qabul qiluvchi — bitta qisqa savol; yangi nom — o'zi qabul qilinadi.
-  if (buyruq.kontragent && !tanlovKontragent && tn) {
-    const km = tarixdanMosla(buyruq.kontragent, tn.kontragentlar);
-    if (km.holat === 'aniq' && km.tanlangan) buyruq = { ...buyruq, kontragent: km.tanlangan };
-    else if (km.holat === 'noaniq') {
-      const sv = savolYasa({ yonalish: tur, taxmin: null, nomi: buyruq.nomi, miqdor: buyruq.miqdor, kontragent: buyruq.kontragent }, { kontragent: km, til: javobTil });
-      if (sv) return json({ ...javob, holat: 'savol', savol: sv.savol, variantlar: sv.variantlar });
+  const ru = javobTil === 'ru';
+  // OMBOR LUG'ATI (yagona tushunish yadrosi): material/yetkazuvchini AVVAL kompaniyaning O'Z lug'atidan topamiz — sinonim → tarix (kirim+chiqim) → kontragentlar → smeta katalogi.
+  // Aniq va yakka — o'zi tanlanadi; noaniq — 3–5 mavjud variant tugmasi + «Yangi»; hech narsa mos kelmasa — yangi element (FAQAT tasdiqdan keyin yoziladi, yangi_element bayrog'i bilan).
+  // Tasdiqlangan moslik (ibora → mavjud nom) tasdiq tokeni ichida saqlanadi va tasdiqdan keyin lug'atga yoziladi (keyingi safar darhol hal bo'ladi).
+  const [yp, yc] = await Promise.all([taklifYukla(env, kid, sid, 'prixod').catch(() => null), taklifYukla(env, kid, sid, 'chiqim').catch(() => null)]);
+  const lg = await lugatYukla(env, kid, [...(yp ?? []), ...(yc ?? [])], tur);
+  const oyrenish: OyrenishYozuv[] = []; let yangiKontragent = false; let lugatTanlandi = false;
+  // Ko'p so'zli yetkazuvchi («Hamkor Qurilishdan»): oddiy tahlil faqat oxirgi so'zni oladi — nomning oxiridagi so'zlar lug'at/belgi bo'yicha yetkazuvchiga qaytariladi.
+  if (kontragentIbora && !tanlovKontragent) {
+    const aj = kontragentAjrat(nomiB, kontragentIbora, lg.kontragentlar, lg.sinonimlar);
+    if (aj.sabab && aj.nomi) { nomiB = aj.nomi; kontragentIbora = aj.kontragent; buyruq = { ...buyruq, nomi: aj.nomi, kontragent: aj.kontragent }; }
+  }
+  if (!tanlov?.nomi) lg.materiallar = nomzodYigish([...lg.materiallar, ...await katalogNomzodlari(env, kid, nomiB).catch(() => [])], 'material');
+  if (kontragentIbora && buyruq.kontragent) {
+    if (tanlovKontragent) {
+      if (tanlov?.kontragent_yangi === true) yangiKontragent = true;
+      else { const o = oyrenishYozuvi('kontragent', kontragentIbora, tanlovKontragent); if (o) oyrenish.push(o); }
+    } else {
+      const km = lugatMosla({ nomi: kontragentIbora }, lg.kontragentlar, lg.sinonimlar, 'kontragent');
+      if (km.holat === 'avto' && km.tanlangan) {
+        buyruq = { ...buyruq, kontragent: km.tanlangan.nomi };
+        const o = oyrenishYozuvi('kontragent', kontragentIbora, km.tanlangan.nomi); if (o) oyrenish.push(o);
+      } else if (km.holat === 'tanlash') return json({ ...javob, holat: 'savol', ...lugatSavol('kontragent', kontragentIbora, km, ru) });
+      else yangiKontragent = true;
     }
   }
-  if (tur === 'prixod' && !tanlov?.nomi && tn) {
-    const mm = tarixdanMosla(nomiB, tn.materiallar);
-    if (mm.holat === 'aniq' && mm.tanlangan) {
-      if (mm.tanlangan !== nomiB) tarixEslatma.push(`«${nomiB}» ombor tarixidagi «${mm.tanlangan}» deb olindi.`);
-      nomiB = mm.tanlangan;
-      buyruq = { ...buyruq, nomi: nomiB, birlik: buyruq.birlik ?? tn.birlik.get(nomiB) ?? null };
+  if (tanlov?.nomi) {
+    if (!tanlovYangi) {
+      lugatTanlandi = true;
+      const o = oyrenishYozuvi('material', nomiB, String(tanlov.nomi), typeof tanlov.birligi === 'string' ? tanlov.birligi : null); if (o) oyrenish.push(o);
     }
+  } else {
+    const mr = lugatMosla({ nomi: nomiB, birlik: buyruq.birlik }, lg.materiallar, lg.sinonimlar, 'material');
+    if (mr.holat === 'avto' && mr.tanlangan) {
+      const t = mr.tanlangan; lugatTanlandi = true;
+      if (t.nomi !== nomiB) tarixEslatma.push(`«${nomiB}» lug'atdagi «${t.nomi}» deb olindi.`);
+      const o = oyrenishYozuvi('material', nomiB, t.nomi, t.birligi); if (o) oyrenish.push(o);
+      if (t.aylantirish && buyruq.birlik) {
+        miqdorB = Math.round(miqdorB * t.aylantirish.koef * 10000) / 10000;
+        tarixEslatma.push(`${buyruq.miqdor} ${t.aylantirish.dan} = ${miqdorB} ${t.aylantirish.ga} (ma'lum aylantirish; tasdiqlashdan oldin tekshiring).`);
+        buyruq = { ...buyruq, nomi: t.nomi, miqdor: miqdorB, birlik: t.aylantirish.ga };
+      } else buyruq = { ...buyruq, nomi: t.nomi, birlik: buyruq.birlik && t.birligi && birlikLugat(buyruq.birlik) === birlikLugat(t.birligi) ? t.birligi : buyruq.birlik ?? t.birligi ?? null }; // bir oiladagi birlik — lug'atdagi yozilishi
+      nomiB = t.nomi;
+    } else if (mr.holat === 'tanlash') return json({ ...javob, holat: 'savol', ...lugatSavol('material', nomiB, mr, ru) });
   }
-  const m = tanlov?.nomi ? { xato: false as const, nomzodlar: [] as Nomzod[], holat: 'tanlandi' as const, tanlangan: { nomi: String(tanlov.nomi), birligi: String(tanlov.birligi ?? buyruq.birlik ?? ''), qoldiq: NaN, ball: 1, kalit: '', variantlar_soni: 0 } as Nomzod }
+  const m = tanlov?.nomi && !tanlovYangi ? { xato: false as const, nomzodlar: [] as Nomzod[], holat: 'tanlandi' as const, tanlangan: { nomi: String(tanlov.nomi), birligi: String(tanlov.birligi ?? buyruq.birlik ?? ''), qoldiq: NaN, ball: 1, kalit: '', variantlar_soni: 0 } as Nomzod }
     : await moslash(env, aid, kid, sid, nomiB, buyruq.birlik);
   if (m.xato) return fail('SERVER_XATO', 502);
   const ogohlantirish: string[] = [...tarixEslatma];
-  // Variant tanlash bosqichi YO'Q (egasi qarori). Aniq moslik — ombordagi yozilishi olinadi. Bir nechta o'xshash bo'lsa: chiqimda eng yaqini
-  // (chiqim faqat mavjud materialdan), kirimda yozilgan nom O'ZI qabul qilinadi (yangi nom keyingi safar eslatma bo'ladi). Qolganlari `nomzodlar` da.
-  const tl: Nomzod | null = m.tanlangan ?? (m.holat === 'tanlash' && buyruq.amal === 'chiqim' ? m.nomzodlar[0] ?? null : null);
+  // Lug'at bosqichi (yuqorida) noaniqlikni tugmalar bilan hal qildi. Bu yerda: ostatka bo'yicha aniq moslik; chiqimda eng yaqini (faqat mavjud materialdan).
+  // «Yangi» tanlangan bo'lsa (tanlov.yangi) ostatkadagi moslik e'tiborsiz — yangi element sifatida (tasdiqdan keyin) yoziladi.
+  const tl: Nomzod | null = tanlovYangi ? null : m.tanlangan ?? (m.holat === 'tanlash' && buyruq.amal === 'chiqim' ? m.nomzodlar[0] ?? null : null);
   if (!m.tanlangan && tl) ogohlantirish.push(`O'xshash materiallar bor: «${tl.nomi}» olindi. Boshqa bo'lsa, nomni o'zgartiring.`);
   let yangiMaterial = false;
   let nom = tl?.nomi ?? null; let birl = buyruq.birlik ?? tl?.birligi ?? null;
   if (!tl) {
     if (buyruq.amal === 'chiqim') return json({ ...javob, holat: 'material_topilmadi', nomzodlar: m.nomzodlar });
-    yangiMaterial = true; nom = nomiB; if (m.holat === 'tanlash') ogohlantirish.push('Yozilgan nom o\'zi qabul qilindi (o\'xshash materiallar bor, pastda taklif qilinadi).'); else ogohlantirish.push('Ombor tarixida bunday material topilmadi — yangi material sifatida yoziladi.');
+    nom = nomiB;
+    if (!lugatTanlandi) { yangiMaterial = true; ogohlantirish.push('Lug\'atda bunday material topilmadi — yangi material sifatida yoziladi (tasdiqlasangiz lug\'atga qo\'shiladi).'); }
   } else if (tl.birligi && buyruq.birlik && birlikKaliti(buyruq.birlik) !== birlikKaliti(tl.birligi)) {
     ogohlantirish.push(`Birlik farq qiladi: aytildi «${buyruq.birlik}», ombordagi material «${tl.birligi}». Ombordagi birlik ishlatiladi.`);
     birl = tl.birligi;
@@ -438,7 +491,7 @@ async function tahlil(ctx: Context, s: Sess, kid: number, sid: number, b: Record
   let obyektId: number | null = null;
   if (buyruq.obyekt) {
     const ob = await obyektTop(env, kid, buyruq.obyekt);
-    if (ob.length === 1) obyektId = ob[0].id; else if (ob.length > 1) return json({ ...javob, holat: 'obyekt_tanlang', nomzodlar_obyekt: ob }); else ogohlantirish.push(`Obyekt topilmadi: «${buyruq.obyekt}». Obyektsiz yoziladi.`);
+    if (ob.length === 1) obyektId = ob[0].id; else if (ob.length > 1) return json({ ...javob, holat: 'obyekt_tanlang', nomzodlar_obyekt: ob, savol: ru ? 'Какой объект?' : 'Qaysi obyekt?', variantlar: ob.map((o) => ({ yorliq: o.nom, tanlov: { obyekt: o.nom } })) }); else ogohlantirish.push(`Obyekt topilmadi: «${buyruq.obyekt}». Obyektsiz yoziladi.`);
   }
   if (buyruq.amal === 'chiqim' && !buyruq.kontragent) ogohlantirish.push('Kimga berilgani aytilmadi (qabul qiluvchi bo\'sh qoladi).');
   if (buyruq.sana && buyruq.sana > bugun) return json({ ...javob, holat: 'sana_kelajakda' });
@@ -452,8 +505,11 @@ async function tahlil(ctx: Context, s: Sess, kid: number, sid: number, b: Record
   const narxSiz = buyruq.amal === 'prixod' ? narxSizga(buyruq.narx, narxRejim) : null;
   const narxRejimSorov = narxSiz != null && !rejimAniq;
   if (narxRejimSorov) ogohlantirish.push('Narx QQS bilan deb olindi. QQS siz bo‘lsa, «QQS siz» deb qayta ayting yoki tanlang.');
-  const preview = { narx_sorov: narxSorov, narx_rejim: narxSiz != null ? narxRejim : null, narx_rejim_sorov: narxRejimSorov, narx_kiritilgan: narxSiz != null ? buyruq.narx : null, narx_bilan: narxBilanga(narxSiz), tur: buyruq.amal, nomi: nom, birligi: birl, miqdor: buyruq.miqdor, narx: narxSiz, sana: buyruq.sana ?? bugun, kontragent: buyruq.kontragent, obyekt_id: obyektId, obyekt: buyruq.obyekt, izoh: buyruq.izoh, yangi_material: yangiMaterial, qoldiq_hozir: hozirgi, qoldiq_keyin: keyin, ogohlantirish };
-  return json({ ...javob, holat: 'tasdiq_kerak', preview, nomzodlar: m.nomzodlar, token: await tokenYarat(env.SESSIYA_KALIT, { a: aid, k: kid, s: sid, op, p: preview }) });
+  if (yangiKontragent && buyruq.kontragent) ogohlantirish.push(`Yangi ${buyruq.amal === 'prixod' ? 'yetkazuvchi' : 'qabul qiluvchi'}: «${buyruq.kontragent}» (lug'atda yo'q) — tasdiqlasangiz shunday yoziladi.`);
+  // Oxirgi kirim narxi — FAQAT tarixdagi yozuvdan (QQS siz); yo'q bo'lsa null. Yozilmaydi: foydalanuvchi o'zi kiritadi yoki shu narxni tanlaydi.
+  const narxTaklif = buyruq.amal === 'prixod' && buyruq.narx == null && nom ? oxirgiNarx(lg.materiallar, nom) : null;
+  const preview = { yangi_element: yangiMaterial || yangiKontragent, yangi_kontragent: yangiKontragent, narx_taklif: narxTaklif, narx_sorov: narxSorov, narx_rejim: narxSiz != null ? narxRejim : null, narx_rejim_sorov: narxRejimSorov, narx_kiritilgan: narxSiz != null ? buyruq.narx : null, narx_bilan: narxBilanga(narxSiz), tur: buyruq.amal, nomi: nom, birligi: birl, miqdor: miqdorB, narx: narxSiz, sana: buyruq.sana ?? bugun, kontragent: buyruq.kontragent, obyekt_id: obyektId, obyekt: buyruq.obyekt, izoh: buyruq.izoh, yangi_material: yangiMaterial, qoldiq_hozir: hozirgi, qoldiq_keyin: keyin, ogohlantirish };
+  return json({ ...javob, holat: 'tasdiq_kerak', preview, nomzodlar: m.nomzodlar, token: await tokenYarat(env.SESSIYA_KALIT, { a: aid, k: kid, s: sid, op, p: { ...preview, oyrenish } }) });
 }
 
 async function tasdiq(ctx: Context, s: Sess, kid: number, sid: number, b: Record<string, unknown>): Promise<Response> {
@@ -469,6 +525,10 @@ async function tasdiq(ctx: Context, s: Sess, kid: number, sid: number, b: Record
     r = await yozish_(env, { p_actor_id: aid, p_kompaniya_id: kid, p_sklad_id: sid }, { operatsiya: p.tur, nomi: p.nomi, birligi: p.birligi, miqdor: p.miqdor, sana: p.sana, kontragent: p.kontragent, obyekt_id: p.obyekt_id, izoh: p.izoh, narx: p.narx, operation_id: y.op });
   } else return fail('TOKEN_YAROQSIZ', 403);
   taklifKeshTozala(kid, sid);
+  // O'rganish: yozuv muvaffaqiyatli bo'lgandagina, tasdiqlangan moslik (ibora → mavjud nom) kompaniya lug'atiga (best-effort; token ichidagi ma'lumot HMAC bilan himoyalangan).
+  if ((p.tur === 'prixod' || p.tur === 'chiqim') && r.status < 400 && (r.data as { ok?: boolean } | null)?.ok === true && Array.isArray(p.oyrenish) && p.oyrenish.length) {
+    await oyrenishSaqla((nom, yuk) => rpc(env, nom, yuk), { p_actor_id: aid, p_kompaniya_id: kid, p_sklad_id: sid }, p.oyrenish as OyrenishYozuv[]);
+  }
   await audit(env, kid, sid, 'ombor_buyruq_tasdiq', aid, `tur=${String(p.tur)}; ok=${String((r.data as { ok?: boolean } | null)?.ok)}; operation_id=${y.op}`);
   return rpcNatija(r);
 }

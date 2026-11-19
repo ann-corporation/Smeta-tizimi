@@ -1,7 +1,8 @@
 // Frontend sof mantig'i (frontend/src/lib) MCP ichiga bundle qilinadi (dublikat yozilmaydi).
-// Brauzerga bog'liq ikki modul Node'da stub bilan almashtiriladi:
-//   - frontend/src/i18n/til.ts  (react + localStorage) -> matnni o'zgarishsiz qaytaradi;
-//   - frontend/src/api/*         (fetch('/api/...'), sessiya) -> chaqirilsa aniq xato beradi (MCP bazaga o'zi ulanadi).
+// Brauzerga bog'liq modul Node'da stub bilan almashtiriladi:
+//   - frontend/src/i18n/til.ts  (react + localStorage) -> matnni o'zgarishsiz qaytaradi.
+// frontend/src/api/supabase.ts HAQIQIY modul (2026-11-19: f2_excel hujjat dvigateli yuklovchilari uni ishlatadi): uning nisbiy
+// fetch('/api/...') chaqiruvlari src/sayt-shim.ts orqali MCP ning Postgres'iga yo'naladi (faqat f2_excel ichida); boshqa joyda relativFetchQoriqchi aniq xato beradi.
 // Ixtiyoriy frontend modullar (hali main'da bo'lmasligi mumkin) — mavjud bo'lsa haqiqiysi, bo'lmasa «yo'q» stubi.
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -21,7 +22,6 @@ export function stubYoli(abs) {
   const n = norm(abs).replace(/\.(tsx?|jsx?)$/, '');
   const fe = norm(FRONTEND_SRC);
   if (n === fe + '/i18n/til') return STUB('til.ts');
-  if (n === fe + '/api/supabase') return STUB('frontend-api.ts');
   return null;
 }
 
