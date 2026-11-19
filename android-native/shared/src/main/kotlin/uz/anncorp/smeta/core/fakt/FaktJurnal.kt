@@ -15,7 +15,7 @@ import kotlin.math.min
 data class T2Qator(
     val id: Long, val otaId: Long? = null, val daraja: Int? = 0, val tur: String? = null, val kod: String? = null, val nom: String? = null,
     val birlik: String? = null, val hajm: Double? = null, val kat: String? = null, val qoshimcha: Boolean = false, val zamena: Boolean = false,
-    val versiya: Int = 1, val norma: Double? = null,
+    val versiya: Int = 1, val norma: Double? = null, val narx: Double? = null,
 )
 
 /** t2_qator_holat (what the server says about a row). */
