@@ -27,7 +27,11 @@ export type F2YasaOpsiya = {
   /** Summalar (ustamasiz / ustamali / QQS bilan, qator soni) - hujjat bilan bir xil hisob (`portfelAktMoliya`). */
   moliya?: boolean;
 };
-export type F2Tayyor = Tayyor & { akt: F2YasaAkt; moliya: AktMoliya | null };
+export type F2Tayyor = Tayyor & {
+  akt: F2YasaAkt; moliya: AktMoliya | null;
+  /** Server yasashida QR qo'yilgan bo'lsa: nashr tokeni, nusxa hali biriktirilmaganmi, va QR dan OLDINGI mazmun xeshi (Disk operatsiya kaliti uchun). */
+  nashr?: { token: string; nusxaKerak: boolean; mazmunXesh: string };
+};
 /** F-2 Diskka yoziladimi: bekor va taxminiy qoralama (raqamida taxminiy/prorab belgisi; PR #670 qoidasi) yozilmaydi; qolgan hammasi yoziladi. */
 export const f2DiskkaArxivlansinmi = (a: Pick<F2YasaAkt, 'holat' | 'raqam'>): boolean => a.holat !== 'bekor' && !/(taxminiy|prorab)/i.test(a.raqam ?? '');
 export async function f2Yasa(kompaniyaId: number, obyektId: number, aktId: number, opsiya: F2YasaOpsiya = {}): Promise<F2Tayyor> {

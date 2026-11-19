@@ -13,6 +13,8 @@ import { Rad, f2DiskkaArxivlansinmi, f2Yasa, type F2Tayyor } from './hujjat-f2';
 import { diskArxivla, type DiskArxivNatija, type DiskEnv } from './disk-yoz';
 import { hujjatDizayniniYukla } from '../../src/api/f2-hujjat-kontekst';
 import { mazmunXeshi } from '../../src/api/mazmun-xesh';
+import { serverNashrQoy, nusxaBiriktir } from './hujjat-nashr';
+import type { ImzoEnv } from './imzo';
 
 export type NavbatQator = { id: number; tur: string; manba_id: number; kompaniya_id: number; obyekt_id: number | null; urinish: number; aktor_id: number | null };
 export type TugatNatija = 'ok' | 'otkazildi' | 'xato';
@@ -77,10 +79,24 @@ export function haqiqiyDeps(ctx: Ctx, o: { kompaniyaId?: number | null } = {}): 
       return ichkiRejimda({ ...ctx, request }, async () => {
         await hujjatDizayniniYukla(q.kompaniya_id);
         return f2Yasa(q.kompaniya_id, q.obyekt_id as number, q.manba_id);
-      });
+      }).then((t) => f2gaQrQosh(env, origin, q, t));
     },
     /* Disk operatsiya kaliti MAZMUN xeshi (token kaliti emas: u obyekt+oy+raqam, o'zgarishda bir xil qolardi -> yangi versiya yozilmasdi).
        Mazmun o'zgarmagan bo'lsa - bir xil operatsiya (versiya ortmaydi), o'zgargan bo'lsa - yangi versiya. */
-    yoz: async (q, t) => diskArxivla(env, { actorId: q.aktor_id as number, kompaniyaId: q.kompaniya_id, obyektId: q.obyekt_id as number, turi: t.turi, faylNomi: t.faylNomi, bytes: t.bytes, davr: t.davr, xesh: await mazmunXeshi(t.bytes), manba: t.manba }),
+    yoz: async (q, t) => {
+      const r = await diskArxivla(env, { actorId: q.aktor_id as number, kompaniyaId: q.kompaniya_id, obyektId: q.obyekt_id as number, turi: t.turi, faylNomi: t.faylNomi, bytes: t.bytes, davr: t.davr, xesh: t.nashr?.mazmunXesh ?? await mazmunXeshi(t.bytes), manba: t.manba });
+      // QR li nusxa registry ga tushdi -> nashrga biriktiriladi (QR /t/<token> orqali nusxa yuklanadi). Xato hujjatni yiqitmaydi.
+      if (r.ok && t.nashr?.nusxaKerak) await nusxaBiriktir(env, q.aktor_id as number, t.nashr.token, r.documentId).catch(() => false);
+      return r;
+    },
   };
+}
+
+/** Fon F-2 ga ham brauzer eksporti kabi QR (`/t/<token>`, texnadzor tekshiruvi) qo'yiladi - bir xil `nashrQoy` yo'li. Xato bo'lsa QR siz (hujjat to'xtamaydi). */
+export async function f2gaQrQosh(env: ImzoEnv, origin: string, q: Pick<NavbatQator, 'kompaniya_id' | 'obyekt_id' | 'manba_id' | 'aktor_id'>, t: F2Tayyor): Promise<F2Tayyor> {
+  try {
+    const mazmunXesh = await mazmunXeshi(t.bytes);
+    const n = await serverNashrQoy(env, t.bytes, t.faylNomi, { actorId: q.aktor_id as number, kompaniyaId: q.kompaniya_id, obyektId: q.obyekt_id as number, origin, turi: 'f2', atama: t.faylNomi.replace(/\.[A-Za-z0-9]+$/, ''), aktId: q.manba_id });
+    return n ? { ...t, bytes: n.bytes, nashr: { token: n.token, nusxaKerak: n.nusxaKerak, mazmunXesh } } : t;
+  } catch { return t; }
 }
