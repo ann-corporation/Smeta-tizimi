@@ -51,21 +51,18 @@ import kotlinx.coroutines.launch
 import uz.anncorp.smeta.R
 import uz.anncorp.smeta.core.data.BffApi
 import uz.anncorp.smeta.core.data.GenResult
+import uz.anncorp.smeta.core.data.formatMoney
 import uz.anncorp.smeta.core.data.WorkContext
-import uz.anncorp.smeta.core.data.safeFileName
 import uz.anncorp.smeta.core.ui.TouchTarget
 import uz.anncorp.smeta.core.ui.WorkCard
 import uz.anncorp.smeta.core.ui.WorkTopBar
 import uz.anncorp.smeta.feature.docs.DocFiles
-import java.io.ByteArrayOutputStream
-import java.util.zip.ZipEntry
-import java.util.zip.ZipOutputStream
 import javax.inject.Inject
 
 data class PaketUi(
     val filter: PaketFilter = PaketFilter(), val rows: List<PaketRow> = emptyList(), val total: Int = 0, val allKeys: List<String> = emptyList(),
     val variants: PaketVariants? = null, val selected: Set<String> = emptySet(), val loading: Boolean = false, val error: Boolean = false,
-    val saved: List<SavedFilter> = emptyList(), val progress: String? = null, val message: Int? = null, val rawMessage: String? = null,
+    val saved: List<SavedFilter> = emptyList(), val progress: String? = null, val format: PaketFormat = PaketFormat.ZIP, val estimate: PaketEstimate? = null, val message: Int? = null, val rawMessage: String? = null,
 )
 
 /** Same flow as the site page HujjatPaket.tsx: server filter + paging, pick, one button "Yuklab olish". Nothing is built on the device. */
@@ -106,37 +103,39 @@ class PaketViewModel @Inject constructor(api: BffApi, private val ctx: WorkConte
     }
     fun deleteSaved(id: Long) { val c = cid() ?: return; viewModelScope.launch { repo.delete(c, id); loadSaved() } }
 
-    fun toggle(key: String) = _ui.update { it.copy(selected = if (key in it.selected) it.selected - key else it.selected + key) }
-    fun selectAll() = _ui.update { it.copy(selected = it.allKeys.toSet()) }
-    fun selectNone() = _ui.update { it.copy(selected = emptySet()) }
+    fun toggle(key: String) { _ui.update { it.copy(selected = if (key in it.selected) it.selected - key else it.selected + key) }; estimate() }
+    fun selectAll() { _ui.update { it.copy(selected = it.allKeys.toSet()) }; estimate() }
+    fun selectNone() { _ui.update { it.copy(selected = emptySet(), estimate = null) } }
+    fun setFormat(f: PaketFormat) = _ui.update { it.copy(format = f) }
+
+    /** Token estimate from the server (nothing is charged here); shown before the download as on the site. */
+    private var estimateJob: kotlinx.coroutines.Job? = null
+    private fun estimate() {
+        val c = cid() ?: return
+        val u = _ui.value
+        estimateJob?.cancel()
+        if (u.selected.isEmpty()) { _ui.update { it.copy(estimate = null) }; return }
+        _ui.update { it.copy(estimate = null) }
+        estimateJob = viewModelScope.launch { val e = repo.estimate(c, u.filter, u.selected.toList()); _ui.update { s -> if (s.selected == u.selected) s.copy(estimate = e) else s } }
+    }
     fun clearMessage() = _ui.update { it.copy(message = null, rawMessage = null) }
 
-    /** Result of "Yuklab olish": one file is shared as is, several go into one ZIP (Disk copy first = free; the rest through the server engine). */
+    /** "Yuklab olish": the SERVER builds the ZIP / single Excel (same rules as the site); the phone downloads and shares the file. */
     fun download(onReady: (String, String, ByteArray) -> Unit) {
         val c = cid() ?: return
         val u = _ui.value
         if (u.selected.isEmpty()) { _ui.update { it.copy(message = R.string.pk_nosel) }; return }
         viewModelScope.launch {
-            val picked = u.rows.filter { it.key in u.selected && it.selectable }
-            _ui.update { it.copy(progress = "0/${picked.size}") }
-            val files = ArrayList<Triple<PaketRow, String, ByteArray>>(); var errors = 0; var done = 0
-            for (r in picked) {
-                when (val g = repo.fetch(c, r)) { is GenResult.Ready -> files += Triple(r, g.name, g.bytes); else -> errors++ }
-                done++; _ui.update { it.copy(progress = "$done/${picked.size}") }
-            }
+            _ui.update { it.copy(progress = "…") }
+            val r = repo.build(c, u.filter, u.selected.toList(), u.format, "HUJJATLAR PAKETI")
             _ui.update { it.copy(progress = null) }
-            if (files.isEmpty()) { _ui.update { it.copy(message = R.string.pk_failed) }; return@launch }
-            if (files.size == 1) onReady(files[0].second, "application/octet-stream", files[0].third)
-            else {
-                val bos = ByteArrayOutputStream()
-                ZipOutputStream(bos).use { z -> val used = HashSet<String>(); files.forEach { (r, name, bytes) -> var p = paketTurLabel(r.type) + "/" + safeFileName(name, "hujjat"); var i = 2; while (!used.add(p)) p = paketTurLabel(r.type) + "/" + (i++) + "_" + safeFileName(name, "hujjat"); z.putNextEntry(ZipEntry(p)); z.write(bytes); z.closeEntry() } }
-                onReady("hujjatlar-paketi.zip", "application/zip", bos.toByteArray())
+            when (r) {
+                is PaketBuild.Ready -> { onReady(r.name, r.mime, r.bytes); _ui.update { it.copy(message = if (r.errors.isEmpty()) R.string.pk_ready else R.string.pk_partial, rawMessage = r.errors.size.toString()) }; load() }
+                is PaketBuild.Failed -> _ui.update { it.copy(message = R.string.pk_failed) }
             }
-            _ui.update { it.copy(message = R.string.pk_ready) }
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun PaketScreen(onBack: () -> Unit, vm: PaketViewModel = hiltViewModel()) {
@@ -148,7 +147,7 @@ fun PaketScreen(onBack: () -> Unit, vm: PaketViewModel = hiltViewModel()) {
     var contractMenu by remember { mutableStateOf(false) }
     val objects = ui.variants?.objects.orEmpty().filter { f.shartnomaId == null || it.third == f.shartnomaId }.map { it.first to (it.second ?: "#${it.first}") }
     fun objName(id: Long) = ui.variants?.objects?.firstOrNull { it.first == id }?.second ?: "#$id"
-    ui.message?.let { m -> val t = stringResource(m); androidx.compose.runtime.LaunchedEffect(m) { Toast.makeText(context, t, Toast.LENGTH_SHORT).show(); vm.clearMessage() } }
+    ui.message?.let { m -> val t = if (m == R.string.pk_partial) stringResource(m, ui.rawMessage ?: "0") else stringResource(m); androidx.compose.runtime.LaunchedEffect(m) { Toast.makeText(context, t, Toast.LENGTH_SHORT).show(); vm.clearMessage() } }
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
         WorkTopBar(stringResource(R.string.pk_title), onBack, actions = { IconButton(onClick = { vm.load() }) { Icon(Icons.Filled.Refresh, stringResource(R.string.pk_refresh)) } })
         LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp, 4.dp, 16.dp, 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -207,10 +206,21 @@ fun PaketScreen(onBack: () -> Unit, vm: PaketViewModel = hiltViewModel()) {
             items(ui.rows, key = { it.key }) { r -> RowLine(r, r.key in ui.selected) { vm.toggle(r.key) } }
             if (ui.rows.size < ui.total) item { OutlinedButton(onClick = vm::more) { Text(stringResource(R.string.pk_more, minOf(PAKET_PAGE, ui.total - ui.rows.size))) } }
         }
+        Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            FilterChip(ui.format == PaketFormat.ZIP, { vm.setFormat(PaketFormat.ZIP) }, label = { Text(stringResource(R.string.pk_fmt_zip)) })
+            FilterChip(ui.format == PaketFormat.EXCEL, { vm.setFormat(PaketFormat.EXCEL) }, label = { Text(stringResource(R.string.pk_fmt_excel)) })
+        }
+        if (ui.selected.isNotEmpty()) {
+            val e = ui.estimate
+            Text(
+                when { e == null -> stringResource(R.string.pk_tok_wait); e.token == null -> stringResource(R.string.pk_tok_wait); e.token == 0.0 -> stringResource(R.string.pk_tok_free); else -> stringResource(R.string.pk_tok_n, formatMoney(e.token, 0), e.payable) },
+                style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
         Button(
             onClick = { vm.download { name, mime, bytes -> DocFiles.share(context, name, mime, bytes) } }, enabled = ui.progress == null && ui.selected.isNotEmpty(),
             modifier = Modifier.fillMaxWidth().padding(16.dp, 8.dp).heightIn(min = TouchTarget),
-        ) { Text(ui.progress?.let { "… $it" } ?: (stringResource(R.string.pk_download) + " (${ui.selected.size})")) }
+        ) { Text(if (ui.progress != null) stringResource(R.string.pk_busy, "…") else (stringResource(R.string.pk_download) + " (${ui.selected.size}) — " + (if (ui.format == PaketFormat.ZIP) "ZIP" else "Excel"))) }
     }
 }
 

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pk_fmt">Sign out</string>
+    <string name="pk_fmt_zip">ZIP (folders)</string>
+    <string name="pk_fmt_excel">Single Excel</string>
+    <string name="pk_tok_wait">Tokens: price is being calculated</string>
+    <string name="pk_tok_free">Free (already paid)</string>
+    <string name="pk_tok_n">Tokens: ≈ %1$s (%2$s new documents)</string>
+    <string name="pk_busy">Assembling %1$s</string>
+    <string name="pk_partial">Package ready, %1$s documents were not included (see Contents)</string>
+</resources>
