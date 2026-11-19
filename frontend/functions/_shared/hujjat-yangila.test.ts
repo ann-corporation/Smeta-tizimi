@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { navbatniIshla, type NavbatQator, type YangilaDeps } from './hujjat-yangila';
 import { Rad, type F2Tayyor } from './hujjat-f2';
+import { boshqaTurMi, oylikManba } from './hujjat-boshqa';
 
 const Q = (o: Partial<NavbatQator> = {}): NavbatQator => ({ id: 1, tur: 'f2', manba_id: 100, kompaniya_id: 17, obyekt_id: 5, urinish: 1, aktor_id: 9, ...o });
 const T = (akt: Partial<F2Tayyor['akt']> = {}): F2Tayyor => ({
@@ -67,5 +68,47 @@ describe('navbatniIshla (fon yasash)', () => {
       const src = readFileSync(new URL(f, import.meta.url), 'utf8');
       expect(src).not.toMatch(/hujjat-sarf|serverSarfla|t2_token_sarfla/);
     }
+  });
+});
+
+describe('boshqa turlar (F-3, nakopitelniy, M-29, slichitelniy, ostatka)', () => {
+  const B = (tur: string, o: Partial<NavbatQator> = {}): NavbatQator => Q({ tur, manba_id: 7, ...o });
+  const tayyorB = (o: Partial<F2Tayyor> = {}) => ({ ...T(), turi: 'nakopitelniy', ...o });
+  it('har tur o\'z generatori orqali yasaladi, Diskka yoziladi, token yechilmaydi', async () => {
+    for (const tur of ['forma3', 'nakopitelniy', 'm29', 'slichitelniy', 'ostatka']) {
+      const yasaBoshqa = vi.fn(async () => tayyorB());
+      const yozBoshqa = vi.fn(async () => ({ ok: true as const, documentId: 1, disk: { ok: true as const, faylId: 2, versiya: 4, takror: false, yangi: true } }));
+      const { d, tugat } = deps([B(tur, { obyekt_id: tur === 'forma3' ? null : 5 })], { yasaBoshqa, yozBoshqa });
+      const n = await navbatniIshla(d);
+      expect(n, tur).toMatchObject({ yangilandi: 1, xato: 0 });
+      expect(yasaBoshqa).toHaveBeenCalledTimes(1); expect(d.yasaF2).not.toHaveBeenCalled();
+      expect(tugat).toHaveBeenCalledWith(1, 'ok', null, 4);
+    }
+  });
+  it('bo\'sh hujjat / sotuv F-3 emas -> otkazildi (qayta urinish befoyda); boshqa xato -> xato', async () => {
+    for (const kod of ['HUJJAT_BOSH', 'F3_HISOBLANMADI', 'SHARTNOMA_TOPILMADI']) {
+      const { d, tugat } = deps([B('m29')], { yasaBoshqa: async () => { throw new Rad(kod === 'SHARTNOMA_TOPILMADI' ? 404 : 409, kod, 'x'); }, yozBoshqa: vi.fn() });
+      expect(await navbatniIshla(d)).toMatchObject({ otkazildi: 1, xato: 0 });
+      expect(tugat).toHaveBeenCalledWith(1, 'otkazildi', kod, null);
+    }
+    const { d, tugat } = deps([B('m29')], { yasaBoshqa: async () => { throw new Error('REESTR_OQILMADI'); }, yozBoshqa: vi.fn() });
+    expect(await navbatniIshla(d)).toMatchObject({ xato: 1 });
+    expect(tugat).toHaveBeenCalledWith(1, 'xato', 'REESTR_OQILMADI', null);
+  });
+  it('aktor yo\'q -> xato; noma\'lum tur -> otkazildi; manba kodlash SQL bilan bir xil', async () => {
+    const { d, tugat } = deps([B('ostatka', { aktor_id: null }), B('notanish', { id: 2 })], { yasaBoshqa: vi.fn(), yozBoshqa: vi.fn() });
+    const n = await navbatniIshla(d);
+    expect(n).toMatchObject({ xato: 1, otkazildi: 1 });
+    expect(tugat).toHaveBeenCalledWith(2, 'otkazildi', 'tur_qollanmaydi:notanish', null);
+    expect(boshqaTurMi('m29')).toBe(true); expect(boshqaTurMi('f2')).toBe(false);
+    expect(oylikManba(5 * 1_000_000 + 203103)).toEqual({ obyektId: 5, oySon: 203103 });
+  });
+  it('migratsiya: har tur uchun trigger/kodlash va rollback/acceptance fayllari bor; yangi jadval yaratilmaydi', () => {
+    const yol = (e: string) => new URL('../../../supabase/migrations/20270119000501_t2_hujjat_yangila_turlar_v1.' + e, import.meta.url);
+    const sql = readFileSync(yol('sql'), 'utf8');
+    for (const s of ["'forma3'", "'slichitelniy'", "'ostatka'", "'nakopitelniy'", "'m29'", '1000000']) expect(sql).toContain(s);
+    expect(sql).not.toMatch(/create table/i);
+    expect(readFileSync(yol('rollback.sql'), 'utf8')).toContain('drop trigger');
+    expect(readFileSync(yol('acceptance.sql'), 'utf8')).toContain('OK: hujjat_yangila turlar');
   });
 });
