@@ -192,14 +192,6 @@ describe('mobil BFF: P10 profile, sessions, texnadzor, notification preferences'
     await notTarget(await bff('/api/tomon', 'POST', { amal: 'nazorat_qaror', kompaniya_id: 8, taqdim_id: 3, qaror: 'rad', izoh: 'Armatura qadami noto\'g\'ri' }));
     for (const amal of ['taklif', 'kod_qabul', 'grant_saqla', 'tolov_qaror', 'taqdim_yarat', 'vakolat_ber', 'qaror', 'ichki_qaror', '']) expect((await bff('/api/tomon', 'POST', { amal })).status).toBe(400);
   });
-  it('F-2 editor texnadzor suggestions: akt read + PTO qaror only; inspector token actions stay on the web', async () => {
-    await notTarget(await bff('/api/tekshiruv?amal=akt&kompaniya_id=8&akt_id=5'));
-    await notTarget(await bff('/api/tekshiruv', 'POST', { amal: 'qaror', taklif_id: 3, qaror: 'rad', sabab: 'Hajm tasdiqlanmadi' }));
-    expect((await bff('/api/tekshiruv?token=abc')).status).toBe(400);
-    for (const amal of ['saqla', 'holat', 'kod_ber', 'kod_ol', 'bog', 'import', 'hujjat', 'qidir', '']) expect((await bff('/api/tekshiruv', 'POST', { amal })).status).toBe(400);
-    expect(MOBIL_PATH.test('/api/tekshiruv?amal=akt&kompaniya_id=8&akt_id=5')).toBe(true);
-    expect(MOBIL_PATH.test('/api/tekshiruv-x')).toBe(false);
-  });
   it('notification preferences: telegram status read + sozlama only', async () => {
     await notTarget(await bff('/api/telegram'));
     await notTarget(await bff('/api/telegram', 'POST', { amal: 'sozlama', bildirishnoma: { topshiriq: true } }));
@@ -429,5 +421,23 @@ describe('mobil BFF: yuk-tashish (Logistika yuk birjasi)', () => {
     }
     expect((await bff('/api/yuk-tashish', 'GET')).status).toBe(400);
     expect(rpcs).toHaveLength(0);
+  });
+});
+
+describe('mobil BFF: tekshiruv (PTO texnadzor takliflari)', () => {
+  const notTarget = async (r: Response) => expect(((await r.json().catch(() => ({}))) as { code?: string }).code).not.toBe('TARGET_INVALID');
+  const refused = async (r: Response) => expect(((await r.json().catch(() => ({}))) as { code?: string }).code).toBe('TARGET_INVALID');
+  it('reaches exactly GET amal=akt and POST amal=qaror (the endpoint itself enforces the session / PTO right)', async () => {
+    await notTarget(await bff('/api/tekshiruv?amal=akt&kompaniya_id=8&akt_id=5'));
+    await notTarget(await bff('/api/tekshiruv', 'POST', { amal: 'qaror', taklif_id: 3, qaror: 'qabul' }));
+    expect(MOBIL_PATH.test('/api/tekshiruv?amal=akt&kompaniya_id=8&akt_id=5')).toBe(true);
+    expect(MOBIL_PATH.test('/api/tekshiruv-x')).toBe(false);
+  });
+  it('everything else of /api/tekshiruv stays web-only', async () => {
+    await refused(await bff('/api/tekshiruv?token=' + 'a'.repeat(43)));                 // token reading (texnadzor panel)
+    await refused(await bff('/api/tekshiruv?amal=akt&token=' + 'a'.repeat(43)));
+    await refused(await bff('/api/tekshiruv?amal=boshqa'));
+    for (const amal of ['saqla', 'holat', 'qidir', 'kod_ber', 'kod_ol', 'bog', 'hujjat', 'import', '']) await refused(await bff('/api/tekshiruv', 'POST', { amal }));
+    await refused(await bff('/api/tekshiruv', 'PUT', { amal: 'qaror' }));
   });
 });
