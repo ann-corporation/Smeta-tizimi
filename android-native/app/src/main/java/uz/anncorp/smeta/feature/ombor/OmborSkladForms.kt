@@ -43,7 +43,7 @@ private fun berdimErrorText(code: String): String = stringResource(when (code) {
 })
 
 @Composable
-private fun omborErrorText(code: String): String = stringResource(when (code) {
+internal fun omborErrorText(code: String): String = stringResource(when (code) {
     "QOLDIQ_YETMAYDI" -> R.string.ox_short; "PERMISSION_DENIED" -> R.string.ox_perm; "DATE_IN_FUTURE" -> R.string.ox_future; "INVALID_INPUT" -> R.string.ox_invalid
     "OPERATION_ID_CONFLICT" -> R.string.ox_conflict2; "NETWORK" -> R.string.ox_net; "TOKEN_YETMAYDI" -> R.string.ox_tokens; "DATE_INVALID" -> R.string.ox_date; else -> R.string.ox_default
 })

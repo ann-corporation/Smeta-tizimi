@@ -1,4 +1,4 @@
-﻿package uz.anncorp.smeta.feature.ombor
+package uz.anncorp.smeta.feature.ombor
 
 import android.widget.Toast
 import androidx.compose.foundation.clickable
@@ -43,6 +43,7 @@ import uz.anncorp.smeta.R
 import uz.anncorp.smeta.core.data.formatMoney
 import uz.anncorp.smeta.core.ui.TouchTarget
 import uz.anncorp.smeta.core.ui.WorkCard
+import androidx.compose.runtime.collectAsState
 import java.time.LocalDate
 
 /**
@@ -50,10 +51,15 @@ import java.time.LocalDate
  * Order: section tabs, title, warehouse picker + BERDIM / KELDI, 4 KPI cards, 7 tabs; «Omborchi» holds the sub-tabs.
  */
 @Composable
-fun OmborSkladScreen(onZayavka: () -> Unit, vm: OmborSkladViewModel = hiltViewModel()) {
+fun OmborSkladScreen(onZayavka: () -> Unit, onM29: () -> Unit = {}, vm: OmborSkladViewModel = hiltViewModel(), omborVm: OmborViewModel = hiltViewModel()) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var picking by rememberSaveable { mutableStateOf(false) }
+    val omborUi by omborVm.state.collectAsStateWithLifecycle()
+    // The voice / text command acts on the warehouse chosen here (old OmborViewModel keeps the command logic; nothing is parsed on the device).
+    LaunchedEffect(ui.skladId, ui.warehouses) { ui.warehouse?.let { omborVm.setScope(OmborScope.Central(it.id, it.nomi)) } }
+    var wasWorking by remember { mutableStateOf(false) }
+    LaunchedEffect(omborUi.cmd.working) { if (wasWorking && !omborUi.cmd.working) vm.reload(); wasWorking = omborUi.cmd.working }
     ui.doneMessage?.let { m -> val t = stringResource(m); LaunchedEffect(m) { Toast.makeText(context, t, Toast.LENGTH_SHORT).show(); vm.consumeMessage() } }
     val sum = skladSummary(ui.rows)
     LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -107,11 +113,19 @@ fun OmborSkladScreen(onZayavka: () -> Unit, vm: OmborSkladViewModel = hiltViewMo
                 }
             }
         }
-        if (ui.tab == SkladTab.KEEPER) {
-            if (ui.warehouse == null) item { Text(stringResource(if (ui.warehouses.isEmpty()) R.string.sk_no_wh else R.string.sk_pick_above), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            else keeperContent(ui, vm)
-        } else item { Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant) }   // tabs 2..7: later stages (B, C), see the etalon list
+        if (ui.tab == SkladTab.KEEPER || ui.tab == SkladTab.IN || ui.tab == SkladTab.STOCK) item { WarehouseNotices(ui, vm) }
+        when (ui.tab) {
+            SkladTab.KEEPER -> if (ui.warehouse == null) item { PickHint(ui) } else keeperContent(ui, vm, omborVm, omborUi)
+            SkladTab.IN -> if (ui.warehouse == null) item { PickHint(ui) } else item { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) { KirimTab(ui.skladId!!, ui.access.write, ui.dataTick) } }
+            SkladTab.STOCK -> if (ui.warehouse == null) item { PickHint(ui) } else item { KirimQoldiqTab(ui.skladId!!, ui.dataTick) }
+            SkladTab.CONS -> item { KonsTab(ui.skladId, ui.dataTick) }
+            SkladTab.OBJ -> item { ObjQoldiqTab(ui.rows, ui.objects, ui.objId, !ui.loaded, vm::setObj) }
+            SkladTab.HIST -> item { JurnalTab(ui.objects, ui.objId, vm::setObj, ui.dataTick) }
+            SkladTab.M29 -> item { M29Tab(onM29) }
+        }
     }
+    omborUi.cmd.question?.let { q -> QuestionDialog(q, omborUi.cmd.working, onAnswer = omborVm::answerQuestion, onDismiss = omborVm::dismissCommand) }
+    omborUi.cmd.preview?.let { p -> CommandPreviewDialog(p, omborUi, omborVm, onEdit = { _, _ -> vm.open(SkladSub.IN) }) }
     if (picking) WarehousePicker(ui.warehouses, ui.skladId, onPick = { vm.selectWarehouse(it); picking = false }, onDismiss = { picking = false })
 }
 
@@ -154,7 +168,26 @@ private fun WarehousePicker(list: List<Warehouse>, current: Long?, onPick: (Long
     }
 }
 
-private fun androidx.compose.foundation.lazy.LazyListScope.keeperContent(ui: SkladUi, vm: OmborSkladViewModel) {
+@Composable
+private fun PickHint(ui: SkladUi) {
+    Text(stringResource(if (!ui.loaded) R.string.sk2_yuklanmoqda else if (ui.warehouses.isEmpty()) R.string.sk_no_wh else R.string.sk_pick_above), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+/** Site: the «omborini yaratish» button (only the Navoiy company, only after the list loaded, only while that warehouse is missing), the missing-permission note and «Berdim → obyekt». */
+@Composable
+private fun WarehouseNotices(ui: SkladUi, vm: OmborSkladViewModel) {
+    val omborVm: OmborDataViewModel = hiltViewModel()
+    val cid = omborVm.companyId
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (ui.loaded && !ui.error && cid == NAVOIY_KOMPANIYA_ID && ui.warehouses.none { it.nomi == NAVOIY_SKLAD_NOMI } && ui.access.write)
+            OutlinedButton(onClick = { vm.createWarehouse(NAVOIY_SKLAD_NOMI) }, enabled = !ui.creating, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.sk2_wh_create, NAVOIY_SKLAD_NOMI)) }
+        if (!ui.access.read) Text(stringResource(R.string.sk2_view_perm), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
+        if (ui.warehouse != null && ui.access.write && ui.tab != SkladTab.STOCK)
+            OutlinedButton(onClick = { vm.open(SkladSub.BERDIM) }, enabled = ui.objects.isNotEmpty(), modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.sk2_berdim_obj)) }
+    }
+}
+
+private fun androidx.compose.foundation.lazy.LazyListScope.keeperContent(ui: SkladUi, vm: OmborSkladViewModel, omborVm: OmborViewModel, omborUi: OmborUi) {
     item {
         val subs = listOf(R.string.sk_s_berdim, R.string.sk_t_in, R.string.sk_s_out, R.string.sk_s_today, R.string.sk_s_report, R.string.sk_t_stock, R.string.ol_title)
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -163,9 +196,11 @@ private fun androidx.compose.foundation.lazy.LazyListScope.keeperContent(ui: Skl
     }
     when (ui.sub) {
         SkladSub.BERDIM -> item { BerdimForm(ui, vm) }
-        SkladSub.IN -> item { KirimPanel("prixod", ui, vm) }
-        SkladSub.OUT -> item { KirimPanel("chiqim", ui, vm) }
+        SkladSub.IN -> item { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { if (ui.access.write) CommandBar(omborUi, omborVm); KirimPanel("prixod", ui, vm) } }
+        SkladSub.OUT -> item { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { if (ui.access.write) CommandBar(omborUi, omborVm); KirimPanel("chiqim", ui, vm) } }
+        SkladSub.TODAY -> item { HisobotPanel(ui.skladId!!, true, ui.access.write, ui.dataTick) }
+        SkladSub.REPORT -> item { HisobotPanel(ui.skladId!!, false, ui.access.write, ui.dataTick) }
+        SkladSub.STOCK -> item { QoldiqSubPanel(ui.skladId!!, ui.access.write, ui.dataTick, onChanged = { vm.reload() }) }
         SkladSub.LUGAT -> item { Box(Modifier.fillMaxWidth().height(560.dp)) { OmborLugatPanel(ui.skladId, ui.access.write) } }
-        else -> item { Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant) }  // Bugun / Hisobot / Qoldiq: stage B
     }
 }

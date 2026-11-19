@@ -30,9 +30,9 @@ fun pickWarehouse(list: List<Warehouse>, previousAll: Boolean, previous: Long?):
 }
 
 /** One company stock position (t2_sklad_qoldiq). Unlike [StockRow] zero rows are KEPT: the KPI «Tugagan (0)» counts them. */
-data class SkladRow(val obyektId: Long?, val qty: Double?, val last: String?)
+data class SkladRow(val obyektId: Long?, val qty: Double?, val last: String?, val id: Long? = null, val nomi: String = "", val birligi: String = "")
 
-fun parseSkladRows(rows: List<JsonObject>): List<SkladRow> = rows.map { SkladRow(it["obyekt_id"].num()?.toLong(), it["qoldiq"].num(), it["oxirgi_harakat"].str()) }
+fun parseSkladRows(rows: List<JsonObject>): List<SkladRow> = rows.map { SkladRow(it["obyekt_id"].num()?.toLong(), it["qoldiq"].num(), it["oxirgi_harakat"].str(), it["id"].num()?.toLong(), it["nomi"].str().orEmpty(), it["birligi"].str().orEmpty()) }
 
 data class SkladSummary(val positions: Int, val negative: Int, val zero: Int, val last: String?)
 

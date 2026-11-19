@@ -98,7 +98,7 @@ private val Tabs = listOf(
 fun HomeScreen(
     onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOpenApproval: (Long) -> Unit, onOutbox: () -> Unit,
     onPickFakt: () -> Unit, onPickPhoto: () -> Unit,
-    onJarvis: () -> Unit = {}, onRahbar: () -> Unit = {}, onZayavka: () -> Unit = {}, onInvite: () -> Unit = {}, onInvites: () -> Unit = {}, onNotifications: () -> Unit = {}, onSettings: () -> Unit = {},
+    onJarvis: () -> Unit = {}, onRahbar: () -> Unit = {}, onZayavka: () -> Unit = {}, onM29: () -> Unit = {}, onInvite: () -> Unit = {}, onInvites: () -> Unit = {}, onNotifications: () -> Unit = {}, onSettings: () -> Unit = {},
     onModule: (NativeTarget) -> Unit = {},
     vm: HomeViewModel = hiltViewModel(),
 ) {
@@ -142,7 +142,7 @@ fun HomeScreen(
                     Spacer(Modifier.height(12.dp))
                     Text(stringResource(R.string.home_loading), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                tab == OMBOR_TAB -> { BackHandler { tab = 0 }; uz.anncorp.smeta.feature.ombor.OmborSkladScreen(onZayavka) }
+                tab == OMBOR_TAB -> { BackHandler { tab = 0 }; uz.anncorp.smeta.feature.ombor.OmborSkladScreen(onZayavka, onM29) }
                 tab == 4 -> ProfileScreen(state, onTheme = vm::setTheme, onSwitch = { sheet = true }, onSignOut = vm::requestSignOut, onInvite = onInvite, onInvites = onInvites, onSettings = onSettings)
                 else -> TabBody(state, tab, vm::load, openObject, onOpenFakt, onOpenApproval, { tab = it }, onOutbox, onPickFakt, onPickPhoto, vm::resumeOnboarding, onJarvis, onRahbar, onNotifications, onZayavka, onModule)
             }

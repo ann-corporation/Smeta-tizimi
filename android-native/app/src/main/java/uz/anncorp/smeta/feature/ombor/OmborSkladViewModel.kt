@@ -32,7 +32,7 @@ data class SkladUi(
     val central: List<StockRow> = emptyList(), val centralLoading: Boolean = false, val centralError: Boolean = false, val berdimBusy: Boolean = false, val berdimError: String? = null, val berdimSeq: Int = 0,
     // KELDI / chiqim panel
     val suggest: SuggestResult? = null, val kirimBusy: Boolean = false, val kirimError: String? = null, val vat: Double = QQS_DEFAULT, val priceMode: PriceMode = PriceMode.WITH,
-    val doneMessage: Int? = null,
+    val doneMessage: Int? = null, val dataTick: Int = 0, val objId: Long? = null, val creating: Boolean = false,
 ) { val warehouse: Warehouse? get() = warehouses.firstOrNull { it.id == skladId } }
 
 @HiltViewModel
@@ -46,7 +46,7 @@ class OmborSkladViewModel @Inject constructor(private val api: BffApi, private v
 
     init { viewModelScope.launch { ctx.current.collect { w -> if (w != null) reload() } } }
 
-    fun reload() {
+    fun reload(select: String? = null) {
         val c = cid() ?: return
         _ui.update { it.copy(access = OmborAccess.forRole(ctx.current.value?.rol), error = false) }
         viewModelScope.launch {
@@ -56,7 +56,7 @@ class OmborSkladViewModel @Inject constructor(private val api: BffApi, private v
             val mode = repo.priceMode(c, _ui.value.skladId ?: 0L).let { if (it == "siz") PriceMode.WITHOUT else PriceMode.WITH }
             _ui.update { u ->
                 val list = wh ?: u.warehouses
-                u.copy(loaded = true, error = wh == null && st == null, warehouses = list, rows = st ?: u.rows, skladId = pickWarehouse(list, u.skladId == null && u.loaded, u.skladId), priceMode = mode)
+                u.copy(loaded = true, error = wh == null && st == null, warehouses = list, rows = st ?: u.rows, skladId = list.firstOrNull { it.nomi == select }?.id ?: pickWarehouse(list, u.skladId == null && u.loaded, u.skladId), priceMode = mode, dataTick = u.dataTick + 1)
             }
         }
         observeJob?.cancel(); observeJob = viewModelScope.launch { objects.observe(c).collect { list -> _ui.update { it.copy(objects = list) } } }
@@ -64,6 +64,19 @@ class OmborSkladViewModel @Inject constructor(private val api: BffApi, private v
 
     fun selectWarehouse(id: Long?) = _ui.update { it.copy(skladId = id, central = emptyList(), suggest = null, berdimError = null, kirimError = null) }
     fun setTab(t: Int) = _ui.update { it.copy(tab = t) }
+    fun setObj(id: Long?) = _ui.update { it.copy(objId = id) }
+
+    /** Site `navoiySkladYarat`: the company's own warehouse is created only by this button (never automatically), then selected. */
+    fun createWarehouse(nomi: String) {
+        val c = cid() ?: return
+        if (_ui.value.creating) return
+        viewModelScope.launch {
+            _ui.update { it.copy(creating = true) }
+            val code = omborCode(api.bff("/api/sb-yoz", "POST", skladCreatePayload(c, nomi, UUID.randomUUID().toString())))
+            _ui.update { it.copy(creating = false, doneMessage = if (code == null) uz.anncorp.smeta.R.string.sk2_wh_created else uz.anncorp.smeta.R.string.sk2_x_default) }
+            if (code == null) reload(select = nomi)
+        }
+    }
     fun setSub(s: Int) = _ui.update { it.copy(sub = s, kirimError = null, berdimError = null, suggest = null) }
     fun consumeMessage() = _ui.update { it.copy(doneMessage = null) }
     /** BERDIM / KELDI buttons (site kirimOch / chiqimOch): they need a chosen warehouse; the page shows «Avval omborni tanlang.» otherwise. */
