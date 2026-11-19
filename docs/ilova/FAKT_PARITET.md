@@ -103,3 +103,14 @@ Windows `FaktScreen` endi o'ylab topilgan shakl emas: saytning «Bajarilgan ishl
 | Xotiradan, Daraxt, Qamrov %, Fakt = F2, Fakt tiklash, Egizaklar, Bajarilmaydi/Zamena/resurs amallari, Smetadan tashqari ish (IshAbcModal), UstaKutilmoqda, AI yordamchi, klaviatura navigatsiyasi (g+l, /, ?) | yo'q | ❌ (mantiq `shared`da: Qamrov B3a (#719), Fakt = F2/Tiklash B3b) |
 
 Skrinshotlar: `C:\Temp\windows-paritet\40-fakt-jurnal.png` ... `43-after.png` (repoda emas). Yonma-yon (sayt bilan) skrinshot hali olinmagan: bu «✅» lar kod va matn kalitlari bo'yicha, ko'z bilan yonma-yon tasdiqlash qolgan.
+
+## Foto-dalil (FotoLenta.tsx, saytda alohida sahifa)
+
+Saytda menyuda emas, modul ro'yxati orqali ochiladi; Windows'da Fakt toolbar'idagi «Foto-dalil» tugmasi (Foto sahifasida «Fakt kiritish» orqaga).
+
+| Sayt | Windows | Holat |
+|---|---|---|
+| Filtr: Oy, Razdel, Sana/Razdel bo'yicha | FotoScreen filtr kartasi | ✅ |
+| Yuklash kartasi (FotoDalil) | UploadBar | ✅ |
+| Lenta: guruhlar, thumbnail, izoh, Jami | FotoScreen | ✅ |
+| Foto-hisobot (Excel/PDF, token) | yo'q | ⬜ |

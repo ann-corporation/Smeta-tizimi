@@ -69,9 +69,12 @@ object Shortcuts {
     fun dispatch(e: KeyEvent): Boolean = handler?.invoke(e) ?: false
 }
 
+/** Lets a screen open another module by its id (the site reaches «Foto-dalil» through the module list, not the menu tree): set by the shell while it is on screen. */
+object ModNav { @Volatile var go: ((String) -> Unit)? = null }
+
 /** The pages this app implements: ids are those of the ONE navigation model ([QNav]) shared with Android and the website. */
 enum class Mod(val id: String, val needsObject: Boolean) {
-    Today("bugun", false), Objects("obyektlar", false), Smeta("smeta", true), F2("f2", true), Fakt("fakt", true), Nakop("nakop", true),
+    Today("bugun", false), Objects("obyektlar", false), Smeta("smeta", true), F2("f2", true), Fakt("fakt", true), Foto("foto", true), Nakop("nakop", true),
     Narx("narx", false), Ombor("ombor", false), Money("moliya", false), Docs("hujjat", false), Flow("aylanish", true), Notif("bildirish", false), Settings("sozlama", false);
     companion object { val ids: Set<String> = entries.map { it.id }.toSet(); fun of(id: String): Mod = entries.first { it.id == id } }
 }
@@ -121,6 +124,7 @@ fun MainScreen(sv: Services, me: SessionUser) {
         places = r.valueOrNull().orEmpty()
         place = place ?: places.firstOrNull()
     }
+    DisposableEffect(Unit) { ModNav.go = { id -> runCatching { mod = Mod.of(id); jarvisOpen = false } }; onDispose { ModNav.go = null } }
     DisposableEffect(order) {
         Shortcuts.handler = h@{ e ->
             if (e.type != KeyEventType.KeyDown) return@h false
@@ -207,6 +211,7 @@ fun MainScreen(sv: Services, me: SessionUser) {
                         Mod.Smeta -> SmetaScreen(ctx)
                         Mod.F2 -> F2Screen(ctx)
                         Mod.Fakt -> FaktScreen(ctx)
+                        Mod.Foto -> FotoScreen(ctx)
                         Mod.Nakop -> NakopScreen(ctx)
                         Mod.Narx -> NarxScreen(ctx)
                         Mod.Ombor -> OmborScreen(ctx)
