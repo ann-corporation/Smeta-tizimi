@@ -1,0 +1,20 @@
+{
+  "Ombor lugati": { "ru": "Словарь склада", "en": "Warehouse dictionary" },
+  "Lugat hali ulanmagan.": { "ru": "Словарь ещё не подключён.", "en": "The dictionary is not connected yet." },
+  "Tizim tushungan va siz tasdiqlagan iboralar. Keyingi safar shu iboralar darhol topiladi.": { "ru": "Фразы, которые система поняла и вы подтвердили. В следующий раз они находятся сразу.", "en": "Phrases the system understood and you confirmed. Next time they are found instantly." },
+  "Lugat hozircha bosh. Tasdiqlangan moslashuvlar shu yerda paydo boladi.": { "ru": "Словарь пока пуст. Подтверждённые соответствия появятся здесь.", "en": "The dictionary is empty for now. Confirmed matches will appear here." },
+  "Ibora": { "ru": "Фраза", "en": "Phrase" },
+  "Mavjud nom": { "ru": "Существующее название", "en": "Existing name" },
+  "Ishlatilgan": { "ru": "Использовано", "en": "Used" },
+  "Birlashtirish uchun tanlash": { "ru": "Выбрать для объединения", "en": "Select to merge" },
+  "Nomini ozgartirish": { "ru": "Переименовать", "en": "Rename" },
+  "Olib tashlandi": { "ru": "Удалено", "en": "Removed" },
+  "Olib tashlash": { "ru": "Удалить", "en": "Remove" },
+  "Birlashtirilgan nom": { "ru": "Общее название", "en": "Merged name" },
+  "Birlashtirildi": { "ru": "Объединено", "en": "Merged" },
+  "Birlashtirish": { "ru": "Объединить", "en": "Merge" },
+  "Qoshildi": { "ru": "Добавлено", "en": "Added" },
+  "Qoshish": { "ru": "Добавить", "en": "Add" },
+  "Yuklanmoqda": { "ru": "Загрузка", "en": "Loading" },
+  "Saqlandi": { "ru": "Сохранено", "en": "Saved" }
+}
