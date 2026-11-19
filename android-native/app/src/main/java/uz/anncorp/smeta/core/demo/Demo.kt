@@ -111,6 +111,7 @@ private class DemoBff(private val context: Context, private val json: Json, priv
         return listOf(asked, flag).firstOrNull { it in setOf("prorab", "rahbar", "texnadzor") } ?: "prorab"
     }
 
+    private val f2Draft = DemoF2Draft(json)
     private fun asset(name: String): String = context.assets.open("demo/$name").bufferedReader().use { it.readText() }
     private fun feedAsset(key: String?): String? = key?.let { runCatching { asset("feed_$it.json") }.getOrNull() }
     private fun ok(text: String, etag: String? = null) = ApiResult(200, json.parseToJsonElement(text), null, etag)
@@ -133,7 +134,8 @@ private class DemoBff(private val context: Context, private val json: Json, priv
             path.startsWith("/api/kirish-taklif") && method == "POST" -> ok("""{"ok":true,"kod":"48213907","havola":"https://qurai.uz/taklif/DEMOTOKEN"}""")
             path.startsWith("/api/agent-ish") && method == "POST" -> agentIsh(body as? JsonObject)
             path.startsWith("/api/hujjat-maydoni") && method == "POST" -> ok("""{"ok":true}""")
-            path.startsWith("/api/f2-buyruq") && method == "POST" -> ok("""{"ok":true,"holat":"yozildi"}""")
+            path.startsWith("/api/f2-buyruq") && method == "POST" -> f2Draft.buyruq(body as? JsonObject)
+            path.startsWith("/api/tekshiruv") -> f2Draft.tekshiruv(method, body as? JsonObject)
             path.startsWith("/api/ombor-ovoz") && method == "POST" -> ok("""{"ok":true,"text":"817 F-2 da 1074871 hajmini 2 qil","draft_only":true}""")
             path.startsWith("/api/ai-savol") && method == "POST" -> {
                 val q = ((body as? JsonObject)?.get("savol") as? JsonPrimitive)?.content.orEmpty()

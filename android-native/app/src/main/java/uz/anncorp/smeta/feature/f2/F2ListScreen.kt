@@ -168,7 +168,7 @@ private fun statusExplain(s: F2Status): String = stringResource(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun F2ListScreen(onBack: () -> Unit, onDocs: (Long) -> Unit = {}, vm: F2ListViewModel = hiltViewModel()) {
+fun F2ListScreen(onBack: () -> Unit, onDocs: (Long) -> Unit = {}, onOpenAct: (Long, Long) -> Unit = { _, _ -> }, vm: F2ListViewModel = hiltViewModel()) {
     val ui by vm.state.collectAsStateWithLifecycle()
     var detail by remember { mutableStateOf<F2Act?>(null) }
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
@@ -195,7 +195,7 @@ fun F2ListScreen(onBack: () -> Unit, onDocs: (Long) -> Unit = {}, vm: F2ListView
     }
     detail?.let { a ->
         ModalBottomSheet(onDismissRequest = { detail = null }) {
-            DetailSheet(a, onDocs = { detail = null; onDocs(vm.id) }, vm = vm, onDone = { detail = null })
+            DetailSheet(a, onDocs = { detail = null; onDocs(vm.id) }, onRows = { detail = null; onOpenAct(vm.id, a.id) }, vm = vm, onDone = { detail = null })
         }
     }
 }
@@ -265,7 +265,7 @@ internal fun StatusChip(s: F2Status, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun DetailSheet(a: F2Act, onDocs: () -> Unit, vm: F2ListViewModel, onDone: () -> Unit) {
+private fun DetailSheet(a: F2Act, onDocs: () -> Unit, onRows: () -> Unit, vm: F2ListViewModel, onDone: () -> Unit) {
     val msg by vm.stepMsg.collectAsStateWithLifecycle()
     val busy by vm.stepBusy.collectAsStateWithLifecycle()
     var rejecting by remember(a.id) { mutableStateOf(false) }
@@ -304,7 +304,8 @@ private fun DetailSheet(a: F2Act, onDocs: () -> Unit, vm: F2ListViewModel, onDon
             }
         }
         msg?.takeIf { it != "OK" }?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
-        Button(onClick = onDocs, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.docs_f2_button)) }
+        Button(onClick = onRows, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.f2d_open)) }
+        androidx.compose.material3.OutlinedButton(onClick = onDocs, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.docs_f2_button)) }
     }
 }
 
