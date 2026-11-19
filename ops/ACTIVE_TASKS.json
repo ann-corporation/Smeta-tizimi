@@ -6,7 +6,7 @@
       "id": "JARVIS-NATIVE-CONTEXT-20261119", "title": "Preserve initial goal in native conversation context",
       "owner": "codex", "machine": "Anvar", "branch": "codex/jarvis-m3-native-context", "base_sha": "6b733cbc",
       "status": "active", "depends_on": [], "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md"], "production_write_allowed": false,
-      "owns": ["android-native/shared/src/main/kotlin/uz/anncorp/smeta/core/data/Jarvis.kt", "android-native/shared/src/test/kotlin/uz/anncorp/smeta/core/data/PeopleJarvisTest.kt"],
+      "owns": ["android-native/shared/src/main/kotlin/uz/anncorp/smeta/core/data/Jarvis.kt", "android-native/shared/src/test/kotlin/uz/anncorp/smeta/core/data/PeopleJarvisTest.kt", ".github/workflows/android-native.yml"],
       "note": "LANE-1 PR-6, shared Android/Windows input parity with existing server bounded context policy. Canonical history and business handlers unchanged."
     },
     {
