@@ -6,7 +6,9 @@
  */
 import { type TgEnv, type TgTil, botNomi, tgT, xabarYubor } from './telegram';
 import { type BotJavob, type Callback, bugunJavobi } from './telegram-bot';
-import { menyuTugmasi } from './telegram-bot-oqim';
+import { menyuTugmasi, obyektOl } from './telegram-bot-oqim';
+import { type Kutilgan, holatYoz, sinovNomi } from './telegram-holat';
+import { haqiqiyBormi } from './telegram-sifat';
 import {
   type BotEnv, type CbNatija, asosiyMenyuJavobi, gKonteksti, joriyObyektId, menyuAmali, rolOl, sonlar,
 } from './telegram-toliq-yadro';
@@ -163,13 +165,15 @@ export async function toliqMatn(env: BotEnv, uid: number, til: TgTil, chatId: nu
   const amal = menyuAmali(matn);
   if (!amal || amal === 'jarvis') return null;   // Jarvis — mavjud /jarvis yo'li (webhook)
   const ijro = (await rolOl(env, uid))?.ijro ?? false;
-  const oid = ['fakt', 'f2', 'hujjat'].includes(amal) ? await joriyObyektId(env, chatId) : null;
+  let oid = ['fakt', 'f2', 'hujjat'].includes(amal) ? await joriyObyektId(env, chatId) : null;
+  // Joriy obyekt sinov (SINOV…) bo'lsa va haqiqiy obyekt mavjud bo'lsa — standart bo'lmaydi: ro'yxat chiqadi.
+  if (oid) { const ob = await obyektOl(env, uid, oid); if (ob && sinovNomi(ob.nom) && await haqiqiyBormi(env, uid)) oid = null; }
   if (['fakt', 'f2', 'hujjat'].includes(amal) && !oid) { const r = await obyektTanla(env, uid, til, undefined, null); if ('royxat' in r) await yubor(r.royxat); return 'g_' + amal + '_obyektsiz'; }
   if (amal === 'obyektlar') await yubor(await obyektlarRoyxati(env, uid, til, 0, null));
   else if (amal === 'bugun') await yubor(await bugunJavobi(env, uid, til));
   else if (amal === 'tasdiq') await yubor(await tasdiqlarRoyxati(env, uid, til, 0));
   else if (amal === 'bildirish') await yubor(await bildirishnomalarRoyxati(env, uid, til, 0));
-  else if (amal === 'fakt') await yubor(faktQidiruviSorovi(til, oid as number));
+  else if (amal === 'fakt') { await holatYoz(chatId, 'kutish', { tur: 'fakt', oid: oid as number } satisfies Kutilgan); await yubor(faktQidiruviSorovi(til, oid as number)); }
   else if (amal === 'f2') await yubor(await f2Royxati(env, uid, til, oid as number, null));
   else if (amal === 'hujjat') await yubor(await hujjatlarRoyxati(env, uid, til, oid as number));
   else await yubor(asosiyMenyuJavobi(til, ijro));

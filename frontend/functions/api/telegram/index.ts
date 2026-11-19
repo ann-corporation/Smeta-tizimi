@@ -35,14 +35,18 @@ async function actor(req: Request, env: Env): Promise<number | Response> {
   return Number(s.foydalanuvchi_id);
 }
 
-export const BUYRUQLAR: Record<'uz' | 'ru' | 'en', { command: string; description: string }[]> = (['uz', 'ru', 'en'] as const).reduce((acc, til) => {
-  acc[til] = [
+/* Buyruqlar menyusi Telegram mijoz tiliga qarab alohida ro'yxat oladi (language_code) — shuning uchun tilni tasodifan almashtirmaslik uchun
+ * uchala ro'yxat ham BIR XIL (o'zbek lotin) yoziladi; javob tili esa hisob tilidan (/til). */
+export const BUYRUQLAR: Record<'uz' | 'ru' | 'en', { command: string; description: string }[]> = (['uz', 'ru', 'en'] as const).reduce((acc, kod) => {
+  const til = 'uz' as const;
+  acc[kod] = [
     { command: 'bugun', description: tgT('bugungi qisqa xulosa', til) },
     { command: 'obyektlar', description: tgT('obyektlar ro‘yxati', til) },
     { command: 'jarvis', description: tgT('Jarvis ga savol (tokenlar sarflanadi)', til) },
     { command: 'kunlik', description: tgT('kunlik xulosani yoqish/o‘chirish', til) },
     { command: 'ilova', description: tgT('tizimni Telegram ichida ochish', til) },
     { command: 'men', description: tgT('men kimman (hisob, kompaniya, rol)', til) },
+    { command: 'til', description: tgT('tilni o‘zgartirish (uz, ru, en)', til) },
     { command: 'yordam', description: tgT('shu ro‘yxat', til) },
     { command: 'chiqish', description: tgT('Telegramni hisobdan uzish', til) },
   ];

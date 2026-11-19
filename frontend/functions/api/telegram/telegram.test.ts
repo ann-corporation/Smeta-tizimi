@@ -118,8 +118,9 @@ describe('Bot buyruqlari va ulash', () => {
     expect(await updateIshla(ENV, upd('/start ' + kod))).toBe('ulandi');
     expect(c.yuk.t2_telegram_ulash_v1.p_kod_xesh).toBe(await ulashKodXesh(kod));
     expect(JSON.stringify(c.yuk.t2_telegram_ulash_v1)).not.toContain(kod);
-    expect(c.yuk.t2_telegram_ulash_v1).toMatchObject({ p_telegram_user_id: 5550001, p_chat_id: 5550001, p_til: 'uz' });
-    expect(c.tg[0].yuk.reply_markup.inline_keyboard[0][0].web_app.url).toBe(SITE + '/tg');
+    expect(c.yuk.t2_telegram_ulash_v1).toMatchObject({ p_telegram_user_id: 5550001, p_chat_id: 5550001, p_til: null });   // til hisobdan (Telegram language_code dan emas)
+    expect(c.tg.filter((x) => x.metod === 'sendMessage')).toHaveLength(1);   // BITTA xabar (ilgari: ulandi + yordam + salom takrori)
+    expect(c.tg[0].yuk.reply_markup.is_persistent).toBe(true);
   });
   it('ishlatilgan / muddati o‘tgan / boshqa hisobdagi kod — tushunarli rad, ulanmaydi', async () => {
     for (const [code, soz] of [['KOD_ISHLATILGAN', 'allaqachon ishlatilgan'], ['KOD_MUDDATI_OTGAN', 'muddati tugagan'], ['TELEGRAM_BOSHQA_HISOBDA', '/chiqish']] as const) {

@@ -13,6 +13,7 @@
 import { type MetaEnv, type Sahifa, type TarmoqNatija, fbNashr, igNashr, igReelsYakunla, metaBormi, sahifaOl } from './meta-graph';
 import { r2Yoz } from './r2-saqlash';
 import { type TgEnv, type TgTil, saytUrl, tgApi, tgRpc, tgT, xabarYubor } from './telegram';
+import { hisobTili } from './telegram-holat';
 
 export type KanalEnv = TgEnv & MetaEnv & {
   TG_KANAL?: string; TG_GURUH?: string;
@@ -161,7 +162,8 @@ export async function botProfilOrnat(env: KanalEnv, egasi: number, b: { nom?: un
 type EgasiChat = { chat_id: number; til: TgTil };
 async function egasiChat(env: KanalEnv, egasi: number): Promise<EgasiChat | null> {
   const m = await tgRpc<{ ok?: boolean; yuborish?: boolean; chat_id?: number; til?: TgTil }>(env, 't2_telegram_manzil_v1', { p_foydalanuvchi_id: egasi, p_tur: 'topshiriq' });
-  return m?.ok && m.yuborish && Number.isSafeInteger(m.chat_id) ? { chat_id: m.chat_id as number, til: m.til ?? 'uz' } : null;
+  // Til: egasining HISOB tili (Telegram language_code / ulash paytidagi til emas) — qoralama rus tilida kelmasin.
+  return m?.ok && m.yuborish && Number.isSafeInteger(m.chat_id) ? { chat_id: m.chat_id as number, til: await hisobTili(env, egasi) } : null;
 }
 const tugmalar = (q: Qoralama, til: TgTil) => ({ inline_keyboard: q.tur === 'post'
   ? [[{ text: tgT('✅ Chiqarish', til), callback_data: `kp:y:${q.id}` }, { text: tgT('✏️ Tahrirlash', til), callback_data: `kp:e:${q.id}` }, { text: tgT('❌ Bekor', til), callback_data: `kp:n:${q.id}` }]]
