@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -73,6 +74,13 @@ import uz.anncorp.smeta.core.fakt.jurnalQur
 import uz.anncorp.smeta.core.fakt.jurnalXulosa
 import uz.anncorp.smeta.core.fakt.ochiqBor
 import uz.anncorp.smeta.core.fakt.parseJurnalPaket
+import uz.anncorp.smeta.core.fakt.QiymatUchlik
+import uz.anncorp.smeta.core.fakt.SummaKesim
+import uz.anncorp.smeta.core.fakt.UstamaMalumot
+import uz.anncorp.smeta.core.fakt.bolimSummalari
+import uz.anncorp.smeta.core.fakt.qatorFaktKesimi
+import uz.anncorp.smeta.core.fakt.uchlik
+import uz.anncorp.smeta.core.fakt.ustamaOqi
 import uz.anncorp.smeta.core.i18n.SiteI18n
 import uz.anncorp.smeta.feature.common.Obj
 import java.time.LocalDate
@@ -109,6 +117,9 @@ private fun FaktJurnalScreen(c: Ctx, o: Obj) {
     fun tx(k: String, p: Map<String, Any> = emptyMap()) = SiteI18n.t(k, lang, p)
     var bump by remember { mutableStateOf(0) }
     val data = load(o.id, c.tick + bump) { c.sv.read("jurnal:${o.id}", { c.sv.api.bff("/api/obyekt-paket?obyekt_id=${o.id}") }, ::parseJurnalPaket) }
+    // The object's markup context (site useUstamaliSumma): coefficients + podval + round svod. null after loading = unreadable -> markup shown as unknown.
+    val ustamaYuk by produceState<Pair<Boolean, UstamaMalumot?>>(false to null, o.id, c.tick, bump) { value = true to runCatching { ustamaOqi(c.sv.api, c.place.companyId, o.id) }.getOrNull() }
+    val ustama = ustamaYuk.second
     val scope = rememberCoroutineScope()
     var sana by remember(o.id) { mutableStateOf(LocalDate.now().toString()) }
     var qidiruv by remember(o.id) { mutableStateOf("") }
@@ -133,6 +144,20 @@ private fun FaktJurnalScreen(c: Ctx, o: Obj) {
         val holat = remember(d) { d.states.associateBy { it.qatorId } }
         val rowById = remember(d) { d.rows.associateBy { it.id } }
         val xulosa = remember(model) { jurnalXulosa(model.bolimlar, model.bolimIshlari) }
+        // Section sums (smeta / F2 / fakt / F2 remainder) from the ported bolimSummalari; the markup comes from the object's podval (site SummaJuft).
+        val summalar = remember(d, ustama?.svod) { bolimSummalari(d.rows, d.states, null, ustama?.svod) }
+        val bolalarOf = remember(model) { (model.bolimIshlari.values.flatten() + model.ildizIshlari).associate { it.id to (it.resurslar + it.avtomatik) } }
+        val summaMatn = remember(d, model, ustama, ustamaYuk.first, lang) {
+            val kesh = HashMap<Long, String>()
+            val f: (FSatr) -> String = fn@{ s ->
+                val q = s.qator() ?: return@fn ""
+                kesh.getOrPut(q.id) {
+                    val ts = qatorFaktKesimi(q, if (s is FIsh) bolalarOf[q.id].orEmpty() else emptyList(), holat, rowById)
+                    if (ts == null) Tx.dash else uchlikJuft(ustama.uchlik(ts.fakt, ts.faktSumma), ustamaYuk.first, lang)
+                }
+            }
+            f
+        }
         val aktiv = bolimId ?: model.bolimlar.firstOrNull()?.id ?: if (model.ildizIshlari.isNotEmpty()) BOLIMSIZ else null
         val qq = qidiruv.trim().lowercase()
 
@@ -260,8 +285,9 @@ private fun FaktJurnalScreen(c: Ctx, o: Obj) {
                         }
                         QButton(if (hammaYopiq) tx("Hammasini ochish") else tx("Hammasini yopish"), { hammaYopiq = !hammaYopiq }, kind = QButtonKind.Ghost, icon = if (hammaYopiq) QIcons.ChevronRight else QIcons.ChevronDown)
                     }
+                    if (qq.isEmpty() && tanlangan != null) BolimSummaQatori(summalar[tanlangan.id], ustama, ustamaYuk.first, ::tx, lang)
                     if (satrlar.isEmpty()) Text(if (qq.isNotEmpty() || holatFiltr != HolatFiltr.Hammasi || faqatQoldiq) tx("Hech narsa topilmadi.") else tx("Bu bo‘limda (ichki bo‘limlari bilan) ish yo‘q."), style = Q.type.bodyMedium, color = Q.colors.textMute)
-                    else FaktGrid(satrlar, kiritmalar, paket.xatolar.keys, holat, rowById, grid, { grid = it }, ::tx, lang, Modifier.weight(1f).fillMaxWidth(), { id, k -> qoy(if (k == null || k.qiymat.isBlank()) kiritmalar - id else kiritmalar + (id to k)) }, { msg = tx("Bu qatorga fakt qo‘lda kiritilmaydi (avtomatik).") to QTone.Info })
+                    else FaktGrid(satrlar, kiritmalar, paket.xatolar.keys, holat, rowById, grid, { grid = it }, ::tx, lang, summaMatn, Modifier.weight(1f).fillMaxWidth(), { id, k -> qoy(if (k == null || k.qiymat.isBlank()) kiritmalar - id else kiritmalar + (id to k)) }, { msg = tx("Bu qatorga fakt qo‘lda kiritilmaydi (avtomatik).") to QTone.Info })
                 }
             }
             // ---- save panel (SaqlashPaneli) ----
@@ -286,12 +312,12 @@ private fun Meter(ulush: Double?) {
 @Composable
 private fun FaktGrid(
     satrlar: List<FSatr>, kiritmalar: Map<Long, Kiritma>, xatoIds: Set<Long>, holat: Map<Long, uz.anncorp.smeta.core.fakt.JurnalHolat>,
-    rowById: Map<Long, uz.anncorp.smeta.core.fakt.T2Qator>, state: GridState, onState: (GridState) -> Unit, tx: (String, Map<String, Any>) -> String, lang: String, modifier: Modifier,
+    rowById: Map<Long, uz.anncorp.smeta.core.fakt.T2Qator>, state: GridState, onState: (GridState) -> Unit, tx: (String, Map<String, Any>) -> String, lang: String, summaMatn: (FSatr) -> String, modifier: Modifier,
     onKiritma: (Long, Kiritma?) -> Unit, onNotAllowed: () -> Unit,
 ) {
     fun t(k: String) = tx(k, emptyMap())
     fun narx(q: JurnalQator): Double? = rowById[q.id]?.narx
-    val cols = remember(lang) {
+    val cols = remember(lang, summaMatn) {
         listOf(
             GridCol<FSatr>("kod", t("Kod"), 110f, mono = true) { s -> when (s) { is FBolim -> ""; else -> s.qator()?.kod ?: "" } },
             GridCol("nom", t("Nomi"), 340f) { s -> when (s) { is FBolim -> " ".repeat(s.nisbiy) + s.b.nom; is FIsh -> s.ish.q.nom + (if (s.ish.q.zamena) " · " + t("zamena") else if (s.ish.q.qoshimcha) " · " + t("qo‘shimcha") else ""); is FResurs -> " " + s.q.nom + (if (s.avto) " · " + t("avto") else "") } },
@@ -307,7 +333,7 @@ private fun FaktGrid(
             GridCol("rejim", "+ / =", 56f) { s -> s.qator()?.let { q -> kiritmalar[q.id]?.rejim?.belgi?.toString() ?: "" } ?: "" },
             GridCol("ochiq", t("Ochiq qoldiq"), 110f, numeric = true) { s -> s.qator()?.let { qty(it.qoldiq) } ?: "" },
             GridCol("f2m", t("F2 ga olish mumkin"), 120f, numeric = true) { s -> s.qator()?.let { q -> holat[q.id]?.f2MumkinHajm?.let { qty(it) } ?: "" } ?: "" },
-            GridCol("summa", t("Fakt summasi"), 130f, numeric = true) { s -> s.qator()?.let { q -> holat[q.id]?.faktSumma?.let { money(it) } ?: "" } ?: "" },
+            GridCol("summa", t("Fakt summasi") + " (" + t("ustamali · ustamasiz") + ")", 230f, numeric = true) { s -> summaMatn(s) },
         )
     }
     val actions = listOf(
@@ -316,7 +342,7 @@ private fun FaktGrid(
         GridAction<FSatr>("Kiritilgan (saqlanmagan) qiymatni o‘chirish") { rows -> rows.forEach { s -> s.qator()?.let { q -> onKiritma(q.id, null) } } },
     )
     DataGrid(
-        satrlar, cols, key = { it.key }, state = state, onState = onState, modifier = modifier, cellsKey = Triple(kiritmalar, xatoIds, lang),
+        satrlar, cols, key = { it.key }, state = state, onState = onState, modifier = modifier, cellsKey = listOf(kiritmalar, xatoIds, lang, summaMatn),
         rowTone = { s -> if (s is FBolim) QTone.Info else null },
         cellMark = { s, col -> val q = s.qator(); if (q == null || col.id != "kiritma") CellMark.None else if (q.id in xatoIds) CellMark.Invalid else if (kiritmalar[q.id]?.qiymat?.isNotBlank() == true) CellMark.Changed else CellMark.None },
         onEdit = { s, col, text ->
@@ -328,4 +354,41 @@ private fun FaktGrid(
         },
         actions = actions, empty = t("Hech narsa topilmadi."),
     )
+}
+
+/** One cell/pair text of the value triple, like the site's SummaJuft in the table (`ustamali · ustamasiz`): the markup total is MAIN, direct cost beside it; unknown is a dash / the reason, never 0. */
+private fun uchlikJuft(q: QiymatUchlik, tayyor: Boolean, lang: String): String {
+    fun tx(k: String) = SiteI18n.t(k, lang)
+    val us = q.ustamasiz ?: return Tx.dash
+    val ustamali = when {
+        q.ustamali != null -> (if (q.taxminiy) "≈ " else "") + money(q.ustamali)
+        !tayyor -> tx("Hisoblanmoqda…")
+        else -> tx("ustamali noma’lum")
+    }
+    return ustamali + " · " + money(us)
+}
+
+/** The section's four sums (Smeta / F2 / Fakt / F2 qoldiq), each as the site's value triple: VAT-inclusive main, markup total (no VAT) and direct cost under it. */
+@Composable
+private fun BolimSummaQatori(s: uz.anncorp.smeta.core.fakt.BolimSumma?, ustama: UstamaMalumot?, tayyor: Boolean, tx: (String, Map<String, Any>) -> String, lang: String) {
+    if (s == null) return
+    fun t(k: String) = tx(k, emptyMap())
+    FlowRow(Modifier.fillMaxWidth().background(Q.colors.surface, Q.shape.medium).padding(horizontal = 12.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(24.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        listOf(t("Smeta") to s.smeta, t("F2") to s.f2, t("Fakt") to s.fakt, t("F2 qoldiq") to s.qoldiq).forEach { (nom, k) -> SummaUchlik(nom, k, ustama, tayyor, { key: String -> tx(key, emptyMap()) }) }
+        if (s.f2Narxda > 0) Text(tx("fakt summasi tasdiqlangan F2 narxida: {n} ta pozitsiya (fakt hajmi o‘zgarmaydi)", mapOf("n" to s.f2Narxda)), style = Q.type.labelSmall, color = Q.colors.textMute)
+    }
+}
+
+@Composable
+private fun SummaUchlik(nom: String, k: SummaKesim, ustama: UstamaMalumot?, tayyor: Boolean, t: (String) -> String) {
+    val q = remember(k, ustama) { ustama.uchlik(k.kesim, k.ustamasiz) }
+    Column {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Bottom) {
+            Text(nom.uppercase(), style = Q.type.labelSmall, color = Q.colors.textMute, fontWeight = FontWeight.SemiBold)
+            Text(t("QQS bilan"), style = Q.type.labelSmall, color = Q.colors.textMute)
+            Text(if (q.qqsBilan != null) (if (q.taxminiy) "≈ " else "") + money(q.qqsBilan) else if (!tayyor) t("Hisoblanmoqda…") else Tx.dash, style = Q.type.bodyMedium, color = Q.colors.text, fontWeight = FontWeight.SemiBold)
+        }
+        Text(t("ustamali, QQS siz") + ": " + (q.ustamali?.let { money(it) } ?: Tx.dash), style = Q.type.labelSmall, color = Q.colors.textDim)
+        Text(t("to‘g‘ri xarajat (ustamasiz)") + ": " + (q.ustamasiz?.let { money(it) } ?: Tx.dash), style = Q.type.labelSmall, color = Q.colors.textDim)
+    }
 }

@@ -1,5 +1,6 @@
 package uz.anncorp.qurai.desktop
 
+import uz.anncorp.smeta.core.fakt.PodvalTexts
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -81,6 +82,9 @@ class DesktopDemoApi(private val json: Json) : BffApi {
                     s("soro") == "akt_reestr_obyekt_v1" -> ok(asset("f2list"))
                     s("soro") == "akt_reestr_kompaniya_v1" -> ok(asset("f2reestr"))
                     s("soro") == "qarz_svod_v1" -> ok(asset("qarz_svod"))
+                    // Demo markup context (synthetic coefficients, no real object): the same shape as the server's obyekt_nakrutka_v1 / podval list.
+                    s("soro") == "obyekt_nakrutka_v1" -> ok("""{"ok":true,"natija":{"ok":true,"koeffitsientlar":{${PodvalTexts.Koef.all.joinToString(",") { "\"$it\":" + (if (it == PodvalTexts.Koef.NDS) "12" else if (it == PodvalTexts.Koef.PROCHIE_PODRYADCHIK) "18" else if (it == PodvalTexts.Koef.TRANSPORT_MATERIAL) "5" else "1") }}}}}""")
+                    jadval == "t2_nakrutka_podval_royxat" -> ok("""{"ok":true,"toliq":true,"qatorlar":[]}""")
                     s("soro") == "sklad_markaziy_qoldiq_v1" -> ok(asset("ombor_central"))
                     jadval == "t2_sklad_harakat" -> ok(asset("ombor_moves"))
                     jadval == "t2_sklad_qoldiq" -> ok(asset("ombor_stock"))
