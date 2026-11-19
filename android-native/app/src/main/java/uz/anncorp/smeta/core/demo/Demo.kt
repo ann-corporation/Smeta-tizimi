@@ -133,6 +133,7 @@ private class DemoBff(private val context: Context, private val json: Json, priv
             path.startsWith("/api/tomon") -> tomon(path, method, body as? JsonObject)
             path.startsWith("/api/kirish-taklif") && method == "POST" -> ok("""{"ok":true,"kod":"48213907","havola":"https://qurai.uz/taklif/DEMOTOKEN"}""")
             path.startsWith("/api/agent-ish") && method == "POST" -> agentIsh(body as? JsonObject)
+            path.startsWith("/api/hujjat-maydoni") && method == "GET" && (path.contains("amal=paket_royxat") || path.contains("amal=filtr_royxat")) -> f2Draft.paket(path)
             path.startsWith("/api/hujjat-maydoni") && method == "POST" -> ok("""{"ok":true}""")
             path.startsWith("/api/f2-buyruq") && method == "POST" -> f2Draft.buyruq(body as? JsonObject)
             path.startsWith("/api/tekshiruv") -> f2Draft.tekshiruv(method, body as? JsonObject)
