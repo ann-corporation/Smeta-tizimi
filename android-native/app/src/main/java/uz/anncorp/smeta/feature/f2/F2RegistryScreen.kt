@@ -141,7 +141,7 @@ private fun filterLabel(f: RegistryFilter): String = stringResource(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun F2RegistryScreen(
-    onBack: () -> Unit, onOpenF2: (Long) -> Unit, onDocs: (Long) -> Unit, onNakop: (Long) -> Unit, vm: F2RegistryViewModel = hiltViewModel(),
+    onBack: () -> Unit, onOpenF2: (Long) -> Unit, onDocs: (Long) -> Unit, onNakop: (Long) -> Unit, onPaket: () -> Unit = {}, vm: F2RegistryViewModel = hiltViewModel(),
 ) {
     val ui by vm.state.collectAsStateWithLifecycle()
     var filter by rememberSaveable { mutableStateOf(RegistryFilter.ALL) }
@@ -173,6 +173,8 @@ fun F2RegistryScreen(
                         item { OutlinedTextField(query, { query = it }, label = { Text(stringResource(R.string.p8_reg_search)) }, singleLine = true, modifier = Modifier.fillMaxWidth()) }
                         if (shown.isEmpty()) item { Text(stringResource(R.string.p8_reg_no_match), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                         items(shown, key = { it.objectId }) { r -> RegistryCard(r, ui.money[r.objectId]) { openId = r.objectId } }
+        // The site puts "Hujjatlar paketi" at the bottom of the F-2 registry page (F2Reestr.tsx).
+        item { androidx.compose.material3.OutlinedButton(onClick = onPaket, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.pk_title)) } }
                     }
                 }
             }
