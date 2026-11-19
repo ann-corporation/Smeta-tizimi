@@ -54,6 +54,7 @@ class DesktopDemoApi(private val json: Json) : BffApi {
             path.startsWith("/api/agent-ish") && (((body as? JsonObject)?.get("savol") as? JsonPrimitive)?.content.orEmpty().lowercase().let { it.contains("hajmini") || it.contains("kirim qil") }) ->
                 ok("""{"ok":true,"provider":"demo","javob":"**Yozishdan oldin ko\u2018rib chiqing** (hali saqlanmagan)\n\n- Demo qator: hajm 10 \u2192 2","f2_preview":{"ok":true,"holat":"tasdiq_kerak","token":"demo-preview-token"}}""")
             path.startsWith("/api/f2-buyruq") -> demoF2(body as? JsonObject)
+            path.startsWith("/api/hujjat-royxat") -> ok(asset("hujjatlar"))
             path.startsWith("/api/tekshiruv") -> if (method == "POST") ok("""{"ok":true,"qaror":"qabul"}""") else ok(asset("f2taklif"))
             path.startsWith("/api/ombor-ovoz") -> ok("""{"ok":true,"text":"817 F-2 da 1074871 hajmini 2 qil","draft_only":true}""")
             (path.startsWith("/api/agent-ish") || path.startsWith("/api/ai-savol")) -> ok("""{"ok":true,"agent":"Jarvis","javob":"**Demo rejimi.** Bugun 3 ta ish bor:\n\n- 2 ta fakt kiritish\n- 1 ta tasdiqlash\n\nBirinchi navbatda **tasdiqlashni** ko'rib chiqing.","provider":"demo"}""")
