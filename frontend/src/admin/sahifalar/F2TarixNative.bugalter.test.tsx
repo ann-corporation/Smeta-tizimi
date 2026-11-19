@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 /* JQA-10 (egasi): buxgalter F2 ni faqat o'qiydi — F2 tarixida tasdiqlash/rad/bekor/tahrirlash tugmalari ko'rinmaydi. */
@@ -36,5 +36,14 @@ describe('F2 tarixi — buxgalter faqat o‘qiydi', () => {
     chiz();
     expect(await screen.findByRole('button', { name: /Rad etish/ })).toBeTruthy();
     expect(screen.getAllByRole('button', { name: /Bekor qilish/ }).length).toBeGreaterThan(0);
+  });
+  it('does not silently open the first F2 for a missing linked act', async () => {
+    render(<MemoryRouter initialEntries={['/admin/f2-tarix?obyekt=3&akt=999']}><F2TarixNative /></MemoryRouter>);
+    await screen.findAllByText(/2026/);
+    await waitFor(() => expect(document.querySelector('button[aria-current="true"]')).toBeNull());
+  });
+  it('selects an existing linked act after asynchronous register load', async () => {
+    render(<MemoryRouter initialEntries={['/admin/f2-tarix?obyekt=3&akt=11']}><F2TarixNative /></MemoryRouter>);
+    await waitFor(() => expect(document.querySelector('button[aria-current="true"]')?.textContent).toContain('№ 7'));
   });
 });

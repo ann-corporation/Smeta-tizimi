@@ -26,6 +26,13 @@ beforeEach(()=>{localStorage.clear();sessionStorage.clear();m.ask.mockReset();m.
  localStorage.setItem('jarvis-suhbatlar:7:17',JSON.stringify(['a','b'].map(id=>({id,sarlavha:'Chat '+id,yangilandi:Date.now(),xabarlar:[{rol:'user',matn:'Message '+id}]}))));});
 afterEach(()=>{vi.useRealTimers();cleanup();});
 const send=(text:string)=>{fireEvent.change(screen.getByRole('textbox'),{target:{value:text}});fireEvent.keyDown(screen.getByRole('textbox'),{key:'Enter'});};
+it('passes current object and linked act IDs to the server rather than only the object name', async () => {
+ m.ask.mockResolvedValue({ok:true,javob:'OK'});
+ const current={...helper,joriyObyekt:{id:3,nom:'Synthetic object'}} as YordamchiUlanish;
+ render(<MemoryRouter initialEntries={['/admin/f2-tarix?obyekt=3&akt=41']}><AiChat kompaniyaId={17} foydalanuvchiId={7} kasb={role} sahifa="/admin/f2-tarix" generatsiya={0} yordamchi={current}/></MemoryRouter>);
+ await act(async()=>{});send('Shu hujjatni tekshir');await waitFor(()=>expect(m.ask).toHaveBeenCalledTimes(1));
+ expect(m.ask.mock.calls[0][2]).toMatchObject({obyektId:3,aktId:41,obyektNomi:'Synthetic object'});
+});
 const tick=(ms:number)=>act(async()=>{await vi.advanceTimersByTimeAsync(ms);});
 
 function remoteFixture() {
