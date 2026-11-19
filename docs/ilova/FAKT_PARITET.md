@@ -1,7 +1,7 @@
 # Fakt kiritish: sayt vs Windows (1:1 tekshiruv ro'yxati)
 
 Sana: 2026-11-19. Manba (sayt): `frontend/src/lib/reestr/sahifa.ts` (`fakt` -> `/admin/fakt`) -> `FaktNative.tsx` (115 qator) -> `FaktJurnal.tsx` (1263 qator), `XotiradanFakt.tsx`, `FaktQamrov.tsx`, `FaktBajarilmadiTez.tsx`, `FaktF2Tenglash.tsx`, `FaktTiklash.tsx`, `FaktInlineAmal.tsx`, `UstaKutilmoqda.tsx`, `SmetaTree` (daraxt). Windows: `android-native/desktop/.../Modules.kt` `FaktScreen`.
-Belgi: ✅ saytdagidek; 🟡 qisman/boshqacha; ❌ yo'q. **Hozirgi holat: hech bir qator ✅ emas.** Windows `FaktScreen` saytning Fakt sahifasi emas, uning o'rniga o'ylab topilgan oddiy shakl (qidiruv + ro'yxat + «Yozish»). Bu shakl saytda yo'q, shuning uchun 1:1 emas; u haqiqiy sahifa qurilguncha almashtiriladi.
+Belgi: ✅ saytdagidek; 🟡 qisman/boshqacha; ❌ yo'q. **Holat (PR-C dan keyin: bu faylning oxiridagi «PR-C holati» jadvaliga qarang; yuqoridagi jadvallar PR-C dan OLDINGI holatni ko'rsatadi).** Windows `FaktScreen` saytning Fakt sahifasi emas, uning o'rniga o'ylab topilgan oddiy shakl (qidiruv + ro'yxat + «Yozish»). Bu shakl saytda yo'q, shuning uchun 1:1 emas; u haqiqiy sahifa qurilguncha almashtiriladi.
 
 Bu sessiyada ishlab chiqilgan, saytdan chetga chiqqan Fakt UI (`/api/f2-buyruq` fakt_yoz preview paneli, «Bajarilmadi»/«Zamena» oynalari) **tashlab yuborildi**, repoga kirmadi. Saytning o'zi `fakt_yoz` ni `sbFaktYoz` / `sbFaktBelgilaV2` orqali (`/api/sb-yoz`, `t2_fakt_yoz_v2`, `operation_id` bilan) chaqiradi, Jarvis preview yo'li bilan emas; Windows shu yo'lni ishlatishi kerak.
 
@@ -78,3 +78,28 @@ Sahifa 1263 + ~900 qator mantiq va 150+ matn kaliti: bitta PR emas. Tartib: (1) 
 
 ## Umumiy (grid bloklari)
 Saytda jadvallar boshqacha (HTML `fz-table`); Windows grid (Ctrl+C -> Excel, CSV, ko'p tanlash) saytda mavjud bo'lmagan qulaylik: farq emas, ortiqcha. Lekin har ekranning ustunlari va matnlari sayt bilan bir xil bo'lishi shart (yuqorida ro'yxat).
+
+---
+
+# PR-C holati (2026-11-19): Windows Fakt jurnali = saytning `FaktJurnal`ining birinchi bo'lagi
+
+Windows `FaktScreen` endi o'ylab topilgan shakl emas: saytning «Bajarilgan ishlar (Fakt)» sahifasi tuzilmasi (toolbar kartasi -> Bo'limlar paneli + jurnal jadvali -> Saqlash paneli), matnlar saytning o'z `t()` kalitlari (`SiteI18n`, uz/ru/en), mantiq ko'chirilgan `lib/fakt-jurnal.ts` (parite testlari bilan), ma'lumot `/api/obyekt-paket` (saytning `useT2Daraxt` paket yo'li), yozish `fakt_yoz_v2` (`/api/sb-yoz`, bitta operation_id, saytning `sbFaktYoz` qo'ng'irog'i). Foto-dalil paneli Fakt sahifasidan olib tashlandi (saytda u alohida «Foto-dalil» sahifasi).
+
+| Sayt elementi | Windows | Holat |
+|---|---|---|
+| Sarlavha «Bajarilgan ishlar (Fakt)» + izoh «Smeta hajmi va Faktni RZ -> BL -> RS/MAT/OB daraxtida boshqaring» | aynan shu kalitlar | ✅ |
+| Toolbar: «Sana» (Fakt sanasi), qidirish «Butun obyekt bo'yicha qidirish...  ( / )», «faqat bajarilmaganlar», Holat filtri Hammasi/Kiritilganlar/Boshlanmagan/Chala | bor, saytning mantiq funksiyalari (`holatFiltrMos`, `ochiqBor`) | ✅ (Alt+1..4 tez tugmalar ❌) |
+| Toolbar: «fakti yo'q, F2 olingan», «Faqat zamena va qo'shimchalar», «Klaviatura ?», Fakt = F2, Fakt tiklash, Qamrov %, Egizaklarga ham yozish, Smetadan tashqari ish | yo'q | ❌ |
+| «Bajarilish tahlili» (FaktXulosaPanel), `FaktStudioBar`, qoralama banneri, avvalgi F2 ko'chmagan banneri | yo'q (xulosa hisoblari `jurnalXulosa`/`obyektUlushi` ko'chirilgan, UI yo'q) | ❌ |
+| Bo'limlar paneli: nom, «{n} ish», bajarilish chizig'i, «{a} / {b} tugagan», «Bo'limsiz · {n} ish» | bor | ✅ (panelni yig'ish va ichki bo'limni yopish ❌) |
+| Jurnal sarlavhasi: bo'lim nomi, «{n} ish · {q} qator», «{a} / {b} ish bajarilgan», «Jami %:» 25/50/75/100, «Hammasini yopish/ochish» | bor | ✅ (MeterLegenda, «Bo'lim summalari» ❌, «Bo'lim: materiallarni ham olish» ❌) |
+| Jadval ustunlari: Kod, Nomi, Kat/tur, Holat, Smeta hajmi, Birlik, Birlik narxi, Bajarilish foizi, Fakt hajm, F2 hajmi, Bu fakt, Ochiq qoldiq, F2 ga olish mumkin, Fakt summasi | barcha ustun, saytning nomlari | 🟡 (ustun guruhlari/ikki qatorli sarlavha, ustun filtri tugmalari ❌; «Fakt summasi» faqat server ustamasiz summasi, saytdagi ustamali · ustamasiz juftligi (`taxminKesim`, SummaJuft) ❌) |
+| Resurs qatorlari: ish ostida mat/ob, avtomatik rs «avto», zamena/qo'shimcha belgisi, Holat muhri (Boshlanmagan/Jarayonda/Bajarildi/Smetadan oshdi) | bor | 🟡 (norma «avto» hajm, almashtirilgan/bajarilmaydi/ishdan chiqarilgan belgilar ❌) |
+| Katak ichida kiritish: son, foiz (50%), formula (=SMETA-FAKT, =QOLDIQ), noaniq «1.234», MANFIY/NOL/ISHORA xatolari | saytning `kiritmaSoni`/`jurnalPaket` | ✅ (Excel ustunini joylash, Enter = pastga ❌) |
+| Rejim «+» bugun / «=» jami | kontekst menyu va «+ / =» ustuni | 🟡 (saytdagi tugma va klaviatura tezkor tugmalari ❌) |
+| Qoldiq ulushi tugmalari (25/50/100 % ochiq qoldiq) | yo'q | ❌ |
+| Saqlash paneli: «Saqlash» (Ctrl+S), «Orqaga» (Ctrl+Z), «sana: {s}», xato soni | bor | ✅ |
+| Server: bitta `fakt_yoz_v2` paketi (delta), operation_id, ogohlantirish/narxsiz javobi | `/api/sb-yoz` shu amal | ✅ (javob ogohlantirishlarini ko'rsatish ❌) |
+| Xotiradan, Daraxt, Qamrov %, Fakt = F2, Fakt tiklash, Egizaklar, Bajarilmaydi/Zamena/resurs amallari, Smetadan tashqari ish (IshAbcModal), UstaKutilmoqda, AI yordamchi, klaviatura navigatsiyasi (g+l, /, ?) | yo'q | ❌ (mantiq `shared`da: Qamrov B3a (#719), Fakt = F2/Tiklash B3b) |
+
+Skrinshotlar: `C:\Temp\windows-paritet\40-fakt-jurnal.png` ... `43-after.png` (repoda emas). Yonma-yon (sayt bilan) skrinshot hali olinmagan: bu «✅» lar kod va matn kalitlari bo'yicha, ko'z bilan yonma-yon tasdiqlash qolgan.
