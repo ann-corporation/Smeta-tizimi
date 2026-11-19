@@ -255,6 +255,16 @@
     <string name="ja_chats_label">Чаты</string>
     <string name="ja_copy">Копировать</string>
     <string name="ja_copied">Скопировано</string>
+    <string name="ja_confirm">Подтвердить</string>
+    <string name="ja_cancel_preview">Отмена</string>
+    <string name="ja_confirmed">Подтверждено и записано</string>
+    <string name="ja_cancelled">Отменено: ничего не записано</string>
+    <string name="ja_preview_hint">Ещё не записано: подтвердите или отмените</string>
+    <string name="ja_mic_start">Голосовой ввод (удерживайте или нажмите один раз)</string>
+    <string name="ja_mic_stop">Стоп</string>
+    <string name="ja_mic_busy">Преобразование в текст…</string>
+    <string name="ja_mic_fail">Не удалось записать. Повторите.</string>
+    <string name="ja_mic_denied">Нет разрешения на микрофон</string>
     <string name="ja_scroll_down">Вниз</string>
     <string name="ja_welcome">Jarvis готов</string>
     <string name="ja_hint">Спросите про объект, факт и работы на сегодня. Ответ строится по данным компании.</string>

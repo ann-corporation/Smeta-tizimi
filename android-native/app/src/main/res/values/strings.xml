@@ -256,6 +256,16 @@
     <string name="ja_chats_label">Suhbatlar</string>
     <string name="ja_copy">Nusxalash</string>
     <string name="ja_copied">Nusxalandi</string>
+    <string name="ja_confirm">Tasdiqlash</string>
+    <string name="ja_cancel_preview">Bekor qilish</string>
+    <string name="ja_confirmed">Tasdiqlandi va yozildi</string>
+    <string name="ja_cancelled">Bekor qilindi: hech narsa yozilmadi</string>
+    <string name="ja_preview_hint">Hali yozilmagan: tasdiqlang yoki bekor qiling</string>
+    <string name="ja_mic_start">Ovoz bilan yozish (bosib turing yoki bir marta bosing)</string>
+    <string name="ja_mic_stop">To‘xtatish</string>
+    <string name="ja_mic_busy">Matnga aylantirilmoqda…</string>
+    <string name="ja_mic_fail">Yozib bo‘lmadi. Qayta urinib ko‘ring.</string>
+    <string name="ja_mic_denied">Mikrofon ruxsati berilmadi</string>
     <string name="ja_scroll_down">Pastga</string>
     <string name="ja_welcome">Jarvis tayyor</string>
     <string name="ja_hint">Obyekt, fakt va bugungi ishlar haqida so\'rang. Javob kompaniya ma\'lumotlaridan olinadi.</string>
