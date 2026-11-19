@@ -24,6 +24,15 @@ import { kirimRuxsat } from '../lib/ombor-prixod/yozish';
 export const NAVOIY_SKLAD_NOMI = "NEW TIMES BUILDINGS MCHJ — Navoiy bog' skladi";
 const NAVOIY_KOMPANIYA_ID = 123;
 
+/** Server vaqt belgisi (ISO) → «18.11.2026 17:15»; bo'sh/yaroqsiz → «—» yoki asl matn. */
+function vaqtKorinishi(v: string | null | undefined): string {
+  if (!v) return '—';
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return v;
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 /**
  * Ombor (sklad) — qoldiq va kirim/chiqim yozuvi (egasi 2026-10-25: Firuza ko'rinishi).
  * Jamlangan ombor: har material bo'yicha jami qoldiq va uning obyektlar orasida taqsimoti (chiziq).
@@ -56,6 +65,8 @@ export default function TestSklad() {
 
   const [markaziySkladlar, setMarkaziySkladlar] = useState<SkladMustaqil[]>([]);
   const [markaziyId, setMarkaziyId] = useState<number | null>(null);
+  /** Omborlar ro'yxati serverdan kelganmi: kelmaguncha «ombor yo'q» / «yaratish» ko'rsatilmaydi (dublikat ombor xavfi). */
+  const [skladlarYuklandi, setSkladlarYuklandi] = useState(false);
   const [konsQoldiqlar, setKonsQoldiqlar] = useState<SkladKonsolidatsiya[]>([]);
 
   useEffect(() => {
@@ -82,6 +93,7 @@ export default function TestSklad() {
     void sbSkladlarOl(aktKomp).then((r) => {
       if (r.ok && r.qatorlar) {
         setMarkaziySkladlar(r.qatorlar);
+        setSkladlarYuklandi(true);
         const nomli = tanla ? r.qatorlar.find((s) => s.nomi === tanla) : undefined;
         if (nomli) setMarkaziyId(nomli.id);
         else {
@@ -93,7 +105,7 @@ export default function TestSklad() {
     });
   }
 
-  const navoiySkladYoq = aktKomp === NAVOIY_KOMPANIYA_ID && !markaziySkladlar.some((s) => s.nomi === NAVOIY_SKLAD_NOMI);
+  const navoiySkladYoq = skladlarYuklandi && aktKomp === NAVOIY_KOMPANIYA_ID && !markaziySkladlar.some((s) => s.nomi === NAVOIY_SKLAD_NOMI);
   const navoiySkladYarat = async () => {
     setSkladYaratilmoqda(true);
     const r = await sbSkladYarat({ kompaniyaId: aktKomp, nomi: NAVOIY_SKLAD_NOMI });
@@ -171,7 +183,7 @@ export default function TestSklad() {
           <OpsKpi nom={t('Obyektlarga berilgan pozitsiyalar')} qiymat={xulosa.pozitsiya} />
           <OpsKpi nom={t('Manfiy qoldiq')} rang="var(--danger)" qiymat={<span className={xulosa.manfiy ? 'text-danger' : ''}>{xulosa.manfiy}</span>} ost={t('chiqim bor, kirim yo‘q — tekshiring')} />
           <OpsKpi nom={t('Tugagan (0)')} rang="var(--warn)" qiymat={xulosa.nol} />
-          <OpsKpi nom={t('Oxirgi harakat')} qiymat={<span className="text-[15px]">{xulosa.oxirgi ?? '—'}</span>} />
+          <OpsKpi nom={t('Oxirgi harakat')} qiymat={<span className="text-[15px]">{vaqtKorinishi(xulosa.oxirgi)}</span>} />
         </OpsKpiQator>
 
         <OpsTablar<Tab> yorliq={t('Ombor bo‘limlari')} joriy={activeTab} onTanla={setActiveTab} tablar={[
@@ -197,7 +209,7 @@ export default function TestSklad() {
             </div>
             {!ruxsat.korish && <p className="m-0 text-[12px] text-warn">{t('Omborni ko‘rish uchun «Hujjatlarni ko‘rish» huquqi kerak.')}</p>}
             {!tanlanganSklad && <div className="rounded-md border border-dashed border-[var(--border-strong)] px-4 py-8 text-center text-[13px] text-text-mute">
-              {markaziySkladlar.length ? t('Yuqoridan omborni tanlang — kirim va chiqim aniq omborda yoziladi.') : t('Bu kompaniyada hali ombor yo‘q.')}</div>}
+              {!skladlarYuklandi ? t('Yuklanmoqda...') : markaziySkladlar.length ? t('Yuqoridan omborni tanlang — kirim va chiqim aniq omborda yoziladi.') : t('Bu kompaniyada hali ombor yo‘q.')}</div>}
             {tanlanganSklad && activeTab === 'ombor-kirim' && excelOchiq && ruxsat.yozish && <PrixodKitobPreview kompaniyaId={aktKomp} skladId={tanlanganSklad.id}
               skladNomi={tanlanganSklad.nomi} yozishMumkin={ruxsat.yozish} onYozildi={() => setKirimYangilash((n) => n + 1)} />}
             {tanlanganSklad && ruxsat.korish && activeTab === 'omborchi' && <OmborIshJoyi key={aktKomp + ':' + tanlanganSklad.id} kompaniyaId={aktKomp} skladId={tanlanganSklad.id} skladNomi={tanlanganSklad.nomi} yozishMumkin={ruxsat.yozish} />}
@@ -277,7 +289,7 @@ export default function TestSklad() {
                             : item.qoldiq === 0 ? <span className="fz-stamp fz-stamp--warn">{t('tugagan')}</span>
                               : <span className="fz-stamp fz-stamp--ok">{t('bor')}</span>}
                         </td>
-                        <td className="text-[12px] text-text-mute">{item.oxirgi_harakat || '—'}</td>
+                        <td className="text-[12px] text-text-mute">{vaqtKorinishi(item.oxirgi_harakat)}</td>
                         <td className="text-center">
                           <button type="button" className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" aria-label={t('QR pasport')} title={t('QR pasport')}><QrCode /></button>
                         </td>
