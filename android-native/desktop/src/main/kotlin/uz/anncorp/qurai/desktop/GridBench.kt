@@ -1,4 +1,4 @@
-﻿package uz.anncorp.qurai.desktop
+package uz.anncorp.qurai.desktop
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -50,8 +50,8 @@ fun GridBench(n: Int, onDone: () -> Unit) {
             s = GridLogic.move(s, keys, if (i < 1000) 1 else 40, false); st = s
             val now = withFrameNanos { it }; frames += (now - last) / 1_000_000.0; last = now
         }
-        val sorted = frames.sorted()
-        out.append("scroll frames=${frames.size} avg=${"%.2f".format(frames.average())} ms p50=${"%.2f".format(sorted[sorted.size / 2])} p95=${"%.2f".format(sorted[(sorted.size * 0.95).toInt()])} p99=${"%.2f".format(sorted[(sorted.size * 0.99).toInt()])} max=${"%.2f".format(sorted.last())} ms; >16.7ms: ${frames.count { it > 16.7 }} (${"%.1f".format(100.0 * frames.count { it > 16.7 } / frames.size)} %)\n")
+        fun stats(name: String, f: List<Double>) { val s = f.sorted(); out.append("$name frames=${f.size} avg=${"%.2f".format(f.average())} ms p50=${"%.2f".format(s[s.size / 2])} p95=${"%.2f".format(s[(s.size * 0.95).toInt()])} p99=${"%.2f".format(s[(s.size * 0.99).toInt()])} max=${"%.2f".format(s.last())} ms; >16.7ms: ${f.count { it > 16.7 }} (${"%.1f".format(100.0 * f.count { it > 16.7 } / f.size)} %)\n") }
+        stats("scroll 1 row/frame (arrow key held)", frames.take(1000)); stats("scroll 40 rows/frame (PageDown-like, extreme)", frames.drop(1000))
         java.io.File(System.getProperty("java.io.tmpdir"), "qurai-gridbench.txt").writeText(out.toString())
         onDone()
     }

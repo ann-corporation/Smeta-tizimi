@@ -179,7 +179,7 @@ fun F2DraftScreen(c: Ctx, o: Obj, act: F2Act, onBack: () -> Unit) {
                                 rowTone = { r -> if (r.qatorId in edits.removed) QTone.Danger else if (r.minus) QTone.Warn else null },
                                 cellMark = { r, col -> if (errs.containsKey(r.qatorId) && edits.cells[r.qatorId]?.let { p -> (col.id == "hajm" && p.hajm != null) || (col.id == "narx" && p.narx != null) } == true) CellMark.Invalid
                                     else if (edits.cells[r.qatorId]?.let { p -> (col.id == "hajm" && p.hajm != null) || (col.id == "narx" && (p.narx != null || p.narxsiz == true)) } == true) CellMark.Changed else CellMark.None },
-                                onEdit = if (editable) ({ r, col, text -> edits = edits.setCell(r, col.id, text); done = null }) else null,
+                                cellsKey = edits to tkByRow, onEdit = if (editable) ({ r, col, text -> edits = edits.setCell(r, col.id, text); done = null }) else null,
                                 onDelete = if (editable) ({ rows -> edits = if (rows.all { it.qatorId in edits.removed }) edits.restore(rows.map { it.qatorId }) else edits.remove(rows.map { it.qatorId }) }) else null,
                                 actions = if (editable) listOf(
                                     GridAction("Narxsiz deb belgilash") { rows -> rows.forEach { edits = edits.markNarxsiz(it, true) } },
@@ -218,7 +218,7 @@ private fun draftCols(
 ): List<GridCol<DraftRow>> = listOf(
     GridCol("kod", "Kod", 96f, mono = true, sortKey = { it.kod }) { it.kod ?: "" },
     GridCol("nom", "Nomi", 210f, sortKey = { it.nom.lowercase() }) { it.nom },
-    GridCol("birlik", "Birlik", 64f) { uz.anncorp.smeta.core.data.displayUnit(it.birlik) },
+    GridCol("birlik", "Birlik", 84f) { uz.anncorp.smeta.core.data.displayUnit(it.birlik) },
     GridCol("hajm", "Hajm", 90f, numeric = true, editable = editable, sortKey = { it.hajm }) { r -> edits().cells[r.qatorId]?.hajm ?: formatVolumeSigned(r.hajm).let { if (r.hajm == null) "" else it } },
     GridCol("narx", "Narx (QQS siz)", 120f, numeric = true, editable = editable, sortKey = { it.narx }) { r -> edits().cells[r.qatorId]?.let { p -> p.narx ?: if (p.narxsiz == true) "narxsiz" else null } ?: money(r.narx).let { if (r.narx == null) "" else it } },
     GridCol("summa", "Summa (server)", 130f, numeric = true, sortKey = { it.summa }) { r -> if (edits().cells[r.qatorId] != null) "…" else money(r.summa).let { if (r.summa == null) "" else it } },
