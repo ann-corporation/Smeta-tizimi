@@ -132,6 +132,8 @@ private class DemoBff(private val context: Context, private val json: Json, priv
             path.startsWith("/api/tomon") -> tomon(path, method, body as? JsonObject)
             path.startsWith("/api/kirish-taklif") && method == "POST" -> ok("""{"ok":true,"kod":"48213907","havola":"https://qurai.uz/taklif/DEMOTOKEN"}""")
             path.startsWith("/api/agent-ish") && method == "POST" -> agentIsh(body as? JsonObject)
+            path.startsWith("/api/f2-buyruq") && method == "POST" -> ok("""{"ok":true,"holat":"yozildi"}""")
+            path.startsWith("/api/ombor-ovoz") && method == "POST" -> ok("""{"ok":true,"text":"817 F-2 da 1074871 hajmini 2 qil","draft_only":true}""")
             path.startsWith("/api/ai-savol") && method == "POST" -> {
                 val q = ((body as? JsonObject)?.get("savol") as? JsonPrimitive)?.content.orEmpty()
                 // A question containing "limit" simulates an empty token balance (HTTP 402), so the budget card can be shown.
@@ -286,6 +288,12 @@ private class DemoBff(private val context: Context, private val json: Json, priv
         return when (s("amal")) {
             "kasb_savol" -> {
                 val q = s("savol").orEmpty().lowercase()
+                // Write request: the server answers with a PREVIEW + confirmation token (nothing is saved before "Tasdiqlash").
+                if (q.contains("hajmini") || q.contains("kirim qil")) return ok(buildJsonObject {
+                    put("ok", true); put("provider", "demo")
+                    put("javob", "**Yozishdan oldin ko\u2018rib chiqing** (hali saqlanmagan)\n\n- Demo qator: hajm 10 \u2192 2\n\n**Jami (server hisobi):** o\u2018zgarish bor")
+                    put("f2_preview", buildJsonObject { put("ok", true); put("holat", "tasdiq_kerak"); put("token", "demo-preview-token") })
+                }.toString())
                 val text = if (q.contains("qqs") || q.contains("summa") || q.contains("qancha"))
                     "Demo korpus A: QQS bilan 1 614 935 115,60; ustamali (QQS siz) 1 441 906 355,00; ustamasiz (QQS siz) 1 232 381 500,00. 1 ta qator narxsiz."
                 else "Bugun 3 ta ish bor: 2 ta fakt kiritish va 1 ta tasdiqlash kutmoqda."

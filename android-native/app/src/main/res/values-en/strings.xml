@@ -255,6 +255,16 @@
     <string name="ja_chats_label">Chats</string>
     <string name="ja_copy">Copy</string>
     <string name="ja_copied">Copied</string>
+    <string name="ja_confirm">Confirm</string>
+    <string name="ja_cancel_preview">Cancel</string>
+    <string name="ja_confirmed">Confirmed and saved</string>
+    <string name="ja_cancelled">Cancelled: nothing was saved</string>
+    <string name="ja_preview_hint">Not saved yet: confirm or cancel</string>
+    <string name="ja_mic_start">Voice input (hold, or tap once)</string>
+    <string name="ja_mic_stop">Stop</string>
+    <string name="ja_mic_busy">Converting to text…</string>
+    <string name="ja_mic_fail">Could not record. Try again.</string>
+    <string name="ja_mic_denied">Microphone permission denied</string>
     <string name="ja_scroll_down">Down</string>
     <string name="ja_welcome">Jarvis is ready</string>
     <string name="ja_hint">Ask about objects, fact and today\'s work. Answers come from your company data.</string>

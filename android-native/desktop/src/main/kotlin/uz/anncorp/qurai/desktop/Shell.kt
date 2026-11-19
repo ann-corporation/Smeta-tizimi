@@ -80,7 +80,11 @@ class JarvisState {
     var etag by mutableStateOf<String?>(null)
     var showChats by mutableStateOf(false)
     var input by mutableStateOf("")
-    fun reset() { msgs.clear(); chatId = UUID.randomUUID().toString(); etag = null; showChats = false }
+    /** Write previews waiting for confirmation: message index -> server token (kept in memory only; a reloaded chat has no buttons). */
+    val previews = androidx.compose.runtime.mutableStateMapOf<Int, String>()
+    var recording by mutableStateOf(false)
+    var transcribing by mutableStateOf(false)
+    fun reset() { previews.clear(); msgs.clear(); chatId = UUID.randomUUID().toString(); etag = null; showChats = false }
 }
 
 @Composable
@@ -208,6 +212,8 @@ fun JarvisPanel(sv: Services, p: Workplace, obj: Obj?, st: JarvisState, focusTic
         scope.launch {
             val res = sv.jarvis.ask(q, p.companyId, history, obj?.id)
             Log.i("jarvis ${res::class.simpleName}")
+            val idx = st.msgs.size
+            (res as? JarvisResult.Answer)?.previewToken?.let { st.previews[idx] = it }
             st.msgs.add(ChatMsg(false, when (res) {
                 is JarvisResult.Answer -> res.text
                 is JarvisResult.Budget -> res.message ?: "Token yetarli emas"
@@ -226,7 +232,22 @@ fun JarvisPanel(sv: Services, p: Workplace, obj: Obj?, st: JarvisState, focusTic
             }
         }
     }
-    val bubbles = st.msgs.map { if (it.mine) QBubble.Mine(it.text) else QBubble.Jarvis(it.text) }
+    val bubbles = st.msgs.mapIndexed { i, it -> if (it.mine) QBubble.Mine(it.text) else QBubble.Jarvis(it.text, st.previews[i]) }
+    val recorder = remember { DesktopRecorder() }
+    DisposableEffect(Unit) { onDispose { recorder.cancel() } }
+    val voice = uz.anncorp.qurai.ui.screens.QJarvisVoice(
+        recording = st.recording, busy = st.transcribing,
+        onStart = { if (recorder.start()) st.recording = true else Log.i("jarvis mic unavailable") },
+        onStop = {
+            st.recording = false
+            val a = recorder.stop()
+            if (a != null) { st.transcribing = true; scope.launch {
+                val (t, err) = sv.jarvis.transcribe(p.companyId, a.bytes, "audio/wav")
+                st.transcribing = false
+                if (t != null) st.input = (st.input.trim() + " " + t).trim() else Log.i("jarvis stt " + err)
+            } }
+        },
+    )
     Column(Modifier.fillMaxSize()) {
         QJarvisChat(
             bubbles, st.busy, st.input, { st.input = it }, { send(st.input) },
@@ -239,6 +260,8 @@ fun JarvisPanel(sv: Services, p: Workplace, obj: Obj?, st: JarvisState, focusTic
             onOpenChat = { ch -> scope.launch { (sv.jarvis.syncChats(p.companyId, ChatCursor(ch.id))?.active as? ChatSnapshot.Changed)?.let { s -> st.msgs.clear(); st.msgs.addAll(s.messages.orEmpty()); st.chatId = ch.id; st.etag = s.etag; st.showChats = false } } },
             headerExtra = { QButton("", onClose, kind = QButtonKind.Ghost, icon = QIcons.X) },
             focus = focus,
+            onConfirm = { token -> sv.jarvis.confirm(p.companyId, token) },
+            voice = voice,
         )
     }
 }

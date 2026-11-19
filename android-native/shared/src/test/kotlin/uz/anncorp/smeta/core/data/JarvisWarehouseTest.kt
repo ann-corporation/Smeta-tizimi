@@ -41,5 +41,9 @@ class JarvisWarehouseTest {
         val reply = ApiResult(200, JsonObject(mapOf("javob" to kotlinx.serialization.json.JsonPrimitive("Taklif"), "warehouse_reply" to warehouse)))
         assertNotNull((JarvisRepository.map(reply, 17) as JarvisResult.Answer).warehouse)
         assertNull((JarvisRepository.map(reply, 99) as JarvisResult.Answer).warehouse)
+        val both = ApiResult(200, JsonObject(reply.body.obj().orEmpty() + mapOf("f2_preview" to Json.parseToJsonElement("""{"holat":"tasdiq_kerak","token":"synthetic-f2"}"""))))
+        val answer = JarvisRepository.map(both, 17) as JarvisResult.Answer
+        assertEquals("synthetic-f2", answer.previewToken)
+        assertNotNull(answer.warehouse)
     }
 }

@@ -151,4 +151,7 @@
     <string name="sm_qty">Miqdor</string>
     <string name="sm_price">Narx</string>
     <string name="p5_enter_fakt_short">Fakt</string>    <string name="sm_amount">Summa</string>
+    <string name="f2_reject">Rad etish</string>
+    <string name="f2_reject_reason">Rad etish sababi</string>
+    <string name="f2_reject_confirm">Rad etishni tasdiqlash</string>
 </resources>

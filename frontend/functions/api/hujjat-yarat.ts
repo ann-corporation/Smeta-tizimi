@@ -19,10 +19,8 @@ import { tekshir } from '../_shared/auth';
 import { serverQaytar, serverSarfla, sarfRad } from '../_shared/hujjat-sarf';
 import { ichkiRejimda } from '../_shared/hujjat-ichki';
 import { sbT2AktReestrOl, sbT2KompaniyalarOl, sbT2ObyektlarOlKomp } from '../../src/api/supabase';
-import { portfelObyektOl, smetaTarixBilan, type AktQatorXom } from '../../src/api/f2-oylik-paket';
-import { bekorQatorlari } from '../../src/lib/f2-bekor-qator';
-import { paketAktExcel } from '../../src/lib/f2-oylik-paket/portfel';
-import { f2HujjatKaliti, hujjatDizayniniYukla } from '../../src/api/f2-hujjat-kontekst';
+import { hujjatDizayniniYukla } from '../../src/api/f2-hujjat-kontekst';
+import { Rad, f2Yasa, rad, type Tayyor } from '../_shared/hujjat-f2';
 import { shartnomaSvodOl } from '../../src/api/t2-nakopitelniy';
 import { sotuvF3lar, type SvodShartnoma } from '../../src/lib/nakopitelniy-svod';
 import { f3ShaklTozala, forma3SotuvdanXlsx } from '../../src/lib/forma3-export';
@@ -38,7 +36,7 @@ import { nakopitelniyPaketFayli } from '../../src/lib/oylik-hujjat/nakopitelniy'
 import { ostatkaPaketFayli, paketImzosiOl } from '../../src/lib/oylik-hujjat/ostatka-slichitelniy';
 import { m29PaketFayli, pudratchiNomiOl } from '../../src/lib/oylik-hujjat/m29';
 import { NDS_SUKUT_FOIZ } from '../../src/lib/nakopitelniy-vedomost-export';
-import { f2Manba, forma3Manba, obyektHujjatManba, type DiskManba } from '../../src/lib/disk-hujjat';
+import { forma3Manba, obyektHujjatManba, type DiskManba } from '../../src/lib/disk-hujjat';
 import { diskArxivla, diskHolatiMatni, type DiskArxivNatija } from '../_shared/disk-yoz';
 
 type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; BREND_URL?: string; R2_CANONICAL?: R2Bucket };
@@ -47,10 +45,6 @@ const FORMATLAR: readonly HujjatFormat[] = ['xlsx', 'pdf'];
 const MIME: Record<HujjatFormat, string> = { xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', pdf: 'application/pdf' };
 const musbat = (v: unknown): number | null => (Number.isSafeInteger(Number(v)) && Number(v) > 0 ? Number(v) : null);
 
-class Rad extends Error { constructor(readonly status: number, readonly code: string, msg: string) { super(msg); } }
-const rad = (e: Rad) => Response.json({ ok: false, code: e.code, xato: e.message }, { status: e.status });
-
-type Tayyor = { bytes: Uint8Array; faylNomi: string; turi: string; obyektId: number; davr: string | null; xesh: string; manba: DiskManba; arxivla: boolean };
 const OY = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 /** Hujjat nashri tokeni (t2_nashr_tayyor_v1: bir xil mazmun — mavjud token). Xatoda null. */
@@ -89,32 +83,6 @@ async function royxat(kompaniyaId: number, obyektId: number) {
     }
   }
   return hujjatlar;
-}
-
-async function f2Yasa(kompaniyaId: number, obyektId: number, aktId: number): Promise<Tayyor> {
-  const reestr = await sbT2AktReestrOl(obyektId, 'f2');
-  if (!reestr.ok || reestr.toliq === false) throw new Rad(502, 'REESTR_OQILMADI', 'F-2 reestri o‘qilmadi');
-  const akt = (reestr.qatorlar ?? []).find((a) => a.id === aktId);
-  if (!akt || akt.kompaniya_id !== kompaniyaId) throw new Rad(404, 'AKT_TOPILMADI', 'F-2 topilmadi');
-  let m;
-  try {
-    m = await portfelObyektOl(kompaniyaId, obyektId, [aktId], aktId);
-    if (akt.holat === 'bekor') {
-      // Bekor akt: 	2_f2_tafsilot uni ko'rsatmaydi — sayt (F2 tarixi) kabi 	2_akt_qator + smeta (tarix bilan) dan qatorlar.
-      const lines = bekorQatorlari(akt, (m.aktQatorlar.get(aktId) ?? []) as AktQatorXom[], new Map(m.smeta.map((r) => [r.id, r] as const)));
-      m = { ...m, tafsilot: lines, smeta: await smetaTarixBilan(obyektId, m.smeta, lines.map((l) => l.qator_id)) };
-    }
-  } catch (e) { throw new Rad(502, 'MALUMOT_OQILMADI', e instanceof Error ? e.message.slice(0, 160) : 'Ma‘lumot o‘qilmadi'); }
-  const raqamlar = new Map((reestr.qatorlar ?? []).map((a) => [a.id, a.raqam ?? null] as const));
-  let h;
-  try { h = paketAktExcel(m, akt, akt.obyekt || '', raqamlar); }
-  catch (e) { throw new Rad(409, 'F2_QATOR_TOPILMADI', e instanceof Error ? e.message.slice(0, 160) : 'F-2 qatori topilmadi'); }
-  if (!h) throw new Rad(409, 'QATOR_YOQ', 'Bu hujjatda chiqariladigan qator yo‘q');
-  if (h.topilmagan) throw new Rad(409, 'F2_QATOR_TOPILMADI', `${h.topilmagan} ta qator smetada topilmadi`);
-  const xesh = f2HujjatKaliti(obyektId, akt.oy || '', akt.raqam) ?? `akt:${akt.id}:${await mazmunXeshi(h.bytes)}`;
-  return { bytes: h.bytes, faylNomi: h.faylNomi, turi: 'f2_hujjat', obyektId, davr: akt.oy || null, xesh,
-    /* Disk: faqat tasdiqlangan F-2 (qoralama Diskni to'ldirmaydi); kalit f2:<akt_id> - tahrirlanib qayta yasalsa o'sha fayl yangi versiya oladi. */
-    arxivla: akt.holat === 'tasdiqlangan', manba: f2Manba({ aktId: akt.id, raqam: akt.raqam ?? null, obyekt: akt.obyekt || null, oy: akt.oy || null }) };
 }
 
 async function f3Yasa(kompaniyaId: number, obyektId: number, shartnomaId: number, f3Id: number, shakl: unknown): Promise<Tayyor> {

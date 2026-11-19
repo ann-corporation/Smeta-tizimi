@@ -36,7 +36,7 @@ export function limitOshdi(kalit: string, maks: number, oynaMs = 60_000, hozir =
 export const limitTozala = () => TARIX.clear();
 
 const musbat = (v: unknown): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v > 0;
-const IJRO_ROLLARI = new Set(['superadmin', 'admin', 'boss', 'rahbar', 'director', 'bugalter', 'pto', 'prorab']);
+export const IJRO_ROLLARI = new Set(['superadmin', 'admin', 'boss', 'rahbar', 'director', 'bugalter', 'pto', 'prorab']);
 
 type Men = { ok?: boolean; foydalanuvchi?: { ism?: string | null; login?: string | null }; platform_role?: string;
   azoliklar?: { kompaniya_id?: number; nom?: string; rol?: string; faol?: boolean }[] };
@@ -225,6 +225,8 @@ export const yordamMatni = (til: TgTil) => [
   '/jarvis — ' + tgT('Jarvis ga savol (tokenlar sarflanadi)', til),
   '/fakt — ' + tgT('fakt qoralamasi: /fakt <obyekt#> <nima va qancha> (tokenlar sarflanadi)', til),
   '/kunlik — ' + tgT('kunlik xulosani yoqish/o‘chirish', til),
+  '/menyu — ' + tgT('asosiy menyu: obyekt, fakt, F-2, hujjat, tasdiqlar', til),
+  '/tasdiqlar — ' + tgT('qaroringizni kutayotgan hujjatlar (Tasdiqlash / Rad)', til),
   '/men — ' + tgT('men kimman (hisob, kompaniya, rol)', til),
   '/username — ' + tgT('QURAI username’ingiz: /username <nom>', til),
   '/taklif — ' + tgT('odamni kompaniyaga taklif qilish: /taklif <@username|telefon|email> <rol>', til),
