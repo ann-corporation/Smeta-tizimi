@@ -16,7 +16,7 @@ export const BILDIRISHNOMA_MATN: Readonly<Record<string, string>> = {
   'chizma.chiqdi': 'Yangi chizma revizyasi chiqarildi',
   'tekshiruv.yuborildi': 'Texnadzor F-2 ni ko‘rib chiqdi',
   'tekshiruv.qaror': 'PTO texnadzor taklifi bo‘yicha qaror qildi',
-  'tekshiruv.f2_yangilandi': 'F-2 yangilandi: o‘zgarishlarni ko‘ring',
+  'tekshiruv.akt_yangilandi': 'F-2 yangilandi: o‘zgarishlarni ko‘ring',
   'chizma.qaror': 'Chizma revizyasi bo‘yicha qaror keldi',
 };
 

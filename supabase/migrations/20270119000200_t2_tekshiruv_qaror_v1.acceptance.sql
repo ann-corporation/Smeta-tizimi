@@ -1,6 +1,6 @@
 -- Qabul sinovi: FAQAT ROLLBACK ichida (migratsiyaning o'z begin/commit i yo'q). Talab: 20270119000100.
 do $$
-declare k bigint; o bigint; a bigint; x bigint; y bigint; akt bigint; rz bigint; bl bigint; ns bigint; tok text := 'ACCqarorTok0000000001'; n jsonb; tk bigint; f bigint; kx text := repeat('c', 64);
+declare k bigint; o bigint; a bigint; x bigint; y bigint; akt bigint; rz bigint; bl bigint; ns bigint; tok text := 'ACCqarorTok00000000001'; n jsonb; tk bigint; f bigint; kx text := repeat('c', 64);
 begin
   insert into public.t2_kompaniya (nom, kod, faol) values ('ACC TX', 'ACCTX' || floor(random() * 1e6), true) returning id into k;
   insert into public.t2_foydalanuvchi (login, holat) values ('acc_tp_' || floor(random() * 1e9), 'faol') returning id into a;

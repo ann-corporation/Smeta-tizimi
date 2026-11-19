@@ -3,7 +3,7 @@
 -- asosiy amalni BUZMAYDI (warning). Mavzular:
 --   tekshiruv.yuborildi  - tekshiruvchi umumiy holatni qo'ydi (Ko'rib chiqildi/Qaytarildi/Qabul): PTO kompaniyasi boshqaruvchilariga
 --   tekshiruv.qaror      - PTO taklif bo'yicha qaror qo'ydi: shu tekshiruvchiga (sabab payload da emas - panelda)
---   tekshiruv.f2_yangilandi - F-2 qayta saqlandi (versiya oshdi): ko'rib chiqqan/qaytargan tekshiruvchilarga ("nima o'zgardi" - panelda eskirgan belgisi + qarorlar)
+--   tekshiruv.akt_yangilandi - F-2 qayta saqlandi (versiya oshdi): ko'rib chiqqan/qaytargan tekshiruvchilarga ("nima o'zgardi" - panelda eskirgan belgisi + qarorlar)
 -- Excel ko'prigi: qaytgan texnadzor Excel'i (eski solishtirish) shu bir xil takliflar jadvaliga aylanadi - ikki yo'l bitta joyda tugaydi.
 -- Talab: 20270119000100, 20270119000200.
 
@@ -52,7 +52,7 @@ begin
     select array_agg(distinct t.tekshiruvchi_id) into v_ids from public.t2_f2_tekshiruv t join public.t2_f2_tekshiruv_bog b on b.id = t.bog_id
      where b.akt_id = new.id and t.holat in ('korib_chiqildi', 'qaytarildi');
     if v_ids is not null then
-      perform public.t2_outbox_yoz(new.kompaniya_id, 'tekshiruv.f2_yangilandi', 't2_akt', new.id,
+      perform public.t2_outbox_yoz(new.kompaniya_id, 'tekshiruv.akt_yangilandi', 't2_akt', new.id,
         jsonb_build_object('obyekt_id', new.obyekt_id, 'akt_id', new.id, 'versiya', new.versiya), null, gen_random_uuid(), new.obyekt_id, null, '{}'::bigint[], v_ids);
     end if;
   exception when others then

@@ -1,6 +1,6 @@
 -- Qabul sinovi: FAQAT ROLLBACK ichida. Talab: 20270119000100..300.
 do $$
-declare k bigint; o bigint; a bigint; y bigint; akt bigint; rz bigint; bl bigint; ns bigint; tok text := 'ACCxabarTok000000001'; n jsonb; tk bigint; kx text := repeat('d', 64); c0 int;
+declare k bigint; o bigint; a bigint; y bigint; akt bigint; rz bigint; bl bigint; ns bigint; tok text := 'ACCxabarTok00000000001'; n jsonb; tk bigint; kx text := repeat('d', 64); c0 int;
 begin
   insert into public.t2_kompaniya (nom, kod, faol) values ('ACC TX', 'ACCTX' || floor(random() * 1e6), true) returning id into k;
   insert into public.t2_foydalanuvchi (login, holat) values ('acc_tp_' || floor(random() * 1e9), 'faol') returning id into a;
@@ -23,7 +23,7 @@ begin
   perform public.t2_f2_tekshiruv_qaror_v1(a, tk, 'qabul', null);
   if not exists (select 1 from public.t2_outbox where mavzu = 'tekshiruv.qaror' and y = any (foydalanuvchi_idlar) and (payload->>'token') = tok) then raise exception 'ACC1 qaror hodisasi yoq'; end if;
   update public.t2_akt set versiya = versiya + 1 where id = akt;
-  if not exists (select 1 from public.t2_outbox where mavzu = 'tekshiruv.f2_yangilandi' and y = any (foydalanuvchi_idlar)) then raise exception 'ACC1 f2_yangilandi hodisasi yoq'; end if;
+  if not exists (select 1 from public.t2_outbox where mavzu = 'tekshiruv.akt_yangilandi' and y = any (foydalanuvchi_idlar)) then raise exception 'ACC1 f2_yangilandi hodisasi yoq'; end if;
 
   -- 2. Excel import: faqat PTO; F-2 da yo'q qator va noto'g'ri qator o'tkazib yuboriladi; qaror qo'yilgan taklif qayta yozilmaydi
   if (public.t2_f2_tekshiruv_excel_import_v1(y, k, akt, '[{"qator_id":1,"izoh":"x"}]'::jsonb, 'f.xlsx')->>'code') <> 'RUXSAT_YOQ' then raise exception 'ACC2 begona import'; end if;
