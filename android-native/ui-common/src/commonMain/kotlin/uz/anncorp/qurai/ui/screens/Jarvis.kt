@@ -93,6 +93,7 @@ fun QJarvisChat(
     listFooter: (@Composable () -> Unit)? = null,
     /** False while a send is not allowed (busy, unsaved chat problem): the send button and Enter are off, quick questions too. */
     canSend: Boolean = true,
+    messageExtra: (@Composable (Int) -> Unit)? = null,
 ) {
     val c = Q.colors
     val list = rememberLazyListState()
@@ -131,7 +132,12 @@ fun QJarvisChat(
                     Text(texts.hint, style = Q.type.bodyMedium, color = c.textMute)
                 }
             }
-            items(bubbles.size) { i -> Bubble(bubbles[i], texts) }
+            items(bubbles.size) { i ->
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Bubble(bubbles[i], texts)
+                    messageExtra?.invoke(i)
+                }
+            }
             if (busy) item {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) { QSpinner(16); Text(texts.thinking, style = Q.type.bodySmall, color = c.textMute) }
             }
