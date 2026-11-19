@@ -129,3 +129,114 @@ fun faktSummaF2Narxda(faktHajm: Double?, f2Hajm: Double?, f2Summa: Double?, fakt
     if (f2s == null) return FaktSummaNatija(null, "f2", null)
     return FaktSummaNatija(if (fk == null) null else yaxlit2((fk * f2s) / f2h), "f2", f2s / f2h)
 }
+
+
+// ---------- yaxlit-svod.ts (the rest) ----------
+
+/** Section round WITHOUT VAT: from the svod amount (with VAT) and the rate; otherwise the children's sum. Unknown rate -> null. */
+fun yaxlitQqssiz(svodSumma: Double?, qqsStavka: Double?, bolalarSumma: Double?): Double? {
+    if (svodSumma != null && svodSumma.isFinite()) { if (qqsStavka == null || !qqsStavka.isFinite()) return null; return yaxlit2(svodSumma / (1 + qqsStavka / 100)) }
+    return bolalarSumma?.let { yaxlit2(it) }
+}
+
+class IdSumma<I>(val id: I, val summa: Double?)
+
+/** Children distributed into the round sum to the kopeck (largest remainder): sum of results == round exactly. Unknown child / zero total -> null. */
+fun <I> yaxlitTaqsim(yaxlit: Double, bolalar: List<IdSumma<I>>): Map<I, Double>? {
+    if (bolalar.isEmpty() || bolalar.any { it.summa == null || !it.summa.isFinite() }) return null
+    val jami = bolalar.sumOf { it.summa!! }
+    if (kotlin.math.abs(jami) < 1e-9) return null
+    val maqsad = Math.floor(yaxlit2(yaxlit) * 100 + 0.5)                       // JS Math.round
+    val xom = bolalar.map { (it.summa!! * maqsad) / jami }
+    val past = xom.map { Math.floor(it + 1e-9) }.toMutableList()
+    var qoldiq = (maqsad - past.sum()).toLong()
+    val tartib = xom.mapIndexed { i, x -> i to (x - past[i]) }.sortedWith(Comparator { a, b -> val c = b.second.compareTo(a.second); if (c != 0) c else a.first.compareTo(b.first) })
+    var j = 0
+    while (qoldiq > 0 && tartib.isNotEmpty()) { past[tartib[j].first] = past[tartib[j].first] + 1; j = (j + 1) % tartib.size; qoldiq-- }
+    j = 0
+    while (qoldiq < 0 && tartib.isNotEmpty()) { val idx = tartib[tartib.size - 1 - j].first; past[idx] = past[idx] - 1; j = (j + 1) % tartib.size; qoldiq++ }
+    val out = LinkedHashMap<I, Double>()
+    bolalar.forEachIndexed { i, b -> out[b.id] = past[i] / 100 }
+    return out
+}
+
+class YaxlitSvodSumma(val qqsBilan: Double?, val qqssiz: Double?, val qqs: Double?)
+
+/** Round svod amount (after VAT): `svodSumma` is WITH VAT and FINAL; VAT = svod - without-VAT (a difference, the sum returns exactly). */
+fun yaxlitSvodSumma(svodSumma: Double?, qqsStavka: Double?, bolalarSumma: Double?, ndsFoiz: Double?): YaxlitSvodSumma {
+    if (svodSumma != null && svodSumma.isFinite()) {
+        val qqsBilan = yaxlit2(svodSumma)
+        val st = qqsStavka ?: ndsFoiz
+        val qqssiz = if (st == null || !st.isFinite()) null else yaxlit2(svodSumma / (1 + st / 100))
+        return YaxlitSvodSumma(qqsBilan, qqssiz, qqssiz?.let { yaxlit2(qqsBilan - it) })
+    }
+    if (bolalarSumma == null) return YaxlitSvodSumma(null, null, null)
+    val qqssiz = yaxlit2(bolalarSumma)
+    val qqsBilan = yaxlitKOplate(qqssiz, ndsFoiz)
+    return YaxlitSvodSumma(qqsBilan, qqssiz, qqsBilan?.let { yaxlit2(it - qqssiz) })
+}
+
+class Yakun(val itogo4: Double?, val nds: Double?, val vsego: Double?)
+
+/** Works result (ITOGO-4, NDS, VSEGO) + the round svod (with VAT, exact) -> header. No round -> null. */
+fun yaxlitBilanYakun(itogo4: Double, nds: Double?, vsego: Double?, qqsBilan: Double?, qqssiz: Double?): Yakun? {
+    if (qqsBilan == null || !qqsBilan.isFinite()) return null
+    val v = if (vsego == null) null else yaxlit2(vsego + qqsBilan)
+    if (qqssiz == null) return Yakun(null, null, v)
+    return Yakun(yaxlit2(itogo4 + qqssiz), nds?.let { yaxlit2(it + qqsBilan - qqssiz) }, v)
+}
+
+/** Distribute `jami` over the KNOWN rows (to the kopeck); unknown rows stay out (null). All zero and jami 0 -> each 0. */
+fun <I> yaxlitQatorlarga(jami: Double, qatorlar: List<IdSumma<I>>): Map<I, Double>? {
+    val malum = qatorlar.filter { it.summa != null && it.summa.isFinite() }
+    if (malum.isEmpty()) return null
+    yaxlitTaqsim(jami, malum)?.let { return it }
+    if (kotlin.math.abs(jami) < 0.005) return malum.associate { it.id to 0.0 }
+    return null
+}
+
+// ---------- korinish.ts (the rest) ----------
+
+enum class Korinish { Smeta, Fakt, F2, F2Qoralama, Qoldiq, Oy, Jamlanma }
+
+class KorinishQator(
+    val id: Long, val kat: String?, val narx: Double?, val smetaHajm: Double?, val faktHajm: Double? = null, val f2Summa: Double? = null, val f2Hajm: Double? = null,
+    val f2QoralamaSumma: Double? = null, val almashtirilganSumma: Double? = null, val davrHajm: Double? = null,
+)
+
+/** Remainder = smeta - F2 - replaced (ROUND 2). Smeta unknown -> null. F2 / replaced missing -> 0. */
+fun qoldiq(smeta: Double?, f2: Double?, almashtirilgan: Double? = null): Double? = if (smeta == null || !smeta.isFinite()) null else yaxlit2(smeta - (f2 ?: 0.0) - (almashtirilgan ?: 0.0))
+
+/** A row's direct cost (no markup, no VAT) in the view. null = unknown. */
+fun korinishSummasi(q: KorinishQator, k: Korinish, f2Narx: Boolean = false): Double? = when (k) {
+    Korinish.Smeta -> qatorSumma(q.smetaHajm, q.narx)
+    Korinish.Fakt -> if (f2Narx) faktSummaF2Narxda(q.faktHajm, q.f2Hajm, q.f2Summa, qatorSumma(q.faktHajm, q.narx)).summa else qatorSumma(q.faktHajm, q.narx)
+    Korinish.F2 -> q.f2Summa
+    Korinish.F2Qoralama -> q.f2QoralamaSumma
+    Korinish.Qoldiq -> qoldiq(qatorSumma(q.smetaHajm, q.narx), q.f2Summa, q.almashtirilganSumma)
+    Korinish.Oy, Korinish.Jamlanma -> qatorSumma(q.davrHajm, q.narx)
+}
+
+fun korinishKesim(qatorlar: Iterable<KorinishQator>, k: Korinish, f2Narx: Boolean = false, yaxlitIdlar: Set<Long>? = null): Kesim {
+    val kes = bosKesim()
+    val f2m = k == Korinish.F2 || k == Korinish.F2Qoralama
+    for (q in qatorlar) kesimgaQosh(kes, q.kat, korinishSummasi(q, k, f2Narx), yaxlitIdlar?.contains(q.id) == true && !(f2m && f2YaxlitdanChiqadi(q.kat)))
+    return kes
+}
+
+/** Excel formula of the fakt sum at the F2 price (cache = `faktSummaF2Narxda`). */
+fun faktSummaF2NarxFormula(fakt: String, f2Hajm: String, f2Summa: String, asl: String): String =
+    "IF(AND(ISNUMBER($f2Hajm),$f2Hajm<>0),IF(AND(ISNUMBER($f2Summa),$fakt<>\"\"),ROUND($fakt*$f2Summa/$f2Hajm,2),\"\"),$asl)"
+
+class ServerCats(val chel: Double, val mash: Double, val mat: Double, val ob: Double, val mk: Double, val kab: Double, val bez: Double)
+
+/** Server `cats` (mat = the WHOLE basket) -> category sums (MAT = pure material). */
+fun serverCatsdan(c: ServerCats): KatSummalar = mapOf(Kat.CHEL to c.chel, Kat.MASH to c.mash, Kat.MAT to c.mat - c.kab - c.mk - c.bez, Kat.OB to c.ob, Kat.KAB to c.kab, Kat.MK to c.mk, Kat.BEZ to c.bez)
+
+/** Server cats -> cut (+ svod round part, exact). */
+fun katKesimServerdan(c: ServerCats, yaxlit: SvodYaxlit? = null): Kesim {
+    val k = bosKesim()
+    k.summalar = LinkedHashMap(serverCatsdan(c))
+    if (yaxlit != null) k.yaxlit = svodKesimYaxlit(yaxlit)
+    return k
+}
