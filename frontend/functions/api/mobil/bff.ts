@@ -25,6 +25,7 @@ import { onRequestPost as hujjatYaratPost } from '../hujjat-yarat';
 import { onRequestGet as tomonGet, onRequestPost as tomonPost } from '../tomon';
 import { onRequestGet as telegramGet, onRequestPost as telegramPost } from '../telegram/index';
 import { onRequestPost as omborBuyruqPost } from '../ombor-buyruq';
+import { onRequestPost as omborOvozPost } from '../ombor-ovoz';
 import { onRequestPost as f2BuyruqPost } from '../f2-buyruq';
 import { onRequestPost as yukTashishPost } from '../yuk-tashish';
 import { yukTashishAmalmi } from '../../_shared/yuk-tashish';
@@ -64,12 +65,14 @@ const handlers: Record<string, Record<string, PagesFunction<Env>>> = {
   '/api/telegram': { GET: telegramGet, POST: telegramPost },
   // Omborchi yagona nuqtasi (matn/ovoz buyrug'i, eslatma, ostatka, tasdiq). Ruxsat/aktor serverda (sessiya cookie'si BFF'dan); ovoz JSON udio_b64 sifatida.
   '/api/ombor-buyruq': { POST: omborBuyruqPost },
+  // Jarvis ovozli kiritish: faqat matnga aylantirish (hech narsa yozilmaydi); ovoz JSON audio_b64 sifatida.
+  '/api/ombor-ovoz': { POST: omborOvozPost },
   // Jarvis F2/fakt vositalari (smeta MCP o'qish + yozish): yozish faqat server dry_run preview + tasdiq tokeni bilan; ruxsat/aktor/token serverda.
   '/api/f2-buyruq': { POST: f2BuyruqPost },
   // Logistika yuk birjasi (haydovchi/yuk egasi): web bilan bir xil handler; aktor sessiyadan, ruxsat/tenant RPC ichida. Faqat oq ro'yxatdagi amallar.
   '/api/yuk-tashish': { POST: yukTashishPost },
 } as never;
-export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|obyekt-tugun-summa|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol|agent-ish|qulf|hujjat-royxat|hujjat-ol|hujjat-maydoni|hujjat-maydoni-ol|hujjat-buyruq|hujjat-yarat|tomon|telegram|ombor-buyruq|f2-buyruq|yuk-tashish)(?:\?[^#\s]*)?$/;
+export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|obyekt-tugun-summa|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol|agent-ish|qulf|hujjat-royxat|hujjat-ol|hujjat-maydoni|hujjat-maydoni-ol|hujjat-buyruq|hujjat-yarat|tomon|telegram|ombor-buyruq|ombor-ovoz|f2-buyruq|yuk-tashish)(?:\?[^#\s]*)?$/;
 /** /api/profil also hosts account-security actions (parol, google/telegram ulash, hisob_birlashtir, usul_uz, birlashtir_*): the native device token may NOT reach them.
  *  Exposed: GET (own profile + session window), the @username / people-search / invite-answer actions (USERNAME_V1), `yangila` (name, phone, language, avatar colour)
  *  and `boshqa_sessiyalar_chiqish` (sign out everywhere; the BFF re-enrols THIS device so it stays signed in, see reissueDevice). */
@@ -105,6 +108,7 @@ export function yolRuxsat(target: URL, method: string, body: unknown): boolean {
     case '/api/agent-ish': return amalRuxsat(MOBIL_AGENT_AMAL, method, body);
     case '/api/ombor-buyruq': return amalRuxsat(MOBIL_OMBOR_AMAL, method, body);
     case '/api/f2-buyruq': return amalRuxsat(MOBIL_F2_AMAL, method, body);
+    case '/api/ombor-ovoz': return method === 'POST';
     case '/api/yuk-tashish': return method === 'POST' && yukTashishAmalRuxsat(body);
     case '/api/telegram': return method === 'GET' || amalRuxsat(MOBIL_TELEGRAM_AMAL, method, body);
     case '/api/tomon': return method === 'GET' ? MOBIL_TOMON_OQISH.has(target.searchParams.get('bolim') ?? '') : amalRuxsat(MOBIL_TOMON_YOZISH, method, body);

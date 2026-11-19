@@ -281,8 +281,8 @@ private fun DetailSheet(a: F2Act, onDocs: () -> Unit, vm: F2ListViewModel, onDon
         Text(statusExplain(a.state), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         DetailLine(stringResource(R.string.f2_month), f2MonthLabel(a.oy) ?: "—")
         DetailLine(stringResource(R.string.f2_rows), a.rows?.toString() ?: "—")
-        DetailLine(stringResource(R.string.f2_unpriced), (a.unpriced ?: 0).toString(), warn = (a.unpriced ?: 0) > 0)
-        DetailLine(stringResource(R.string.f2_minus_rows), (a.negativeRows ?: 0).toString())
+        DetailLine(stringResource(R.string.f2_unpriced), a.unpriced?.toString() ?: "\u2014", warn = (a.unpriced ?: 0) > 0)
+        DetailLine(stringResource(R.string.f2_minus_rows), a.negativeRows?.toString() ?: "\u2014")
         if (a.hasDiff) Text(stringResource(R.string.f2_flag_diff_long), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
         summa?.takeIf { it.first == a.id }?.second?.let { s ->
             when (s) {
@@ -297,10 +297,10 @@ private fun DetailSheet(a: F2Act, onDocs: () -> Unit, vm: F2ListViewModel, onDon
             Button(onClick = { uz.anncorp.smeta.core.data.f2NextStep(a.state)?.let { vm.step(a, it, null) } }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(label) }
         }
         if (uz.anncorp.smeta.core.data.f2CanReject(a.state)) {
-            androidx.compose.material3.OutlinedButton(onClick = { rejecting = !rejecting }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text("Rad etish") }
+            androidx.compose.material3.OutlinedButton(onClick = { rejecting = !rejecting }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.f2_reject)) }
             if (rejecting) {
-                androidx.compose.material3.OutlinedTextField(reason, { reason = it }, label = { Text("Rad etish sababi") }, modifier = Modifier.fillMaxWidth())
-                Button(onClick = { if (reason.isNotBlank()) vm.step(a, F2Status.REJECTED, reason) else vm.stepMsg.value = uz.anncorp.smeta.core.data.serverErrorText("REASON_REQUIRED") }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text("Rad etishni tasdiqlash") }
+                androidx.compose.material3.OutlinedTextField(reason, { reason = it }, label = { Text(stringResource(R.string.f2_reject_reason)) }, modifier = Modifier.fillMaxWidth())
+                Button(onClick = { if (reason.isNotBlank()) vm.step(a, F2Status.REJECTED, reason) else vm.stepMsg.value = uz.anncorp.smeta.core.data.serverErrorText("REASON_REQUIRED") }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.f2_reject_confirm)) }
             }
         }
         msg?.takeIf { it != "OK" }?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }

@@ -11,6 +11,7 @@ import { OpsOyna } from '../kompaniya-ops/OpsUi';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { OmborKiritish } from './OmborKiritish';
 import { OmborHisobotPaneli } from './OmborHisobot';
+import { OmborLugat } from './OmborLugat';
 import { omborXatoMatni } from './ombor-xato';
 
 /**
@@ -20,7 +21,7 @@ import { omborXatoMatni } from './ombor-xato';
 const n = (v: number | null | undefined) => (v == null ? '—' : raqamFormatla(Number(v), { maximumFractionDigits: 4 }));
 const bugun = () => new Date(Date.now() + 5 * 3600_000).toISOString().slice(0, 10);
 const inp = 'h-[48px] w-full rounded-md border border-[var(--border-strong)] bg-bg px-3 text-[14px] text-text';
-type Tab = 'bugun' | 'hisobot' | 'qoldiq';
+type Tab = 'bugun' | 'hisobot' | 'qoldiq' | 'lugat';
 
 export function OmborIshJoyi({ kompaniyaId, skladId, skladNomi, yozishMumkin }: { kompaniyaId: number; skladId: number; skladNomi: string; yozishMumkin: boolean }) {
   const [tab, setTab] = useState<Tab>('bugun');
@@ -29,12 +30,13 @@ export function OmborIshJoyi({ kompaniyaId, skladId, skladNomi, yozishMumkin }: 
   return <section className="flex flex-col gap-4" aria-label={t('Omborchi ish joyi')}>
     {yozishMumkin && <OmborKiritish kompaniyaId={kompaniyaId} skladId={skladId} onYozildi={yan} />}
     <div className="flex gap-1 border-b border-border" role="tablist" aria-label={skladNomi}>
-      {(['bugun', 'hisobot', 'qoldiq'] as const).map((k) => <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
+      {(['bugun', 'hisobot', 'qoldiq', 'lugat'] as const).map((k) => <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
         className={`-mb-px min-h-[44px] flex-1 border-b-2 px-3 text-[14px] font-medium sm:flex-none sm:px-4 ${tab === k ? 'border-accent text-text' : 'border-transparent text-text-mute'}`}>
-        {k === 'bugun' ? t('Bugun') : k === 'hisobot' ? t('Hisobot') : t('Qoldiq')}</button>)}
+        {k === 'bugun' ? t('Bugun') : k === 'hisobot' ? t('Hisobot') : k === 'qoldiq' ? t('Qoldiq') : t('Ombor lugati')}</button>)}
     </div>
     {tab === 'bugun' && <OmborHisobotPaneli kompaniyaId={kompaniyaId} skladId={skladId} yangilash={yangilash} kompakt />}
     {tab === 'hisobot' && <OmborHisobotPaneli kompaniyaId={kompaniyaId} skladId={skladId} yangilash={yangilash} yozishMumkin={yozishMumkin} />}
+    {tab === 'lugat' && <OmborLugat kompaniyaId={kompaniyaId} skladId={skladId} yozishMumkin={yozishMumkin} />}
     {tab === 'qoldiq' && <QoldiqJadval kompaniyaId={kompaniyaId} skladId={skladId} yozishMumkin={yozishMumkin} yangilash={yangilash} onO_zgardi={yan} />}
   </section>;
 }

@@ -14,7 +14,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -52,7 +52,9 @@ internal fun LazyGridScope.workspaceItems(ws: Workspace, places: List<ObyektEnti
     val span = GridItemSpan(2)
     renderable(ws).forEach { s ->
         val key = "ws:${s.id}"
-        item(key = "$key:h", span = { span }) { SectionHeader(s, ws, onAction) }
+        val feedList = s.type == WsSectionType.LIST && (s.source == "obyektlar.oxirgi" || (s.groupByPlace && s.source == "bugun.ishlar")) && places.isNotEmpty()
+        val asCard = (s.type == WsSectionType.LIST && !feedList) || (s.type == WsSectionType.KPI && kpi == null)
+        item(key = "$key:h", span = { span }) { SectionHeader(s, ws, onAction, showOpen = !asCard) }
         when (s.type) {
             WsSectionType.ACTIONS -> {
                 val list = s.actionIds.mapNotNull { ws.action(it) }.filter { it.open() != null }
@@ -70,11 +72,11 @@ internal fun LazyGridScope.workspaceItems(ws: Workspace, places: List<ObyektEnti
 }
 
 @Composable
-private fun SectionHeader(s: WsSection, ws: Workspace, onAction: (WsAction) -> Unit) {
+private fun SectionHeader(s: WsSection, ws: Workspace, onAction: (WsAction) -> Unit, showOpen: Boolean = true) {
     val open = ws.action(s.openAction.orEmpty())?.takeIf { it.open() != null }
     Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(s.title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-        if (open != null && s.type != WsSectionType.ACTIONS) TextButton(onClick = { onAction(open) }) { Text(stringResource(R.string.ws_open)) }
+        if (showOpen && open != null && s.type != WsSectionType.ACTIONS) TextButton(onClick = { onAction(open) }) { Text(stringResource(R.string.ws_open)) }
     }
 }
 
@@ -126,9 +128,8 @@ private fun OpenCard(s: WsSection, open: WsAction?, onAction: (WsAction) -> Unit
         modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget).then(if (go != null) Modifier.clickable { onAction(go) } else Modifier),
     ) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Filled.KeyboardArrowUp, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.size(10.dp))
-            Text(go?.title ?: s.title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(stringResource(R.string.ws_open), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            if (go != null) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
         }
     }
 }

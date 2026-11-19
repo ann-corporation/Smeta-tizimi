@@ -53,7 +53,7 @@ export function OmborKiritish({ kompaniyaId, skladId, onYozildi }: { kompaniyaId
     return () => clearTimeout(id);
   }, [matn, ochiq, tur, yetkazuvchi, karta, natija, kompaniyaId, skladId]);
 
-  const tozala = () => { setMatn(''); setKarta(null); setNatija(null); setYetkazuvchi(null); setTakliflar([]); setKontragentlar([]); setXato(null); };
+  const tozala = () => { tanlovlar.current = {}; setMatn(''); setKarta(null); setNatija(null); setYetkazuvchi(null); setTakliflar([]); setKontragentlar([]); setXato(null); };
   const turTanla = (x: Tur) => { setTur(x); tozala(); setOchiq(true); };
 
   const tanla = (e: OmborTaklif) => {
@@ -89,9 +89,13 @@ export function OmborKiritish({ kompaniyaId, skladId, onYozildi }: { kompaniyaId
     if (!r.ok) { setNatija(null); setXato(omborXatoMatni(r.code, r.xabar)); return; }
     setNatija(r); if (r.matn) setMatn(r.matn);
   };
+  // Ketma-ket savollar (material -> yetkazuvchi -> obyekt): oldingi tanlovlar saqlanadi, aks holda savol qayta chiqadi. Matn o'zgarsa yoki bekor qilinsa tozalanadi.
+  const tanlovlar = useRef<OmborTanlov>({});
   const yubor = async (tanlov?: OmborTanlov, rejimTanlov?: Rejim) => {
     if (!matn.trim()) return; setXato(null); setBand(true); setOchiq(false);
-    tahlilNatija(await omborTahlilMatn(kompaniyaId, skladId, matn.trim(), tanlov, rejimTanlov ?? rejimOl(kompaniyaId, skladId)));
+    if (tanlov) tanlovlar.current = { ...tanlovlar.current, ...tanlov };
+    const jamiTanlov = Object.keys(tanlovlar.current).length ? tanlovlar.current : undefined;
+    tahlilNatija(await omborTahlilMatn(kompaniyaId, skladId, matn.trim(), jamiTanlov, rejimTanlov ?? rejimOl(kompaniyaId, skladId)));
   };
   const yozishBosh = async () => {
     setXato(null);
@@ -137,7 +141,7 @@ export function OmborKiritish({ kompaniyaId, skladId, onYozildi }: { kompaniyaId
           <input aria-label={t('Material yoki buyruq')} value={matn} autoComplete="off" inputMode="search" disabled={!!karta}
             placeholder={kirimMi ? t('Nima keldi? Yozing yoki ayting: «sement 10 tonna»') : t('Nima berildi? Yozing yoki ayting: «mix 20 kg Aliga»')}
             onFocus={() => setOchiq(true)} onBlur={() => setTimeout(() => setOchiq(false), 150)}
-            onChange={(e) => { setMatn(e.target.value); setNatija(null); setOchiq(true); }}
+            onChange={(e) => { setMatn(e.target.value); setNatija(null); setOchiq(true); tanlovlar.current = {}; }}
             onKeyDown={(e) => { if (e.key !== 'Enter') return; e.preventDefault(); if (/\d/.test(matn) || /(qancha|qoldiq|hisobot|nima)/i.test(matn)) void yubor(); else yangiMaterial(); }}
             className={inp} />
           {matn && !karta && <button type="button" aria-label={t('Tozalash')} onClick={tozala} className="absolute right-2 top-3 text-text-mute"><X size={18} aria-hidden="true" /></button>}

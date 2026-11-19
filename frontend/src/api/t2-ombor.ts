@@ -29,7 +29,8 @@ export type OmborBuyruqNatija = {
   /** «Tushunmadim» o'rniga bitta qisqa aniqlovchi savol (+ bosiladigan takliflar; tanlov keyingi so'rovga `tanlov` sifatida qo'shiladi). */
   savol?: string | null; variantlar?: OmborSavolVariant[];
 };
-export type OmborTanlov = { nomi?: string; birligi?: string; amal?: 'prixod' | 'chiqim'; kontragent?: string };
+/** yangi / kontragent_yangi — «Yangi» tugmasi (faqat shundan keyin yangi element); obyekt — obyekt tanlovi; ibora — aytilgan ibora (ma'lumot uchun). */
+export type OmborTanlov = { nomi?: string; birligi?: string; amal?: 'prixod' | 'chiqim'; kontragent?: string; yangi?: boolean; kontragent_yangi?: boolean; obyekt?: string; ibora?: string };
 export type OmborSavolVariant = { yorliq: string; tanlov: OmborTanlov };
 
 /** Aqlli taklif (kirim/chiqim): shu ombor tarixidan material, birlik, odatiy miqdor, narx (QQS siz/bilan), yetkazuvchi. */
@@ -112,3 +113,15 @@ export async function omborEksport(k: number, s: number, filtr: OmborFiltr | Omb
     return { ok: true, blob: await r.blob(), faylNomi: nom };
   } catch { return { ok: false, code: 'NETWORK' }; }
 }
+
+/* ───────────── Ombor lug'ati (kompaniyaning tasdiqlangan sinonimlari) ───────────── */
+export type OmborLugatYozuv = { id: number; tur: 'material' | 'kontragent'; ibora: string; ibora_kalit: string; kanonik: string; birlik: string | null; soni: number; manba: 'tasdiq' | 'qol'; yangilandi: string };
+export const omborLugatRoyxat = (k: number, s: number, tur?: 'material' | 'kontragent') =>
+  chaqir<{ ok: true; qatorlar: OmborLugatYozuv[] }>({ amal: 'lugat_royxat', ...asos(k, s), ...(tur ? { tur } : {}) });
+export type OmborLugatAmal =
+  | { lugat_amal: 'qosh'; yuk: { tur: 'material' | 'kontragent'; ibora: string; kanonik: string; birlik?: string } }
+  | { lugat_amal: 'nomla'; yuk: { id: number; kanonik: string } }
+  | { lugat_amal: 'birlashtir'; yuk: { ids: number[]; kanonik: string } }
+  | { lugat_amal: 'ochir'; yuk: { id: number } };
+export const omborLugatTahrir = (k: number, s: number, a: OmborLugatAmal) =>
+  chaqir<{ ok: true; amal: string; id: number | null; son: number }>({ amal: 'lugat_tahrir', ...asos(k, s), ...a });

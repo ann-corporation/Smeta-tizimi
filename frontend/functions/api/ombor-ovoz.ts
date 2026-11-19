@@ -59,6 +59,22 @@ async function multipart(req: Request): Promise<FormData | Response> {
   catch {return fail('AUDIO_FORM_REQUIRED',400);}
 }
 
+/** Native apps (mobil BFF carries JSON only): { kompaniya_id, language, mime, audio_b64 } becomes the same FormData as the web multipart upload. */
+export async function jsonForm(req: Request): Promise<FormData | Response> {
+  const text=await req.text();
+  if(text.length>Math.ceil(MAX_BODY*4/3)+512)return fail('AUDIO_TOO_LARGE',413);
+  let o:Record<string,unknown>;
+  try {o=JSON.parse(text) as Record<string,unknown>;}catch{return fail('AUDIO_FORM_REQUIRED',400);}
+  if(typeof o.audio_b64!=='string'||!o.audio_b64)return fail('AUDIO_REQUIRED',400);
+  const type=String(o.mime??'').split(';')[0].trim().toLowerCase();
+  let bytes:Uint8Array;
+  try {bytes=Uint8Array.from(atob(o.audio_b64.replace(/\s+/g,'')),c=>c.charCodeAt(0));}catch{return fail('AUDIO_INVALID',400);}
+  const form=new FormData();
+  form.set('kompaniya_id',String(o.kompaniya_id??''));form.set('language',String(o.language??'auto'));
+  form.set('audio',new Blob([bytes],{type}),'audio');
+  return form;
+}
+
 export const onRequestGet: PagesFunction<Env> = async ctx => {
   const session=await actor(ctx);if(session instanceof Response)return session;
   const denied=access(session,Number(new URL(ctx.request.url).searchParams.get('kompaniya_id')));
@@ -85,7 +101,7 @@ async function ovozPost(ctx: Context, meta: Meta): Promise<Response> {
   if(ctx.request.headers.get('Sec-Fetch-Site')==='cross-site'||(origin&&origin!==new URL(ctx.request.url).origin))return fail('ORIGIN_INVALID',403);
   const session=await actor(ctx);if(session instanceof Response)return session;
   let form:FormData|Response;
-  try {form=await multipart(ctx.request);}catch{return fail('AUDIO_FORM_REQUIRED',400);}
+  try {form=/application\/json/i.test(ctx.request.headers.get('Content-Type')??'')?await jsonForm(ctx.request):await multipart(ctx.request);}catch{return fail('AUDIO_FORM_REQUIRED',400);}
   if(form instanceof Response)return form;
   const denied=access(session,Number(form.get('kompaniya_id')));if(denied)return denied;
   // ElevenLabs sozlangan va kompaniya ruxsat etilgan bo'lsa — u; aks holda Cloudflare Workers AI (Whisper); ikkalasi yo'q bo'lsa — eski xato kodi.

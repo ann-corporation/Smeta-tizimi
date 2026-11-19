@@ -27,3 +27,12 @@ export { f2QoralamaYozish } from '../../../frontend/src/lib/f2-ishchi-qoralama';
 export { exactWrite, exactWriteIzohlar } from '../../../frontend/src/lib/f2-exact-write';
 export { dublikatTekshiruv, bloklarmi, pereraschetBelgisi, type DAkt, type Masala } from '../../../frontend/src/lib/f2-dublikat/tekshiruv';
 export * as qamrovModul from '@frontend-ixtiyoriy/fakt-qamrov';
+
+// F-2 Excel (f2_excel): sayt `/api/hujjat-yarat` bilan AYNAN bir dvigatel, token va Disk yo'li (dublikat yozilmaydi).
+export { f2Yasa, Rad, type F2Tayyor, type F2YasaAkt } from '../../../frontend/functions/_shared/hujjat-f2';
+export { serverSarfla } from '../../../frontend/functions/_shared/hujjat-sarf';
+export { diskArxivla, diskHolatiMatni } from '../../../frontend/functions/_shared/disk-yoz';
+export { versiyaFiltri } from '../../../frontend/functions/_shared/versiya-oqish';
+export { tizimImzosiniQoy } from '../../../frontend/src/lib/hujjat-yozuvchi/tizim-imzo';
+export { hujjatDizayniniYukla } from '../../../frontend/src/api/f2-hujjat-kontekst';
+export { hujjatDizayniniOrnat } from '../../../frontend/src/lib/hujjat-yozuvchi/dizayn';
