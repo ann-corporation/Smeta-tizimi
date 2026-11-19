@@ -41,7 +41,12 @@ export function qidiruvSozlari(savol: string): { obyekt: string[]; resurs: strin
     // Dictionary first (also with Uzbek suffixes: betonni, armaturadan, sementga…).
     const lug = Object.keys(SOZLUK).find(k => toza === k || (toza.startsWith(k) && toza.length - k.length <= 5));
     if (lug) { resurs.add(SOZLUK[lug]); continue; }
-    if (/[а-яё]/.test(toza)) { if (toza.length >= 4) { resurs.add(toza.toUpperCase().replace(/Ё/g, 'Е').slice(0, 6)); obyekt.add(toza.slice(0, 5)); } continue; }
+    if (/[а-яё]/.test(toza)) {
+      const upper = toza.toUpperCase().replace(/Ё/g, 'Е');
+      const root = Object.values(SOZLUK).find(value => upper.startsWith(value) && /^(?:А|У|ОМ|Е|Ы|ОВ|АМИ|АХ|И|ОЙ)?$/.test(upper.slice(value.length)));
+      if (root) { resurs.add(root); continue; }
+      if (toza.length >= 4) { resurs.add(upper.slice(0, 6)); obyekt.add(toza.slice(0, 5)); } continue;
+    }
     if (toza.length >= 4) {
       obyekt.add(toza.slice(0, 5));
       // Object words are also tried transliterated (Амфитеатр is written in Cyrillic in some objects).
