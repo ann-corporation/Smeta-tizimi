@@ -10,7 +10,7 @@
 -- ===== jadvallar =====
 create table if not exists public.t2_tekshiruv_bog (
   id bigint generated always as identity primary key,
-  nashr_id bigint not null unique references public.t2_nashr(id),
+  nashr_id bigint unique references public.t2_nashr(id),     -- NULL: Excel'dan import (QR siz) - akt+versiya bo'yicha bitta
   kompaniya_id bigint not null references public.t2_kompaniya(id),
   obyekt_id bigint not null references public.t2_obyekt(id),
   akt_id bigint not null references public.t2_akt(id),
@@ -19,6 +19,7 @@ create table if not exists public.t2_tekshiruv_bog (
   yaratildi timestamptz not null default now()
 );
 create index if not exists t2_tekshiruv_bog_akt_ix on public.t2_tekshiruv_bog (akt_id, id desc);
+create unique index if not exists t2_tekshiruv_bog_excel_uq on public.t2_tekshiruv_bog (akt_id, akt_versiya) where nashr_id is null;
 
 create table if not exists public.t2_tekshiruv_ruxsat (
   id bigint generated always as identity primary key,
