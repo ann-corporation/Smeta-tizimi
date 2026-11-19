@@ -5,9 +5,9 @@
 import { hujjatYukla } from './t2-hujjat-canonical';
 import type { NashrAdapter } from '../lib/imzo/nashr';
 
-async function post(body: Record<string, unknown>): Promise<Record<string, unknown> | null> {
+async function post(body: Record<string, unknown>, url = '/api/imzo'): Promise<Record<string, unknown> | null> {
   try {
-    const r = await fetch('/api/imzo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => null) as Record<string, unknown> | null;
     return r.ok && j?.ok === true ? j : null;
   } catch { return null; }
@@ -25,4 +25,5 @@ export const nashrAdapter: NashrAdapter = {
   },
   biriktir: async (token, hujjatId) => (await post({ amal: 'nashr_nusxa', token, hujjat_id: hujjatId })) !== null,
   origin: () => window.location.origin,
+  bogla: async (token, aktId) => (await post({ amal: 'bog', token, akt_id: aktId }, '/api/tekshiruv')) !== null,
 };

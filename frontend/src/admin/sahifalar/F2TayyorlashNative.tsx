@@ -873,7 +873,7 @@ export function F2TayyorlashNative() {
     if (aktKorish && akt && joriy?.id) {
       const r = await hujjatYaratYuklab({ kompaniyaId: joriy.id, obyektId, tur: 'f2', parametrlar: { akt_id: akt.id } });
       if (!r.ok) { toast(r.xabar, 'danger', undefined, 9000); return; }
-      if (korish) korinish.ochish(r.bytes, r.faylNomi); else downloadBlob(r.bytes, r.faylNomi);
+      if (korish) korinish.ochish(r.bytes, r.faylNomi); else downloadBlob(r.bytes, r.faylNomi, undefined, { obyektId, aktId: akt.id });
       if (r.bepulTakror) toast('Bu hujjat avval to‘langan — qayta yuklash bepul', 'ok'); else if (r.sarflandi) toast(`${r.sarflandi} token`, 'ok');
       diskHolatiniKorsat(r.diskHolat);
       return;

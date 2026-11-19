@@ -118,6 +118,14 @@ export default function ImzoTekshiruv() {
           : <p className="m-0 text-[13px] font-semibold" style={{ color: 'var(--warn, #9a6700)' }}>{t('Bu nashr eskirgan: hujjat keyin o‘zgargan, yangi tahriri bor.')} {nashr.joriy_token && <Link to={'/t/' + nashr.joriy_token} className="underline">{t('Joriy tahrirni ko‘rish')}</Link>}</p>)}
       </Karta>
 
+      {nashr && /^f-?2/i.test(nashr.turi ?? '') && (
+        <Karta>
+          <h2 className="text-[15px] font-semibold m-0">{t('Texnik nazorat tekshiruvi')}</h2>
+          <p className="m-0 text-[13px]">{t('Texnadzor: shu F-2 ni tekshirish paneliga o‘tish (izoh, hajm taklifi, qator qo‘shish).')}</p>
+          <Link to={'/tekshiruv/' + token} className="fz-btn fz-btn--primary self-start">{t('Tekshirishni boshlash')}</Link>
+        </Karta>
+      )}
+
       <Karta>
         <h2 className="text-[15px] font-semibold m-0">{t('Imzolar')}</h2>
         <ImzoQatorlari imzolar={d.imzolar} maxfiy />

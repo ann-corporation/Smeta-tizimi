@@ -96,6 +96,7 @@ export const GENERATED_SITE_MAP = {
     "/tender",
     "/tender/:lotId",
     "/t/:token",
+    "/tekshiruv/:token",
     "/bozor",
     "/bozor/e/:elonId",
     "/bozor/s/:sotuvchiId",
