@@ -198,8 +198,8 @@ describe('f2_excel — biznes qoidalari', () => {
       const nomlar = h.sorovlar.map((s) => /select public\."(\w+)"\(/.exec(s.sql)?.[1]).filter(Boolean);
       expect(nomlar).toEqual(expect.arrayContaining(['t2_token_sarfla_v1', 't2_document_canonical_reserve_v1', 't2_document_canonical_finalize_v1', 't2_disk_tizim_yoz_v1']));
       expect(nomlar.indexOf('t2_token_sarfla_v1')).toBeLessThan(nomlar.indexOf('t2_document_canonical_reserve_v1'));
-      // tasdiqlanmagan (qoralama) F-2 — Diskka yozilmaydi (sayt qoidasi)
-      const q = mockMuhit(bazaJavobi({ akt: { holat: 'qoralama' }, reestr: [{ ...AKT, holat: 'qoralama' }] }));
+      // taxminiy qoralama (prorab tasdig'i kutilmoqda) F-2 — Diskka yozilmaydi; oddiy qoralama endi YOZILADI (egasi 2026-11-19)
+      const q = mockMuhit(bazaJavobi({ akt: { holat: 'qoralama', raqam: 'TAXMINIY-1' }, reestr: [{ ...AKT, holat: 'qoralama', raqam: 'TAXMINIY-1' }] }));
       const jq = JSON.parse((await toolChaqir(f2Excel, q.mu, { akt_id: 246, papka: papka(), tasdiq: true, disk: true })).content[0].text) as { hujjatlar: Array<{ disk?: string }> };
       expect(jq.hujjatlar[0].disk).toBe('otkazildi');
     } finally {

@@ -120,7 +120,7 @@ private fun NotifGroup.label(): Int = when (this) {
     NotifGroup.OTHER -> R.string.p10_ng_other
 }
 
-private enum class Dlg { NONE, NAME, PHONE, PHOTO_MENU, OTHERS, LOGOUT }
+private enum class Dlg { NONE, NAME, PHONE, PHOTO_MENU, OTHERS, LOGOUT, DELETE }
 
 /** Settings (Telegram-like): photo, name, phone, language, theme, notifications, PIN/biometrics, sessions, storage, about, log out. */
 @Composable
@@ -158,7 +158,7 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = hiltViewModel()) 
             if (ui.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
 
             Section(stringResource(R.string.p10_sec_account)) {
-                ValueRow(stringResource(R.string.p10_name), name.ifBlank { "вЂ”" }) { dlg = Dlg.NAME }
+                ValueRow(stringResource(R.string.p10_name), name.ifBlank { "—" }) { dlg = Dlg.NAME }
                 ValueRow(stringResource(R.string.p10_phone), p?.phone ?: stringResource(R.string.p10_phone_none), if (p?.phone != null) stringResource(if (p.phoneVerified) R.string.p10_phone_verified else R.string.p10_phone_unverified) else null) { dlg = Dlg.PHONE }
             }
 
@@ -216,7 +216,7 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = hiltViewModel()) 
 
             Section(stringResource(R.string.p10_sec_about)) {
                 Text(stringResource(R.string.profile_version, BuildConfig.VERSION_NAME), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-                when (val u = ui.update) {
+                if (BuildConfig.SELF_UPDATE) when (val u = ui.update) {
                     UpdateUi.Idle -> {}
                     UpdateUi.Checking -> Text(stringResource(R.string.p10_update_checking), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     UpdateUi.UpToDate -> Text(stringResource(R.string.p10_update_none), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
@@ -225,7 +225,11 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = hiltViewModel()) 
                         Button(onClick = { uz.anncorp.smeta.feature.home.startApkDownload(ctx, u.url) }, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.upd_get)) }
                     }
                 }
-                OutlinedButton(onClick = vm::checkUpdate, enabled = ui.update != UpdateUi.Checking, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.p10_update_check)) }
+                if (BuildConfig.SELF_UPDATE) OutlinedButton(onClick = vm::checkUpdate, enabled = ui.update != UpdateUi.Checking, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.p10_update_check)) }
+            }
+
+            Section(stringResource(R.string.play_delete_section)) {
+                OutlinedButton(onClick = { dlg = Dlg.DELETE }, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.play_delete_button), color = MaterialTheme.colorScheme.error) }
             }
 
             Button(
@@ -258,6 +262,11 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = hiltViewModel()) 
             onDismissRequest = { dlg = Dlg.NONE }, title = { Text(stringResource(R.string.profile_logout)) },
             text = { Text(if (ui.unsent > 0) stringResource(R.string.p10_logout_unsent, ui.unsent) else stringResource(R.string.p10_logout_body)) },
             confirmButton = { TextButton(onClick = { dlg = Dlg.NONE; vm.signOut() }) { Text(stringResource(R.string.profile_logout), color = MaterialTheme.colorScheme.error) } },
+            dismissButton = { TextButton(onClick = { dlg = Dlg.NONE }) { Text(stringResource(R.string.p10_cancel)) } },
+        )
+        Dlg.DELETE -> AlertDialog(
+            onDismissRequest = { dlg = Dlg.NONE }, title = { Text(stringResource(R.string.play_delete_title)) }, text = { Text(stringResource(R.string.play_delete_body)) },
+            confirmButton = { TextButton(onClick = { dlg = Dlg.NONE; runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://qurai.uz/hisobni-ochirish"))) } }) { Text(stringResource(R.string.play_delete_continue)) } },
             dismissButton = { TextButton(onClick = { dlg = Dlg.NONE }) { Text(stringResource(R.string.p10_cancel)) } },
         )
         Dlg.NONE -> {}

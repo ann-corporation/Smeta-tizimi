@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tgT } from '../../functions/_shared/telegram';
 
-const FAYLLAR = ['', '-yadro', '-obyekt', '-fakt', '-hujjat'].map((n) => join(__dirname, '..', '..', 'functions', '_shared', `telegram-toliq${n}.ts`));
+const FAYLLAR = ['', '-yadro', '-obyekt', '-fakt', '-hujjat', '-qoshimcha'].map((n) => join(__dirname, '..', '..', 'functions', '_shared', `telegram-toliq${n}.ts`));
 const ISTISNO = /^(F-2|Jarvis|Fakt|Smeta)$/;
 
 describe('telegram to‘liq bot: til', () => {

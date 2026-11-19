@@ -1,0 +1,10 @@
+{
+  "sana": "2027-01-19",
+  "sarlavha": "Texnadzor tekshiruvi endi tizim ichida: F-2 dagi QR → tekshiruv paneli",
+  "bandlar": [
+    "F-2 ni chiqarganingizda hujjatdagi QR texnadzorni «Tekshiruv» paneliga olib boradi: telefonda skaner qiling, kiring va qatorlar smeta tartibida, bo'limlari bilan ochiladi.",
+    "Texnadzor har qatorga izoh, taklif qilingan hajm, belgi (olib tashlansin / hajm noto'g'ri / hujjat kerak / qabul) va rang qo'yadi, yetishmagan qatorni smetadan topib qo'shishni taklif qiladi, umumiy holatni belgilaydi (ko'rib chiqildi / qaytarildi / qabul qilindi).",
+    "Texnadzor F-2 ga to'g'ridan-to'g'ri yozmaydi: hammasi taklif sifatida saqlanadi, F-2 ni faqat PTO o'zi qaror qilgandan keyin o'zgartiradi.",
+    "PTO tashqi tekshiruvchiga bir martalik havola bera oladi (muddati cheklangan)."
+  ]
+}

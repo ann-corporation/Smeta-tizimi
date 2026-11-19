@@ -1,0 +1,10 @@
+{
+  "sana": "2027-01-18",
+  "sarlavha": "Telegram botda yana ko'p ish: fakt jurnali, F-2 holati, xat, topshiriq, tokenlar",
+  "bandlar": [
+    "Obyekt kartasidagi «Fakt jurnali» tugmasi oy bo'yicha kiritilgan fakt yozuvlarini ko'rsatadi: sahifalab ko'rish va har bir yozuvning tafsiloti.",
+    "F-2 xulosasida holatga mos tugma chiqadi: tekshiruvga yuborish, tekshirildi, tasdiqlash yoki sabab bilan rad etish. Har amaldan oldin tasdiq so'raladi; ruxsatingiz bo'lmasa hech narsa o'zgarmaydi.",
+    "Bildirishnomalarni botning o'zida «o'qildi» deb belgilash mumkin (bittasini yoki hammasini).",
+    "Yangi: tokenlar balansi va oxirgi sarflar, kiruvchi xatlarga javob berish, topshiriqlarni ko'rish va holatini o'zgartirish."
+  ]
+}

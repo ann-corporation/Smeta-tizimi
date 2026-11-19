@@ -53,17 +53,21 @@ fun QObjectList(
     val dash = "—"
     if (rows.isEmpty()) { QEmpty(texts.empty, modifier); return }
     if (Q.layout.wide) {
-        QTable(
-            rows, listOf(
-                QCol(texts.colObject, 380.dp, sort = { it.name.lowercase() }) { it.name },
-                QCol(texts.colType, 110.dp, sort = { it.type }) { it.type ?: dash },
-                QCol(texts.colRows, 80.dp, true, { it.rows }) { it.rows?.toString() ?: dash },
-                QCol(texts.colUnpriced, 80.dp, true, { it.unpriced }) { it.unpriced?.toString() ?: dash },
-                QCol(texts.colSmeta, 170.dp, true, { it.qqsBilan }) { it.qqsBilan ?: dash },
-                QCol(texts.colFact, 80.dp, true, { it.factPct }) { it.factPct ?: dash },
-                QCol(texts.colF2, 80.dp, true, { it.f2Pct }) { it.f2Pct ?: dash },
-            ), modifier = modifier.fillMaxSize(), key = { it.id }, onClick = onOpen, selected = { it.id == selectedId },
-        )
+        // The Jarvis side panel (420dp) leaves a narrow pane: fit the columns to it (name column takes the rest; type / rows are dropped first) instead of cutting the table at the right edge.
+        androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxSize()) {
+            val avail = maxWidth.value.toInt() - 4
+            val full = avail - 600 >= 160
+            val nameW = (if (full) avail - 600 else avail - 410).coerceIn(160, 380)
+            val cols = buildList<QCol<QObjectRow>> {
+                add(QCol(texts.colObject, nameW.dp, sort = { it.name.lowercase() }) { it.name })
+                if (full) { add(QCol(texts.colType, 110.dp, sort = { it.type }) { it.type ?: dash }); add(QCol(texts.colRows, 80.dp, true, { it.rows }) { it.rows?.toString() ?: dash }) }
+                add(QCol(texts.colUnpriced, 80.dp, true, { it.unpriced }) { it.unpriced?.toString() ?: dash })
+                add(QCol(texts.colSmeta, 170.dp, true, { it.qqsBilan }) { it.qqsBilan ?: dash })
+                add(QCol(texts.colFact, 80.dp, true, { it.factPct }) { it.factPct ?: dash })
+                add(QCol(texts.colF2, 80.dp, true, { it.f2Pct }) { it.f2Pct ?: dash })
+            }
+            QTable(rows, cols, modifier = Modifier.fillMaxSize(), key = { it.id }, onClick = onOpen, selected = { it.id == selectedId })
+        }
     } else {
         LazyColumn(modifier.fillMaxSize(), contentPadding = contentPadding, verticalArrangement = Arrangement.spacedBy(QuraiTokens.SPACE_3.dp)) {
             items(rows, key = { it.id }) { o ->

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ier_search">Object, contract or project</string>
+    <string name="ier_loyiha">Project</string>
+    <string name="ier_shartnoma">Contract</string>
+    <string name="ier_obyekt">Object</string>
+    <string name="ier_status">Status</string>
+    <string name="ier_all">All</string>
+    <string name="ier_expand_all">Expand all</string>
+    <string name="ier_collapse_all">Collapse</string>
+    <string name="ier_no_loyiha">No project</string>
+    <string name="ier_no_shartnoma">No contract</string>
+    <string name="ier_count">Objects: %1$d</string>
+    <string name="ier_partial">No sum: %1$d</string>
+    <string name="ier_h_faol">Active</string>
+    <string name="ier_h_tuxtatilgan">Paused</string>
+    <string name="ier_h_yakunlangan">Completed</string>
+    <string name="ier_h_bekor">Cancelled</string>
+    <string name="ier_context">Context</string>
+    <string name="ier_context_all">Context: all</string>
+    <string name="ier_context_clear">Clear</string>
+    <string name="ier_empty">No object found</string>
+    <string name="ier_flat_note">Project and contract data could not be read: plain list</string>
+    <string name="ier_pick_hint">Pick an object: its card opens here</string>
+    <string name="ier_card_smeta">Estimate</string>
+    <string name="ier_card_fakt">Actual</string>
+    <string name="ier_card_f2">F-2</string>
+    <string name="ier_card_progress">Progress</string>
+    <string name="ier_card_rows">Rows: %1$d</string>
+    <string name="ier_card_unpriced">Rows without price: %1$d</string>
+    <string name="ier_d_title">Row details</string>
+    <string name="ier_d_volume">Volume</string>
+    <string name="ier_d_price">Price (excl. VAT)</string>
+    <string name="ier_d_sum">Amount</string>
+    <string name="ier_d_left">Remaining</string>
+    <string name="ier_d_unit">Unit</string>
+    <string name="ier_d_pick">Click a row for details</string>
+    <string name="ier_d_close">Close</string>
+    <string name="ier_today_title">Home</string>
+    <string name="ier_today_go">Open</string>
+</resources>

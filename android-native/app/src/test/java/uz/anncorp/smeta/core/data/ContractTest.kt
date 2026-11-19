@@ -19,7 +19,7 @@ class ContractTest {
         val sb = parseSb(json.parseToJsonElement(res("objects.json")))!!
         assertTrue(sb.complete)
         val objs = parseObjects(sb.rows, 1)
-        assertEquals(4, objs.size)
+        assertEquals(13, objs.size) // 4 original demo objects + 9 for the Loyiha > Shartnoma > Obyekt hierarchy demo
         assertEquals(1232381500.0, objs[0].jami!!, 0.0)
         assertEquals(null, objs[2].jami)             // NULL stays unknown, never 0
         assertEquals(233, objs[2].narxsiz)

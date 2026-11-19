@@ -4,6 +4,7 @@ import type { Muhit } from './muhit';
 import { toolChaqir, type ToolTarif } from './tool';
 import { f2Import } from './tools/f2-import';
 import { HUJJAT_TOOLLAR } from './tools/hujjat';
+import { HUJJAT_PAKET_TOOLLAR } from './tools/hujjat-paket';
 import { bajarilmadi, f2Holat, f2QoralamaTahrir, f2QoralamaYarat, faktYoz, narxTuzat, podvalTahrir, qoshimchaIsh, yoyilma } from './tools/ish-oqimi';
 import { minusFakt } from './tools/minus-fakt';
 import { f2, f2Royxat, obyektHolat, obyektlar, pereraschet, qator, qatorQidir } from './tools/obyekt';
@@ -28,6 +29,7 @@ export const TOOLLAR: ToolTarif[] = [
   zamenaQosh, ishOchir, f2QoralamaYangila, f2Yarat, aktBekor, forma3,
   // Rasmiy hujjat (f2_excel: sayt dvigateli, token, Disk)
   ...HUJJAT_TOOLLAR,
+  ...HUJJAT_PAKET_TOOLLAR,
 ];
 
 export function serverYasa(mu: Muhit): McpServer {

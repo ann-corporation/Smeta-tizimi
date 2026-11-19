@@ -74,6 +74,8 @@ import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 import { eskiBloklarHujjat, pereraschetBaholash, pereraschetBloklari, type PereraschetSmetaQator as PereraschetSmetaQatorT } from '../../lib/f2-pereraschet';
 import { PereraschetPanel } from '../../components/f2-tayyorlash/PereraschetPanel';
 import { F2TexnadzorSolishtir } from '../../components/f2-tayyorlash/F2TexnadzorSolishtir';
+import { F2QatorTakliflari } from '../../components/f2-tayyorlash/F2QatorTakliflari';
+import { F2TekshiruvTakliflari } from '../../components/f2-tayyorlash/F2TekshiruvTakliflari';
 import { obyektPodvali } from '../../api/t2-nakrutka-podval';
 import { sbAosrCoverageOl, type AosrCoverage } from '../../api/t2-aosr';
 import { aosrIshora, AOSR_ISHORA_MATNI, type AosrIshora } from '../../lib/nazorat/aosr-holat';
@@ -359,7 +361,7 @@ export function F2TayyorlashNative() {
    * Sukut manba (A-10): obyektda fakt bor bo'lsa — `fakt` (hamma fakt allaqachon F2 qilingan bo'lsa ham; jim `smeta` ga o'tib,
    * butun smeta qoldig'ini taklif qilmaydi). Fakt umuman yo'q — `smeta` (faktsiz F2). Qoralamada saqlangan manba tiklanadi.
    */
-  const faktBor = useMemo(() => holat.some((h) => h.fakt_hajm != null && Number(h.fakt_hajm) !== 0) || holat.some((h) => Number(h.f2_mumkin_hajm) > 0), [holat]);
+  const faktBor = useMemo(() => holat.some((h) => h.fakt_hajm != null && Number(h.fakt_hajm) !== 0) || holat.some((h) => Number(h.f2_mumkin_hajm) !== 0), [holat]);
   const manba: F2Manba = manbaTanlov ?? (faktBor ? 'fakt' : 'smeta');
   const bajHajm = useMemo(() => bajarilmadiHajmlar(baj), [baj]);
   /** Ishdan chiqarilgan resurslar (faol «bajarilmaydi» butun smeta hajmini qoplaydi) — F2 ga kirmaydi. */
@@ -873,7 +875,7 @@ export function F2TayyorlashNative() {
     if (aktKorish && akt && joriy?.id) {
       const r = await hujjatYaratYuklab({ kompaniyaId: joriy.id, obyektId, tur: 'f2', parametrlar: { akt_id: akt.id } });
       if (!r.ok) { toast(r.xabar, 'danger', undefined, 9000); return; }
-      if (korish) korinish.ochish(r.bytes, r.faylNomi); else downloadBlob(r.bytes, r.faylNomi);
+      if (korish) korinish.ochish(r.bytes, r.faylNomi); else downloadBlob(r.bytes, r.faylNomi, undefined, { obyektId, aktId: akt.id });
       if (r.bepulTakror) toast('Bu hujjat avval to‘langan — qayta yuklash bepul', 'ok'); else if (r.sarflandi) toast(`${r.sarflandi} token`, 'ok');
       diskHolatiniKorsat(r.diskHolat);
       return;
@@ -1001,6 +1003,7 @@ export function F2TayyorlashNative() {
           <div className="flex items-center gap-1.5">{katBelgi}<span className={`truncate text-text ${r.chiqarilgan ? 'line-through' : ''}`}>{r.nom}</span></div>
           {r.norma != null && r.avto && <div className="pl-1 text-[11px] text-text-mute">{t('norma')} {r.norma}</div>}
           {(amal || zb2 || orqBelgi || x?.qol) && <div className="mt-0.5 flex flex-wrap items-center gap-1 pl-1">{orqBelgi}{zb2}{amal}{x?.qol && qolBelgisi(r.id, x.qol)}</div>}
+          <F2QatorTakliflari qatorId={r.id} mumkin={r.mumkin ?? null} qoshish={(h) => yoz('hajm', r.id, sonMatn(h))} />
         </td>
         <td className="px-2 py-1.5 text-right text-text-mute">{r.birlik}</td>
         <td className="px-2 py-1.5 text-right tabular-nums">
@@ -1259,7 +1262,8 @@ export function F2TayyorlashNative() {
       )}
       {validId && aktId != null && eskiBloklar.length > 0 && aktPodval.holat === 'xato' && <section role="alert" className="fz-note fz-note--warn" style={{ alignItems: 'center' }}><AlertTriangle /><span className="flex-1">{t('Hujjat podvallari o‘qilmadi — pereraschet jami va Excel hisoblanmaydi.')}</span><button type="button" onClick={aktPodval.qayta} className="fz-btn fz-btn--sm">{t('Qayta urinib ko‘rish')}</button></section>}
       {validId && aktId != null && pereraschetBaho && <PereraschetPanel baho={pereraschetBaho} />}
-        {validId && aktId != null && akt && tnOchiq && <F2TexnadzorSolishtir qoralama={tnQoralama} aktRaqam={akt.raqam ?? ''} obyektId={obyektId} onYop={() => setTnOchiq(false)} />}
+      {validId && aktId != null && akt && joriy?.id && <F2TekshiruvTakliflari kompaniyaId={joriy.id} obyektId={obyektId} aktId={akt.id} versiya={akt.versiya} qoralama={!aktKorish} onOzgardi={() => void yuklash()} />}
+        {validId && aktId != null && akt && tnOchiq && <F2TexnadzorSolishtir qoralama={tnQoralama} aktRaqam={akt.raqam ?? ''} obyektId={obyektId} aktId={akt.id} onYop={() => setTnOchiq(false)} />}
       {!validId && <section className="fz-card p-4 text-text-dim">{t('Avval obyektni tanlang.')}</section>}
       {error && validId && <section role="alert" className="fz-note fz-note--danger" style={{ alignItems: 'center' }}><AlertTriangle /><span className="flex-1">{t(error)}</span><button type="button" onClick={() => void yuklash()} className="fz-btn fz-btn--danger fz-btn--sm">{t('Qayta urinib ko‘rish')}</button></section>}
       {loading && <div className="skel min-h-[260px] flex-1 rounded-xl" />}

@@ -132,6 +132,7 @@ private class DemoBff(private val context: Context, private val json: Json, priv
             path.startsWith("/api/tomon") -> tomon(path, method, body as? JsonObject)
             path.startsWith("/api/kirish-taklif") && method == "POST" -> ok("""{"ok":true,"kod":"48213907","havola":"https://qurai.uz/taklif/DEMOTOKEN"}""")
             path.startsWith("/api/agent-ish") && method == "POST" -> agentIsh(body as? JsonObject)
+            path.startsWith("/api/hujjat-maydoni") && method == "POST" -> ok("""{"ok":true}""")
             path.startsWith("/api/f2-buyruq") && method == "POST" -> ok("""{"ok":true,"holat":"yozildi"}""")
             path.startsWith("/api/ombor-ovoz") && method == "POST" -> ok("""{"ok":true,"text":"817 F-2 da 1074871 hajmini 2 qil","draft_only":true}""")
             path.startsWith("/api/ai-savol") && method == "POST" -> {
@@ -217,6 +218,9 @@ private class DemoBff(private val context: Context, private val json: Json, priv
                     jadval == "t2_qator_holat" && filtr.contains("tur=eq.mat") -> ok(asset("resurs_rows.json"))
                     jadval == "t2_qator_holat" && (filtr.contains("tur=eq.rs") || filtr.contains("tur=eq.ob")) -> ok("""{"ok":true,"soni":0,"jamiServerda":0,"toliq":true,"qatorlar":[]}""")
                     s("soro") == "modul_holat_v1" -> ok("""{"ok":true,"natija":{"ok":true,"modullar":[{"kod":"module.hr","holat":"off"},{"kod":"module.moliya","holat":"on"}]}}""")
+                    jadval == "t2_loyiha_royxat" -> ok(asset("ier_loyiha.json"))
+                    jadval == "t2_shartnoma" -> ok(asset("ier_shartnoma.json"))
+                    jadval == "t2_shartnoma_bog_kompaniya" -> ok(asset("ier_bog.json"))
                     jadval == "t2_obyekt_jami" -> ok(asset("objects.json"))
                     jadval == "t2_zayavka_royxat" -> ok("""{"ok":true,"soni":3,"jamiServerda":3,"toliq":true,"qatorlar":[
  {"id":31,"kompaniya_id":1,"obyekt_id":101,"item_text":"Armatura A500C d12","requested_qty":3.5,"unit":"t","status":"approved","delivered_qty":0,"required_date":"2026-11-20","priority":"yuqori","created_at":"2026-11-14T09:00:00+00:00"},
@@ -553,6 +557,7 @@ private class DemoBff(private val context: Context, private val json: Json, priv
         }
     }
     override suspend fun upload(companyId: Long, obyektId: Long, body: okhttp3.RequestBody): ApiResult = ok("""{"ok":true,"document_id":777}""")
+    override suspend fun diskUpload(body: okhttp3.RequestBody): ApiResult = ok("""{"ok":true,"fayl_id":99}""")
 
     /** Demo document download: ids 9001/9002 are a generated 2-page PDF, 9003 an .xlsx stand-in (no preview), anything else is missing. */
     override suspend fun bffBytes(path: String, maxBytes: Long): uz.anncorp.smeta.core.data.BytesResult {
