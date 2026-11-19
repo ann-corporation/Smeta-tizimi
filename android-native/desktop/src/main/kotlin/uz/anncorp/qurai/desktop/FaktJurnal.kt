@@ -210,6 +210,7 @@ private fun FaktJurnalScreen(c: Ctx, o: Obj) {
                 QDateField(sana, { sana = it }, label = tx("Sana"), modifier = Modifier.width(170.dp))
                 QInput(qidiruv, { qidiruv = it }, Modifier.width(320.dp).focusRequester(find), placeholder = tx("Butun obyekt bo‘yicha qidirish…  ( / )"), leading = QIcons.Search)
                 Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(faqatQoldiq, { faqatQoldiq = it }); Text(tx("faqat bajarilmaganlar"), style = Q.type.bodySmall, color = Q.colors.textDim) }
+                QButton(SiteI18n.t("Foto-dalil", lang), { ModNav.go?.invoke("foto") }, kind = QButtonKind.Ghost, icon = QIcons.Camera)
                 Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                     HolatFiltr.entries.forEach { f ->
                         QButton(tx(f.nom), { holatFiltr = f; if (f == HolatFiltr.Kiritilgan) kiritilganMuz = kiritmalar.filterValues { it.qiymat.isNotBlank() }.keys }, kind = if (holatFiltr == f) QButtonKind.Primary else QButtonKind.Ghost)
