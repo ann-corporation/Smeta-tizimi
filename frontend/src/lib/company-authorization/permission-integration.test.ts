@@ -76,6 +76,10 @@ yozish faqat dry_run preview → HMAC tasdiq tokeni (aktor/kompaniya/obyekt, 15 
          vakolat va zanjir har RPC ichida bazada; imzo bazaga yozilishidan OLDIN ochiq kalit bilan tekshiriladi (imzo.test.ts). /api/imzo-ochiq - KIRMASDAN GET: token (128 bit) bo'yicha,
          summa/fayl nomi/mazmun qaytmaydi, topilmasa bir xil 404, IP bo'yicha tezlik cheklovi (imzo.test.ts, imzo-nashr.test.ts; acceptance 20261218000000). */
       'imzo', 'imzo-ochiq',
+      /* Texnadzor tekshiruvi (2026-11-19): /api/tekshiruv - actor FAQAT sessiyadan, origin tekshiruvi, tezlik cheklovi. Kirish nashr tokeni (QR, 128 bit) bilan: token topilmasa/shakli noto'g'ri bo'lsa 404;
+         HAR amalda (o'qish ham, yozish ham) RPC ichida rol tekshiriladi (_t2_tekshiruv_rol_v1: hujjat kompaniyasi a'zosi | buyurtmachi/texnadzor tomon granti | PTO bergan muddatli bir martalik kod);
+         begona kompaniya/rol - 403. Texnadzor F-2 ga yozmaydi, faqat taklif (tekshiruv.test.ts; acceptance 20270119000100). */
+      'tekshiruv',
       /* Bildirishnoma yetkazish (2026-11-05): sessiyasiz FON ISHI (GitHub Actions). Kirish faqat X-Cron-Kalit == BILDIRISHNOMA_CRON_KALIT
          (sozlanmagan → 503, noto'g'ri → 403); kompaniya ma'lumoti qaytmaydi, faqat service_role navbat RPC lari (bildirishnoma-yetkaz.test.ts). */
       'bildirishnoma-yetkaz',

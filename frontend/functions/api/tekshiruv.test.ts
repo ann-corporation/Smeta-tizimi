@@ -119,3 +119,22 @@ describe('/api/tekshiruv - bir martalik kod va bog\'lash', () => {
     expect((await post({ amal: 'nomalum', token: T })).status).toBe(400);
   });
 });
+
+describe('/api/tekshiruv - yaroqsiz, muddati utgan, begona kompaniya tokeni rad etiladi', () => {
+  it('har amal: nomalum token 404, begona kompaniya 403, muddati utgan kod 403; F-2 ga yozilmaydi', async () => {
+    const f = mockFetch({
+      t2_tekshiruv_ochish_v1: (b: any) => (b.p_token === T ? { ok: false, code: 'RUXSAT_YOQ' } : { ok: false, code: 'TOPILMADI' }),
+      t2_tekshiruv_saqla_v1: { ok: false, code: 'RUXSAT_YOQ' },
+      t2_tekshiruv_holat_v1: { ok: false, code: 'RUXSAT_YOQ' },
+      t2_tekshiruv_qidir_v1: { ok: false, code: 'RUXSAT_YOQ' },
+      t2_tekshiruv_kod_ol_v1: { ok: false, code: 'KOD_YAROQSIZ' },
+    });
+    expect((await get('token=' + 'Z'.repeat(22))).status).toBe(404);      // bazada yo'q token
+    expect((await get('token=' + T)).status).toBe(403);                   // boshqa kompaniya / rolsiz
+    expect((await post({ amal: 'saqla', token: T, qator_id: 1, izoh: 'x' })).status).toBe(403);
+    expect((await post({ amal: 'holat', token: T, holat: 'qabul' })).status).toBe(403);
+    expect((await post({ amal: 'qidir', token: T, q: 'beton' })).status).toBe(403);
+    expect((await post({ amal: 'kod_ol', token: T, kod: 'E'.repeat(22) })).status).toBe(403);   // muddati o'tgan kod
+    expect(f.mock.calls.every((c) => !String(c[0]).includes('f2_qoralama') && !String(c[0]).includes('t2_akt'))).toBe(true);
+  });
+});
