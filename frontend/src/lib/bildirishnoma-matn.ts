@@ -14,6 +14,9 @@ export const BILDIRISHNOMA_MATN: Readonly<Record<string, string>> = {
   'hujjat.muddat_yaqin': 'Hujjat muddati yaqinlashmoqda',
   'hujjat.muddat_otdi': 'Hujjat muddati o‘tib ketdi',
   'chizma.chiqdi': 'Yangi chizma revizyasi chiqarildi',
+  'tekshiruv.yuborildi': 'Texnadzor F-2 ni ko‘rib chiqdi',
+  'tekshiruv.qaror': 'PTO texnadzor taklifi bo‘yicha qaror qildi',
+  'tekshiruv.f2_yangilandi': 'F-2 yangilandi: o‘zgarishlarni ko‘ring',
   'chizma.qaror': 'Chizma revizyasi bo‘yicha qaror keldi',
 };
 
@@ -41,6 +44,12 @@ export function bildirishnomaHavolasi(b: { havola?: string | null; mavzu: string
     if (zanjir) return `/admin/hujjat-aylanish?zanjir=${zanjir}`;
     if (musbatId(p.murojaat_id)) return '/admin/murojaatlar';
     return '/admin/hujjat-aylanish';
+  }
+  if (b.mavzu.startsWith('tekshiruv.')) {
+    const tok = typeof p.token === 'string' && /^[A-Za-z0-9_-]{22}$/.test(p.token) ? p.token : null;
+    const akt = musbatId(p.akt_id); const ob = musbatId(p.obyekt_id);
+    if (b.mavzu === 'tekshiruv.yuborildi') return akt && ob ? `/admin/f2-tayyorlash?obyekt=${ob}&akt=${akt}` : '/admin/f2-tayyorlash';
+    return tok ? `/tekshiruv/${tok}` : null;
   }
   if (b.mavzu.startsWith('chizma.')) return '/admin/chizmalar';
   if (b.mavzu.startsWith('tomon.')) return '/admin/murojaatlar';

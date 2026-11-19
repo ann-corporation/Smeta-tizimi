@@ -1261,7 +1261,7 @@ export function F2TayyorlashNative() {
       {validId && aktId != null && eskiBloklar.length > 0 && aktPodval.holat === 'xato' && <section role="alert" className="fz-note fz-note--warn" style={{ alignItems: 'center' }}><AlertTriangle /><span className="flex-1">{t('Hujjat podvallari o‘qilmadi — pereraschet jami va Excel hisoblanmaydi.')}</span><button type="button" onClick={aktPodval.qayta} className="fz-btn fz-btn--sm">{t('Qayta urinib ko‘rish')}</button></section>}
       {validId && aktId != null && pereraschetBaho && <PereraschetPanel baho={pereraschetBaho} />}
       {validId && aktId != null && akt && joriy?.id && <F2TekshiruvTakliflari kompaniyaId={joriy.id} obyektId={obyektId} aktId={akt.id} versiya={akt.versiya} qoralama={!aktKorish} onOzgardi={() => void yuklash()} />}
-        {validId && aktId != null && akt && tnOchiq && <F2TexnadzorSolishtir qoralama={tnQoralama} aktRaqam={akt.raqam ?? ''} obyektId={obyektId} onYop={() => setTnOchiq(false)} />}
+        {validId && aktId != null && akt && tnOchiq && <F2TexnadzorSolishtir qoralama={tnQoralama} aktRaqam={akt.raqam ?? ''} obyektId={obyektId} aktId={akt.id} onYop={() => setTnOchiq(false)} />}
       {!validId && <section className="fz-card p-4 text-text-dim">{t('Avval obyektni tanlang.')}</section>}
       {error && validId && <section role="alert" className="fz-note fz-note--danger" style={{ alignItems: 'center' }}><AlertTriangle /><span className="flex-1">{t(error)}</span><button type="button" onClick={() => void yuklash()} className="fz-btn fz-btn--danger fz-btn--sm">{t('Qayta urinib ko‘rish')}</button></section>}
       {loading && <div className="skel min-h-[260px] flex-1 rounded-xl" />}

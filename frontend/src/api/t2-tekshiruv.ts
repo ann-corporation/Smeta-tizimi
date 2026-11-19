@@ -32,6 +32,9 @@ export const tekshiruvAktTakliflari = (kompaniyaId: number, aktId: number) => ch
 export const tekshiruvQaror = (taklifId: number, qaror: 'qabul' | 'rad' | 'keyinroq' | 'kutilmoqda', sabab: string | null) => post<{ qaror: string }>({ amal: 'qaror', taklif_id: taklifId, qaror, sabab });
 export const tekshiruvHujjatBiriktir = (taklifId: number, faylId: number | null) => post<Record<string, never>>({ amal: 'hujjat', taklif_id: taklifId, fayl_id: faylId });
 
+/** PTO: Excel solishtirishdan olingan takliflarni bir xil takliflar jadvaliga yozish. */
+export const tekshiruvExcelImport = (kompaniyaId: number, aktId: number, takliflar: readonly unknown[], faylNomi: string) => post<{ qoshildi: number; otkazildi: number }>({ amal: 'import', kompaniya_id: kompaniyaId, akt_id: aktId, takliflar, fayl_nomi: faylNomi });
+
 /** Eksport vaqtida: nashr tokenini F-2 (akt, versiya) ga bog'laydi. Xato eksportni to'xtatmaydi. */
 export const tekshiruvBogla = (token: string, aktId: number) => post<{ yangi: boolean }>({ amal: 'bog', token, akt_id: aktId });
 

@@ -14,6 +14,7 @@
  * GET  ?amal=akt&kompaniya_id=&akt_id=                          -> PTO: shu aktga kelgan takliflar (F-2 muharriri)
  * POST {amal:'qaror', taklif_id, qaror, sabab?}                      -> PTO qarori: qabul | rad (sabab majburiy) | keyinroq | kutilmoqda (F-2 ga yozuv - /api/f2-buyruq da)
  * POST {amal:'hujjat', taklif_id, fayl_id|null}                   -> PTO: 'hujjat kerak' talabiga Disk faylini biriktirish
+ * POST {amal:'import', kompaniya_id, akt_id, takliflar[], fayl_nomi}  -> PTO: qaytgan texnadzor Excel'idan takliflar (<= 3000)
  * POST {amal:'kod_ol', token, kod}                                  -> kirgan foydalanuvchi kodni ishlatadi (bir marta)
  *
  * Permission middleware ro'yxatida EMAS (imzo.ts kabi): mustaqil himoya - sessiya, origin, har RPC ichida ruxsat.
@@ -91,6 +92,14 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     if (fayl !== null && (!Number.isSafeInteger(fayl) || fayl <= 0)) return talab();
     const r = await imzoRpc(env, 't2_tekshiruv_hujjat_v1', { p_actor_id: a.id, p_taklif_id: taklifId, p_hujjat_id: fayl });
     return r?.ok ? json({ ok: true }) : rpcXato(r);
+  }
+  if (b.amal === 'import') {
+    const kid = Number(b.kompaniya_id); const akt = Number(b.akt_id);
+    if (!Number.isSafeInteger(kid) || kid <= 0 || !Number.isSafeInteger(akt) || akt <= 0 || !Array.isArray(b.takliflar) || b.takliflar.length < 1 || b.takliflar.length > 3000) return talab();
+    const toza = [];
+    for (const x of b.takliflar) { const t = x && typeof x === 'object' ? tekshiruvTalabi(x as Record<string, unknown>) : null; if (!t) return talab(); toza.push(t); }
+    const r = await imzoRpc(env, 't2_tekshiruv_excel_import_v1', { p_actor_id: a.id, p_kompaniya_id: kid, p_akt_id: akt, p_takliflar: toza, p_fayl_nomi: typeof b.fayl_nomi === 'string' ? b.fayl_nomi.slice(0, 160) : null });
+    return r?.ok ? json({ ok: true, qoshildi: r.qoshildi, otkazildi: r.otkazildi }) : rpcXato(r);
   }
   const token = b.token;
   if (!tokenMi(token)) return talab();
