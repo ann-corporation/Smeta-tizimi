@@ -29,7 +29,7 @@ Bu sessiyada ishlab chiqilgan, saytdan chetga chiqqan Fakt UI (`/api/f2-buyruq` 
 | Klaviatura: strelkalar, Home/End, PageUp/PageDown, qidiruv (/), g+l «to'xtagan joy» | yo'q | ❌ |
 | «Fakt = F2» (bo'lim / butun obyekt), «Orqaga (ommaviy kiritma)», «Qamrov %» (bo'lim) | yo'q | ❌ |
 | Resurs qatorlari: «Resurslar: <nom>», «Materiallarni ham olish», ish ulushida taklif (avtomatik yozilmaydi), norma x ish fakti «avto» | yo'q | ❌ |
-| Qator amallari: «Bajarilmaydi / qilib bo'lmaydi», «Zamena» (ish/resurs), «Resursni ishdan chiqarish», «Zamenani bekor qilish» | yo'q | ❌ |
+| Qator amallari: «Bajarilmaydi / qilib bo'lmaydi», «Zamena» (ish/resurs), «Resursni ishdan chiqarish», «Zamenani bekor qilish» | Bajarilmaydi (dialog, Ctrl+B, bekor qilish, chiqarilgan resurs summadan chiqadi) bor | 🟡 (Zamena, Resursni ishdan chiqarish tugmasi, Zamenani bekor qilish ❌) |
 | Belgilar: «bajarilmaydi», «zamena», «qo'shimcha», «narxsiz», «qoldiqdan oshdi», «F2 faktdan +n», «taklif» | yo'q | ❌ |
 | Sana «Fakt sanasi», qoralama banneri/«Fakt tiklash» (`FaktTiklash`) | sana maydoni bor (boshqa shaklda) | 🟡 |
 | Matnlar (i18n): 150+ kalit `t('...')` (masalan «Fakt jurnali», «Saqlash», «Qidirish», «Ochiq qoldiq = smeta - fakt - almashtirilgan - bajarilmaydi») | Windows matnlari alohida yozilgan | ❌ |

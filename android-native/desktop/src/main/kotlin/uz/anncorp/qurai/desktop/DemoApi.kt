@@ -84,6 +84,7 @@ class DesktopDemoApi(private val json: Json) : BffApi {
                     s("soro") == "qarz_svod_v1" -> ok(asset("qarz_svod"))
                     // Demo markup context (synthetic coefficients, no real object): the same shape as the server's obyekt_nakrutka_v1 / podval list.
                     s("soro") == "obyekt_nakrutka_v1" -> ok("""{"ok":true,"natija":{"ok":true,"koeffitsientlar":{${PodvalTexts.Koef.all.joinToString(",") { "\"$it\":" + (if (it == PodvalTexts.Koef.NDS) "12" else if (it == PodvalTexts.Koef.PROCHIE_PODRYADCHIK) "18" else if (it == PodvalTexts.Koef.TRANSPORT_MATERIAL) "5" else "1") }}}}}""")
+                    s("soro") == "bajarilmadi_royxat_v1" -> ok("""{"ok":true,"natija":{"ok":true,"qatorlar":[]}}""")
                     jadval == "t2_nakrutka_podval_royxat" -> ok("""{"ok":true,"toliq":true,"qatorlar":[]}""")
                     s("soro") == "sklad_markaziy_qoldiq_v1" -> ok(asset("ombor_central"))
                     jadval == "t2_sklad_harakat" -> ok(asset("ombor_moves"))
