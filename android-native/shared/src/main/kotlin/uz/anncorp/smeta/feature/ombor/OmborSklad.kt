@@ -1,4 +1,4 @@
-﻿package uz.anncorp.smeta.feature.ombor
+package uz.anncorp.smeta.feature.ombor
 
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -10,9 +10,9 @@ import uz.anncorp.smeta.core.data.ApiResult
 import uz.anncorp.smeta.core.data.arr
 import uz.anncorp.smeta.core.data.num
 import uz.anncorp.smeta.core.data.obj
-import uz.anncorp.smeta.core.data.qqsBilan
+import uz.anncorp.smeta.core.fakt.qqsBilan
 import uz.anncorp.smeta.core.data.str
-import uz.anncorp.smeta.core.data.yaxlit2
+import uz.anncorp.smeta.core.fakt.yaxlit2
 import java.math.BigDecimal
 
 /*
@@ -98,11 +98,14 @@ fun yozBody(companyId: Long, skladId: Long, i: KirimInput): JsonObject = buildJs
 
 enum class KirimIssue { REQUIRED, PRICE }
 
+/** A number typed or prefilled with group separators (space, NBSP, narrow NBSP) and a decimal comma -> Double; null when not a number. */
+fun numberOf(s: String): Double? = s.replace(',', '.').replace(Regex("[\\s\u00A0\u202F]"), "").toDoubleOrNull()
+
 /** Site saqla() checks: name, unit and quantity > 0 are required; a filled price must be > 0. */
 fun checkKirim(name: String, unit: String, qty: String, price: String): KirimIssue? {
     val m = qty.replace(',', '.').trim().toDoubleOrNull()
     if (name.isBlank() || unit.isBlank() || m == null || !(m > 0)) return KirimIssue.REQUIRED
-    val p = price.replace(',', '.').replace(Regex("\\s"), "").trim()
+    val p = price.replace(',', '.').replace(Regex("[\\s\u00A0\u202F]"), "").trim()
     if (p.isNotEmpty() && !((p.toDoubleOrNull() ?: 0.0) > 0)) return KirimIssue.PRICE
     return null
 }

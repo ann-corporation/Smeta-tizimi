@@ -40,7 +40,7 @@
     <string name="bd_none">Markaziy omborda qoldiq topilmadi.</string>
     <string name="bd_qty_u">Miqdor (%1$s)</string>
     <string name="bd_qty">Miqdor</string>
-    <string name="bd_over">Markaziy omborda faqat %1$s %1$s bor.</string>
+    <string name="bd_over">Markaziy omborda faqat %1$s %2$s bor.</string>
     <string name="bd_to">Kimga berildi (ixtiyoriy)</string>
     <string name="bd_date">Sana</string>
     <string name="bd_cancel">Bekor qilish</string>
@@ -91,4 +91,11 @@
     <string name="ox_net">Aloqa yo‘q. Qayta urinib ko‘ring.</string>
     <string name="ox_tokens">Tokenlar yetarli emas.</string>
     <string name="ox_date">Sana noto‘g‘ri.</string>
+    <string name="ox_default">Bajarilmadi. Birozdan keyin urinib ko‘ring.</string>
+    <string name="pk2_1">Tanlang</string>
+    <string name="pk2_2">Yopish</string>
+    <string name="pk2_3">Variantlarni qidirish</string>
+    <string name="pk2_4">Yozing yoki variantni bosing</string>
+    <string name="pk2_5">Mos variant topilmadi</string>
+    <string name="ki_cancel">Bekor</string>
 </resources>

@@ -142,7 +142,7 @@ fun HomeScreen(
                     Spacer(Modifier.height(12.dp))
                     Text(stringResource(R.string.home_loading), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                tab == OMBOR_TAB -> { BackHandler { tab = 0 }; OmborScreen(onOutbox) }
+                tab == OMBOR_TAB -> { BackHandler { tab = 0 }; uz.anncorp.smeta.feature.ombor.OmborSkladScreen(onZayavka) }
                 tab == 4 -> ProfileScreen(state, onTheme = vm::setTheme, onSwitch = { sheet = true }, onSignOut = vm::requestSignOut, onInvite = onInvite, onInvites = onInvites, onSettings = onSettings)
                 else -> TabBody(state, tab, vm::load, openObject, onOpenFakt, onOpenApproval, { tab = it }, onOutbox, onPickFakt, onPickPhoto, vm::resumeOnboarding, onJarvis, onRahbar, onNotifications, onZayavka, onModule)
             }

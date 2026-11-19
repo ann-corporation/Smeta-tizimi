@@ -40,7 +40,7 @@
     <string name="bd_none">No balance found in the central warehouse.</string>
     <string name="bd_qty_u">Quantity (%1$s)</string>
     <string name="bd_qty">Quantity</string>
-    <string name="bd_over">Only %1$s %1$s in the central warehouse.</string>
+    <string name="bd_over">Only %1$s %2$s in the central warehouse.</string>
     <string name="bd_to">Issued to (optional)</string>
     <string name="bd_date">Date</string>
     <string name="bd_cancel">Cancel</string>
@@ -91,4 +91,11 @@
     <string name="ox_net">No connection. Please try again.</string>
     <string name="ox_tokens">Not enough tokens.</string>
     <string name="ox_date">Invalid date.</string>
+    <string name="ox_default">Bajarilmadi. Birozdan keyin urinib ko‘ring.</string>
+    <string name="pk2_1">Select</string>
+    <string name="pk2_2">Close</string>
+    <string name="pk2_3">Search options</string>
+    <string name="pk2_4">Type or select an option</string>
+    <string name="pk2_5">No matching option</string>
+    <string name="ki_cancel">Cancel</string>
 </resources>

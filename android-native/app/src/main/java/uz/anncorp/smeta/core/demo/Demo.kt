@@ -187,6 +187,8 @@ private class DemoBff(private val context: Context, private val json: Json, priv
             path.startsWith("/api/ombor-buyruq") -> {
                 val o = body as? JsonObject
                 when ((o?.get("amal") as? JsonPrimitive)?.content) {
+                    "taklif" -> ok("""{"ok":true,"tur":"prixod","qqs_foiz":12,"takliflar":[{"nomi":"Sement M400 (qop 50 kg)","birligi":"qop","soni":4,"oxirgi_sana":"2026-11-10","miqdor_oxirgi":40,"miqdor_median":40,"narx_oxirgi":50000,"narx_ortacha":50000,"narx_oxirgi_qqs":56000,"narx_ortacha_qqs":56000,"kontragent":"Demo MChJ","kontragent_oxirgi":"Demo MChJ","kontragentlar":[],"ball":3,"qoldiq":120}],"kontragentlar":[{"nomi":"Demo MChJ","soni":4,"oxirgi_sana":"2026-11-10","materiallar":[]}]}""")
+                    "yoz" -> ok("""{"ok":true,"takror":false,"harakat_id":77}""")
                     "lugat_royxat" -> ok("""{"ok":true,"qatorlar":[{"id":5,"tur":"material","ibora":"mix","kanonik":"Mix 20 kg","birlik":"qop","soni":3},{"id":6,"tur":"material","ibora":"sement","kanonik":"Sement M400 (qop 50 kg)","birlik":"qop","soni":9}]}""")
                     "lugat_tahrir" -> ok("""{"ok":true,"amal":"nomla","id":5,"son":1}""")
                     "eslatma" -> ok("""{"ok":true,"takliflar":[{"nomi":"Sement M400 (qop 50 kg)","birligi":"qop","soni":4,"oxirgi_sana":"2026-11-10","postavshik":"Demo MChJ","qabul_qiluvchi":null,"narx":null}]}""")

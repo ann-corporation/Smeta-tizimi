@@ -40,7 +40,7 @@
     <string name="bd_none">На центральном складе остаток не найден.</string>
     <string name="bd_qty_u">Количество (%1$s)</string>
     <string name="bd_qty">Количество</string>
-    <string name="bd_over">На центральном складе только %1$s %1$s.</string>
+    <string name="bd_over">На центральном складе только %1$s %2$s.</string>
     <string name="bd_to">Кому выдано (необязательно)</string>
     <string name="bd_date">Дата</string>
     <string name="bd_cancel">Отмена</string>
@@ -91,4 +91,11 @@
     <string name="ox_net">Нет связи. Повторите попытку.</string>
     <string name="ox_tokens">Недостаточно токенов.</string>
     <string name="ox_date">Неверная дата.</string>
+    <string name="ox_default">Bajarilmadi. Birozdan keyin urinib ko‘ring.</string>
+    <string name="pk2_1">Выберите</string>
+    <string name="pk2_2">Закрыть</string>
+    <string name="pk2_3">Поиск вариантов</string>
+    <string name="pk2_4">Введите текст или выберите вариант</string>
+    <string name="pk2_5">Подходящий вариант не найден</string>
+    <string name="ki_cancel">Отменить</string>
 </resources>
