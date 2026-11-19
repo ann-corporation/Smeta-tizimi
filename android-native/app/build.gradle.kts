@@ -17,7 +17,8 @@ android {
         minSdk = 26
         targetSdk = 35
         // Tauri Android build: major*1e6+minor*1e3+patch (0.1.1 -> 1001). Start above it so a native release upgrades it in place.
-        versionCode = 2_000_200
+        // Play builds (CI bundleRelease) pass -PversionCode=<monotonic>; the site/Telegram APK keeps this value. See docs/play-market/QOLLANMA.md.
+        versionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 2_000_200
         // Format must match the server's ilovaVersiya() regex: d{1,4}.d{1,4}.d{1,6}
         versionName = "0.2.0"
         // Domain move (qurai.uz): ONE source for the API host. Canonical host first; the fallback list (comma separated, tried in order
@@ -27,6 +28,9 @@ android {
         buildConfigField("String", "API_BASE_URL", "\"$apiBase\"")
         buildConfigField("String", "API_FALLBACK_URLS", "\"$apiFallbacks\"")
         resourceConfigurations += listOf("uz", "ru", "en")
+        // Google Play forbids self-updating outside Play: the Play build (-Pplay=true) hides the APK update banner/button.
+        val playBuild = (project.findProperty("play") as String?) == "true"
+        buildConfigField("boolean", "SELF_UPDATE", (!playBuild).toString())
     }
 
     buildFeatures {

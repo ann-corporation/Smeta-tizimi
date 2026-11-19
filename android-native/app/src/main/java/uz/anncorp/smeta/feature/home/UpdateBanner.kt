@@ -41,7 +41,7 @@ import javax.inject.Inject
 class UpdateViewModel @Inject constructor(private val checker: UpdateChecker) : ViewModel() {
     private val _release = MutableStateFlow<AppRelease?>(null)
     val release: StateFlow<AppRelease?> = _release.asStateFlow()
-    init { viewModelScope.launch { _release.value = checker.newer() } }
+    init { if (uz.anncorp.smeta.BuildConfig.SELF_UPDATE) viewModelScope.launch { _release.value = checker.newer() } }
     fun url(r: AppRelease): String = checker.url(r)
 }
 

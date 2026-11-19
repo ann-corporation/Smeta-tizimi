@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Google Play: hisobni o'chirish so'rovi (in-app yo'l + veb-sahifa) -->
+    <string name="play_delete_section">Hisob va ma\'lumotlar</string>
+    <string name="play_delete_button">Hisobni o\'chirishni so\'rash</string>
+    <string name="play_delete_title">Hisobni o\'chirish</string>
+    <string name="play_delete_body">Hisobingiz va unga bog\'liq shaxsiy ma\'lumotlar (ism, telefon, rasm, kirish usullari) o\'chiriladi. Kompaniyaning smeta, akt va moliyaviy hujjatlari qonun talabi bo\'yicha kompaniya egasida saqlanadi. So\'rov ko\'rsatmalari veb-sahifada.</string>
+    <string name="play_delete_continue">Davom etish</string>
+</resources>
