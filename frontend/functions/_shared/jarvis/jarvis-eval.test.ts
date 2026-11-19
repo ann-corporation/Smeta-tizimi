@@ -95,7 +95,7 @@ it('disk/deterministic preserves original authenticated request and invokes only
     body: JSON.stringify({ amal: 'kasb_savol', kompaniya_id: evalCompany, savol: 'Disk qancha joy olgan?' }) });
   const response = await interactivePost({ env, request } as never);
   expect(response.status).toBe(200);
-  expect((await response.json()).javob).toContain('0 bayt');
+  expect((await response.json() as ResponseBody).javob).toContain('0 bayt');
   const forwarded = boundary.disk.mock.calls[0][0].request as Request;
   expect(new URL(forwarded.url).pathname).toBe('/api/hujjat-buyruq');
   expect(forwarded.headers.get('Authorization')).toBe('Bearer synthetic-device');
