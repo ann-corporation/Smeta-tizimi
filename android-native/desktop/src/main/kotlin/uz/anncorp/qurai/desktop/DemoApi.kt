@@ -21,6 +21,7 @@ class DesktopDemoApi(private val json: Json) : BffApi {
     private fun denied() = ApiResult(403, buildJsonObject { put("ok", false); put("code", "PERMISSION_DENIED") }, "PERMISSION_DENIED")
 
     override suspend fun upload(companyId: Long, obyektId: Long, body: okhttp3.RequestBody): ApiResult = ok("""{"ok":true}""")
+    override suspend fun diskUpload(body: okhttp3.RequestBody): ApiResult = ok("""{"ok":true,"fayl_id":99}""")
 
     override suspend fun bff(path: String, method: String, body: JsonElement?, etag: String?): ApiResult {
         val session = json.parseToJsonElement(asset("session")).jsonObject
@@ -38,6 +39,7 @@ class DesktopDemoApi(private val json: Json) : BffApi {
             path.startsWith("/api/ombor-buyruq") -> when (((body as? JsonObject)?.get("amal") as? JsonPrimitive)?.content) {
                 "hisobot" -> ok(asset("ombor_hisobot")); "qoldiq" -> ok(asset("ombor_qoldiq_sana")); else -> ok("""{"ok":true,"holat":"javob","matn":"Demo rejimi: buyruq yuborilmaydi","nomzodlar":[]}""")
             }
+            path.startsWith("/api/hujjat-maydoni") && method == "POST" -> ok("""{"ok":true}""")
             path.startsWith("/api/hujjat-maydoni") -> when {
                 path.contains("amal=ulashilgan") -> ok("""{"ok":true,"royxat":[{"turi":"fayl","id":31,"nom":"Shartnoma ilovasi.pdf","mime":"application/pdf","bergan":"Demo hamkor","daraja":"korish","tugaydi":null}]}""")
                 path.contains("savat=1") -> ok("""{"ok":true,"daraja":4,"shaxsiy":true,"yol":[],"papkalar":[],"fayllar":[{"id":21,"nom":"Eski reja.xlsx","mime":"application/vnd.ms-excel","bayt":48210,"versiya":2,"yangilandi":"2026-11-10T09:00:00+00:00","savatda":"2026-11-12T09:00:00+00:00","izohlar":0}]}""")

@@ -89,7 +89,10 @@ fun PhotoScreen(onBack: () -> Unit, onQueued: () -> Unit, vm: PhotoViewModel = h
     val context = LocalContext.current
     var pickRow by remember { mutableStateOf(false) }
     val gallery = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: Uri? -> if (uri != null) vm.onImage(uri) }
-    val pickImage = { gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+    var source by remember { mutableStateOf(false) }
+    var disk by remember { mutableStateOf(false) }
+    // "Galereya" or "Diskdan tanlash": a picked Disk image goes through the same onImage pipeline as a gallery photo (temp file, deleted after).
+    val pickImage = { source = true }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -108,6 +111,15 @@ fun PhotoScreen(onBack: () -> Unit, onQueued: () -> Unit, vm: PhotoViewModel = h
             }
         }
     }
+    if (source) uz.anncorp.qurai.ui.screens.QDiskChoiceDialog(stringResource(R.string.p2_photo_gallery), listOf(1L to stringResource(R.string.qa4_disk_gallery), 2L to stringResource(R.string.qa4_disk_pick)), stringResource(R.string.qa4_disk_cancel), { id ->
+        source = false
+        if (id == 1L) gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) else disk = true
+    }, { source = false })
+    if (disk) uz.anncorp.smeta.feature.disk.DiskPickDialog(imagesOnly = true, onClose = { disk = false }, onPicked = { name, _, bytes ->
+        disk = false
+        val f = File(context.cacheDir, "diskpick-" + System.currentTimeMillis() + "-" + name.substringAfterLast('.').take(5).filter { it.isLetterOrDigit() }.ifBlank { "jpg" }.let { ".$it" })
+        runCatching { f.writeBytes(bytes); vm.onImage(Uri.fromFile(f)) { f.delete() } }
+    })
     if (pickRow) RowPickerDialog(vm, onPick = { vm.setRow(it); pickRow = false }, onDismiss = { pickRow = false })
     // keep the context referenced for lint (no-op)
     context.hashCode()

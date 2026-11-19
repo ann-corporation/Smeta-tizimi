@@ -158,7 +158,7 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = hiltViewModel()) 
             if (ui.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
 
             Section(stringResource(R.string.p10_sec_account)) {
-                ValueRow(stringResource(R.string.p10_name), name.ifBlank { "вЂ”" }) { dlg = Dlg.NAME }
+                ValueRow(stringResource(R.string.p10_name), name.ifBlank { "—" }) { dlg = Dlg.NAME }
                 ValueRow(stringResource(R.string.p10_phone), p?.phone ?: stringResource(R.string.p10_phone_none), if (p?.phone != null) stringResource(if (p.phoneVerified) R.string.p10_phone_verified else R.string.p10_phone_unverified) else null) { dlg = Dlg.PHONE }
             }
 

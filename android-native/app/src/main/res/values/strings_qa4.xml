@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="qa4_disk_upload">Yuklash</string>
+    <string name="qa4_disk_new_folder">Yangi papka</string>
+    <string name="qa4_disk_rename_folder">Papka nomi</string>
+    <string name="qa4_disk_move_folder">Papkani ko\'chirish</string>
+    <string name="qa4_disk_delete_folder">Papkani o\'chirish</string>
+    <string name="qa4_disk_ok">Saqlash</string>
+    <string name="qa4_disk_cancel">Bekor qilish</string>
+    <string name="qa4_disk_name">Nomi</string>
+    <string name="qa4_disk_root">Asosiy papka</string>
+    <string name="qa4_disk_move_title">Qayerga ko\'chiriladi?</string>
+    <string name="qa4_disk_source_title">Nimani yuklaymiz?</string>
+    <string name="qa4_disk_camera">Kamera</string>
+    <string name="qa4_disk_gallery">Galereya</string>
+    <string name="qa4_disk_file">Fayl</string>
+    <string name="qa4_disk_rename">Nomini o\'zgartirish</string>
+    <string name="qa4_disk_move">Ko\'chirish</string>
+    <string name="qa4_disk_trash">Savatga</string>
+    <string name="qa4_disk_restore">Savatdan qaytarish</string>
+    <string name="qa4_disk_pick">Diskdan tanlash</string>
+    <string name="qa4_disk_picking">Fayl olinmoqda...</string>
+    <string name="qa4_disk_op_done">Bajarildi</string>
+    <string name="qa4_disk_op_forbidden">Bu amal uchun ruxsat yo\'q</string>
+    <string name="qa4_disk_op_too_large">Fayl 25 MB dan katta. Katta faylni saytdan yuklang</string>
+    <string name="qa4_disk_op_quota">Disk to\'ldi. Joy bo\'shating yoki obuna rejasini oshiring</string>
+    <string name="qa4_disk_op_bad_type">Bu turdagi faylni yuklab bo\'lmaydi</string>
+    <string name="qa4_disk_op_exists">Bu joyda shu nomli fayl yoki papka bor</string>
+    <string name="qa4_disk_op_not_empty">Papka bo\'sh emas</string>
+    <string name="qa4_disk_op_failed">Bajarib bo\'lmadi, qayta urinib ko\'ring</string>
+    <string name="qa4_disk_cam_denied">Kameraga ruxsat berilmagan</string>
+    <string name="qa4_disk_read_failed">Faylni o\'qib bo\'lmadi</string>
+</resources>
