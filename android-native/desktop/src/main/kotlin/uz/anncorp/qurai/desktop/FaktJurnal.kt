@@ -13,6 +13,32 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.input.key.isAltPressed
+import uz.anncorp.smeta.core.fakt.MarkazAkt
+import uz.anncorp.smeta.core.fakt.parseAktReestri
+import uz.anncorp.smeta.core.fakt.aktReestriSoro
+import uz.anncorp.smeta.core.fakt.faolOy
+import uz.anncorp.smeta.core.fakt.markazHolati
+import uz.anncorp.smeta.core.fakt.zanjirDaraxtdan
+import uz.anncorp.smeta.core.fakt.zanjirHisobla
+import uz.anncorp.smeta.core.fakt.ZanjirKirish
+import uz.anncorp.smeta.core.fakt.faktYigindiHisobla
+import uz.anncorp.smeta.core.fakt.TaklifQator
+import uz.anncorp.smeta.core.fakt.ishKeyingiMateriallari
+import uz.anncorp.smeta.core.fakt.materialTaklifi
+import uz.anncorp.smeta.core.fakt.KiritmaSoni
+import uz.anncorp.smeta.core.fakt.kiritmaSoni
+import uz.anncorp.smeta.core.fakt.jsNumberString
+import uz.anncorp.smeta.core.fakt.TiklashSatr
+import uz.anncorp.smeta.core.fakt.TiklashMeta
+import uz.anncorp.smeta.core.fakt.TiklashKontekst
+import uz.anncorp.smeta.core.fakt.tiklashSatrlar
+import uz.anncorp.smeta.core.fakt.tiklashQoralamaOqi
+import uz.anncorp.smeta.core.fakt.AbcRejim
+import uz.anncorp.smeta.core.fakt.bajarilishTahlili
+import uz.anncorp.smeta.core.fakt.faktdanKiritmalar
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -127,25 +153,50 @@ private fun faktQoldaKiritiladimi(tur: String) = tur == "bl" || tur == "mat" || 
 fun FaktScreen(c: Ctx) {
     val o = c.obj
     if (o == null) { uz.anncorp.qurai.ui.components.QHint("Yuqoridan obyektni tanlang"); return }
-    FaktJurnalScreen(c, o)
+    // The site shows «Fakt kiritish | Foto-dalil» as two tabs of ONE page; the title row carries the object buttons and the view tabs (Fakt jurnali | Xotiradan | Daraxt).
+    var foto by remember(o.id) { mutableStateOf(false) }
+    var korinish by remember(o.id) { mutableStateOf("tezkor") }
+    var yangila by remember { mutableStateOf(0) }
+    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FaktSahifaTablar(foto) { foto = it }
+        if (foto) FotoScreen(c)
+        else {
+            FaktSarlavhaQatori(korinish, { korinish = it }, { yangila++ }, false)
+            FaktJurnalScreen(c, o, korinish, yangila)
+        }
+    }
 }
 
 @Composable
-private fun FaktJurnalScreen(c: Ctx, o: Obj) {
+private fun FaktJurnalScreen(c: Ctx, o: Obj, korinish: String, yangila: Int) {
     val lang = DesktopPrefs.lang
     fun tx(k: String, p: Map<String, Any> = emptyMap()) = SiteI18n.t(k, lang, p)
     var bump by remember { mutableStateOf(0) }
-    val data = load(o.id, c.tick + bump) { c.sv.read("jurnal:${o.id}", { c.sv.api.bff("/api/obyekt-paket?obyekt_id=${o.id}") }, ::parseJurnalPaket) }
+    val data = load(o.id, c.tick + bump + yangila) { c.sv.read("jurnal:${o.id}", { c.sv.api.bff("/api/obyekt-paket?obyekt_id=${o.id}") }, ::parseJurnalPaket) }
     // The object's markup context (site useUstamaliSumma): coefficients + podval + round svod. null after loading = unreadable -> markup shown as unknown.
-    val ustamaYuk by produceState<Pair<Boolean, UstamaMalumot?>>(false to null, o.id, c.tick, bump) { value = true to runCatching { ustamaOqi(c.sv.api, c.place.companyId, o.id) }.getOrNull() }
+    val ustamaYuk by produceState<Pair<Boolean, UstamaMalumot?>>(false to null, o.id, c.tick, bump, yangila) { value = true to runCatching { ustamaOqi(c.sv.api, c.place.companyId, o.id) }.getOrNull() }
     val ustama = ustamaYuk.second
+    // The act register (site useQadamMalumot): the 8-step chain and the work month are read from it; unreadable = unknown, never "done".
+    val aktlar by produceState<List<MarkazAkt>?>(null, o.id, c.tick, bump, yangila) { value = runCatching { parseAktReestri(c.sv.api.bff("/api/sb", "POST", aktReestriSoro(o.id)).body) }.getOrNull() }
+    var oyTanlangan by remember(o.id) { mutableStateOf("") }
     // Not-done marks (site bajarilmadiRoyxatOl): per-row sums drive the journal model and which resources are taken out of the job.
-    val bajYuk by produceState<List<BajarilmadiYozuv>?>(null, o.id, c.tick, bump) { value = runCatching { parseBajarilmadiRoyxat(c.sv.api.bff("/api/sb", "POST", bajarilmadiRoyxatSoro(c.place.companyId, o.id)).body) }.getOrNull() }
+    val bajYuk by produceState<List<BajarilmadiYozuv>?>(null, o.id, c.tick, bump, yangila) { value = runCatching { parseBajarilmadiRoyxat(c.sv.api.bff("/api/sb", "POST", bajarilmadiRoyxatSoro(c.place.companyId, o.id)).body) }.getOrNull() }
     val bajRoyxat = bajYuk.orEmpty()
     val bajHajm = remember(bajYuk) { bajarilmadiHajmlar(bajRoyxat) }
     var bajDialog by remember(o.id) { mutableStateOf<JurnalQator?>(null) }
     var tenglash by remember(o.id) { mutableStateOf<TenglashOyna?>(null) }
     var tenglashYuk by remember(o.id) { mutableStateOf(false) }
+    var tiklash by remember(o.id) { mutableStateOf<List<TiklashSatr>?>(null) }
+    var qamrovOyna by remember(o.id) { mutableStateOf<Pair<String, List<JurnalIsh>>?>(null) }
+    var egizakOyna by remember(o.id) { mutableStateOf(false) }
+    var abcRejim by remember(o.id) { mutableStateOf<AbcRejim?>(null) }
+    var tahlilOchiq by remember(o.id) { mutableStateOf(false) }
+    var klavOchiq by remember(o.id) { mutableStateOf(false) }
+    var bolimTafsil by remember(o.id) { mutableStateOf(false) }
+    var yopiqBolim by remember(o.id) { mutableStateOf<Set<Long>>(emptySet()) }
+    var panelOchiq by remember(o.id) { mutableStateOf(true) }
+    var faktsizF2 by remember(o.id) { mutableStateOf(false) }
+    var faqatOzgarish by remember(o.id) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var sana by remember(o.id) { mutableStateOf(LocalDate.now().toString()) }
     var qidiruv by remember(o.id) { mutableStateOf("") }
@@ -161,11 +212,11 @@ private fun FaktJurnalScreen(c: Ctx, o: Obj) {
     var msg by remember { mutableStateOf<Pair<String, QTone>?>(null) }
     val find = remember { FocusRequester() }
 
-    Page(tx("Bajarilgan ishlar (Fakt)"), tx("Smeta hajmi va Faktni RZ → BL → RS/MAT/OB daraxtida boshqaring")) {
+    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         val d: JurnalMalumot? = data.valueOrNull()
-        if (data == null) { QLoading(); return@Page }
+        if (data == null) { QLoading(); return@Column }
         data.Banner()
-        if (d == null) return@Page
+        if (d == null) return@Column
         val model = remember(d, bajHajm) { jurnalQur(d.rows, d.states, null, bajHajm) }
         val holat = remember(d) { d.states.associateBy { it.qatorId } }
         val rowById = remember(d) { d.rows.associateBy { it.id } }
@@ -191,13 +242,18 @@ private fun FaktJurnalScreen(c: Ctx, o: Obj) {
 
         fun mos(q: JurnalQator) = (q.kod ?: "").lowercase().contains(qq) || q.nom.lowercase().contains(qq)
         fun passResurs(q: JurnalQator) = (!faqatQoldiq || ochiqBor(q.qoldiq, q.smeta))
+        val obyektBoyicha = qq.isNotEmpty() || faktsizF2 || faqatOzgarish
+        fun ozgarishMi(q: JurnalQator) = q.zamena || q.qoshimcha || q.almashtiradi != null || (q.almashtirilgan ?: 0.0) > 0
+        fun faktsizF2Mi(q: JurnalQator) = (holat[q.id]?.f2Hajm ?: 0.0) > 1e-9 && q.fakt <= 1e-9
         fun passIsh(i: JurnalIsh): Boolean {
             if (!holatFiltrMos(holatFiltr, i.id, i.q.holat, kiritilganMuz)) return false
+            if (faktsizF2 && !(faktsizF2Mi(i.q) || i.resurslar.any(::faktsizF2Mi))) return false
+            if (faqatOzgarish && !(ozgarishMi(i.q) || i.resurslar.any(::ozgarishMi) || i.avtomatik.any(::ozgarishMi))) return false
             if (faqatQoldiq && !(ochiqBor(i.q.qoldiq, i.q.smeta) || i.resurslar.any { passResurs(it) })) return false
             if (qq.isNotEmpty() && !(mos(i.q) || i.resurslar.any(::mos) || i.avtomatik.any(::mos))) return false
             return true
         }
-        val satrlar = remember(model, aktiv, qq, faqatQoldiq, holatFiltr, hammaYopiq, kiritilganMuz) {
+        val satrlar = remember(model, aktiv, qq, faqatQoldiq, holatFiltr, hammaYopiq, kiritilganMuz, faktsizF2, faqatOzgarish) {
             val out = ArrayList<FSatr>()
             fun ishSatrlari(i: JurnalIsh) {
                 out.add(FIsh(i))
@@ -206,14 +262,15 @@ private fun FaktJurnalScreen(c: Ctx, o: Obj) {
                     for (r in i.avtomatik) if (qq.isEmpty() || mos(r) || mos(i.q)) out.add(FResurs(r, true))
                 }
             }
-            if (qq.isNotEmpty()) {
+            if (obyektBoyicha) {
                 for (b in model.bolimlar) { val ls = model.bolimIshlari[b.id].orEmpty().filter(::passIsh); if (ls.isNotEmpty()) { out.add(FBolim(b, 0)); ls.forEach(::ishSatrlari) } }
                 model.ildizIshlari.filter(::passIsh).forEach(::ishSatrlari)
             } else if (aktiv == BOLIMSIZ) model.ildizIshlari.filter(::passIsh).forEach(::ishSatrlari)
             else if (aktiv != null) for (bl in bolimTarkibi(aktiv, model.bolimlar, model.bolimIshlari)) {
                 val ls = bl.ishlar.filter(::passIsh)
                 if (bl.nisbiy > 0 && ls.isEmpty()) continue
-                out.add(FBolim(bl.bolim, bl.nisbiy)); ls.forEach(::ishSatrlari)
+                if (bl.nisbiy > 0) out.add(FBolim(bl.bolim, bl.nisbiy))   // the selected section's own header is the page header; inner sections get their in-table header + cards
+                ls.forEach(::ishSatrlari)
             }
             out.toList()
         }
@@ -255,108 +312,194 @@ private fun FaktJurnalScreen(c: Ctx, o: Obj) {
                 else msg = (if (r.networkError) Tx.offlineWrite else bajarilmadiXato(r.code, out?.error)) to QTone.Danger
             }
         }
-        fun saqla() {
-            if (busy || ozgarishSoni == 0) return
-            if (!paket.ok) { msg = (if (paket.xatolar.isNotEmpty()) tx("{n} tasida xato — tuzating", mapOf("n" to paket.xatolar.size)) else tx("0 qo‘shilmaydi")) to QTone.Warn; return }
-            busy = true; msg = null
+        // ---- derived values of the page frame (chain, cards, material proposals) ----
+        val oy = oyTanlangan.ifEmpty { faolOy(aktlar) ?: java.time.YearMonth.now().toString() }
+        val markaz = remember(aktlar, oy) { markazHolati(aktlar, oy) }
+        val daraxtdan = remember(d) { zanjirDaraxtdan(d.rows, d.states) }
+        val zanjir = remember(markaz, oy, daraxtdan, o, lang) {
+            zanjirHisobla(
+                ZanjirKirish(
+                    smetaBor = o.total != null, narxsiz = if (o.total != null) o.unpriced else null, faktSaqlangan = markaz.faktSaqlangan, faktQoralama = markaz.faktQoralama, f2BuOyda = markaz.f2BuOyda,
+                    f2TasdiqBuOyda = markaz.f2TasdiqBuOyda, f2TasdiqJami = markaz.f2Tasdiq, f2OxirgiOy = markaz.f2OxirgiOy, smetaQator = daraxtdan.smetaQator, faktQamrov = daraxtdan.faktQamrov, faktHolatda = daraxtdan.faktHolatda, oy = oy,
+                ),
+            ) { k, p -> SiteI18n.t(k, lang, p) }
+        }
+        val yigindi = remember(d, bajYuk, ustama?.svod) { faktYigindiHisobla(d.rows, d.states, bajRoyxat, ustama?.svod) }
+        val taklifRows = remember(d) { d.rows.mapIndexed { i, r -> TaklifQator(r.id, r.otaId, r.tur, i.toDouble(), r.qoshimcha, r.zamena) } }
+        val keyingiMat = remember(taklifRows) { ishKeyingiMateriallari(taklifRows) }
+        val matIshi = remember(keyingiMat) { buildMap<Long, Long> { for ((ish, ms) in keyingiMat) for (m in ms) put(m, ish) } }
+        val jurnalById = remember(model) { (model.bolimIshlari.values.flatten() + model.ildizIshlari).flatMap { listOf(it.q) + it.resurslar + it.avtomatik }.associateBy { it.id } }
+        fun samaraliFakt(q: JurnalQator): Double {
+            val k = kiritmalar[q.id] ?: return q.fakt
+            val n = (kiritmaSoni(k.qiymat, q.smeta, faktFormulaKonteksti(q)) as? KiritmaSoni.Num)?.value
+            return if (n == null || !n.isFinite()) q.fakt else if (k.rejim == Rejim.Plus) q.fakt + n else n
+        }
+        /** A proposal for a material that follows its work (at the work's share; the replaced / not-done part is subtracted). */
+        fun matTaklifi(matId: Long): Double? {
+            val ish = jurnalById[matIshi[matId] ?: return null] ?: return null; val m = jurnalById[matId] ?: return null
+            return materialTaklifi(samaraliFakt(ish), ish.smeta, m.smeta, m.fakt, (m.almashtirilgan ?: 0.0) + (m.bajarilmaydi ?: 0.0))
+        }
+        fun takliflarSoni(ishIdlar: List<Long>) = ishIdlar.sumOf { id -> keyingiMat[id].orEmpty().count { m -> kiritmalar[m]?.qiymat?.isBlank() != false && matTaklifi(m) != null } }
+        /** Puts the proposals into the entry cells (nothing is written until the user saves: Ctrl+S). */
+        fun materiallarniOl(ishIdlar: List<Long>) {
+            val yangi = LinkedHashMap<Long, Kiritma>()
+            for (id in ishIdlar) for (m in keyingiMat[id].orEmpty()) { if (kiritmalar[m]?.qiymat?.isNotBlank() == true) continue; matTaklifi(m)?.let { yangi[m] = Kiritma(Rejim.Plus, jsNumberString(it)) } }
+            if (yangi.isEmpty()) { msg = tx("Olinadigan material taklifi yo‘q.") to QTone.Warn; return }
+            qoy(kiritmalar + yangi); msg = tx("{n} ta material taklifi kiritildi — tekshirib saqlang (Ctrl+S).", mapOf("n" to yangi.size)) to QTone.Ok
+        }
+        fun filtrQoy(f: HolatFiltr) { holatFiltr = f; if (f == HolatFiltr.Kiritilgan) kiritilganMuz = kiritmalar.filterValues { it.qiymat.isNotBlank() }.keys }
+        fun qamrovOch(sar: String, ishlar: List<JurnalIsh>) { if (ozgarishSoni > 0) msg = tx("Saqlanmagan kiritmalar bor — qamrov serverdagi faktdan hisoblanadi; avval saqlang yoki tozalang.") to QTone.Warn; qamrovOyna = sar to ishlar }
+        fun tenglashObyekt() = tenglashOch(tx("Butun obyekt (barcha bo‘limlar)"), model.bolimlar.map { it.nom to model.bolimIshlari[it.id].orEmpty() } + (tx("Bo‘limsiz") to model.ildizIshlari))
+        /** «Fakt tiklash»: evidence (approved + draft F2) -> row-by-row proposals; BOTH reads must succeed, otherwise the dialog is not opened. */
+        fun tiklashOch() {
+            if (tenglashYuk) return
+            tenglashYuk = true
             scope.launch {
-                val r = c.sv.api.bff("/api/sb-yoz", "POST", faktPayload(AMAL_FAKT, c.place.companyId, o.id, sana, paket.qatorlar.map { FaktLine(it.qatorId, it.hajm) }, UUID.randomUUID().toString()))
-                val out = parseFaktResult(r.body)
-                msg = when {
-                    r.networkError -> Tx.offlineWrite to QTone.Danger
-                    out?.ok == true -> { kiritmalar = emptyMap(); tarix = emptyList(); bump++; ("${out.raqam ?: ""} ${out.jami?.let { money(it) } ?: ""}".trim().ifEmpty { tx("saqlandi") }) to QTone.Ok }
-                    else -> (out?.error ?: r.code ?: "HTTP ${r.status}") to QTone.Danger
-                }
-                busy = false
+                val m = tenglashManbaOqi(c.sv.api, o.id); val q = tiklashQoralamaOqi(c.sv.api, o.id)
+                tenglashYuk = false
+                if (m == null) { msg = tx("F2 narxlari yuklanmadi — «Fakt = F2» ochilmadi. Qayta urinib ko‘ring.") to QTone.Danger; return@launch }
+                if (q == null) { msg = tx("Qoralama F2 yuklanmadi — «Fakt tiklash» ochilmadi. Qayta urinib ko‘ring.") to QTone.Danger; return@launch }
+                val guruhlar = model.bolimlar.map { it.nom to model.bolimIshlari[it.id].orEmpty() } + (tx("Bo‘limsiz") to model.ildizIshlari)
+                val meta = ArrayList<TiklashMeta>(); val korildi = HashSet<Long>()
+                for ((nom, ishlar) in guruhlar) for (ish in ishlar) for (x in listOf(ish.q) + ish.resurslar + ish.avtomatik) { if (korildi.add(x.id)) meta.add(TiklashMeta(x.id, x.tur, x.nom, x.birlik, rowById[x.id]?.kat ?: x.kat, nom)) }
+                val narx: (Long) -> Double? = { id -> holat[id]?.smetaNarx ?: rowById[id]?.narx }
+                tiklash = tiklashSatrlar(TiklashKontekst(obyektF2Reja(guruhlar, holat, m.kontekst(narx)), holat, meta, q.yigma, q.raqam, narx))
             }
         }
+        /** One write of the entered package (fakt_yoz_v2, ONE operation id); true = written (also used by «Egizaklarga ham yozish» to save the source first). */
+        suspend fun saqlaYoz(): Boolean {
+            if (busy || ozgarishSoni == 0) return true
+            if (!paket.ok) { msg = (if (paket.xatolar.isNotEmpty()) tx("{n} tasida xato — tuzating", mapOf("n" to paket.xatolar.size)) else tx("0 qo‘shilmaydi")) to QTone.Warn; return false }
+            busy = true; msg = null
+            val r = c.sv.api.bff("/api/sb-yoz", "POST", faktPayload(AMAL_FAKT, c.place.companyId, o.id, sana, paket.qatorlar.map { FaktLine(it.qatorId, it.hajm) }, UUID.randomUUID().toString()))
+            val out = parseFaktResult(r.body)
+            var ok = false
+            msg = when {
+                r.networkError -> Tx.offlineWrite to QTone.Danger
+                out?.ok == true -> { ok = true; kiritmalar = emptyMap(); tarix = emptyList(); bump++; ("${out.raqam ?: ""} ${out.jami?.let { money(it) } ?: ""}".trim().ifEmpty { tx("saqlandi") }) to QTone.Ok }
+                else -> (out?.error ?: r.code ?: "HTTP ${r.status}") to QTone.Danger
+            }
+            busy = false
+            return ok
+        }
+        fun saqla() { scope.launch { saqlaYoz() } }
 
         Column(
             Modifier.fillMaxSize().onPreviewKeyEvent { e ->
                 if (e.type != KeyEventType.KeyDown) false else when {
                     e.isCtrlPressed && e.key == Key.S -> { saqla(); true }
                     e.isCtrlPressed && e.key == Key.Z && tarix.isNotEmpty() -> { orqaga(); true }
-                    e.isShiftPressed && !e.isCtrlPressed && e.key == Key.F -> { if (model.bolimlar.isNotEmpty() || model.ildizIshlari.isNotEmpty()) tenglashOch(tx("Butun obyekt (barcha bo‘limlar)"), model.bolimlar.map { it.nom to model.bolimIshlari[it.id].orEmpty() } + (tx("Bo‘limsiz") to model.ildizIshlari)); true }
+                    e.isShiftPressed && !e.isCtrlPressed && e.key == Key.F -> { if (model.bolimlar.isNotEmpty() || model.ildizIshlari.isNotEmpty()) tenglashObyekt(); true }
                     e.isCtrlPressed && e.key == Key.B -> { satrlar.firstOrNull { it.key == grid.active }?.qator()?.let { bajDialog = it }; true }
                     e.isCtrlPressed && e.key == Key.F -> { runCatching { find.requestFocus() }; true }
+                    e.isAltPressed && e.key in listOf(Key.One, Key.Two, Key.Three, Key.Four) -> { HolatFiltr.entries.getOrNull(listOf(Key.One, Key.Two, Key.Three, Key.Four).indexOf(e.key))?.let { filtrQoy(it) }; true }
                     else -> false
                 }
             },
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // ---- toolbar card (the site's first section) ----
-            FlowRow(Modifier.fillMaxWidth().background(Q.colors.surface, Q.shape.medium).padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                QDateField(sana, { sana = it }, label = tx("Sana"), modifier = Modifier.width(170.dp))
-                QInput(qidiruv, { qidiruv = it }, Modifier.width(320.dp).focusRequester(find), placeholder = tx("Butun obyekt bo‘yicha qidirish…  ( / )"), leading = QIcons.Search)
-                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(faqatQoldiq, { faqatQoldiq = it }); Text(tx("faqat bajarilmaganlar"), style = Q.type.bodySmall, color = Q.colors.textDim) }
-                QButton(SiteI18n.t("Foto-dalil", lang), { ModNav.go?.invoke("foto") }, kind = QButtonKind.Ghost, icon = QIcons.Camera)
-                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    HolatFiltr.entries.forEach { f ->
-                        QButton(tx(f.nom), { holatFiltr = f; if (f == HolatFiltr.Kiritilgan) kiritilganMuz = kiritmalar.filterValues { it.qiymat.isNotBlank() }.keys }, kind = if (holatFiltr == f) QButtonKind.Primary else QButtonKind.Ghost)
+            Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // ---- the 8-step work chain ----
+                ZanjirQatori(zanjir, oy, aktlar != null)
+                if (korinish == "tezkor") {
+                    // ---- filter panel (the site's first section) ----
+                    FlowRow(Modifier.fillMaxWidth().background(Q.colors.surface, Q.shape.medium).padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        QDateField(sana, { sana = it }, label = tx("Sana"), modifier = Modifier.width(170.dp))
+                        QInput(qidiruv, { qidiruv = it }, Modifier.width(320.dp).focusRequester(find), placeholder = tx("Butun obyekt bo‘yicha qidirish…  ( / )"), leading = QIcons.Search)
+                        Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(faqatQoldiq, { faqatQoldiq = it }); Text(tx("faqat bajarilmaganlar"), style = Q.type.bodySmall, color = Q.colors.textDim) }
+                        Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(faktsizF2, { faktsizF2 = it }); Text(tx("fakti yo‘q, F2 olingan"), style = Q.type.bodySmall, color = Q.colors.textDim) }
+                        Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(faqatOzgarish, { faqatOzgarish = it }); Text(tx("Faqat zamena va qo‘shimchalar"), style = Q.type.bodySmall, color = Q.colors.textDim) }
+                        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                            HolatFiltr.entries.forEach { f -> QButton(tx(f.nom), { filtrQoy(f) }, kind = if (holatFiltr == f) QButtonKind.Primary else QButtonKind.Ghost) }
+                        }
+                        QButton(tx("Klaviatura") + " ?", { klavOchiq = true }, kind = QButtonKind.Ghost)
+                        val tanlanganB = model.bolimlar.firstOrNull { it.id == aktiv }
+                        if (tanlanganB != null) QButton(tx("Fakt = F2") + " [F]", { tenglashOch(tanlanganB.nom, null, bolimIshlariYigish(tanlanganB.id, model.bolimIshlari, bolimBolalari, true)) }, kind = QButtonKind.Secondary, enabled = !tenglashYuk)
+                        if (model.bolimlar.isNotEmpty() || model.ildizIshlari.isNotEmpty()) QButton(tx("Fakt = F2: obyekt") + " [Shift+F]", { tenglashObyekt() }, kind = QButtonKind.Secondary, enabled = !tenglashYuk)
+                        if (model.bolimlar.isNotEmpty() || model.ildizIshlari.isNotEmpty()) QButton(tx("Fakt tiklash"), { tiklashOch() }, kind = QButtonKind.Secondary, enabled = !tenglashYuk)
+                        if (tanlanganB != null && qq.isEmpty()) QButton(tx("Qamrov %") + " [%]", { qamrovOch(tanlanganB.nom, bolimIshlariYigish(tanlanganB.id, model.bolimIshlari, bolimBolalari, true)) }, kind = QButtonKind.Secondary)
+                        QButton(tx("Egizaklarga ham yozish"), { egizakOyna = true }, kind = QButtonKind.Secondary)
+                        QButton(tx("Smetadan tashqari ish"), { abcRejim = AbcRejim.Additional(if (aktiv == BOLIMSIZ) null else aktiv) }, kind = QButtonKind.Secondary, icon = QIcons.Plus)
+                    }
+                    // ---- «Bajarilish tahlili» (collapsible) ----
+                    if (model.bolimlar.isNotEmpty()) Column(Modifier.fillMaxWidth().background(Q.colors.surface, Q.shape.medium).padding(horizontal = 12.dp, vertical = 6.dp)) {
+                        Text((if (tahlilOchiq) "▾ " else "▸ ") + tx("Bajarilish tahlili"), Modifier.clickable { tahlilOchiq = !tahlilOchiq }, style = Q.type.bodySmall, color = Q.colors.textDim)
+                        if (tahlilOchiq) { val th = remember(d, bajHajm, ustama?.svod) { bajarilishTahlili(d, bajHajm, ustama?.svod) }; FaktXulosaPanel(th.xulosa, th.obyekt) }
                     }
                 }
-            }
-            msg?.let { QNote(it.first, tone = it.second) }
-            tenglash?.let { oy ->
-                FaktTenglashDialog(c, o.id, sana, oy.sarlavha, oy.reja, oy.eskiAktlar, ustama, ustamaYuk.first, { tenglash = null }) { tenglash = null; msg = tx("Fakt = F2") + " ✓" to QTone.Ok; bump++ }
-            }
-            bajDialog?.let { q ->
-                BajarilmadiDialog(c, o.id, sana, q, bajHajm[q.id] ?: 0.0, ::tx, { bajDialog = null }) { m -> bajDialog = null; msg = m to QTone.Ok; bump++ }
-            }
-            Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // ---- sections panel ----
-                Column(Modifier.width(272.dp).fillMaxHeight().background(Q.colors.surface, Q.shape.medium)) {
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(tx("Bo‘limlar"), Modifier.weight(1f), style = Q.type.titleSmall, color = Q.colors.text, fontWeight = FontWeight.SemiBold)
-                        Text(tx("{a} / {b} tugagan", mapOf("a" to xulosa.bolimTugagan, "b" to xulosa.bolimJami)), style = Q.type.labelSmall, color = Q.colors.textMute)
-                    }
-                    LazyColumn(Modifier.weight(1f)) {
-                        items(model.bolimlar, key = { it.id }) { b ->
-                            val sel = b.id == aktiv && qq.isEmpty()
-                            Column(Modifier.fillMaxWidth().background(if (sel) Q.colors.accentSoft else androidx.compose.ui.graphics.Color.Transparent).clickable { bolimId = b.id; qidiruv = "" }.padding(start = (8 + b.daraja * 14).dp, end = 8.dp, top = 5.dp, bottom = 5.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(b.nom, Modifier.weight(1f), style = Q.type.bodySmall, color = if (sel || b.daraja == 0) Q.colors.text else Q.colors.textDim, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
-                                    Text(tx("{n} ish", mapOf("n" to b.ishSoni)), style = Q.type.labelSmall, color = Q.colors.textMute)
+                msg?.let { QNote(it.first, tone = it.second) }
+                tenglash?.let { oy2 ->
+                    FaktTenglashDialog(c, o.id, sana, oy2.sarlavha, oy2.reja, oy2.eskiAktlar, ustama, ustamaYuk.first, { tenglash = null }) { tenglash = null; msg = tx("Fakt = F2") + " ✓" to QTone.Ok; bump++ }
+                }
+                tiklash?.let { ts ->
+                    FaktTiklashDialog(c, o.id, sana, o.nom, ts, summalar[0L]?.fakt, summalar[0L]?.f2, ustama, ustamaYuk.first, { tiklash = null }) { tiklash = null; msg = tx("Fakt tiklash") + " ✓" to QTone.Ok; bump++ }
+                }
+                qamrovOyna?.let { (sar, ishlar) ->
+                    FaktQamrovDialog(c, o.id, sana, sar, ishlar, holat, { id -> holat[id]?.smetaNarx ?: rowById[id]?.narx }, ustama, ustamaYuk.first, { qamrovOyna = null }, { bump++ }) { m -> msg = m to QTone.Ok }
+                }
+                if (egizakOyna) FaktEgizakDialog(
+                    c, o.id, o.nom, sana, c.objects, kiritmalar.filterValues { it.qiymat.isNotBlank() }, model.bolimlar.firstOrNull { it.id == aktiv }?.nom,
+                    faktdanKiritmalar(model.bolimlar.firstOrNull { it.id == aktiv }?.let { b -> bolimIshlariYigish(b.id, model.bolimIshlari, bolimBolalari, true).flatMap { listOf(it.q) + it.resurslar } }.orEmpty()),
+                    faktdanKiritmalar((model.bolimIshlari.values.flatten() + model.ildizIshlari).flatMap { listOf(it.q) + it.resurslar }),
+                    { if (ozgarishSoni > 0) saqlaYoz() else true }, { egizakOyna = false }, { egizakOyna = false; bump++ },
+                )
+                abcRejim?.let { r -> FaktIshAbcDialog(c, o.id, sana, d, r, { abcRejim = null }, { m -> abcRejim = null; msg = m to QTone.Ok; bump++ }) }
+                if (klavOchiq) KlaviaturaYordam { klavOchiq = false }
+                bajDialog?.let { q -> BajarilmadiDialog(c, o.id, sana, q, bajHajm[q.id] ?: 0.0, ::tx, { bajDialog = null }) { m -> bajDialog = null; msg = m to QTone.Ok; bump++ } }
+
+                if (korinish == "xotira") Box(Modifier.fillMaxWidth().height(780.dp)) { FaktXotiradanScreen(c, o.id, d) { bump++ } }
+                else if (korinish == "daraxt") Box(Modifier.fillMaxWidth().height(780.dp)) { FaktDaraxtScreen(c, o.id, d) { bump++ } }
+                else {
+                    // ---- object summary cards ----
+                    FaktKartalar(yigindi, summalar[0L], ustama, ustamaYuk.first, oy, { oyTanlangan = it }, { m -> oyTanlangan = m; ModNav.go?.invoke("f2") }, { abcRejim = AbcRejim.Additional(null) })
+                    // ---- sections tree | journal ----
+                    Row(Modifier.fillMaxWidth().height(700.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (!panelOchiq) Box(Modifier.width(44.dp).fillMaxHeight().background(Q.colors.surface, Q.shape.medium).clickable { panelOchiq = true }.padding(top = 12.dp), contentAlignment = Alignment.TopCenter) {
+                            Text("▶", style = Q.type.bodyMedium, color = Q.colors.textDim)
+                        } else BolimDaraxtiPanel(
+                            model.bolimlar, aktiv.takeIf { qq.isEmpty() && !obyektBoyicha }, model.ildizIshlari.size, aktiv == BOLIMSIZ && qq.isEmpty() && !obyektBoyicha, xulosa.bolimTugagan, xulosa.bolimJami, yopiqBolim,
+                            { id -> yopiqBolim = if (id in yopiqBolim) yopiqBolim - id else yopiqBolim + id }, { id -> bolimId = id; qidiruv = "" }, { bolimId = BOLIMSIZ; qidiruv = "" }, Modifier.width(272.dp).fillMaxHeight(), { panelOchiq = false },
+                        )
+                        // ---- journal ----
+                        Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            val tanlangan = model.bolimlar.firstOrNull { it.id == aktiv }
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(if (qq.isNotEmpty()) tx("Qidiruv: «{q}»", mapOf("q" to qidiruv.trim())) else tanlangan?.nom ?: tx("Bo‘limsiz"), style = Q.type.titleMedium, color = Q.colors.text, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                                    Text(tx("{n} ish · {q} qator", mapOf("n" to ishSoni, "q" to satrlar.count { it !is FBolim })), style = Q.type.labelSmall, color = Q.colors.textMute)
+                                    if (qq.isEmpty() && tanlangan != null) Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Text(tx("{a} / {b} ish bajarilgan", mapOf("a" to tanlangan.tugaganSoni, "b" to tanlangan.ishSoni)), style = Q.type.bodySmall, color = Q.colors.textDim)
+                                        Text(foizBelgi(tanlangan.ulush), style = Q.type.bodySmall, color = Q.colors.textDim, fontWeight = FontWeight.SemiBold)
+                                        Box(Modifier.width(180.dp)) { Meter(tanlangan.ulush) }
+                                    }
+                                    if (qq.isEmpty() && tanlangan != null) Text((if (bolimTafsil) "▾ " else "▸ ") + tx("Bo‘lim summalari"), Modifier.clickable { bolimTafsil = !bolimTafsil }, style = Q.type.labelSmall, color = Q.colors.textMute)
                                 }
-                                Meter(b.ulush)
+                                if (ishSoni > 0) {
+                                    Text(tx("Jami %:"), style = Q.type.labelSmall, color = Q.colors.textMute)
+                                    listOf(25, 50, 75, 100).forEach { p -> QButton("$p%", { foizChip(p) }, kind = QButtonKind.Secondary) }
+                                }
+                                val bolimMat = satrlar.filterIsInstance<FIsh>().map { it.ish.id }
+                                val bolimTakliflar = takliflarSoni(bolimMat)
+                                if (bolimTakliflar > 0) QButton(tx("Bo‘lim: materiallarni ham olish ({n})", mapOf("n" to bolimTakliflar)), { materiallarniOl(bolimMat) }, kind = QButtonKind.Secondary)
+                                QButton(if (hammaYopiq) tx("Hammasini ochish") else tx("Hammasini yopish"), { hammaYopiq = !hammaYopiq }, kind = QButtonKind.Ghost, icon = if (hammaYopiq) QIcons.ChevronRight else QIcons.ChevronDown)
                             }
-                        }
-                        if (model.ildizIshlari.isNotEmpty()) item {
-                            val sel = aktiv == BOLIMSIZ && qq.isEmpty()
-                            Text(tx("Bo‘limsiz") + " · " + tx("{n} ish", mapOf("n" to model.ildizIshlari.size)), Modifier.fillMaxWidth().background(if (sel) Q.colors.accentSoft else androidx.compose.ui.graphics.Color.Transparent).clickable { bolimId = BOLIMSIZ; qidiruv = "" }.padding(horizontal = 24.dp, vertical = 8.dp), style = Q.type.bodySmall, color = if (sel) Q.colors.text else Q.colors.textDim)
+                            if (bolimTafsil && qq.isEmpty() && tanlangan != null) BolimSummaQatori(summalar[tanlangan.id], ustama, ustamaYuk.first, ::tx, lang)
+                            MeterLegenda()
+                            if (satrlar.isEmpty()) Text(if (qq.isNotEmpty() || holatFiltr != HolatFiltr.Hammasi || faqatQoldiq || faktsizF2 || faqatOzgarish) tx("Hech narsa topilmadi.") else tx("Bu bo‘limda (ichki bo‘limlari bilan) ish yo‘q."), style = Q.type.bodyMedium, color = Q.colors.textMute)
+                            else FaktGrid(
+                                satrlar, kiritmalar, paket.xatolar.keys, holat, rowById, grid, { grid = it }, ::tx, lang, summaMatn, bajHajm, { bajDialog = it }, ::bajBekor, { ish -> tenglashOch(ish.q.nom, null, listOf(ish)) },
+                                { b -> 138.dp to { BolimBlokSarlavha(b.b, b.nisbiy, summalar[b.b.id], ustama, ustamaYuk.first, { bolimId = b.b.id; qidiruv = "" }) { qamrovOch(b.b.nom, bolimIshlariYigish(b.b.id, model.bolimIshlari, bolimBolalari, true)) } } },
+                                Modifier.weight(1f).fillMaxWidth(), { id, k -> qoy(if (k == null || k.qiymat.isBlank()) kiritmalar - id else kiritmalar + (id to k)) }, { msg = tx("Bu qatorga fakt qo‘lda kiritilmaydi (avtomatik).") to QTone.Info },
+                            )
                         }
                     }
-                }
-                // ---- journal ----
-                Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    val tanlangan = model.bolimlar.firstOrNull { it.id == aktiv }
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Column(Modifier.weight(1f)) {
-                            Text(if (qq.isNotEmpty()) tx("Qidiruv: «{q}»", mapOf("q" to qidiruv.trim())) else tanlangan?.nom ?: tx("Bo‘limsiz"), style = Q.type.titleMedium, color = Q.colors.text, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                            Text(tx("{n} ish · {q} qator", mapOf("n" to ishSoni, "q" to satrlar.count { it !is FBolim })), style = Q.type.labelSmall, color = Q.colors.textMute)
-                            if (qq.isEmpty() && tanlangan != null) Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text(tx("{a} / {b} ish bajarilgan", mapOf("a" to tanlangan.tugaganSoni, "b" to tanlangan.ishSoni)), style = Q.type.bodySmall, color = Q.colors.textDim)
-                                Box(Modifier.width(180.dp)) { Meter(tanlangan.ulush) }
-                            }
-                        }
-                        if (ishSoni > 0) {
-                            Text(tx("Jami %:"), style = Q.type.labelSmall, color = Q.colors.textMute)
-                            listOf(25, 50, 75, 100).forEach { p -> QButton("$p%", { foizChip(p) }, kind = QButtonKind.Secondary) }
-                        }
-                        if (tanlangan != null) QButton(tx("Fakt = F2"), { tenglashOch(tanlangan.nom, null, bolimIshlariYigish(tanlangan.id, model.bolimIshlari, bolimBolalari, true)) }, kind = QButtonKind.Secondary, enabled = !tenglashYuk)
-                        if (model.bolimlar.isNotEmpty() || model.ildizIshlari.isNotEmpty()) QButton(tx("Fakt = F2: obyekt"), { tenglashOch(tx("Butun obyekt (barcha bo‘limlar)"), model.bolimlar.map { it.nom to model.bolimIshlari[it.id].orEmpty() } + (tx("Bo‘limsiz") to model.ildizIshlari)) }, kind = QButtonKind.Secondary, enabled = !tenglashYuk)
-                        QButton(if (hammaYopiq) tx("Hammasini ochish") else tx("Hammasini yopish"), { hammaYopiq = !hammaYopiq }, kind = QButtonKind.Ghost, icon = if (hammaYopiq) QIcons.ChevronRight else QIcons.ChevronDown)
-                    }
-                    if (qq.isEmpty() && tanlangan != null) BolimSummaQatori(summalar[tanlangan.id], ustama, ustamaYuk.first, ::tx, lang)
-                    if (satrlar.isEmpty()) Text(if (qq.isNotEmpty() || holatFiltr != HolatFiltr.Hammasi || faqatQoldiq) tx("Hech narsa topilmadi.") else tx("Bu bo‘limda (ichki bo‘limlari bilan) ish yo‘q."), style = Q.type.bodyMedium, color = Q.colors.textMute)
-                    else FaktGrid(satrlar, kiritmalar, paket.xatolar.keys, holat, rowById, grid, { grid = it }, ::tx, lang, summaMatn, bajHajm, { bajDialog = it }, ::bajBekor, { ish -> tenglashOch(ish.q.nom, null, listOf(ish)) }, Modifier.weight(1f).fillMaxWidth(), { id, k -> qoy(if (k == null || k.qiymat.isBlank()) kiritmalar - id else kiritmalar + (id to k)) }, { msg = tx("Bu qatorga fakt qo‘lda kiritilmaydi (avtomatik).") to QTone.Info })
                 }
             }
             // ---- save panel (SaqlashPaneli) ----
             Row(Modifier.fillMaxWidth().background(Q.colors.surface, Q.shape.medium).padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                 QButton(tx("Saqlash") + " (Ctrl+S)", { saqla() }, kind = QButtonKind.Primary, enabled = ozgarishSoni > 0 && !busy && paket.ok, loading = busy, icon = QIcons.Check)
                 if (tarix.isNotEmpty()) QButton(tx("Orqaga") + " (Ctrl+Z)", { orqaga() }, kind = QButtonKind.Ghost)
-                Text(tx("{n} ta o‘zgarish", mapOf("n" to ozgarishSoni)).takeIf { false } ?: "$ozgarishSoni", style = Q.type.bodySmall, color = Q.colors.textMute)
+                Text("$ozgarishSoni", style = Q.type.bodySmall, color = Q.colors.textMute)
                 if (paket.xatolar.isNotEmpty()) Text(tx("{n} tasida xato — tuzating", mapOf("n" to paket.xatolar.size)), style = Q.type.bodySmall, color = Q.colors.warn)
                 Text(tx("sana: {s}", mapOf("s" to sana)), style = Q.type.bodySmall, color = Q.colors.textMute)
             }
@@ -366,7 +509,7 @@ private fun FaktJurnalScreen(c: Ctx, o: Obj) {
 
 /** The completion bar of a section / work (smeta = 100 %). */
 @Composable
-private fun Meter(ulush: Double?) {
+internal fun Meter(ulush: Double?) {
     val f = (ulush ?: 0.0).coerceIn(0.0, 1.0).toFloat()
     Box(Modifier.fillMaxWidth().height(4.dp).background(Q.colors.surface3, Q.shape.small)) { Box(Modifier.fillMaxWidth(f).fillMaxHeight().background(if ((ulush ?: 0.0) >= 1.0) Q.colors.ok else Q.colors.accent, Q.shape.small)) }
 }
@@ -374,28 +517,28 @@ private fun Meter(ulush: Double?) {
 @Composable
 private fun FaktGrid(
     satrlar: List<FSatr>, kiritmalar: Map<Long, Kiritma>, xatoIds: Set<Long>, holat: Map<Long, uz.anncorp.smeta.core.fakt.JurnalHolat>,
-    rowById: Map<Long, uz.anncorp.smeta.core.fakt.T2Qator>, state: GridState, onState: (GridState) -> Unit, tx: (String, Map<String, Any>) -> String, lang: String, summaMatn: (FSatr) -> String, bajHajm: Map<Long, Double>, onBajOch: (JurnalQator) -> Unit, onBajBekor: (Long) -> Unit, onTenglash: (JurnalIsh) -> Unit, modifier: Modifier,
+    rowById: Map<Long, uz.anncorp.smeta.core.fakt.T2Qator>, state: GridState, onState: (GridState) -> Unit, tx: (String, Map<String, Any>) -> String, lang: String, summaMatn: (FSatr) -> String, bajHajm: Map<Long, Double>, onBajOch: (JurnalQator) -> Unit, onBajBekor: (Long) -> Unit, onTenglash: (JurnalIsh) -> Unit, bolimBlok: (FBolim) -> Pair<androidx.compose.ui.unit.Dp, @Composable () -> Unit>, modifier: Modifier,
     onKiritma: (Long, Kiritma?) -> Unit, onNotAllowed: () -> Unit,
 ) {
     fun t(k: String) = tx(k, emptyMap())
     fun narx(q: JurnalQator): Double? = rowById[q.id]?.narx
     val cols = remember(lang, summaMatn, bajHajm) {
         listOf(
-            GridCol<FSatr>("kod", t("Kod"), 110f, mono = true) { s -> when (s) { is FBolim -> ""; else -> s.qator()?.kod ?: "" } },
-            GridCol("nom", t("Nomi"), 340f) { s -> when (s) { is FBolim -> " ".repeat(s.nisbiy) + s.b.nom; is FIsh -> s.ish.q.nom + (if (s.ish.q.zamena) " · " + t("zamena") else if (s.ish.q.qoshimcha) " · " + t("qo‘shimcha") else ""); is FResurs -> " " + s.q.nom + (if (s.avto) " · " + t("avto") else "") } },
-            GridCol("tur", t("Kat / tur"), 90f) { s -> when (s) { is FBolim -> ""; is FIsh -> t("ISH"); is FResurs -> s.q.kat ?: s.q.tur.uppercase() } },
-            GridCol("holat", t("Holat"), 170f) { s -> s.qator()?.let { t(HOLAT_MUHR.getValue(it.holat)) + (bajHajm[it.id]?.takeIf { b -> b > 0 }?.let { b -> " · " + t("Bajarilmaydi") + " " + qty(b) } ?: "") } ?: "" },
-            GridCol("hajm", t("Smeta hajmi"), 100f, numeric = true) { s -> s.qator()?.let { qty(it.smeta) } ?: "" },
-            GridCol("birlik", t("Birlik"), 70f) { s -> s.qator()?.birlik?.let { uz.anncorp.smeta.core.data.displayUnit(it) } ?: "" },
-            GridCol("narx", t("Birlik narxi"), 110f, numeric = true) { s -> s.qator()?.let { q -> narx(q)?.let { money(it) } ?: "" } ?: "" },
-            GridCol("foiz", t("Bajarilish foizi"), 90f, numeric = true) { s -> s.qator()?.let { q -> foizMatn(faktMeter(q.smeta, q.fakt, holat[q.id]?.f2Hajm).foiz) } ?: "" },
-            GridCol("fakt", t("Fakt hajm"), 100f, numeric = true) { s -> s.qator()?.let { qty(it.fakt) } ?: "" },
-            GridCol("f2", t("F2 hajmi"), 100f, numeric = true) { s -> s.qator()?.let { q -> holat[q.id]?.f2Hajm?.let { qty(it) } ?: "" } ?: "" },
-            GridCol("kiritma", t("Bu fakt"), 120f, numeric = true, editable = true) { s -> s.qator()?.let { kiritmalar[it.id]?.qiymat } ?: "" },
-            GridCol("rejim", "+ / =", 56f) { s -> s.qator()?.let { q -> kiritmalar[q.id]?.rejim?.belgi?.toString() ?: "" } ?: "" },
-            GridCol("ochiq", t("Ochiq qoldiq"), 110f, numeric = true) { s -> s.qator()?.let { qty(it.qoldiq) } ?: "" },
-            GridCol("f2m", t("F2 ga olish mumkin"), 120f, numeric = true) { s -> s.qator()?.let { q -> holat[q.id]?.f2MumkinHajm?.let { qty(it) } ?: "" } ?: "" },
-            GridCol("summa", t("Fakt summasi") + " (" + t("ustamali · ustamasiz") + ")", 230f, numeric = true) { s -> summaMatn(s) },
+            GridCol<FSatr>("kod", t("Kod"), 90f, mono = true) { s -> when (s) { is FBolim -> ""; else -> s.qator()?.kod ?: "" } },
+            GridCol("nom", t("Nomi"), 260f) { s -> when (s) { is FBolim -> " ".repeat(s.nisbiy) + s.b.nom; is FIsh -> s.ish.q.nom + (if (s.ish.q.zamena) " · " + t("zamena") else if (s.ish.q.qoshimcha) " · " + t("qo‘shimcha") else ""); is FResurs -> " " + s.q.nom + (if (s.avto) " · " + t("avto") else "") } },
+            GridCol("tur", t("Kat / tur"), 70f) { s -> when (s) { is FBolim -> ""; is FIsh -> t("ISH"); is FResurs -> s.q.kat ?: s.q.tur.uppercase() } },
+            GridCol("holat", t("Holat"), 150f) { s -> s.qator()?.let { t(HOLAT_MUHR.getValue(it.holat)) + (bajHajm[it.id]?.takeIf { b -> b > 0 }?.let { b -> " · " + t("Bajarilmaydi") + " " + qty(b) } ?: "") } ?: "" },
+            GridCol("hajm", t("Smeta hajmi"), 80f, numeric = true) { s -> s.qator()?.let { qty(it.smeta) } ?: "" },
+            GridCol("birlik", t("Birlik"), 50f) { s -> s.qator()?.birlik?.let { uz.anncorp.smeta.core.data.displayUnit(it) } ?: "" },
+            GridCol("narx", t("Birlik narxi"), 90f, numeric = true) { s -> s.qator()?.let { q -> narx(q)?.let { money(it) } ?: "" } ?: "" },
+            GridCol("foiz", t("Bajarilish foizi"), 70f, numeric = true) { s -> s.qator()?.let { q -> foizMatn(faktMeter(q.smeta, q.fakt, holat[q.id]?.f2Hajm).foiz) } ?: "" },
+            GridCol("fakt", t("Fakt hajm"), 80f, numeric = true) { s -> s.qator()?.let { qty(it.fakt) } ?: "" },
+            GridCol("f2", t("F2 hajmi"), 80f, numeric = true) { s -> s.qator()?.let { q -> holat[q.id]?.f2Hajm?.let { qty(it) } ?: "" } ?: "" },
+            GridCol("kiritma", t("Bu fakt"), 100f, numeric = true, editable = true) { s -> s.qator()?.let { kiritmalar[it.id]?.qiymat } ?: "" },
+            GridCol("rejim", "+ / =", 40f) { s -> s.qator()?.let { q -> kiritmalar[q.id]?.rejim?.belgi?.toString() ?: "" } ?: "" },
+            GridCol("ochiq", t("Ochiq qoldiq"), 90f, numeric = true) { s -> s.qator()?.let { qty(it.qoldiq) } ?: "" },
+            GridCol("f2m", t("F2 ga olish mumkin"), 90f, numeric = true) { s -> s.qator()?.let { q -> holat[q.id]?.f2MumkinHajm?.let { qty(it) } ?: "" } ?: "" },
+            GridCol("summa", t("Fakt summasi") + " (" + t("ustamali · ustamasiz") + ")", 210f, numeric = true) { s -> summaMatn(s) },
         )
     }
     val actions = listOf(
@@ -418,6 +561,8 @@ private fun FaktGrid(
             }
         },
         actions = actions, empty = t("Hech narsa topilmadi."),
+        groups = listOf(GridGroup(t("Ish / resurs"), t("holat · belgilar"), listOf("kod", "nom", "tur", "holat")), GridGroup(t("Smeta"), t("hajm · birlik narxi"), listOf("hajm", "birlik", "narx"), true), GridGroup(t("Bajarilish"), t("fakt va F2, smetaga nisbatan"), listOf("foiz", "fakt", "f2")), GridGroup(t("Bu fakt"), t("+ bugun · = jami"), listOf("kiritma", "rejim"), true), GridGroup(t("Ochiq qoldiq"), t("smeta − fakt"), listOf("ochiq"), true), GridGroup(t("F2 ga olish mumkin"), t("fakt − F2"), listOf("f2m"), true), GridGroup(t("Fakt summasi"), t("ustamali · ustamasiz"), listOf("summa"), true)),
+        fullRow = { s -> if (s is FBolim) bolimBlok(s) else null },
     )
 }
 
