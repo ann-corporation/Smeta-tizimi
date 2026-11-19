@@ -3,6 +3,13 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "JARVIS-WINDOWS-TRANSCRIPT-20261119", "title": "Windows scoped chat and durable transcript retry",
+      "owner": "codex", "machine": "Anvar", "branch": "codex/jarvis-m3-windows-sync", "base_sha": "ae9f8c4f",
+      "status": "active", "depends_on": [], "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md"], "production_write_allowed": false,
+      "owns": ["android-native/app/src/main/java/uz/anncorp/smeta/core/data/JarvisOutbox.kt", "android-native/shared/src/main/kotlin/uz/anncorp/smeta/core/data/JarvisOutbox.kt", "android-native/app/src/test/java/uz/anncorp/smeta/core/data/JarvisOutboxTest.kt", "android-native/shared/src/test/kotlin/uz/anncorp/smeta/core/data/JarvisOutboxTest.kt", "android-native/desktop/src/main/kotlin/uz/anncorp/qurai/desktop/JarvisJournal.kt", "android-native/desktop/src/test/kotlin/uz/anncorp/qurai/desktop/JarvisJournalTest.kt", "android-native/desktop/src/main/kotlin/uz/anncorp/qurai/desktop/Shell.kt", "android-native/desktop/src/main/kotlin/uz/anncorp/qurai/desktop/Services.kt"],
+      "note": "LANE-1 PR-6 channel parity, ACK in Obsidian. Reuse Android-free encrypted outbox in shared; preserve existing F2/voice. No Android UI or server changes."
+    },
+    {
       "id": "JARVIS-M3-F2-WRITE-20261119",
       "title": "Jarvis F2 and fact tools through existing preview and confirmation",
       "owner": "codex",
