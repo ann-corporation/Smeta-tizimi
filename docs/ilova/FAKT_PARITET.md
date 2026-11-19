@@ -27,7 +27,7 @@ Bu sessiyada ishlab chiqilgan, saytdan chetga chiqqan Fakt UI (`/api/f2-buyruq` 
 | Katakda to'g'ridan-to'g'ri hajm kiritish; rejim «+ bugun bajarilgan (qo'shiladi)» / «= jami fakt»; foiz («50%») va formula (`=SMETA-FAKT`, `=QOLDIQ`, `=SMETA*0.5`) | yo'q | ❌ |
 | Excel ustunini joylash, Enter = pastga, Ctrl+S saqlash, Ctrl+Z orqaga | yo'q | ❌ |
 | Klaviatura: strelkalar, Home/End, PageUp/PageDown, qidiruv (/), g+l «to'xtagan joy» | yo'q | ❌ |
-| «Fakt = F2» (bo'lim / butun obyekt), «Orqaga (ommaviy kiritma)», «Qamrov %» (bo'lim) | «Fakt = F2» bo'lim + obyekt: oldindan ko'rish, istisno, F2 narxi 1:1, bo'laklab yozish, eski hujjatni bekor qilish bor (PR-C2c) | 🟡 (ish qatoridagi «=F2» tugmasi, Shift+F, saqlanuvchi urinish/receipt ❌; Orqaga, Qamrov % ❌) |
+| «Fakt = F2» (bo'lim / butun obyekt), «Orqaga (ommaviy kiritma)», «Qamrov %» (bo'lim) | «Fakt = F2» bo'lim + obyekt: oldindan ko'rish, istisno, F2 narxi 1:1, bo'laklab yozish, eski hujjatni bekor qilish bor (PR-C2c) | 🟡 (qator amali «=F2» va Shift+F bor (Shift+F demoda tekshirilmagan); saqlanuvchi urinish/receipt ❌; Orqaga, Qamrov % ❌) |
 | Resurs qatorlari: «Resurslar: <nom>», «Materiallarni ham olish», ish ulushida taklif (avtomatik yozilmaydi), norma x ish fakti «avto» | yo'q | ❌ |
 | Qator amallari: «Bajarilmaydi / qilib bo'lmaydi», «Zamena» (ish/resurs), «Resursni ishdan chiqarish», «Zamenani bekor qilish» | Bajarilmaydi (dialog, Ctrl+B, bekor qilish, chiqarilgan resurs summadan chiqadi) bor | 🟡 (Zamena, Resursni ishdan chiqarish tugmasi, Zamenani bekor qilish ❌) |
 | Belgilar: «bajarilmaydi», «zamena», «qo'shimcha», «narxsiz», «qoldiqdan oshdi», «F2 faktdan +n», «taklif» | yo'q | ❌ |

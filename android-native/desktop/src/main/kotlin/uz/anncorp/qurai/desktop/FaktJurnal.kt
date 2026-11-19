@@ -33,6 +33,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
@@ -275,6 +276,7 @@ private fun FaktJurnalScreen(c: Ctx, o: Obj) {
                 if (e.type != KeyEventType.KeyDown) false else when {
                     e.isCtrlPressed && e.key == Key.S -> { saqla(); true }
                     e.isCtrlPressed && e.key == Key.Z && tarix.isNotEmpty() -> { orqaga(); true }
+                    e.isShiftPressed && !e.isCtrlPressed && e.key == Key.F -> { if (model.bolimlar.isNotEmpty() || model.ildizIshlari.isNotEmpty()) tenglashOch(tx("Butun obyekt (barcha bo‘limlar)"), model.bolimlar.map { it.nom to model.bolimIshlari[it.id].orEmpty() } + (tx("Bo‘limsiz") to model.ildizIshlari)); true }
                     e.isCtrlPressed && e.key == Key.B -> { satrlar.firstOrNull { it.key == grid.active }?.qator()?.let { bajDialog = it }; true }
                     e.isCtrlPressed && e.key == Key.F -> { runCatching { find.requestFocus() }; true }
                     else -> false
@@ -347,7 +349,7 @@ private fun FaktJurnalScreen(c: Ctx, o: Obj) {
                     }
                     if (qq.isEmpty() && tanlangan != null) BolimSummaQatori(summalar[tanlangan.id], ustama, ustamaYuk.first, ::tx, lang)
                     if (satrlar.isEmpty()) Text(if (qq.isNotEmpty() || holatFiltr != HolatFiltr.Hammasi || faqatQoldiq) tx("Hech narsa topilmadi.") else tx("Bu bo‘limda (ichki bo‘limlari bilan) ish yo‘q."), style = Q.type.bodyMedium, color = Q.colors.textMute)
-                    else FaktGrid(satrlar, kiritmalar, paket.xatolar.keys, holat, rowById, grid, { grid = it }, ::tx, lang, summaMatn, bajHajm, { bajDialog = it }, ::bajBekor, Modifier.weight(1f).fillMaxWidth(), { id, k -> qoy(if (k == null || k.qiymat.isBlank()) kiritmalar - id else kiritmalar + (id to k)) }, { msg = tx("Bu qatorga fakt qo‘lda kiritilmaydi (avtomatik).") to QTone.Info })
+                    else FaktGrid(satrlar, kiritmalar, paket.xatolar.keys, holat, rowById, grid, { grid = it }, ::tx, lang, summaMatn, bajHajm, { bajDialog = it }, ::bajBekor, { ish -> tenglashOch(ish.q.nom, null, listOf(ish)) }, Modifier.weight(1f).fillMaxWidth(), { id, k -> qoy(if (k == null || k.qiymat.isBlank()) kiritmalar - id else kiritmalar + (id to k)) }, { msg = tx("Bu qatorga fakt qo‘lda kiritilmaydi (avtomatik).") to QTone.Info })
                 }
             }
             // ---- save panel (SaqlashPaneli) ----
@@ -372,7 +374,7 @@ private fun Meter(ulush: Double?) {
 @Composable
 private fun FaktGrid(
     satrlar: List<FSatr>, kiritmalar: Map<Long, Kiritma>, xatoIds: Set<Long>, holat: Map<Long, uz.anncorp.smeta.core.fakt.JurnalHolat>,
-    rowById: Map<Long, uz.anncorp.smeta.core.fakt.T2Qator>, state: GridState, onState: (GridState) -> Unit, tx: (String, Map<String, Any>) -> String, lang: String, summaMatn: (FSatr) -> String, bajHajm: Map<Long, Double>, onBajOch: (JurnalQator) -> Unit, onBajBekor: (Long) -> Unit, modifier: Modifier,
+    rowById: Map<Long, uz.anncorp.smeta.core.fakt.T2Qator>, state: GridState, onState: (GridState) -> Unit, tx: (String, Map<String, Any>) -> String, lang: String, summaMatn: (FSatr) -> String, bajHajm: Map<Long, Double>, onBajOch: (JurnalQator) -> Unit, onBajBekor: (Long) -> Unit, onTenglash: (JurnalIsh) -> Unit, modifier: Modifier,
     onKiritma: (Long, Kiritma?) -> Unit, onNotAllowed: () -> Unit,
 ) {
     fun t(k: String) = tx(k, emptyMap())
@@ -401,6 +403,7 @@ private fun FaktGrid(
         GridAction<FSatr>("Rejim «=» (jami)") { rows -> rows.forEach { s -> s.qator()?.let { q -> kiritmalar[q.id]?.let { onKiritma(q.id, it.copy(rejim = Rejim.Teng)) } } } },
         GridAction<FSatr>(t("Bajarilmaydi / qilib bo‘lmaydi")) { rows -> rows.firstNotNullOfOrNull { it.qator() }?.let(onBajOch) },
         GridAction<FSatr>(t("Bajarilmaydi deb belgilangan hajm (bosing - bekor qilish)"), enabled = { rows -> rows.any { s -> s.qator()?.let { (bajHajm[it.id] ?: 0.0) > 0 } == true } }) { rows -> rows.firstNotNullOfOrNull { s -> s.qator()?.takeIf { (bajHajm[it.id] ?: 0.0) > 0 } }?.let { onBajBekor(it.id) } },
+        GridAction<FSatr>(t("Fakt ni F2 ga tenglash") + " (=F2)", enabled = { rows -> rows.any { s -> s is FIsh && (holat[s.ish.id]?.f2Hajm ?: 0.0) - s.ish.q.fakt > 1e-9 } }) { rows -> rows.firstNotNullOfOrNull { s -> (s as? FIsh)?.ish?.takeIf { (holat[it.id]?.f2Hajm ?: 0.0) - it.q.fakt > 1e-9 } }?.let(onTenglash) },
         GridAction<FSatr>("Kiritilgan (saqlanmagan) qiymatni o‘chirish") { rows -> rows.forEach { s -> s.qator()?.let { q -> onKiritma(q.id, null) } } },
     )
     DataGrid(
