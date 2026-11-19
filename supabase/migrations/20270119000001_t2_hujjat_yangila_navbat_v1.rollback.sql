@@ -1,0 +1,22 @@
+-- rollback 20270119000001_t2_hujjat_yangila_navbat_v1
+drop trigger if exists t2_akt_hujjat_yangila_trg on public.t2_akt;
+drop trigger if exists t2_akt_qator_hujjat_yangila_ins_trg on public.t2_akt_qator;
+drop trigger if exists t2_akt_qator_hujjat_yangila_upd_trg on public.t2_akt_qator;
+drop trigger if exists t2_akt_qator_hujjat_yangila_del_trg on public.t2_akt_qator;
+drop trigger if exists t2_akt_podval_hujjat_yangila_trg on public.t2_akt_podval;
+drop trigger if exists t2_nakrutka_podval_hujjat_yangila_trg on public.t2_nakrutka_podval;
+drop function if exists public.t2_akt_hujjat_yangila_trg();
+drop function if exists public.t2_akt_qator_hujjat_yangila_ins_trg();
+drop function if exists public.t2_akt_qator_hujjat_yangila_upd_trg();
+drop function if exists public.t2_akt_qator_hujjat_yangila_del_trg();
+drop function if exists public.t2_akt_podval_hujjat_yangila_trg();
+drop function if exists public.t2_nakrutka_podval_hujjat_yangila_trg();
+drop function if exists public.t2_hujjat_yangila_ol_v1(integer, bigint);
+drop function if exists public.t2_hujjat_yangila_tugat_v1(bigint, text, text, integer);
+drop function if exists public.t2_hujjat_yangila_belgila_v1(bigint, text, bigint[]);
+drop function if exists public.t2_hujjat_yangila_backfill_v1(integer);
+drop function if exists public.t2_hujjat_yangila_holat_v1(bigint, text, bigint[]);
+drop function if exists public._t2_hujjat_yangila_belgila_v1(bigint, text, bigint, bigint);
+drop function if exists public._t2_hujjat_yangila_f2_toplam_v1(bigint[]);
+drop function if exists public._t2_hujjat_yangila_aktor_v1(bigint);
+drop table if exists public.t2_hujjat_yangila_navbat;

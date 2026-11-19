@@ -10,6 +10,7 @@
 import { hmQidirYuqori, hmRpc, rpcOk, rpcXato, sessiyaAktor, type HmEnv } from '../_shared/hujjat-maydoni';
 import { r2Ochir, sha256Hex } from '../_shared/r2-saqlash';
 import { yetimAi, yetimKochir, yetimRoyxat } from '../_shared/disk-yetim';
+import { haqiqiyDeps, navbatniIshla } from '../_shared/hujjat-yangila';
 
 const num = (v: unknown): number | null => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : null; };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -25,7 +26,18 @@ export function paketFiltri(xom: string | null): Record<string, unknown> {
   for (const [k, v] of [['loyiha_ids', ids(j.loyiha_ids)], ['shartnoma_ids', ids(j.shartnoma_ids)], ['obyekt_ids', ids(j.obyekt_ids)], ['turlar', txt(j.turlar)], ['holatlar', txt(j.holatlar)]] as const) if (v.length) o[k] = v;
   if (oy(j.oy_dan)) o.oy_dan = oy(j.oy_dan);
   if (oy(j.oy_gacha)) o.oy_gacha = oy(j.oy_gacha);
+  const son = (v: unknown, maks: number): number | null => { const n = Number(v); return Number.isSafeInteger(n) && n >= 0 ? Math.min(n, maks) : null; };
+  if (j.variantlar === true) o.variantlar = true;
+  if (son(j.offset, 100000) != null) o.offset = son(j.offset, 100000);
+  if (son(j.sahifa_limit, 500)) o.sahifa_limit = son(j.sahifa_limit, 500);
   return o;
+}
+
+/** Saqlanadigan filtr: sahifalash maydonlarisiz. */
+function saqlanadiganFiltr(xom: unknown): Record<string, unknown> {
+  const f = paketFiltri(JSON.stringify(xom ?? {}));
+  delete f.offset; delete f.sahifa_limit; delete f.variantlar;
+  return f;
 }
 
 async function javob(p: Promise<{ httpOk: boolean; body: any; raw: string }>) {
@@ -58,6 +70,14 @@ export const onRequestGet: PagesFunction<HmEnv> = async (ctx) => {
       case 'yetim': return komp ? yetimRoyxat(ctx.env, id, komp) : Response.json({ ok: false, code: 'KOMPANIYA_KERAK' }, { status: 400 });
       case 'tizim': return komp ? R('t2_hm_tizim_hujjat_v1', { p_actor: id, p_kompaniya: komp, p_limit: 200 }) : Response.json({ ok: false, code: 'KOMPANIYA_KERAK' }, { status: 400 });
       // Hujjatlar paketi (universal): Disk + akt reestri nomzodlari (bitta RPC; sayt, Telegram, MCP, Jarvis). filtr - JSON, faqat ma'lum kalitlar.
+      case 'paket_royxat': {
+        if (!komp) return Response.json({ ok: false, code: 'KOMPANIYA_KERAK' }, { status: 400 });
+        // Fon yangilash: GitHub cron kechiksa ham, ro'yxat ochilganda muddati kelgan F-2 lar yangilanadi (token yechilmaydi).
+        ctx.waitUntil(navbatniIshla(haqiqiyDeps(ctx, { kompaniyaId: komp }), { limit: 2, byudjetMs: 15_000 }).catch(() => undefined));
+        return R('t2_hujjat_paket_royxat_v1', { p_actor: id, p_kompaniya: komp, p_filtr: paketFiltri(q.get('filtr')) });
+      }
+      case 'filtr_royxat': return komp ? R('t2_hujjat_filtr_royxat_v1', { p_actor: id, p_kompaniya: komp }) : Response.json({ ok: false, code: 'KOMPANIYA_KERAK' }, { status: 400 });
+      case 'tayyor': return komp ? R('t2_hujjat_tayyor_ol_v1', { p_actor: id, p_kompaniya: komp, p_akt_id: num(q.get('akt_id')) }) : Response.json({ ok: false, code: 'KOMPANIYA_KERAK' }, { status: 400 });
       case 'paket_nomzod': return komp ? R('t2_hujjat_paket_nomzod_v1', { p_actor: id, p_kompaniya: komp, p_filtr: paketFiltri(q.get('filtr')) }) : Response.json({ ok: false, code: 'KOMPANIYA_KERAK' }, { status: 400 });
       case 'odamlar': return R('t2_hm_odamlar_v1', { p_actor: id, p_kompaniya: komp, p_q: (q.get('q') || '').slice(0, 60) });
       case 'admin': return R('t2_hm_admin_v1', { p_actor: id, p_kompaniya: komp });
@@ -89,6 +109,8 @@ export const onRequestPost: PagesFunction<HmEnv> = async (ctx) => {
     const R = (n: string, args: Record<string, unknown>) => javob(hmRpc(ctx.env, n, args));
     const komp = num(b.kompaniya_id);
     switch (b.amal) {
+      case 'filtr_saqla': return R('t2_hujjat_filtr_saqla_v1', { p_actor: id, p_kompaniya: komp, p_nom: String(b.nom ?? '').slice(0, 60), p_filtr: saqlanadiganFiltr(b.filtr) });
+      case 'filtr_ochir': return R('t2_hujjat_filtr_ochir_v1', { p_actor: id, p_kompaniya: komp, p_id: num(b.id) });
       case 'papka':
         return R('t2_hm_papka_amal_v1', { p_actor: id, p_kompaniya: komp, p_amal: String(b.op || ''), p_papka_id: num(b.papka_id), p_nom: b.nom ?? null, p_ota_id: num(b.ota_id) });
       case 'fayl':

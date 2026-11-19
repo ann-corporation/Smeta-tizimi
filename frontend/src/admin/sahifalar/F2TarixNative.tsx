@@ -36,6 +36,7 @@ import { hujjatYarat as hujjatYaratYuklab } from '../../api/hujjat-yarat';
 import { useYordamchiSahifaAmallari } from '../../lib/yordamchi/sahifa-amal-store';
 import { diskHolatiniKorsat } from '../../lib/disk-saqla';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
+import { F2TayyorBelgi } from './F2TayyorBelgi';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { t, tilLocale } from '../../i18n/til';
 import { ZakazchigaYuborish } from '../zakazchik/ZakazchigaYuborish';
@@ -313,7 +314,7 @@ export function F2TarixNative() {
     if (!kompaniyaId || chiqarilmoqda) return;
     setChiqarilmoqda(true);
     try {
-      const r = await hujjatYaratYuklab({ kompaniyaId, obyektId, tur: 'f2', parametrlar: { akt_id: akt.id } });
+      const r = await hujjatYaratYuklab({ kompaniyaId, obyektId, tur: 'f2', parametrlar: { akt_id: akt.id, disk_afzal: 1 } });
       if (!r.ok) { toast(r.code === 'F2_QATOR_TOPILMADI' ? t('Ф-2 hujjati tuzilmadi: {x}', { x: r.xabar }) : r.xabar, 'danger', undefined, 9000); return; }
       if (korish) korinish.ochish(r.bytes, r.faylNomi); else downloadBlob(r.bytes, r.faylNomi);
       if (r.bepulTakror) toast('Bu hujjat avval to‘langan — qayta yuklash bepul', 'ok');
@@ -451,6 +452,7 @@ export function F2TarixNative() {
                     {selectedLines.length > 0 && <>
                       <button type="button" onClick={() => void hujjatChiqar(selectedAkt, true)} disabled={chiqarilmoqda} className="fz-btn"><Eye />{t('Koʻrish')}</button>
                       <button type="button" onClick={() => void hujjatChiqar(selectedAkt, false)} disabled={chiqarilmoqda} className="fz-btn"><Download />{t('Ф-2 Excel')}</button>
+          {(workspace.companyId ?? joriy?.id) != null && <F2TayyorBelgi kompaniyaId={(workspace.companyId ?? joriy?.id) as number} aktId={selectedAkt.id} />}
                     </>}
                     {selectedAkt.holat === 'tasdiqlangan' && selectedAkt.oy && <Link to={`/admin/nakopitelniy?obyekt=${obyektId}&davr=${encodeURIComponent(selectedAkt.oy)}&f3=1`} title={t('Fayl yuklamaydi: Nakopitelniy sahifasida shu davr uchun Forma 3 ochiladi')} className="fz-btn"><FileText />{t('Forma 3 ga o‘tish')}</Link>}
                     {selectedAkt.lifecycle_status === 'approved' && importAkt?.id === selectedAkt.id && importAkt.import === false && <ZakazchigaYuborish kompaniyaId={workspace.companyId ?? joriy?.id} aktId={selectedAkt.id} />}

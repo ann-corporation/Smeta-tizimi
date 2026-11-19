@@ -59,7 +59,8 @@ export const hujjatPaket = tool({
     };
     if (!tasdiq) return natija;
 
-    const aktlar = reja.yasash.filter((n) => n.tur === 'f2' && n.akt_id != null).slice(0, 20);
+    // F-2: Diskda tayyor bo'lsa zudlik bilan olinadi (bittaAkt: Disk afzal, token yuklab olishda), eskirgan/yo'q bo'lsa yasaladi.
+    const aktlar = [...reja.yasash, ...reja.diskdan].filter((n) => n.tur === 'f2' && n.akt_id != null).slice(0, 20);
     const idlar = aktlar.map((n) => n.akt_id as number);
     const papka = path.resolve(a.papka ?? standartPapka());
     const satrlar = idlar.length ? (await mu.oqish((m: Mijoz) => m.query<{ id: number; obyekt_id: number; tur: string | null; holat: string | null; oy: string | null; raqam: string | null; kompaniya_id: number | null }>(
@@ -75,7 +76,7 @@ export const hujjatPaket = tool({
     await fs.mkdir(papka, { recursive: true });
     const tarkibFayl = path.join(papka, faylNomiTozala('Tarkib.txt'));
     await fs.writeFile(tarkibFayl, tarkib, 'utf8');
-    return { ...natija, papka, tarkib: tarkibFayl, yasaldi, xatolar, f2_chegara: aktlar.length < reja.yasash.filter((n) => n.tur === 'f2').length ? 'bir chaqiruvda ko\'pi bilan 20 ta F-2 yasaladi; qolganini qayta chaqiring' : undefined };
+    return { ...natija, papka, tarkib: tarkibFayl, yasaldi, xatolar, f2_chegara: aktlar.length < [...reja.yasash, ...reja.diskdan].filter((n) => n.tur === 'f2').length ? 'bir chaqiruvda ko\'pi bilan 20 ta F-2 yasaladi; qolganini qayta chaqiring' : undefined };
   },
 });
 

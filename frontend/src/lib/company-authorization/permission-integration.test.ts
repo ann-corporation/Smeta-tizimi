@@ -8,7 +8,7 @@ const read=(p:string)=>readFileSync(resolve(root,p),'utf8');
 describe('role integration architecture',()=>{
   it('every API is scoped or has an explicit independently secured exception',()=>{
     /* Hujjat maydoni (shaxsiy maydon kompaniyasiz ishlaydi): aktor faqat sessiyadan; ruxsat/kvota t2_hm_* RPC lari ichida (deny-by-default, service_role). */
-  const exceptions=new Set(['hujjat-maydoni','hujjat-maydoni-ol','hujjat-maydoni-yukla','hujjat-maydoni-tozala','hujjat-buyruq','didox-webhook','t2-bridge','kirish','kirish-google','chiqish','royxat','royxat-ozi','royxat-email-kod','soglik','xato','kontekst-diag','catalog-release','norm-katalog','koef-katalog','hour-price-catalog','mash-katalog','narx-katalog','narx-katalog-nashr',
+  const exceptions=new Set(['hujjat-maydoni','hujjat-maydoni-ol','hujjat-maydoni-yukla','hujjat-maydoni-tozala','hujjat-yangila-tick','hujjat-buyruq','didox-webhook','t2-bridge','kirish','kirish-google','chiqish','royxat','royxat-ozi','royxat-email-kod','soglik','xato','kontekst-diag','catalog-release','norm-katalog','koef-katalog','hour-price-catalog','mash-katalog','narx-katalog','narx-katalog-nashr',
       /* superadminActor: har chaqiruvda bazada qayta tekshiriladi (r2-dublikat.test.ts — superadmin bo'lmasa 403, R2 ga tegmaydi). */
       'r2-dublikat',
       /* qulf: foydalanuvchi darajasidagi PIN/passkey (kompaniya resursi emas): har chaqiruvda sessiya (tekshir) + o'z foydalanuvchi_id si; siyosat_saqla control.company.write ni o'zi tekshiradi (qulf.test.ts, qulf-amal.test.ts). */

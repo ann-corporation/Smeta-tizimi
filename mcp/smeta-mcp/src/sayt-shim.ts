@@ -32,6 +32,8 @@ export const SORO_RUXSAT: Readonly<Record<string, SoroTur>> = {
 export const RPC_RUXSAT: ReadonlySet<string> = new Set([
   't2_token_sarfla_v1', 't2_token_qaytar_v1',
   't2_disk_tizim_yoz_v1', 't2_document_canonical_reserve_v1', 't2_document_canonical_finalize_v1',
+  // Hujjat doim tayyor: Diskdagi tayyor F-2 versiyasi (faqat o'qish) va uni yuklab olish
+  't2_hujjat_tayyor_ol_v1', 't2_hm_yuklab_v1',
 ]);
 
 const ID = /^[a-z_][a-z0-9_]*$/;
