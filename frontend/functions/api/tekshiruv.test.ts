@@ -40,70 +40,70 @@ describe('/api/tekshiruv - sessiya va ruxsat', () => {
     expect((await post({ amal: 'holat', token: T, holat: 'qabul' }, undefined, 'https://evil.example')).status).toBe(403);
     expect((await get('token=qisqa')).status).toBe(404);
     expect((await post({ amal: 'holat', token: 'qisqa', holat: 'qabul' })).status).toBe(400);
-    expect(calls(f, 't2_tekshiruv_ochish_v1')).toHaveLength(0);
+    expect(calls(f, 't2_f2_tekshiruv_ochish_v1')).toHaveLength(0);
   });
 
   it('ochish: aktor sessiyadan (tanadagi/so\'rovdagi actor e\'tiborsiz); begona kompaniya/rol - 403', async () => {
-    const f = mockFetch({ t2_tekshiruv_ochish_v1: { ok: false, code: 'RUXSAT_YOQ' } });
+    const f = mockFetch({ t2_f2_tekshiruv_ochish_v1: { ok: false, code: 'RUXSAT_YOQ' } });
     const r = await get('token=' + T + '&p_actor_id=99');
     expect(r.status).toBe(403); expect(await J(r)).toEqual({ ok: false, code: 'RUXSAT_YOQ' });
-    expect(body(f, 't2_tekshiruv_ochish_v1')).toEqual({ p_actor_id: 7, p_token: T });
+    expect(body(f, 't2_f2_tekshiruv_ochish_v1')).toEqual({ p_actor_id: 7, p_token: T });
   });
 
   it('ochish: ruxsat bor - panel javobi o\'zgarishsiz qaytadi; token yo\'q - 404', async () => {
-    mockFetch({ t2_tekshiruv_ochish_v1: { ok: true, rol: 'tekshiruvchi', qatorlar: [], takliflar: [] } });
+    mockFetch({ t2_f2_tekshiruv_ochish_v1: { ok: true, rol: 'tekshiruvchi', qatorlar: [], takliflar: [] } });
     expect(await J(await get('token=' + T))).toMatchObject({ ok: true, rol: 'tekshiruvchi' });
-    mockFetch({ t2_tekshiruv_ochish_v1: { ok: false, code: 'TOPILMADI' } });
+    mockFetch({ t2_f2_tekshiruv_ochish_v1: { ok: false, code: 'TOPILMADI' } });
     expect((await get('token=' + T)).status).toBe(404);
   });
 });
 
 describe('/api/tekshiruv - taklif yozish (F-2 ga yozilmaydi)', () => {
   it('saqla: talab tozalanadi, RPC ga aktor sessiyadan; faqat tekshiruv RPC lari chaqiriladi', async () => {
-    const f = mockFetch({ t2_tekshiruv_saqla_v1: { ok: true, id: 5 } });
+    const f = mockFetch({ t2_f2_tekshiruv_saqla_v1: { ok: true, id: 5 } });
     const j = await J(await post({ amal: 'saqla', token: T, qator_id: 41, bayroq: 'hajm_notogri', izoh: '  loyiha bilan mos emas ', taklif_hajm: '3,5', rang: 'qizil', p_actor_id: 99 }));
     expect(j).toEqual({ ok: true, id: 5, ochirildi: false });
-    expect(body(f, 't2_tekshiruv_saqla_v1')).toEqual({ p_actor_id: 7, p_token: T, p_qator_id: 41, p_bayroq: 'hajm_notogri', p_izoh: 'loyiha bilan mos emas', p_taklif_hajm: 3.5, p_rang: 'qizil', p_hujjat_turi: null, p_qosh: false });
-    expect(f.mock.calls.every((c) => /\/rpc\/(t2_men_v1|t2_tekshiruv_[a-z_0-9]+)$/.test(String(c[0])) || !String(c[0]).includes('/rpc/'))).toBe(true);
+    expect(body(f, 't2_f2_tekshiruv_saqla_v1')).toEqual({ p_actor_id: 7, p_token: T, p_qator_id: 41, p_bayroq: 'hajm_notogri', p_izoh: 'loyiha bilan mos emas', p_taklif_hajm: 3.5, p_rang: 'qizil', p_hujjat_turi: null, p_qosh: false });
+    expect(f.mock.calls.every((c) => /\/rpc\/(t2_men_v1|t2_f2_tekshiruv_[a-z_0-9]+)$/.test(String(c[0])) || !String(c[0]).includes('/rpc/'))).toBe(true);
   });
 
   it('saqla: noto\'g\'ri belgi/rang/hajm, hujjat_kerak turisiz - 400 (RPC chaqirilmaydi)', async () => {
-    const f = mockFetch({ t2_tekshiruv_saqla_v1: { ok: true } });
+    const f = mockFetch({ t2_f2_tekshiruv_saqla_v1: { ok: true } });
     for (const x of [{ bayroq: 'yomon' }, { rang: 'pushti' }, { taklif_hajm: -1 }, { taklif_hajm: 'abc' }, { bayroq: 'hujjat_kerak' }, { izoh: 'x'.repeat(1001) }, { qator_id: 0 }]) {
       expect((await post({ amal: 'saqla', token: T, qator_id: 41, ...x })).status).toBe(400);
     }
-    expect(calls(f, 't2_tekshiruv_saqla_v1')).toHaveLength(0);
+    expect(calls(f, 't2_f2_tekshiruv_saqla_v1')).toHaveLength(0);
   });
 
   it('saqla: PTO hal qilgan taklif - 409; qator F-2 da yo\'q - 400', async () => {
-    mockFetch({ t2_tekshiruv_saqla_v1: { ok: false, code: 'QAROR_QOYILGAN' } });
+    mockFetch({ t2_f2_tekshiruv_saqla_v1: { ok: false, code: 'QAROR_QOYILGAN' } });
     expect((await post({ amal: 'saqla', token: T, qator_id: 41, izoh: 'x' })).status).toBe(409);
-    mockFetch({ t2_tekshiruv_saqla_v1: { ok: false, code: 'QATOR_NOTOGRI' } });
+    mockFetch({ t2_f2_tekshiruv_saqla_v1: { ok: false, code: 'QATOR_NOTOGRI' } });
     expect((await post({ amal: 'saqla', token: T, qator_id: 41, izoh: 'x' })).status).toBe(400);
   });
 
   it('holat: faqat 4 ta qiymat; qidir: 2..80 belgi', async () => {
-    const f = mockFetch({ t2_tekshiruv_holat_v1: { ok: true, holat: 'qabul' }, t2_tekshiruv_qidir_v1: { ok: true, qatorlar: [] } });
+    const f = mockFetch({ t2_f2_tekshiruv_holat_v1: { ok: true, holat: 'qabul' }, t2_f2_tekshiruv_qidir_v1: { ok: true, qatorlar: [] } });
     expect(await J(await post({ amal: 'holat', token: T, holat: 'qabul', izoh: 'ok' }))).toEqual({ ok: true, holat: 'qabul' });
     expect((await post({ amal: 'holat', token: T, holat: 'hammasi_yaxshi' })).status).toBe(400);
     expect((await post({ amal: 'qidir', token: T, q: 'a' })).status).toBe(400);
     expect((await post({ amal: 'qidir', token: T, q: 'beton' })).status).toBe(200);
-    expect(calls(f, 't2_tekshiruv_holat_v1')).toHaveLength(1);
+    expect(calls(f, 't2_f2_tekshiruv_holat_v1')).toHaveLength(1);
   });
 });
 
 describe('/api/tekshiruv - bir martalik kod va bog\'lash', () => {
   it('kod_ber: kod mijozga FAQAT javobda; bazaga faqat xesh ketadi', async () => {
-    const f = mockFetch({ t2_tekshiruv_kod_ber_v1: { ok: true } });
+    const f = mockFetch({ t2_f2_tekshiruv_kod_ber_v1: { ok: true } });
     const j = await J(await post({ amal: 'kod_ber', token: T, ism: 'Tekshiruvchi', soat: 24 }));
     expect(j.ok).toBe(true); expect(j.kod).toMatch(/^[A-Za-z0-9_-]{22}$/);
-    const b = body(f, 't2_tekshiruv_kod_ber_v1');
+    const b = body(f, 't2_f2_tekshiruv_kod_ber_v1');
     expect(b.p_kod_xesh).toBe(await sha256Matn(j.kod)); expect(JSON.stringify(b)).not.toContain(j.kod);
     expect((await post({ amal: 'kod_ber', token: T, soat: 9999 })).status).toBe(400);
   });
 
   it('kod_ber: PTO bo\'lmaganga - 403; kod_ol: yaroqsiz - 403, tezlik cheklovi', async () => {
-    mockFetch({ t2_tekshiruv_kod_ber_v1: { ok: false, code: 'RUXSAT_YOQ' }, t2_tekshiruv_kod_ol_v1: { ok: false, code: 'KOD_YAROQSIZ' } });
+    mockFetch({ t2_f2_tekshiruv_kod_ber_v1: { ok: false, code: 'RUXSAT_YOQ' }, t2_f2_tekshiruv_kod_ol_v1: { ok: false, code: 'KOD_YAROQSIZ' } });
     expect((await post({ amal: 'kod_ber', token: T })).status).toBe(403);
     expect((await post({ amal: 'kod_ol', token: T, kod: 'K'.repeat(22) })).status).toBe(403);
     expect((await post({ amal: 'kod_ol', token: T, kod: 'qisqa' })).status).toBe(400);
@@ -112,9 +112,9 @@ describe('/api/tekshiruv - bir martalik kod va bog\'lash', () => {
   });
 
   it('bog: akt versiyaga bog\'lanadi (RPC), akt id musbat butun bo\'lsin; noma\'lum amal - 400', async () => {
-    const f = mockFetch({ t2_tekshiruv_bog_v1: { ok: true, yangi: true } });
+    const f = mockFetch({ t2_f2_tekshiruv_bog_v1: { ok: true, yangi: true } });
     expect(await J(await post({ amal: 'bog', token: T, akt_id: 41 }))).toEqual({ ok: true, yangi: true });
-    expect(body(f, 't2_tekshiruv_bog_v1')).toEqual({ p_actor_id: 7, p_token: T, p_akt_id: 41 });
+    expect(body(f, 't2_f2_tekshiruv_bog_v1')).toEqual({ p_actor_id: 7, p_token: T, p_akt_id: 41 });
     expect((await post({ amal: 'bog', token: T, akt_id: -3 })).status).toBe(400);
     expect((await post({ amal: 'nomalum', token: T })).status).toBe(400);
   });
@@ -123,11 +123,11 @@ describe('/api/tekshiruv - bir martalik kod va bog\'lash', () => {
 describe('/api/tekshiruv - yaroqsiz, muddati utgan, begona kompaniya tokeni rad etiladi', () => {
   it('har amal: nomalum token 404, begona kompaniya 403, muddati utgan kod 403; F-2 ga yozilmaydi', async () => {
     const f = mockFetch({
-      t2_tekshiruv_ochish_v1: (b: any) => (b.p_token === T ? { ok: false, code: 'RUXSAT_YOQ' } : { ok: false, code: 'TOPILMADI' }),
-      t2_tekshiruv_saqla_v1: { ok: false, code: 'RUXSAT_YOQ' },
-      t2_tekshiruv_holat_v1: { ok: false, code: 'RUXSAT_YOQ' },
-      t2_tekshiruv_qidir_v1: { ok: false, code: 'RUXSAT_YOQ' },
-      t2_tekshiruv_kod_ol_v1: { ok: false, code: 'KOD_YAROQSIZ' },
+      t2_f2_tekshiruv_ochish_v1: (b: any) => (b.p_token === T ? { ok: false, code: 'RUXSAT_YOQ' } : { ok: false, code: 'TOPILMADI' }),
+      t2_f2_tekshiruv_saqla_v1: { ok: false, code: 'RUXSAT_YOQ' },
+      t2_f2_tekshiruv_holat_v1: { ok: false, code: 'RUXSAT_YOQ' },
+      t2_f2_tekshiruv_qidir_v1: { ok: false, code: 'RUXSAT_YOQ' },
+      t2_f2_tekshiruv_kod_ol_v1: { ok: false, code: 'KOD_YAROQSIZ' },
     });
     expect((await get('token=' + 'Z'.repeat(22))).status).toBe(404);      // bazada yo'q token
     expect((await get('token=' + T)).status).toBe(403);                   // boshqa kompaniya / rolsiz
