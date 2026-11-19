@@ -1,6 +1,6 @@
 import { beforeEach, afterEach, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 import type { YordamchiUlanish } from './yordamchi/ishlov';
 import type { KasbIshchi } from '../../api/t2-agent-ish';
 const m=vi.hoisted(()=>({ask:vi.fn(),load:vi.fn(),list:vi.fn(),intent:vi.fn(),save:vi.fn(),sync:vi.fn(),append:vi.fn(),mutate:vi.fn(),diskRead:vi.fn(),diskSave:vi.fn(),diskRemove:vi.fn(),page:vi.fn()}));
@@ -32,6 +32,21 @@ it('passes current object and linked act IDs to the server rather than only the 
  render(<MemoryRouter initialEntries={['/admin/f2-tarix?obyekt=3&akt=41']}><AiChat kompaniyaId={17} foydalanuvchiId={7} kasb={role} sahifa="/admin/f2-tarix" generatsiya={0} yordamchi={current}/></MemoryRouter>);
  await act(async()=>{});send('Shu hujjatni tekshir');await waitFor(()=>expect(m.ask).toHaveBeenCalledTimes(1));
  expect(m.ask.mock.calls[0][2]).toMatchObject({obyektId:3,aktId:41,obyektNomi:'Synthetic object'});
+});
+it('aborts an old F2 answer when the linked act changes inside the same page', async () => {
+ let finish!:(value:unknown)=>void;
+ m.ask.mockReturnValue(new Promise(resolve=>{finish=resolve;}));
+ function CurrentAct(){
+  const navigate=useNavigate();
+  return <><button onClick={()=>navigate('?obyekt=3&akt=42')}>Switch linked act</button><AiChat kompaniyaId={17} foydalanuvchiId={7} kasb={role} sahifa="/admin/f2-tarix" generatsiya={0} yordamchi={helper}/></>;
+ }
+ render(<MemoryRouter initialEntries={['/admin/f2-tarix?obyekt=3&akt=41']}><CurrentAct/></MemoryRouter>);
+ await act(async()=>{});send('Shu hujjatni tekshir');await waitFor(()=>expect(m.ask).toHaveBeenCalledTimes(1));
+ const signal=m.ask.mock.calls[0][2].signal;
+ fireEvent.click(screen.getByText('Switch linked act'));
+ await waitFor(()=>expect(signal.aborted).toBe(true));
+ await act(async()=>finish({ok:true,javob:'OLD ACT RESULT'}));
+ expect(screen.queryByText('OLD ACT RESULT')).toBeNull();
 });
 const tick=(ms:number)=>act(async()=>{await vi.advanceTimersByTimeAsync(ms);});
 

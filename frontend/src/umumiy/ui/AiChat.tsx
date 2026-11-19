@@ -105,7 +105,8 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const abort = useRef<AbortController | null>(null);
   const busy = useRef(false);
   const studioScope = useSyncExternalStore(studioKontekstObuna, () => studioKontekstScope(kompaniyaId, sahifa), () => '');
-  const scope = `${generatsiya}|${foydalanuvchiId}|${kompaniyaId}|${sahifa}|${studioScope}`;
+  const actScope = ['/admin/f2-tarix', '/admin/f2-tayyorlash'].includes(sahifa) ? location.search : '';
+  const scope = `${generatsiya}|${foydalanuvchiId}|${kompaniyaId}|${sahifa}|${studioScope}|${yordamchi?.joriyObyekt?.id ?? ''}|${actScope}`;
   const suhbatAvlod = useRef(0);
   const gen = useRef(scope);
   gen.current = `${scope}|${suhbatAvlod.current}`;
