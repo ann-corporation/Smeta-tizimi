@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ier_search">Объект, договор или проект</string>
+    <string name="ier_loyiha">Проект</string>
+    <string name="ier_shartnoma">Договор</string>
+    <string name="ier_obyekt">Объект</string>
+    <string name="ier_status">Статус</string>
+    <string name="ier_all">Все</string>
+    <string name="ier_expand_all">Развернуть все</string>
+    <string name="ier_collapse_all">Свернуть</string>
+    <string name="ier_no_loyiha">Без проекта</string>
+    <string name="ier_no_shartnoma">Без договора</string>
+    <string name="ier_count">Объектов: %1$d</string>
+    <string name="ier_partial">Нет суммы: %1$d</string>
+    <string name="ier_h_faol">Активный</string>
+    <string name="ier_h_tuxtatilgan">Приостановлен</string>
+    <string name="ier_h_yakunlangan">Завершён</string>
+    <string name="ier_h_bekor">Отменён</string>
+    <string name="ier_context">Контекст</string>
+    <string name="ier_context_all">Контекст: все</string>
+    <string name="ier_context_clear">Очистить</string>
+    <string name="ier_empty">Объект не найден</string>
+    <string name="ier_flat_note">Данные о проектах и договорах не прочитаны: обычный список</string>
+    <string name="ier_pick_hint">Выберите объект: карточка откроется здесь</string>
+    <string name="ier_card_smeta">Смета</string>
+    <string name="ier_card_fakt">Факт</string>
+    <string name="ier_card_f2">Ф-2</string>
+    <string name="ier_card_progress">Выполнение</string>
+    <string name="ier_card_rows">Строк: %1$d</string>
+    <string name="ier_card_unpriced">Строк без цены: %1$d</string>
+    <string name="ier_d_title">Детали строки</string>
+    <string name="ier_d_volume">Объём</string>
+    <string name="ier_d_price">Цена (без НДС)</string>
+    <string name="ier_d_sum">Сумма</string>
+    <string name="ier_d_left">Остаток</string>
+    <string name="ier_d_unit">Ед. изм.</string>
+    <string name="ier_d_pick">Нажмите на строку, чтобы увидеть детали</string>
+    <string name="ier_d_close">Закрыть</string>
+    <string name="ier_today_title">Главная</string>
+    <string name="ier_today_go">Открыть</string>
+</resources>

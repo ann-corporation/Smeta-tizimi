@@ -25,6 +25,22 @@ import uz.anncorp.smeta.core.data.sectionProgress
 import uz.anncorp.smeta.core.data.MoneyRepository
 import uz.anncorp.smeta.core.data.ObjectMoney
 import uz.anncorp.smeta.core.data.ObjectsRepository
+import uz.anncorp.smeta.core.data.HierarchyRepository
+import uz.anncorp.smeta.core.data.HierarchySource
+import uz.anncorp.smeta.core.data.ObjectLeaf
+import uz.anncorp.smeta.core.data.Prefs
+import uz.anncorp.smeta.core.data.ScopeOption
+import uz.anncorp.smeta.core.data.TreeFilter
+import uz.anncorp.smeta.core.data.TreeRow
+import uz.anncorp.smeta.core.data.WorkScope
+import uz.anncorp.smeta.core.data.allGroupKeys
+import uz.anncorp.smeta.core.data.buildObjectTree
+import uz.anncorp.smeta.core.data.flattenTree
+import uz.anncorp.smeta.core.data.loyihaOptions
+import uz.anncorp.smeta.core.data.normalizeScope
+import uz.anncorp.smeta.core.data.objectLeaf
+import uz.anncorp.smeta.core.data.shartnomaOptions
+import uz.anncorp.smeta.core.data.toggleKey
 import uz.anncorp.smeta.core.data.OutboxRepository
 import uz.anncorp.smeta.core.data.RowsRepository
 import uz.anncorp.smeta.core.data.SyncResult
@@ -50,6 +66,7 @@ class BannerViewModel @Inject constructor(connectivity: ConnectivityMonitor, out
 }
 
 data class ObjectsUi(
+    /** Every object of the company (the empty state decides on this, not on the filtered tree). */
     val items: List<ObyektEntity> = emptyList(),
     val loading: Boolean = true,
     val refreshing: Boolean = false,
@@ -58,32 +75,87 @@ data class ObjectsUi(
     val query: String = "",
     val noCompany: Boolean = false,
     val money: Map<Long, ObjectMoney> = emptyMap(),
+    /** Loyiha > Shartnoma > Obyekt rows ready to draw (search keeps the tree and opens the parents). */
+    val rows: List<TreeRow> = emptyList(),
+    val shownCount: Int = 0,
+    /** False while the grouping source is unreadable: the screen then shows the plain list and says so. */
+    val hasHierarchy: Boolean = false,
+    val scope: WorkScope = WorkScope(),
+    val holat: String? = null,
+    val statuses: List<String> = emptyList(),
+    val loyihaOptions: List<ScopeOption> = emptyList(),
+    val shartnomaOptions: List<ScopeOption> = emptyList(),
+    val currentId: Long? = null,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
-class ObjectsViewModel @Inject constructor(private val repo: ObjectsRepository, private val moneyRepo: MoneyRepository, private val ctx: WorkContext) : ViewModel() {
+class ObjectsViewModel @Inject constructor(
+    private val repo: ObjectsRepository, private val moneyRepo: MoneyRepository, private val ctx: WorkContext,
+    private val hierRepo: HierarchyRepository, private val prefs: Prefs,
+) : ViewModel() {
     private val query = MutableStateFlow("")
+    private val holat = MutableStateFlow<String?>(null)
     private val sync = MutableStateFlow(SyncUi(loading = true))
     private data class SyncUi(val loading: Boolean = false, val refreshing: Boolean = false, val result: SyncResult? = null)
+    private data class Inputs(val items: List<ObyektEntity>, val hier: HierarchySource?, val money: Map<Long, ObjectMoney>, val scope: WorkScope, val expanded: Set<String>?)
 
     private val company: Flow<Workplace?> = ctx.current
+    @Volatile private var snap: Inputs? = null
+    @Volatile private var companyId: Long? = null
+
+    private val inputs: Flow<Inputs> = combine(
+        company.flatMapLatest { w -> if (w == null) flowOf(emptyList<ObyektEntity>()) else repo.observe(w.companyId) },
+        company.flatMapLatest { w -> if (w == null) flowOf(null) else hierRepo.observe(w.companyId) },
+        moneyRepo.observeAll(),
+        company.flatMapLatest { w -> if (w == null) flowOf(WorkScope()) else prefs.scopeFlow(w.companyId) },
+        company.flatMapLatest { w -> if (w == null) flowOf(null) else prefs.expandedFlow(w.companyId) },
+    ) { items, hier, money, scope, exp -> Inputs(items, hier, money, scope, exp).also { snap = it } }
 
     val state: StateFlow<ObjectsUi> = combine(
-        company.flatMapLatest { w -> if (w == null) flowOf(emptyList<ObyektEntity>()) else repo.observe(w.companyId) },
-        company.flatMapLatest { w -> if (w == null) flowOf(null) else repo.lastUpdated(w.companyId) },
-        query, sync, company,
-    ) { items, ts, q, s, w ->
-        val shown = if (q.isBlank()) items else items.filter { it.nom.contains(q.trim(), ignoreCase = true) || (it.tur ?: "").contains(q.trim(), ignoreCase = true) }
-        ObjectsUi(shown, s.loading && items.isEmpty(), s.refreshing, s.result, ts, q, noCompany = w == null)
-    }.combine(moneyRepo.observeAll()) { ui, m -> ui.copy(money = m) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ObjectsUi())
+        inputs, company.flatMapLatest { w -> if (w == null) flowOf(null) else repo.lastUpdated(w.companyId) }, query, holat, sync,
+    ) { i, ts, q, h, s ->
+        val leaves = leavesOf(i.items, i.money)
+        val tree = buildObjectTree(leaves, i.hier, TreeFilter(q, i.scope.loyihaId, i.scope.shartnomaId, h))
+        ObjectsUi(
+            i.items, s.loading && i.items.isEmpty(), s.refreshing, s.result, ts, q, noCompany = ctx.current.value == null, money = i.money,
+            rows = flattenTree(tree, i.expanded, forceOpen = q.isNotBlank()), shownCount = tree.leafCount, hasHierarchy = i.hier != null,
+            scope = i.scope, holat = h, statuses = i.hier?.loyihalar?.mapNotNull { it.holat?.takeIf { x -> x.isNotBlank() } }?.distinct().orEmpty(),
+            loyihaOptions = loyihaOptions(leaves, i.hier), shartnomaOptions = shartnomaOptions(leaves, i.hier, i.scope.loyihaId), currentId = i.scope.obyektId,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ObjectsUi())
 
     init {
-        viewModelScope.launch { company.collect { if (it != null) refresh(initial = true) } }
+        viewModelScope.launch { company.collect { w -> companyId = w?.companyId; if (w != null) refresh(initial = true) } }
     }
 
     fun setQuery(q: String) { query.value = q }
+    fun setHolat(h: String?) { holat.value = h }
+
+    private fun leaves(i: Inputs) = leavesOf(i.items, i.money)
+    private fun currentTree(i: Inputs) = buildObjectTree(leaves(i), i.hier, TreeFilter(query.value, i.scope.loyihaId, i.scope.shartnomaId, holat.value))
+
+    /** Context change from the filter row; the contract / object stay only while they still fit (see [normalizeScope]). */
+    fun setScope(change: (WorkScope) -> WorkScope) {
+        val cid = companyId ?: return; val i = snap ?: return
+        prefs.setScope(cid, normalizeScope(change(i.scope), leaves(i), i.hier))
+    }
+
+    fun toggle(key: String) {
+        val cid = companyId ?: return; val i = snap ?: return
+        prefs.setExpanded(cid, toggleKey(i.expanded, currentTree(i), key))
+    }
+
+    fun expandAll(all: Boolean) {
+        val cid = companyId ?: return; val i = snap ?: return
+        prefs.setExpanded(cid, if (all) allGroupKeys(currentTree(i)) else emptySet())
+    }
+
+    /** An object was opened from the tree: it becomes the current context object. */
+    fun picked(id: Long) {
+        val cid = companyId ?: return; val i = snap ?: return
+        prefs.setScope(cid, i.scope.copy(obyektId = id)); prefs.pushRecent(id)
+    }
 
     fun refresh(initial: Boolean = false) {
         val w = ctx.current.value ?: return
@@ -91,9 +163,36 @@ class ObjectsViewModel @Inject constructor(private val repo: ObjectsRepository, 
             sync.update { it.copy(loading = initial, refreshing = !initial) }
             val r = repo.refresh(w.companyId)
             sync.value = SyncUi(result = r)
-            // Sum packages for the list (best effort: a role without the financial read right simply keeps the dashes).
+            // Sum packages for the list and the grouping source (best effort: a role without the right keeps the dashes / the plain list).
+            launch { hierRepo.refresh(w.companyId) }
             moneyRepo.refreshCompany(w.companyId)
         }
+    }
+}
+
+/** Objects as tree leaves: the server estimate package when known, otherwise only the direct amount (never a guessed QQS / markup). */
+internal fun leavesOf(items: List<ObyektEntity>, money: Map<Long, ObjectMoney>): List<ObjectLeaf> =
+    items.map { o -> objectLeaf(o.id, o.nom, o.tur, o.qatorSoni, o.narxsiz, money[o.id], o.jami) }
+
+/** Backs the shell's "Kontekst" switch: the chosen loyiha / shartnoma / obyekt, kept per company. */
+@OptIn(ExperimentalCoroutinesApi::class)
+@HiltViewModel
+class ScopeViewModel @Inject constructor(
+    repo: ObjectsRepository, private val hierRepo: HierarchyRepository, private val ctx: WorkContext, private val prefs: Prefs,
+) : ViewModel() {
+    data class Ui(val leaves: List<ObjectLeaf> = emptyList(), val hier: HierarchySource? = null, val scope: WorkScope = WorkScope())
+    private val company: Flow<Workplace?> = ctx.current
+    val state: StateFlow<Ui> = combine(
+        company.flatMapLatest { w -> if (w == null) flowOf(emptyList<ObyektEntity>()) else repo.observe(w.companyId) },
+        company.flatMapLatest { w -> if (w == null) flowOf(null) else hierRepo.observe(w.companyId) },
+        company.flatMapLatest { w -> if (w == null) flowOf(WorkScope()) else prefs.scopeFlow(w.companyId) },
+    ) { items, hier, scope -> Ui(items.map { ObjectLeaf(it.id, it.nom, it.tur) }, hier, scope) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Ui())
+
+    init { viewModelScope.launch { company.collect { w -> if (w != null) hierRepo.refresh(w.companyId) } } }
+
+    fun set(s: WorkScope) {
+        val w = ctx.current.value ?: return; val ui = state.value
+        prefs.setScope(w.companyId, normalizeScope(s, ui.leaves, ui.hier))
     }
 }
 

@@ -3,6 +3,8 @@ package uz.anncorp.smeta.core.data
 import android.content.SharedPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.asStateFlow
 
 enum class ThemeMode { DARK, LIGHT, SYSTEM }
@@ -45,6 +47,25 @@ class Prefs(private val sp: SharedPreferences) : PicksStore, WorkspaceCache {
     }
     fun clearRecent() { sp.edit().remove(KEY_RECENT).apply(); _recent.value = emptyList() }
 
+    // Loyiha > Shartnoma > Obyekt view state, per company: the chosen context (Kontekst) and the groups left open. View state only (numbers, no names).
+    private val treeTick = MutableStateFlow(0)
+    fun scopeOf(companyId: Long): WorkScope {
+        val v = sp.getString(KEY_SCOPE + companyId, null)?.split("|") ?: return WorkScope()
+        fun id(i: Int) = v.getOrNull(i)?.toLongOrNull()
+        return WorkScope(id(0), id(1), id(2))
+    }
+    fun scopeFlow(companyId: Long): kotlinx.coroutines.flow.Flow<WorkScope> = treeTick.map { scopeOf(companyId) }.distinctUntilChanged()
+    fun setScope(companyId: Long, s: WorkScope) {
+        sp.edit().putString(KEY_SCOPE + companyId, listOf(s.loyihaId, s.shartnomaId, s.obyektId).joinToString("|") { it?.toString().orEmpty() }).apply(); treeTick.value++
+    }
+    fun expandedOf(companyId: Long): Set<String>? = decodeKeys(sp.getString(KEY_EXPANDED + companyId, null))
+    fun expandedFlow(companyId: Long): kotlinx.coroutines.flow.Flow<Set<String>?> = treeTick.map { expandedOf(companyId) }.distinctUntilChanged()
+    fun setExpanded(companyId: Long, keys: Set<String>?) {
+        val e = sp.edit(); val v = encodeKeys(keys)
+        if (v == null) e.remove(KEY_EXPANDED + companyId) else e.putString(KEY_EXPANDED + companyId, v)
+        e.apply(); treeTick.value++
+    }
+
     private companion object {
         const val KEY_THEME = "theme"
         const val KEY_COMPANY = "company"
@@ -52,6 +73,8 @@ class Prefs(private val sp: SharedPreferences) : PicksStore, WorkspaceCache {
         const val KEY_WS = "ws:"
         const val KEY_RECENT = "recent"
         const val KEY_MUTED = "muted_groups"
+        const val KEY_SCOPE = "scope:"
+        const val KEY_EXPANDED = "tree_open:"
     }
 }
 
