@@ -74,6 +74,7 @@ import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 import { eskiBloklarHujjat, pereraschetBaholash, pereraschetBloklari, type PereraschetSmetaQator as PereraschetSmetaQatorT } from '../../lib/f2-pereraschet';
 import { PereraschetPanel } from '../../components/f2-tayyorlash/PereraschetPanel';
 import { F2TexnadzorSolishtir } from '../../components/f2-tayyorlash/F2TexnadzorSolishtir';
+import { F2QatorTakliflari } from '../../components/f2-tayyorlash/F2QatorTakliflari';
 import { F2TekshiruvTakliflari } from '../../components/f2-tayyorlash/F2TekshiruvTakliflari';
 import { obyektPodvali } from '../../api/t2-nakrutka-podval';
 import { sbAosrCoverageOl, type AosrCoverage } from '../../api/t2-aosr';
@@ -1002,6 +1003,7 @@ export function F2TayyorlashNative() {
           <div className="flex items-center gap-1.5">{katBelgi}<span className={`truncate text-text ${r.chiqarilgan ? 'line-through' : ''}`}>{r.nom}</span></div>
           {r.norma != null && r.avto && <div className="pl-1 text-[11px] text-text-mute">{t('norma')} {r.norma}</div>}
           {(amal || zb2 || orqBelgi || x?.qol) && <div className="mt-0.5 flex flex-wrap items-center gap-1 pl-1">{orqBelgi}{zb2}{amal}{x?.qol && qolBelgisi(r.id, x.qol)}</div>}
+          <F2QatorTakliflari qatorId={r.id} mumkin={r.mumkin ?? null} qoshish={(h) => yoz('hajm', r.id, sonMatn(h))} />
         </td>
         <td className="px-2 py-1.5 text-right text-text-mute">{r.birlik}</td>
         <td className="px-2 py-1.5 text-right tabular-nums">

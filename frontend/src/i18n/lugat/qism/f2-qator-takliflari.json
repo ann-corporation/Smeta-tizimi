@@ -1,0 +1,5 @@
+{
+  "Texnadzor taklifi": { "ru": "Предложение технадзора", "en": "Technical supervision proposal" },
+  "Fakt qoldig‘i yo‘q: qator qo‘shib bo‘lmaydi": { "ru": "Остатка факта нет: строку добавить нельзя", "en": "No actuals left: the row cannot be added" },
+  "Qator F-2 ga qo‘shildi: F-2 ni saqlang": { "ru": "Строка добавлена в Ф-2: сохраните Ф-2", "en": "Row added to the F-2: save the F-2" }
+}
