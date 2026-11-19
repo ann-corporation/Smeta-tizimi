@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { T2Qator } from '../api/supabase';
 import { bolimOlRejasi, bosKiritma, f2Jami, f2MumkinHajmlarniOl, f2Qatorlar, f2Qur, type F2Holat } from './f2-tayyor';
 import { f2BolimIerarxiya, korinadiganTugunlar } from './f2-bolim-daraxti';
+import { exactWrite } from './f2-exact-write';
+import { faktDeltaReja } from './f2-moslash-v3/aktual';
 import { f2Kontekst, type F2Malumot } from './ai-yordamchi/f2-vositalar';
 
 /** Egasi 2026-11-19: minus qatorlar (normaga keltirish) F2 ga ishorasi bilan kiradi, hech qaysi yo'lda jim tashlanmaydi. */
@@ -75,5 +77,26 @@ describe('F2: minus (manfiy qoldiq) qatorlar jim tashlanmaydi', () => {
     const bolimlar = f2Qur(rows, holat);
     const m = { bolimlar, ier: f2BolimIerarxiya(rows, bolimlar), oy: '2026-11', manba: 'fakt', ndsFoiz: null, qatorlar: [], jami: { ish: 0, qator: 0, xato: 0, ogoh: 0, narxsiz: 0, summa: 0, kat: {} }, k: bosKiritma(), uchastkalar: [], qatorBolim: new Map(), katKesim: {} } as unknown as F2Malumot;
     expect(f2Kontekst(m)).toContain('F2 ga olinadigan ishlar: 3 / 3.');
+  });
+});
+
+describe('F2 import qayta saqlash: minus qatorlar tashlanmaydi', () => {
+  it('exactWrite: minus ish + minus rs bolasi ishorasi bilan yoziladi, 0 qator chiqariladi', () => {
+    const nodes = [
+      { uid: 'a', hajm: -6.617, narx: undefined, summa: undefined, tur: 'bl' as const },
+      { uid: 'b', hajm: -13.234, narx: 15000, summa: -198510, tur: 'rs' as const, summaYozilgan: true },
+      { uid: 'c', hajm: 0, narx: undefined, summa: undefined, tur: 'bl' as const },
+    ];
+    const r = exactWrite(nodes as never, new Map([['a', 2], ['b', 3], ['c', 4]]));
+    expect(r.map((x) => x.qatorId)).toEqual([2, 3]);
+    expect(r[0].certifiedQuantity).toBe(-6.617);
+    expect(r[1]).toMatchObject({ certifiedQuantity: -13.234, certifiedAmount: -198510, certifiedUnitPrice: 15000 });
+  });
+  it('faktDeltaReja: minus fakt yoziladi (delta manfiy), allaqachon bor bo\'lsa - yo\'q; 0 yozilmaydi', () => {
+    const s = (qatorId: number, faylHajm: number) => ({ qatorId, tur: 'bl', kod: null, nom: 'x', birlik: 'm3', faylHajm, smetaHajm: -30.57 });
+    const r = faktDeltaReja([s(1, -6.617), s(2, -6.617), s(3, 0)], new Map([[2, -6.617]]));
+    expect(r.yoziladi.map((x) => [x.qatorId, x.delta])).toEqual([[1, -6.617]]);
+    expect(r.bor.map((x) => x.qatorId).sort()).toEqual([2, 3]);
+    expect(r.yoziladi[0].ogohlantirish).toBeUndefined(); // -6.617 smeta -30.57 dan oshmaydi
   });
 });
