@@ -74,6 +74,7 @@ import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 import { eskiBloklarHujjat, pereraschetBaholash, pereraschetBloklari, type PereraschetSmetaQator as PereraschetSmetaQatorT } from '../../lib/f2-pereraschet';
 import { PereraschetPanel } from '../../components/f2-tayyorlash/PereraschetPanel';
 import { F2TexnadzorSolishtir } from '../../components/f2-tayyorlash/F2TexnadzorSolishtir';
+import { F2TekshiruvTakliflari } from '../../components/f2-tayyorlash/F2TekshiruvTakliflari';
 import { obyektPodvali } from '../../api/t2-nakrutka-podval';
 import { sbAosrCoverageOl, type AosrCoverage } from '../../api/t2-aosr';
 import { aosrIshora, AOSR_ISHORA_MATNI, type AosrIshora } from '../../lib/nazorat/aosr-holat';
@@ -873,7 +874,7 @@ export function F2TayyorlashNative() {
     if (aktKorish && akt && joriy?.id) {
       const r = await hujjatYaratYuklab({ kompaniyaId: joriy.id, obyektId, tur: 'f2', parametrlar: { akt_id: akt.id } });
       if (!r.ok) { toast(r.xabar, 'danger', undefined, 9000); return; }
-      if (korish) korinish.ochish(r.bytes, r.faylNomi); else downloadBlob(r.bytes, r.faylNomi);
+      if (korish) korinish.ochish(r.bytes, r.faylNomi); else downloadBlob(r.bytes, r.faylNomi, undefined, { obyektId, aktId: akt.id });
       if (r.bepulTakror) toast('Bu hujjat avval to‘langan — qayta yuklash bepul', 'ok'); else if (r.sarflandi) toast(`${r.sarflandi} token`, 'ok');
       diskHolatiniKorsat(r.diskHolat);
       return;
@@ -1259,7 +1260,8 @@ export function F2TayyorlashNative() {
       )}
       {validId && aktId != null && eskiBloklar.length > 0 && aktPodval.holat === 'xato' && <section role="alert" className="fz-note fz-note--warn" style={{ alignItems: 'center' }}><AlertTriangle /><span className="flex-1">{t('Hujjat podvallari o‘qilmadi — pereraschet jami va Excel hisoblanmaydi.')}</span><button type="button" onClick={aktPodval.qayta} className="fz-btn fz-btn--sm">{t('Qayta urinib ko‘rish')}</button></section>}
       {validId && aktId != null && pereraschetBaho && <PereraschetPanel baho={pereraschetBaho} />}
-        {validId && aktId != null && akt && tnOchiq && <F2TexnadzorSolishtir qoralama={tnQoralama} aktRaqam={akt.raqam ?? ''} obyektId={obyektId} onYop={() => setTnOchiq(false)} />}
+      {validId && aktId != null && akt && joriy?.id && <F2TekshiruvTakliflari kompaniyaId={joriy.id} obyektId={obyektId} aktId={akt.id} versiya={akt.versiya} qoralama={!aktKorish} onOzgardi={() => void yuklash()} />}
+        {validId && aktId != null && akt && tnOchiq && <F2TexnadzorSolishtir qoralama={tnQoralama} aktRaqam={akt.raqam ?? ''} obyektId={obyektId} aktId={akt.id} onYop={() => setTnOchiq(false)} />}
       {!validId && <section className="fz-card p-4 text-text-dim">{t('Avval obyektni tanlang.')}</section>}
       {error && validId && <section role="alert" className="fz-note fz-note--danger" style={{ alignItems: 'center' }}><AlertTriangle /><span className="flex-1">{t(error)}</span><button type="button" onClick={() => void yuklash()} className="fz-btn fz-btn--danger fz-btn--sm">{t('Qayta urinib ko‘rish')}</button></section>}
       {loading && <div className="skel min-h-[260px] flex-1 rounded-xl" />}

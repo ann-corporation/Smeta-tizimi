@@ -12,6 +12,8 @@ import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { diskJoy } from '../../lib/disk-joy';
+import { natijadanTakliflar } from '../../lib/tekshiruv/excel-kopriq';
+import { tekshiruvExcelImport, tekshiruvXatoMatni } from '../../api/t2-tekshiruv';
 
 type Filtr = 'ozgargan' | 'hammasi' | Chip;
 const KO_RSATISH_CHEGARA = 400;
@@ -31,7 +33,7 @@ const CHIPLAR: Chip[] = ['bajarildi', 'bizning', 'yangi', 'hujjat', 'ochiq'];
 const fmt = (v: number | null) => (v == null ? '—' : new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 4 }).format(v));
 
 /** Texnadzor qaytargan Excel'ni joriy qoralama bilan solishtirish — faqat o'qish (hech narsa saqlanmaydi). */
-export function F2TexnadzorSolishtir({ qoralama, aktRaqam, onYop, obyektId }: { qoralama: readonly QoralamaQator[]; aktRaqam: string; onYop: () => void; obyektId?: number | null }) {
+export function F2TexnadzorSolishtir({ qoralama, aktRaqam, onYop, obyektId, aktId }: { qoralama: readonly QoralamaQator[]; aktRaqam: string; onYop: () => void; obyektId?: number | null; aktId?: number | null }) {
   const kid = useKompaniya().joriy?.id ?? null;
   const [natija, setNatija] = useState<ReturnType<typeof solishtir> | null>(null);
   const [fayl, setFayl] = useState('');
@@ -66,6 +68,18 @@ export function F2TexnadzorSolishtir({ qoralama, aktRaqam, onYop, obyektId }: { 
   const natijaXarita = useMemo(() => new Map((natija?.qatorlar ?? []).filter((n) => n.qator != null).map((n) => [n.qator as number, n])), [natija]);
   const kop = korinadi.length > KO_RSATISH_CHEGARA;
 
+  /** Excel -> bir xil takliflar (QR panel bilan bitta joyda): PTO hammasini F-2 muharriridagi Texnadzor takliflari blokida hal qiladi. */
+  async function takliflarga() {
+    if (!natija || !kid || !aktId) return;
+    const tk = natijadanTakliflar(natija.qatorlar);
+    if (tk.length === 0) { toast(t('Takliflarga aylantiradigan farq topilmadi'), 'warn'); return; }
+    setBand(true);
+    try {
+      const r = await tekshiruvExcelImport(kid, aktId, tk, fayl);
+      toast(r.ok ? t('{n} ta taklif muharrirga qo‘shildi (o‘tkazib yuborildi: {m})', { n: r.qoshildi, m: r.otkazildi }) : t(tekshiruvXatoMatni(r)), r.ok ? 'ok' : 'danger');
+    } finally { setBand(false); }
+  }
+
   async function hisobot() {
     if (!natija) return;
     const sarlavha = [t('Qator №'), t('Shifr'), t('Nomi'), t('Texnadzor izohi'), t('Fayl hajmi'), t('Qoralama hajmi'), t('Fayl narxi'), t('Qoralama narxi'), t('Holat')];
@@ -88,7 +102,8 @@ export function F2TexnadzorSolishtir({ qoralama, aktRaqam, onYop, obyektId }: { 
         <button type="button" disabled={band} onClick={() => inp.current?.click()} className="fz-btn fz-btn--sm"><Upload aria-hidden="true" />{t('Kompyuterdan tanlash')}</button>
         <DiskdanTanlashTugma accept=".xlsx,.xlsm" disabled={band} onFayllar={(fl) => { if (fl[0]) void oqi(fl[0]); }} onXato={(m) => toast(m, 'danger')} />
         {fayl && <span className="text-[12px] text-text-mute">{fayl}</span>}
-        {natija && <button type="button" onClick={() => void hisobot()} className="fz-btn fz-btn--ghost fz-btn--sm ml-auto"><Download aria-hidden="true" />{t('Hisobotni Excelga yuklab olish')}</button>}
+  {natija && aktId != null && <button type="button" disabled={band} onClick={() => void takliflarga()} className="fz-btn fz-btn--sm ml-auto">{t('Takliflarga aylantirish')}</button>}
+              {natija && <button type="button" onClick={() => void hisobot()} className="fz-btn fz-btn--ghost fz-btn--sm ml-auto"><Download aria-hidden="true" />{t('Hisobotni Excelga yuklab olish')}</button>}
       </div>
       {natija && (
         <>

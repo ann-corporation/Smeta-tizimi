@@ -316,7 +316,7 @@ export function F2TarixNative() {
     try {
       const r = await hujjatYaratYuklab({ kompaniyaId, obyektId, tur: 'f2', parametrlar: { akt_id: akt.id, disk_afzal: 1 } });
       if (!r.ok) { toast(r.code === 'F2_QATOR_TOPILMADI' ? t('Ф-2 hujjati tuzilmadi: {x}', { x: r.xabar }) : r.xabar, 'danger', undefined, 9000); return; }
-      if (korish) korinish.ochish(r.bytes, r.faylNomi); else downloadBlob(r.bytes, r.faylNomi);
+      if (korish) korinish.ochish(r.bytes, r.faylNomi); else downloadBlob(r.bytes, r.faylNomi, undefined, { obyektId, aktId: akt.id });
       if (r.bepulTakror) toast('Bu hujjat avval to‘langan — qayta yuklash bepul', 'ok');
       else if (r.sarflandi) toast(`${r.sarflandi} token`, 'ok');
       // Disk: tasdiqlangan F-2 serverda (/api/hujjat-yarat) avtomatik saqlanadi (f2:<akt_id>; qayta chiqarilsa - yangi versiya); xato bo'lsa shu yerda aytiladi.

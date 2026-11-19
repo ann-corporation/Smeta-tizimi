@@ -172,6 +172,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       try {
         // QR: hujjat nashri tokeni (mavjud /t/<token> ochiq tekshiruv sahifasi); baza — BREND_URL yoki joriy sayt. Xato bo'lsa QR siz beriladi.
         const token = await nashrTokeni(ctx.env, actorId, kompaniyaId, obyektId, tayyor);
+        // QR texnadzor tekshiruviga ham olib boradi: nashr tokeni F-2 (akt, versiya) ga bog'lanadi; xato PDF ni to'xtatmaydi.
+        if (token && b.tur === 'f2') await imzoRpc(ctx.env, 't2_tekshiruv_bog_v1', { p_actor_id: actorId, p_token: token, p_akt_id: musbat(b.akt_id) }).catch(() => null);
         const baza = tekshirBazasi(ctx.env, ctx.request.url);
         chiqish = await korinishdanPdf(hujjatKorinishi(tayyor.bytes), { faylNomi: tayyor.faylNomi, kod: tizimImzoKodi(tayyor.bytes), ...(token ? { tekshirHavola: `${baza}/t/${token}` } : {}) });
         faylNomi = tayyor.faylNomi.replace(/\.xlsx$/i, '') + '.pdf';

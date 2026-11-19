@@ -44,6 +44,7 @@ const TenderOchiq = lazy(() => import('./tender/TenderOchiq'));
 const TenderOchiqBoshqaruv = lazy(() => import('./admin/tender/TenderOchiqBoshqaruv'));
 const BozorOchiq = lazy(() => import('./bozor/BozorOchiq'));
 const ImzoTekshiruv = lazy(() => import('./imzo/ImzoTekshiruv'));
+const TekshiruvPanel = lazy(() => import('./tekshiruv/TekshiruvPanel'));
 const Imzo = lazy(() => import('./admin/sahifalar/Imzo'));
 const BozorSorov = lazy(() => import('./admin/bozor/BozorSorov'));
 const BozorKabinet = lazy(() => import('./admin/bozor/BozorKabinet'));
@@ -164,6 +165,7 @@ export default function App() {
         <Route path="/tender" element={<Suspense fallback={<SahifaYuklanmoqda />}><TenderOchiq /></Suspense>} />
         <Route path="/tender/:lotId" element={<Suspense fallback={<SahifaYuklanmoqda />}><TenderOchiq /></Suspense>} />
         <Route path="/t/:token" element={<Suspense fallback={<SahifaYuklanmoqda />}><ImzoTekshiruv /></Suspense>} />
+        <Route path="/tekshiruv/:token" element={<Suspense fallback={<SahifaYuklanmoqda />}><TekshiruvPanel /></Suspense>} />
         <Route path="/bozor" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorOchiq /></Suspense>} />
         <Route path="/bozor/e/:elonId" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorOchiq /></Suspense>} />
         <Route path="/bozor/s/:sotuvchiId" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorOchiq /></Suspense>} />
