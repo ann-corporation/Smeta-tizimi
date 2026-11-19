@@ -78,7 +78,7 @@ internal fun JarvisWarehouseCard(frame: JarvisWarehouse, enabled: Boolean, onReq
     val canAct = enabled && !busy
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (warehouse == null) {
-            OutlinedTextField(search, { search = it }, label = { Text(stringResource(R.string.mod_ombor)) }, enabled = canAct)
+            OutlinedTextField(search, { search = it }, label = { Text(stringResource(R.string.mod_warehouse)) }, enabled = canAct)
             frame.warehouses.filter { searchKey(it.name).contains(searchKey(search)) }.take(12).forEach { option ->
                 TextButton(onClick = { run(id = option.id, selection = null, priceMode = null) }, enabled = canAct) { Text(option.name) }
             }
