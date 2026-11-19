@@ -32,3 +32,9 @@ fun pickFile(title: String, imagesOnly: Boolean = false): File? {
     val n = d.file ?: return null
     return File(d.directory, n)
 }
+
+/** Native folder chooser (Windows look); null when cancelled. */
+fun pickFolder(title: String): File? {
+    val ch = javax.swing.JFileChooser(downloadsDir()).apply { dialogTitle = title; fileSelectionMode = javax.swing.JFileChooser.DIRECTORIES_ONLY; isAcceptAllFileFilterUsed = false }
+    return if (ch.showOpenDialog(null) == javax.swing.JFileChooser.APPROVE_OPTION) ch.selectedFile else null
+}

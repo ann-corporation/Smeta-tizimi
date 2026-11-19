@@ -619,29 +619,12 @@ fun DocsScreen(c: Ctx) = NeedObject(c) { o ->
     val inbox = load(c.place.companyId, c.tick + bump) { Loaded.Fresh(ApprovalsRepository(c.sv.api).inbox(c.place.companyId).second) }
     val scope = rememberCoroutineScope()
     var msg by remember { mutableStateOf<String?>(null) }
-    Page("Hujjatlar: ${o.nom}", "Qatorni bosing: hujjat yuklanadi va ochiladi") {
+    Page("Hujjatlar: ${o.nom}", "Enter yoki ikki marta bosish: hujjat yuklanadi va ochiladi") {
         msg?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         UploadBar(c, o.id) { bump++ }
         if (docs == null) { QLoading(); return@Page }
         docs.Banner()
-        Box(Modifier.fillMaxWidth().height(300.dp)) {
-            QTable(
-                docs.valueOrNull().orEmpty(), listOf(
-                    QCol("Fayl", 420.dp, sort = { it.name.lowercase() }) { it.name },
-                    QCol("Turi", 110.dp, sort = { it.type }) { it.type },
-                    QCol("Hajmi", 100.dp, true, { it.size }) { "${it.size / 1024} KB" },
-                    QCol("Yangilangan", 150.dp, sort = { it.updated }) { formatIsoStamp(it.updated) },
-                    QCol("Tayyor", 80.dp) { if (it.ready) "ha" else "yo'q" },
-                ), key = { it.id },
-                onClick = { d ->
-                    scope.launch {
-                        msg = null
-                        val r = c.sv.api.bffBytes(docPath(d.id), DOC_MAX_BYTES)
-                        if (r.ok && r.bytes != null) saveAndOpen(r.filename ?: d.name, r.bytes!!) else msg = if (r.status == 0) Tx.offlineWrite else "Yuklab bo'lmadi: ${r.code ?: r.status}"
-                    }
-                },
-            )
-        }
+        DocsGridPanel(c, docs.valueOrNull().orEmpty(), Modifier.fillMaxWidth().height(380.dp))
         Text("Tasdiqlash kutayotganlar", fontWeight = FontWeight.SemiBold)
         val items = inbox.valueOrNull().orEmpty()
         if (inbox == null) QLoading() else if (items.isEmpty()) QHint("Hozircha tasdiqlash kutayotgan hujjat yo'q") else {
