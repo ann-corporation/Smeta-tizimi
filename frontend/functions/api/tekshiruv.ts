@@ -1,4 +1,4 @@
-﻿/**
+/**
  * /api/tekshiruv - TEXNADZOR TEKSHIRUVI (egasi 2026-11-19): F-2 dagi QR -> tekshiruv paneli (/tekshiruv/<token>).
  *
  * `token` = hujjat nashri tokeni (t2_nashr, QR dagi `/t/<token>` bilan bir xil). Aktor FAQAT sessiyadan; ruxsatni RPC hal qiladi
@@ -11,6 +11,9 @@
  * POST {amal:'holat', token, holat, izoh?}                          -> umumiy holat: qoralama | korib_chiqildi | qaytarildi | qabul
  * POST {amal:'qidir', token, q}                                     -> F-2 da yo'q smeta qatorlari (qo'shishni taklif qilish uchun)
  * POST {amal:'kod_ber', token, ism?, soat?}                         -> PTO: bir martalik kirish kodi (faqat shu javobda ko'rinadi)
+ * GET  ?amal=akt&kompaniya_id=&akt_id=                          -> PTO: shu aktga kelgan takliflar (F-2 muharriri)
+ * POST {amal:'qaror', taklif_id, qaror, sabab?}                      -> PTO qarori: qabul | rad (sabab majburiy) | keyinroq | kutilmoqda (F-2 ga yozuv - /api/f2-buyruq da)
+ * POST {amal:'hujjat', taklif_id, fayl_id|null}                   -> PTO: 'hujjat kerak' talabiga Disk faylini biriktirish
  * POST {amal:'kod_ol', token, kod}                                  -> kirgan foydalanuvchi kodni ishlatadi (bir marta)
  *
  * Permission middleware ro'yxatida EMAS (imzo.ts kabi): mustaqil himoya - sessiya, origin, har RPC ichida ruxsat.
@@ -28,7 +31,7 @@ const json = (b: unknown, status = 200) => Response.json(b, { status, headers: N
 
 /** RPC xato kodlari -> HTTP (boshqasi 500; matn qaytarilmaydi). */
 const KODLAR: Record<string, number> = {
-  TOPILMADI: 404, RUXSAT_YOQ: 403, TALAB_NOTOGRI: 400, QATOR_NOTOGRI: 400, QAROR_QOYILGAN: 409, KOD_YAROQSIZ: 403, KOD_ISHLATILGAN: 403, AKT_TOPILMADI: 404, TOKEN_BAND: 409,
+  TOPILMADI: 404, RUXSAT_YOQ: 403, TALAB_NOTOGRI: 400, QATOR_NOTOGRI: 400, QAROR_QOYILGAN: 409, SABAB_KERAK: 400, FAYL_TOPILMADI: 400, KOD_YAROQSIZ: 403, KOD_ISHLATILGAN: 403, AKT_TOPILMADI: 404, TOKEN_BAND: 409,
 };
 export const urinish = tezlikOmbori();
 
@@ -52,7 +55,14 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const a = await auth(ctx);
   if (a instanceof Response) return a;
   if (urinish.oshdi('g:' + a.id, 120, 60_000)) return json({ ok: false, code: 'KOP_URINISH' }, 429);
-  const token = new URL(ctx.request.url).searchParams.get('token');
+  const u = new URL(ctx.request.url);
+  if (u.searchParams.get('amal') === 'akt') {
+    const kid = Number(u.searchParams.get('kompaniya_id')); const akt = Number(u.searchParams.get('akt_id'));
+    if (!Number.isSafeInteger(kid) || kid <= 0 || !Number.isSafeInteger(akt) || akt <= 0) return json({ ok: false, code: 'TALAB_NOTOGRI' }, 400);
+    const r = await imzoRpc(ctx.env, 't2_tekshiruv_akt_takliflari_v1', { p_actor_id: a.id, p_kompaniya_id: kid, p_akt_id: akt });
+    return r?.ok ? json(r) : rpcXato(r);
+  }
+  const token = u.searchParams.get('token');
   if (!tokenMi(token)) return json({ ok: false, code: 'TOPILMADI' }, 404);
   const j = await imzoRpc(ctx.env, 't2_tekshiruv_ochish_v1', { p_actor_id: a.id, p_token: token });
   return j?.ok ? json(j) : rpcXato(j);
@@ -67,10 +77,23 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   try { const p = await ctx.request.json(); if (!p || typeof p !== 'object' || Array.isArray(p)) throw 0; b = p as Record<string, unknown>; }
   catch { return json({ ok: false, code: 'BODY_INVALID' }, 400); }
   const talab = () => json({ ok: false, code: 'TALAB_NOTOGRI' }, 400);
-  const token = b.token;
-  if (!tokenMi(token)) return talab();
   if (urinish.oshdi('p:' + a.id, 90, 60_000)) return json({ ok: false, code: 'KOP_URINISH' }, 429);
   const env = ctx.env;
+  const taklifId = Number(b.taklif_id);
+  if (b.amal === 'qaror' || b.amal === 'hujjat') {
+    if (!Number.isSafeInteger(taklifId) || taklifId <= 0) return talab();
+    if (b.amal === 'qaror') {
+      if (!['qabul', 'rad', 'keyinroq', 'kutilmoqda'].includes(String(b.qaror))) return talab();
+      const r = await imzoRpc(env, 't2_tekshiruv_qaror_v1', { p_actor_id: a.id, p_taklif_id: taklifId, p_qaror: b.qaror, p_sabab: typeof b.sabab === 'string' ? b.sabab.slice(0, 1000) : null });
+      return r?.ok ? json({ ok: true, qaror: r.qaror }) : rpcXato(r);
+    }
+    const fayl = b.fayl_id === null || b.fayl_id === undefined ? null : Number(b.fayl_id);
+    if (fayl !== null && (!Number.isSafeInteger(fayl) || fayl <= 0)) return talab();
+    const r = await imzoRpc(env, 't2_tekshiruv_hujjat_v1', { p_actor_id: a.id, p_taklif_id: taklifId, p_hujjat_id: fayl });
+    return r?.ok ? json({ ok: true }) : rpcXato(r);
+  }
+  const token = b.token;
+  if (!tokenMi(token)) return talab();
 
   switch (b.amal) {
     case 'bog': {
