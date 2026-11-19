@@ -18,6 +18,7 @@ import {
   bildirishnomaOqildi, faktJurnali, faktYozuvi, lifecycleBajar, lifecycleRadPreview, lifecycleSorovi, tokenBalansi, topshiriqBajar, topshiriqOchish, topshiriqRadPreview, topshiriqSorovi, topshiriqlarRoyxati,
   xatJavobPreview, xatJavobSorovi, xatJavobYubor, xatOchish, xatQabulBajar, xatQabulSorovi, xatlarRoyxati,
 } from './telegram-toliq-qoshimcha';
+import { paketBer, paketBosh, paketOylar, paketRejaFiltr, paketRejaOy, paketShartnomalar, shartnomaOyFiltri, oySondan } from './telegram-toliq-paket';
 import { bildirishnomalarRoyxati, hujjatBerish, hujjatSorovi, hujjatlarRoyxati, radBajar, radSorovi, tasdiqlarRoyxati } from './telegram-toliq-hujjat';
 
 /** `/start <param>` chuqur havolalar → callback_data. Ulash kodlari (≥16 belgi) bilan to'qnashmaydi. */
@@ -121,7 +122,21 @@ export async function toliqCallback(env: BotEnv, uid: number, til: TgTil, cb: Ca
   if (zs) return javob('g_top_sorov', await topshiriqSorovi(env, uid, til, zs[0], zs[1], zs[2], zs[3]));
   const zk = sonlar(d, 'g:zk:', 5, 5);
   if (zk) return topshiriqBajar(env, uid, til, cb, zk[0], zk[1], zk[2], zk[3], zk[4]);
-  const rq = sonlar(d, 'g:rq:', 1, 1);
+  /* Hujjatlar paketi (telegram-toliq-paket.ts): filtr yoki shartnoma+oy -> tarkib/token -> ZIP */
+  const pk = d === 'g:pk' ? [] : sonlar(d, 'g:pk:', 1, 1);
+  if (pk) return javob('g_paket', await paketBosh(env, uid, til, pk[0] ?? null), T);
+  const ps = sonlar(d, 'g:ps:', 1, 1);
+  if (ps) return javob('g_paket_shartnoma', await paketShartnomalar(env, uid, til, ps[0]), T);
+  const pc = sonlar(d, 'g:pc:', 2, 2);
+  if (pc) return javob('g_paket_oy', await paketOylar(env, uid, til, pc[0], pc[1]), T);
+  const pm = sonlar(d, 'g:pm:', 3, 3);
+  if (pm) return javob('g_paket_reja', await paketRejaOy(env, uid, til, pm[0], pm[1], pm[2]), T);
+  const pf = sonlar(d, 'g:pf:', 2, 2);
+  if (pf) return javob('g_paket_reja_filtr', await paketRejaFiltr(env, uid, til, pf[0], pf[1]), T);
+  const pzm = sonlar(d, 'g:pzm:', 3, 3);
+  if (pzm) { const oy = oySondan(pzm[2]); return oy ? paketBer(env, uid, til, chatId ?? 0, pzm[0], shartnomaOyFiltri(pzm[1], oy), null, `g:pc:${pzm[0]}:${pzm[1]}`) : { toast: tgT('Tugma eskirgan.', til), amal: 'g_paket_eskirgan' }; }
+  const pzf = sonlar(d, 'g:pzf:', 2, 2);
+  if (pzf) return paketBer(env, uid, til, chatId ?? 0, pzf[0], null, pzf[1], `g:pk:${pzf[0]}`);  const rq = sonlar(d, 'g:rq:', 1, 1);
   if (rq) return radSorovi(env, uid, til, rq[0]);
   const ry = /^g:ry:(\d{1,15}):(\d{1,6}-\d{1,4})$/.exec(d);
   if (ry) return radBajar(env, uid, til, Number(ry[1]), ry[2]);
