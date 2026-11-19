@@ -193,7 +193,7 @@ export function OmborKiritish({ kompaniyaId, skladId, onYozildi }: { kompaniyaId
 }
 
 /* ───────────── gap/ovoz buyrug'i natijasi: tasdiq kartasi, ostatka, hisobot ───────────── */
-function NatijaBlok({ natija, band, onTasdiq, onBekor, onTanlov, onVariant, onRejim }: { natija: OmborBuyruqNatija; band: boolean; onTasdiq: () => void; onBekor: () => void; onTanlov: (g: OmborNomzod) => void; onVariant: (v: OmborTanlov) => void; onRejim: (r: Rejim) => void }) {
+export function NatijaBlok({ natija, band, onTasdiq, onBekor, onTanlov, onVariant, onRejim }: { natija: OmborBuyruqNatija; band: boolean; onTasdiq: () => void; onBekor: () => void; onTanlov: (g: OmborNomzod) => void; onVariant: (v: OmborTanlov) => void; onRejim: (r: Rejim) => void }) {
   const p = natija.preview as Record<string, unknown> | undefined;
   const boshqalar = (natija.nomzodlar ?? []).filter((g) => g.nomi !== p?.nomi).slice(0, 4);
   if (natija.holat === 'tasdiq_kerak' && p) {

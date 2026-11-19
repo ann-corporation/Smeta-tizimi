@@ -1,4 +1,7 @@
 {
+  "Yozish uchun «Tasdiqlash» tugmasini bosing.": { "ru": "Для записи нажмите кнопку «Подтвердить».", "en": "Press Confirm to save." },
+  "Qaysi ombor?": { "ru": "Какой склад?", "en": "Which warehouse?" },
+  "Taklif juda katta. Uni web chatda qayta so‘rang.": { "ru": "Предложение слишком большое. Повторите запрос в веб-чате.", "en": "The proposal is too large. Repeat the request in the web chat." },
   "Eski suhbatlarni ko‘rish": { "ru": "Показать старые беседы", "en": "Show older conversations" },
   "Arxiv suhbati. Davom etish uchun /jarvis orqali yangi suhbat oching.": { "ru": "Архивная беседа. Чтобы продолжить, откройте новую беседу через /jarvis.", "en": "Archived conversation. Open a new one with /jarvis to continue." },
   "Siz yozdingiz": { "ru": "Вы написали", "en": "You wrote" },

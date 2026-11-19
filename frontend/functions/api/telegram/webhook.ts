@@ -59,7 +59,10 @@ async function callbackAjrat(env: TgEnv, cb: Callback, tgId: number | undefined)
   if (!a?.ok || !a.ulangan || !a.foydalanuvchi_id) { await javobBer(tgT('Avval hisobni ulang', til)); return 'cb_ulanmagan'; }
   if (typeof cb.data === 'string' && cb.data.startsWith('j:')) {
     await javobBer();
-    await jarvisYubor(env, chat.id as number, await telegramJarvisSelect(env, a.foydalanuvchi_id, tgId as number, til, cb.data));
+    await jarvisYubor(env, chat.id as number, await telegramJarvisSelect(env, a.foydalanuvchi_id, tgId as number, til, cb.data, cb.message));
+    if (cb.data.startsWith('j:w:') && cb.message?.message_id) {
+      await tgApi(env, 'editMessageReplyMarkup', { chat_id: chat.id, message_id: cb.message.message_id, reply_markup: { inline_keyboard: [] } });
+    }
     return 'cb:jarvis';
   }
   if (typeof cb.data === 'string' && cb.data.startsWith('usr:')) {
@@ -168,6 +171,11 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
   // KANAL-BOSHQARUV: «Tahrirlash» xabariga javob — qoralama matni yangilanadi (chiqarilmaydi).
   const kpId = tahrirBelgisi(msg.reply_to_message);
   if (kpId && typeof msg.text === 'string') return kanalTahrirJavobi(env as KanalEnv, uid, til, chatId, kpId, msg.text);
+  // A bound Jarvis reply must be resolved before the general warehouse inbox.
+  if (!b && typeof msg.text === 'string' && chatId === tgId && !qidiruvKonteksti(msg.reply_to_message)) {
+    const reply = await telegramJarvisReply(env, uid, chatId, til, msg.reply_to_message, msg.text);
+    if (reply) { await jarvisYubor(env, chatId, reply); return 'jarvis_reply'; }
+  }
   // OMBOR-OVOZ: ovozli xabar / oddiy matn → omborchi buyrug'i (preview + tasdiq tugmalari). Omborchi bo'lmasa — oddiy oqim davom etadi.
   const ovoz = msg.voice?.file_id ?? msg.audio?.file_id;
   if (ovoz || (!b && typeof msg.text === 'string' && msg.text.trim() && !qidiruvKonteksti(msg.reply_to_message))) {
@@ -191,10 +199,6 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
   if (!b && typeof msg.text === 'string') {
     const k = qidiruvKonteksti(msg.reply_to_message);
     if (k) { await yubor(env, chatId, await fotoQidiruv(env, uid, til, k, msg.text.slice(0, 200))); return 'foto_qidiruv'; }
-    if (chatId === tgId) {
-      const reply = await telegramJarvisReply(env, uid, chatId, til, msg.reply_to_message, msg.text);
-      if (reply) { await jarvisYubor(env, chatId, reply); return 'jarvis_reply'; }
-    }
   }
 
   switch (b?.buyruq) {

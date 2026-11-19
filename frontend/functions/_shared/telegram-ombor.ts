@@ -169,7 +169,7 @@ const tanlovTozala = (x: unknown): Tanlov => {
 };
 
 /** Server javobi → Telegram xabari. `savol`/`variantlar` va «QQS bilan/siz» savoli uchun inline tugmalar (imzolangan `#OS:` token xabar matnida). */
-async function javobYasa(env: BotEnv, uid: number, ombor: { id: number; kompaniya_id: number; nomi: string }, j: Javob, til: TgTil, c: SavolCtx): Promise<BotJavob> {
+export async function javobYasa(env: BotEnv, uid: number, ombor: { id: number; kompaniya_id: number; nomi: string }, j: Javob, til: TgTil, c: SavolCtx): Promise<BotJavob> {
   const karta = kartaMatni(j, til);
   const variantlar = ((j.variantlar as { yorliq?: unknown; tanlov?: unknown }[] | undefined) ?? [])
     .filter((x) => typeof x?.yorliq === 'string' && x.yorliq).slice(0, 6).map((x) => ({ yorliq: String(x.yorliq).slice(0, 60), tanlov: tanlovTozala(x.tanlov) }));

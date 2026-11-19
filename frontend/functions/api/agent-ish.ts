@@ -11,6 +11,7 @@ import { taskPayload } from '../_shared/jarvis-vazifa';
  * model chaqirmaydi — doim ochiq; ruxsatni baza tekshiradi.
  */
 import { kasbQuvur, type JarvisEnv, type Qadam } from '../_shared/jarvis/chat';
+import { onRequestPost as warehousePost } from './ombor-buyruq';
 import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { parseJsonText } from '../_shared/ai';
@@ -570,10 +571,17 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
   if (amal === 'kasb_savol') {
     if (kid == null) return xato('Kompaniyani tanlang', 422);
     if (!matn(so.savol, 2000)) return xato('savol kerak');
+    const warehouseEnv: JarvisEnv = { ...env, jarvisWarehouse: async body => {
+      const request = new Request(new URL('/api/ombor-buyruq', ctx.request.url), { method: 'POST',
+        headers: ctx.request.headers, body: JSON.stringify(body) });
+      const response = await warehousePost({ ...ctx, request } as Parameters<typeof warehousePost>[0]);
+      const result = await response.json() as Record<string, unknown>;
+      return { ...result, ok: response.ok && result.ok === true };
+    } };
     const t0 = Date.now();
     if (so.oqim !== true) {
       const qadamlar: Qadam[] = [];
-      const r = await kasbQuvur(env, k.actor, kid, so, (b, m) => qadamlar.push({ ms: Date.now() - t0, belgi: b, matn: m }));
+      const r = await kasbQuvur(warehouseEnv, k.actor, kid, so, (b, m) => qadamlar.push({ ms: Date.now() - t0, belgi: b, matn: m }));
       return Response.json({ ...r.body, qadamlar }, { status: r.status, ...JAVOB });
     }
     /* OQIM (NDJSON): har qadam sodir bo'lishi bilan foydalanuvchiga yuboriladi — «hozir nima qilinayapti» jonli ko'rinadi. */
@@ -583,7 +591,7 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
     const ish = (async () => {
       const qadamlar: Qadam[] = [];
       try {
-        const r = await kasbQuvur(env, k.actor, kid, so, (b, m) => { const q = { ms: Date.now() - t0, belgi: b, matn: m }; qadamlar.push(q); void yoz({ t: 'qadam', ...q }); });
+        const r = await kasbQuvur(warehouseEnv, k.actor, kid, so, (b, m) => { const q = { ms: Date.now() - t0, belgi: b, matn: m }; qadamlar.push(q); void yoz({ t: 'qadam', ...q }); });
         await yoz({ t: 'yakun', status: r.status, ...r.body, qadamlar });
       } catch (e) {
         const m = aiXatoMalumoti(e);

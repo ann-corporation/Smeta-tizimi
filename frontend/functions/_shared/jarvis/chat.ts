@@ -13,6 +13,10 @@ import { verifiedPriceCandidates } from './prices';
 import { firstReadTool, jarvisReadTools, readToolCall } from './read-tools';
 import { jarvisToolCallSchema, jarvisToolNames, jarvisTools, parseJarvisToolCall } from '../../../src/lib/jarvis/tool-registry';
 import type { AiRequest } from '../ai';
+import { warehouseCall, warehouseTool, warehouseToolSchema, warehouseWriteIntent, type WarehouseTransport } from '../../../src/lib/jarvis/warehouse-command';
+import { warehouseCommand, warehouseAnswer } from './warehouse-command';
+import { jarvisHasPermission } from './authority';
+import { telemetriyaYoz } from '../ai-telemetriya';
 import { jarvisLanguage, jarvisText } from './reply-language';
 import { callJarvisModel, type JarvisModelEnv } from './model';
 import type { NormativEnv } from '../normativ-read';
@@ -22,7 +26,7 @@ import { uslubBolimi, uslubYangila, type UslubXususiyat } from '../agent-uslub';
 import { jarvisKichikGap, jarvisRahmatJavobi } from '../../../src/lib/jarvis/intent';
 import { qidiruvSozlari } from '../../../src/lib/jarvis/qidiruv-sozlari';
 import { studioKontekstTekshir } from '../../../src/lib/jarvis/studio-kontekst';
-export type JarvisEnv = JarvisModelEnv & Partial<NormativEnv> & { AGENT_ISH_YOQILGAN?: string; R2_CANONICAL?: R2Bucket };
+export type JarvisEnv = JarvisModelEnv & Partial<NormativEnv> & { AGENT_ISH_YOQILGAN?: string; R2_CANONICAL?: R2Bucket; jarvisWarehouse?: WarehouseTransport };
 const sonmi = (v: unknown) => v != null && v !== '' && Number.isSafeInteger(Number(v)) && Number(v) > 0;
 const matn = (v: unknown, n: number) => (v == null || String(v).trim() === '' ? null : String(v).trim().slice(0, n));
 
@@ -82,8 +86,9 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', javob } };
   }
   const reads = jarvisReadTools(env, objectScope, men ?? null, kasb.kategoriyalar);
-  const norm = so.studio == null ? readToolCall('norm_reference', savol) : null;
-  const local = so.studio == null ? firstReadTool([
+  const warehouseWrite = warehouseWriteIntent(savol);
+  const norm = so.studio == null && !warehouseWrite ? readToolCall('norm_reference', savol) : null;
+  const local = so.studio == null && !warehouseWrite ? firstReadTool([
     ...(navigatsiyaSorovi(savol) ? [] : ['cumulative'] as const),
     'f2_register', 'warehouse_balance', 'discrepancy',
     ...(norm ? [] : ['estimate_price', 'catalog_price', 'estimate_row'] as const),
@@ -109,7 +114,7 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
     const answer = await taskListAnswer((name, body) => rpcData(env, name, body, signal), objectScope, tasks, men ?? null);
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
   }
-  const isMoneyQuestion = pulSorovi(savol, so.tarix);
+  const isMoneyQuestion = !warehouseWrite && pulSorovi(savol, so.tarix);
   if (isMoneyQuestion && !kasb.kategoriyalar.includes('smeta_pul')) {
     const javob = text('Smeta qiymatini ko‘rish uchun lavozimingizga ruxsat kerak.', 'Для просмотра сметной стоимости нужен доступ.');
     await yozJurnal('rad', javob, qadamlar, { rad: true });
@@ -221,6 +226,16 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
         name: { type: 'string', enum: allowedTools } } }] },
     } } };
   }
+  const warehouseVisible = mode === 'interactive' && so.studio == null && !!env.jarvisWarehouse && jarvisHasPermission(men, kid, 'warehouse.write');
+  if (warehouseVisible) {
+    request.system += '\nWAREHOUSE PREVIEW: ' + JSON.stringify(warehouseTool) +
+      '\nCall with arguments {} or {warehouse_id}. The server uses the actual user question unchanged. It asks about missing fields and never saves. Do not use generic harakatlar for warehouse operations.';
+    const schema = request.jsonSchema!;
+    const properties = schema.schema.properties as Record<string, unknown>;
+    const calls = properties.tool_call as { anyOf?: unknown[] } | undefined;
+    request.jsonSchema = { ...schema, schema: { ...schema.schema, properties: { ...properties,
+      tool_call: { anyOf: [...(calls?.anyOf ?? [{ type: 'null' }]), warehouseToolSchema] } } } };
+  }
   const askModel = (input: AiRequest) => callJarvisModel(env, actor, kid, kasb.profil, input);
   let r = await askModel(request);
   let kir = r.usage?.inputTokens ?? 0;
@@ -228,10 +243,19 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
   const results: Array<NonNullable<Awaited<ReturnType<typeof reads.run>>>> = [];
   const seen = new Set<string>();
   const deadline = t0 + 45000;
-  for (let step = 0; allowedTools.length && step < 6; step++) {
+  for (let step = 0; (allowedTools.length || warehouseVisible) && step < 6; step++) {
     let proposed: unknown;
     try { proposed = (JSON.parse(r.text) as { tool_call?: unknown } | null)?.tool_call; } catch { break; }
     if (proposed == null) break;
+    const warehouse = warehouseCall(proposed);
+    if (warehouse && warehouseVisible && env.jarvisWarehouse && Date.now() < deadline) {
+      const started = Date.now();
+      const snapshot = await warehouseCommand(env.jarvisWarehouse, kid, savol, warehouse.warehouseId);
+      await telemetriyaYoz(env, { actor, kompaniyaId: kid, yuza: 'jarvis', vositalar: [warehouseTool.name], manba: 'tool',
+        ok: snapshot.result?.ok !== false, kechikishMs: Date.now() - started });
+      return { status: 200, body: { ok: true, kasb: ish, model: r.model, provider: r.provider,
+        javob: warehouseAnswer(snapshot, text), warehouse_reply: snapshot } };
+    }
     const parsed = parseJarvisToolCall(proposed);
     const call = parsed && allowedTools.includes(parsed.name) ? readToolCall(parsed.name, parsed.query) : null;
     const signature = call ? call.name + ':' + JSON.stringify(call.args) : '';

@@ -1,5 +1,7 @@
 import { onRequest as middleware } from '../api/_middleware';
 import { onRequestPost as agent } from '../api/agent-ish';
+import { warehouseBotReply, warehouseBotSelect, warehouseBotFollowup } from './jarvis/warehouse-telegram';
+import type { WarehouseSnapshot } from '../../src/lib/jarvis/warehouse-command';
 import { botChaqiruv } from './telegram-amal';
 import { limitOshdi } from './telegram-bot';
 import { saytUrl, tengSatr, tgRpc, tgT, type TgEnv, type TgTil } from './telegram';
@@ -15,7 +17,7 @@ type Page = { ok?: boolean; royxat?: Chat[]; keyingi?: PageCursor | null };
 type Target = { company: number; id: string; mode: 'n' | 'o' };
 
 export type JarvisBotReply = { matn: string; options?: Record<string, unknown>; transcript?: string[]; transcriptOptions?: Record<string, unknown> };
-export type JarvisReplyTo = { from?: { is_bot?: boolean }; entities?: { type?: string; url?: string }[] };
+export type JarvisReplyTo = { text?: string; from?: { is_bot?: boolean }; entities?: { type?: string; url?: string }[] };
 const CHAT_ID = /^[A-Za-z0-9_.-]{1,40}$/;
 const VERSION = /^[a-f0-9]{32}$/;
 const PREFIX = '#jarvis-tg=';
@@ -97,7 +99,8 @@ export async function telegramJarvisMenu(env: TgEnv, actor: number, til: TgTil):
   return { matn: tgT('Jarvis uchun kompaniyani tanlang.', til), options: { reply_markup: { inline_keyboard: keyboard } } };
 }
 
-export async function telegramJarvisSelect(env: TgEnv, actor: number, telegram: number, til: TgTil, data: string): Promise<JarvisBotReply> {
+export async function telegramJarvisSelect(env: TgEnv, actor: number, telegram: number, til: TgTil, data: string, message?: { text?: string }): Promise<JarvisBotReply> {
+  if (data.startsWith('j:w:')) return warehouseBotSelect(env, actor, til, data, message?.text ?? '');
   const page = /^j:t:([a-z0-9]{1,11}):([A-Za-z0-9_.-]{1,40}):(\d{1,3})$/.exec(data);
   if (page) {
     const company = parseInt(page[1], 36);
@@ -146,6 +149,10 @@ export async function telegramJarvisSelect(env: TgEnv, actor: number, telegram: 
 export async function telegramJarvisReply(
   env: TgEnv, actor: number, telegram: number, til: TgTil, replyTo: JarvisReplyTo | undefined, text: string,
 ): Promise<JarvisBotReply | null> {
+  if (replyTo?.from?.is_bot && typeof replyTo.text === 'string') {
+    const warehouse = await warehouseBotFollowup(env, actor, til, replyTo.text, text);
+    if (warehouse) return warehouse;
+  }
   if (!replyTo?.from?.is_bot || !Array.isArray(replyTo.entities)) return null;
   const start = `${saytUrl(env)}/admin${PREFIX}`;
   const url = replyTo.entities.find(item => item?.type === 'text_link' && typeof item.url === 'string' && item.url.startsWith(start))?.url;
@@ -167,7 +174,7 @@ export async function telegramJarvisReply(
   if (chat.holat === 'missing' ? mode !== 'n' :
     chat.holat !== 'changed' || chat.arxivlangan || !validJarvisTurns(chat.xabarlar) || !VERSION.test(chat.etag)) return unavailable(til);
   const tarix = chat.holat === 'changed' ? chat.xabarlar?.slice(-6).map(x => ({ rol: x.r === 'user' ? 'user' : 'assistant', matn: x.m })) : [];
-  const answer = await call<{ ok?: boolean; javob?: string; xabar?: string; error?: string; sahifalar?: Array<{ yol?: string }> }>(env, actor,
+  const answer = await call<{ ok?: boolean; javob?: string; xabar?: string; error?: string; sahifalar?: Array<{ yol?: string }>; warehouse_reply?: WarehouseSnapshot }>(env, actor,
     { amal: 'kasb_savol', kompaniya_id: company, savol, tarix, sahifa: '/telegram/jarvis' });
   const javob = typeof answer.body?.javob === 'string' ? answer.body.javob : '';
   if (!sent(answer.status) || answer.body?.ok !== true || !javob.trim()) {
@@ -189,5 +196,6 @@ export async function telegramJarvisReply(
     return url.pathname === '/admin' || url.pathname.startsWith('/admin/') ? [url.href] : [];
   }) : [];
   const body = links.length ? [javob.slice(0, 2900), ...links].join('\n\n') : javob;
+  if (answer.body.warehouse_reply) return warehouseBotReply(env, actor, til, answer.body.warehouse_reply);
   return prompt(env, actor, telegram, til, { company, id, mode: 'o' }, body);
 }

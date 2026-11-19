@@ -3,6 +3,22 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "JARVIS-M3-WAREHOUSE-20261119",
+      "title": "Jarvis warehouse preview and existing confirmation workflow",
+      "owner": "codex", "machine": "Anvar", "branch": "codex/jarvis-m3-warehouse", "base_sha": "3ef69ed9",
+      "status": "active", "depends_on": [], "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md"],
+      "production_write_allowed": false,
+      "owns": [
+        "frontend/src/lib/jarvis/warehouse-command.ts", "frontend/src/lib/jarvis/WarehouseCard.tsx", "frontend/src/lib/jarvis/WarehouseCard.test.tsx",
+        "frontend/functions/_shared/jarvis/warehouse-command.ts", "frontend/functions/_shared/jarvis/warehouse-command.test.ts",
+        "frontend/functions/_shared/jarvis/warehouse-core.test.ts", "frontend/functions/_shared/jarvis/warehouse-routing.test.ts", "frontend/functions/_shared/jarvis/warehouse-telegram.ts", "frontend/functions/_shared/jarvis/warehouse-telegram.test.ts",
+        "frontend/functions/_shared/jarvis/chat.ts", "frontend/functions/api/agent-ish.ts", "frontend/src/api/t2-agent-ish.ts",
+        "frontend/src/umumiy/ui/AiChat.tsx", "frontend/functions/_shared/telegram-jarvis.ts", "frontend/functions/api/telegram/webhook.ts",
+        "frontend/src/i18n/lugat/qism/telegram-jarvis.json", "frontend/functions/_shared/telegram-ombor.ts", "frontend/src/components/ombor/OmborKiritish.tsx"
+      ],
+      "note": "L0 expanded LANE-1 PR-3. Existing ombor-buyruq only, one-line exports reuse warehouse result cards. No SQL, no canonical write by model; existing confirmation endpoint remains authority. Review and merge at L0."
+    },
+    {
       "id": "FAKT-ROOT-NODE-20261108",
       "title": "Virtual root work group in Fakt journal",
       "owner": "codex",
