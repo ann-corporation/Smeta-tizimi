@@ -13,7 +13,7 @@ import path from 'node:path';
 import { z } from 'zod';
 import type { Mijoz } from '../db';
 import {
-  Rad, diskArxivla, diskHolatiMatni, f2Yasa, hujjatDizayniniOrnat, hujjatDizayniniYukla, serverSarfla, tizimImzosiniQoy,
+  Rad, diskArxivla, diskHolatiMatni, f2DiskdanTayyor, f2Yasa, hujjatDizayniniOrnat, hujjatDizayniniYukla, serverSarfla, tizimImzosiniQoy,
   type F2Tayyor, type F2YasaAkt,
 } from '../frontend';
 import type { Muhit } from '../muhit';
@@ -59,12 +59,23 @@ export function r2Bucket(env: NodeJS.ProcessEnv, tashqiFetch: typeof fetch): { p
   };
 }
 
+/** Cloudflare R2 (REST) GET: Diskdagi tayyor fayl baytlari (hujjat doim tayyor - MCP ham zudlik bilan oladi). Sozlanmagan bo'lsa null. */
+export function r2BaytOqi(env: NodeJS.ProcessEnv, tashqiFetch: typeof fetch): ((kalit: string) => Promise<Uint8Array | null>) | null {
+  const token = env.CLOUDFLARE_API_TOKEN?.trim(), account = env.CLOUDFLARE_ACCOUNT_ID?.trim();
+  if (!token || !account) return null;
+  const baza = `https://api.cloudflare.com/client/v4/accounts/${account}/r2/buckets/${env.SMETA_R2_BUCKET?.trim() || 'smeta-tizimi-canonical'}/objects/`;
+  return async (kalit) => {
+    const r = await tashqiFetch(baza + kalit.split('/').map(encodeURIComponent).join('/'), { headers: { Authorization: `Bearer ${token}` } });
+    return r.ok ? new Uint8Array(await r.arrayBuffer()) : null;
+  };
+}
+
 type TokenNatija = { sarflandi: number; bepul_takror: boolean } | { yetmaydi: true; kerak: number | null; balans: number | null };
 
 type Bitta = {
   akt_id: number; obyekt_id: number; raqam: string | null; oy: string | null; fayl_nomi: string; qator_soni: number | null;
   summa: { ustamasiz: number | null; ustamali: number | null; nds: number | null; qqs_bilan: number | null; taxminiy: boolean; narxsiz_qator: number } | null;
-  token: TokenNatija; yacheyka?: number; fayl?: string; hajm_bayt: number; disk?: string;
+  token: TokenNatija; manba?: 'disk' | 'yasaldi'; yacheyka?: number; fayl?: string; hajm_bayt: number; disk?: string;
 };
 
 export async function bittaAkt(mu: Muhit, a: AktSatr, o: { tasdiq: boolean; papka: string; disk: boolean }): Promise<Bitta> {
@@ -76,6 +87,7 @@ export async function bittaAkt(mu: Muhit, a: AktSatr, o: { tasdiq: boolean; papk
   const bucket = o.tasdiq && o.disk ? r2Bucket(process.env, tashqiFetch) : null; // sozlanmagan bo'lsa — token yechilishidan OLDIN xato
   const env = { SUPABASE_URL: SHIM_BAZA, SUPABASE_KEY: 'mcp', ...(bucket ? { R2_CANONICAL: bucket } : {}) };
   let tayyor!: F2Tayyor;
+  let manba: 'disk' | 'yasaldi' = 'yasaldi';
   let bytes!: Uint8Array;
   let token!: TokenNatija;
   let yacheyka = 0;
@@ -84,7 +96,14 @@ export async function bittaAkt(mu: Muhit, a: AktSatr, o: { tasdiq: boolean; papk
   await mu.yozish({ tool: 'f2_excel', args: { akt_id: a.id, tasdiq: o.tasdiq, disk: o.disk }, dryRun: !o.tasdiq, obyektId: a.obyekt_id, snapshot: false, izoh: `akt #${a.id}` }, async (m: Mijoz) => {
     await shimRejimda({ m, aktorId: aktor }, async () => {
       await hujjatDizayniniYukla(kid); // sayt endpointi bilan bir xil: kompaniya «Hujjat dizayni» hujjatdan oldin qo'llanadi
-      tayyor = await f2Yasa(kid, a.obyekt_id, a.id, { tekshir: f2Qoidalar, moliya: true });
+      /* Hujjat doim tayyor: yuklab olishda (tasdiq) Diskdagi YANGI versiya zudlik bilan olinadi (eskirgan/yo'q bo'lsa - qayta yasaladi). Preview summalar uchun doim yasaladi. */
+      const oqi = o.tasdiq ? r2BaytOqi(process.env, tashqiFetch) : null;
+      const diskdan = oqi ? await f2DiskdanTayyor({
+        rpc: async (nom, args) => { const r = await globalThis.fetch(SHIM_BAZA + '/rest/v1/rpc/' + nom, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(args) }); const body = await r.json().catch(() => null); return { httpOk: r.ok, body }; },
+        r2Bayt: oqi,
+      }, { actorId: aktor, kompaniyaId: kid, obyektId: a.obyekt_id, aktId: a.id }).catch(() => null) : null;
+      manba = diskdan ? 'disk' : 'yasaldi';
+      tayyor = diskdan ? { ...diskdan, akt: { id: a.id, raqam: a.raqam, oy: a.oy, kompaniya_id: kid }, moliya: null } : await f2Yasa(kid, a.obyekt_id, a.id, { tekshir: f2Qoidalar, moliya: true });
       bytes = tizimImzosiniQoy(tayyor.bytes, { hujjat: tayyor.faylNomi });
       const s = await serverSarfla(env, { actorId: aktor, kompaniyaId: kid, turi: tayyor.turi, obyektId: a.obyekt_id, davr: tayyor.davr, xesh: tayyor.xesh, bytes: tayyor.bytes });
       if (!s.ok) {
@@ -112,7 +131,7 @@ export async function bittaAkt(mu: Muhit, a: AktSatr, o: { tasdiq: boolean; papk
   return {
     akt_id: a.id, obyekt_id: a.obyekt_id, raqam: a.raqam, oy: a.oy, fayl_nomi: tayyor.faylNomi, qator_soni: mo?.qatorSoni ?? null,
     summa: mo ? { ustamasiz: mo.ustamasiz, ustamali: mo.ustamali, nds: mo.nds, qqs_bilan: mo.jami, taxminiy: mo.taxminiy, narxsiz_qator: mo.narxsizQator } : null,
-    token, ...(yacheyka ? { yacheyka } : {}), ...(fayl ? { fayl } : {}), hajm_bayt: bytes.byteLength, ...(disk ? { disk } : {}),
+    token, manba, ...(yacheyka ? { yacheyka } : {}), ...(fayl ? { fayl } : {}), hajm_bayt: bytes.byteLength, ...(disk ? { disk } : {}),
   };
 }
 

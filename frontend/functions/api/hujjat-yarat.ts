@@ -38,6 +38,9 @@ import { m29PaketFayli, pudratchiNomiOl } from '../../src/lib/oylik-hujjat/m29';
 import { NDS_SUKUT_FOIZ } from '../../src/lib/nakopitelniy-vedomost-export';
 import { forma3Manba, obyektHujjatManba, type DiskManba } from '../../src/lib/disk-hujjat';
 import { diskArxivla, diskHolatiMatni, type DiskArxivNatija } from '../_shared/disk-yoz';
+import { f2DiskdanTayyor } from '../_shared/hujjat-tayyor';
+import { hmRpc } from '../_shared/hujjat-maydoni';
+import { r2Oqi } from '../_shared/r2-saqlash';
 
 type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; BREND_URL?: string; R2_CANONICAL?: R2Bucket };
 export type HujjatFormat = 'xlsx' | 'pdf';
@@ -129,6 +132,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     const format = b.format as HujjatFormat;
     if (!FORMATLAR.includes(format)) return Response.json({ ok: false, code: 'FORMAT_NOMA_LUM', xato: 'format: xlsx yoki pdf' }, { status: 400 });
 
+    let manbaDisk: number | null = null;
     const tayyor = await ichkiRejimda(ctx, async () => {
       // YAGONA dizayn manbai: kompaniya «Hujjat dizayni» (hujjat.dizayn._uslub) HAR hujjat turi uchun shu yerda qo'llanadi
       // (ilgari faqat kontekst o'qiydigan turlarga tegardi; Worker da localStorage yo'q edi — sukut chiqardi).
@@ -136,6 +140,12 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       if (b.tur === 'f2') {
         const aktId = musbat(b.akt_id);
         if (!aktId) throw new Rad(400, 'PARAMETR_YOQ', 'akt_id kerak');
+        /* Tayyor yo'l: Diskdagi yangi versiya bo'lsa - shuni beramiz (zudlik bilan); eskirgan/yo'q bo'lsa - yangidan yasaymiz. Token ikkala holda ham yuklab olishda (pastda). */
+        if ((b.disk_afzal === true || b.disk_afzal === 1) && ctx.env.R2_CANONICAL) {
+          const r2 = ctx.env.R2_CANONICAL;
+          const d = await f2DiskdanTayyor({ rpc: (nom, args) => hmRpc(ctx.env as never, nom, args), r2Bayt: async (k) => { const o = await r2Oqi(r2, k); return o ? new Uint8Array(await new Response(o.body).arrayBuffer()) : null; } }, { actorId, kompaniyaId, obyektId, aktId }).catch(() => null);
+          if (d) { manbaDisk = d.diskVersiya ?? 0; return d; }
+        }
         return f2Yasa(kompaniyaId, obyektId, aktId);
       }
       if (b.tur === 'forma3') {
@@ -177,7 +187,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       'Content-Disposition': 'attachment; filename*=UTF-8\'\'' + encodeURIComponent(faylNomi),
       'Content-Length': String(chiqish.byteLength),
       'X-Hujjat-Sarf': String(s.sarflandi), 'X-Hujjat-Bepul-Takror': s.bepulTakror ? '1' : '0',
-      'Cache-Control': 'private, no-store', 'X-Disk-Holat': diskHolatiMatni(diskNatija),
+      'Cache-Control': 'private, no-store', 'X-Disk-Holat': manbaDisk != null ? 'tayyor' : diskHolatiMatni(diskNatija), 'X-Hujjat-Manba': manbaDisk != null ? 'disk' : 'yasaldi',
     });
     return new Response(chiqish, { headers });
   } catch (e) {

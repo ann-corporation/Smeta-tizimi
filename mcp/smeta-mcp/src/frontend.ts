@@ -38,3 +38,4 @@ export { hujjatDizayniniYukla } from '../../../frontend/src/api/f2-hujjat-kontek
 export { hujjatDizayniniOrnat } from '../../../frontend/src/lib/hujjat-yozuvchi/dizayn';
 // Hujjatlar paketi (hujjat_paket): sayt bilan bir xil toza reja/qoidalar (ikkinchi marta yozilmaydi).
 export { paketReja, qoidaBilanAjrat, tokenBahosi, TUR_NOMI, type Nomzod } from '../../../frontend/src/lib/hujjat-paket/nomzod';
+export { f2DiskdanTayyor, type DiskTayyorNatija } from '../../../frontend/functions/_shared/hujjat-tayyor';
