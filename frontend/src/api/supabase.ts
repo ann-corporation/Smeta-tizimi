@@ -365,6 +365,10 @@ export type T2Qator = {
   replaces_line_id?: number | null;
   /** Faqat almashtirilgan (avvalgi) versiya qatorlarida: uni almashtirgan `t2_smeta_versiya.id`. */
   almashtirgan_versiya_id?: number | null;
+  /** Transport usuli (	2_qator.transport_usul: foiz | tkm | narx_ichida; NULL = foiz). 	2_daraxt view'ida yo'q - alohida o'qib qo'shiladi. */
+  transport_usul?: string | null;
+  /** T·km transport qatori: u tashiydigan material qatori (	2_qator.transport_manba_qator_id). */
+  transport_manba_qator_id?: number | null;
 };
 
 /** Katta obyektda kalit (qator_id) oynalari PARALLEL o'qiladi — natija ketma-ket o'qish bilan aynan bir xil

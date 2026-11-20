@@ -26,6 +26,7 @@ import type { T2Qator } from '../api/supabase';
 import { NARX_ANIQLANMAGAN, mashinistMehnati } from './narx-bildirishnoma';
 import { YAXLIT_KAT } from './svod-yaxlit';
 import { f2YaxlitQator } from './f2-akt-eksport';
+import { tkmNomi, tkmQatorlar, transportSpravka, transportSpravkaQatorlari, transportTartib, type TransportMaydon } from './f2-transport';
 
 /** Vedomost qatori: bitta resurs (kat + nom kaliti + birlik kaliti) va bitta narx; narxi farqli guruhlar alohida qatorlarga ajraladi. */
 type VedQator = { guruh: string; kat: NakrutkaKat | null; kodlar: string[]; nom: string; birlik: string; qatorlar: number[]; summaQatorlar: number[]; hajm: number; summa: number | null; narx: number | null; narxFarqli: boolean; /** Eng yuqori razdel (uchastka/fayl) - vedomost shu bo'yicha bo'limlanadi (iyerarxiya bo'lsa). */ ildiz: number | null; ildizNom: string };
@@ -124,6 +125,8 @@ export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qato
  */
 export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qator[], o: F2HujjatOpsiya & { varaqNomi?: string }): { varaqlar: RasmiyVaraq[]; faylNomi: string; jami: number | null } {
   const tanlangan = new Map(qatorlar.filter((x) => !x.xato).map((x) => [x.id, x]));
+  /* Transport (20270120200000): t·km qatori id → material id. Bog'lanish yo'q bo'lsa bo'sh - hujjat avvalgidek. */
+  const tkm = tkmQatorlar(o.rows as unknown as readonly TransportMaydon[] | undefined);
   const eski = o.eskiBloklar ?? [];
   const yangiBor = tanlangan.size > 0;
   if (!yangiBor && !eski.some((b) => b.qatorlar.length)) throw new Error('F2_HUJJAT_BOSH');
@@ -196,7 +199,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     if (oxirgiSumma != null) { vd.summa = yaxlit2((vd.summa ?? 0) + oxirgiSumma); vd.summaQatorlar.push(qatorR); }
     vedomost.set(vk, vd);
     return v.qator(ishQatori ? 'ish' : 'oddiy', (r): Qiymat[] => [
-      ishQator != null || ishOstida ? ishOstiRaqam() : ++n, shifrKorinish(kod), x.nom, x.birlik ?? '',
+      ishQator != null || ishOstida ? ishOstiRaqam() : ++n, shifrKorinish(kod), tkm.has(x.id) ? tkmNomi(x.nom) : x.nom, x.birlik ?? '',
       norma != null ? { n: norma, uslub: 'norma' } : null,
       hajmNomalum ? null : ishgaBogliq ? { f: `ROUND(E${r}*F${ishQator},6)`, v: yaxlit6(x.hajm) } : x.hajm,
       narxBor ? x.narx : null,
@@ -221,7 +224,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     for (const ish of ishlar) {
       const bl = tanlangan.get(ish.id);
       const avto = bl ? ish.resurslar.filter((r) => r.avto && tanlangan.has(r.id)) : [];
-      const mustaqil = ish.resurslar.filter((r) => tanlangan.has(r.id) && (!r.avto || !bl));
+      const mustaqil = transportTartib(ish.resurslar.filter((r) => tanlangan.has(r.id) && (!r.avto || !bl)), tkm);
       let blQ: number | null = null;
       let bolaRaqam = false;
       if (bl && !avto.length && bl.summa != null) {
@@ -242,7 +245,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
       }
       for (const r of mustaqil) { tarkib.push(resursYoz(tanlangan.get(r.id)!, r.kod, null, null, false, bolaRaqam)); qosh(oxirgiSumma); }
     }
-    for (const r of alohida) { tarkib.push(resursYoz(tanlangan.get(r.id)!, r.kod, null, null)); qosh(oxirgiSumma); }
+    for (const r of transportTartib(alohida, tkm)) { tarkib.push(resursYoz(tanlangan.get(r.id)!, r.kod, null, null)); qosh(oxirgiSumma); }
     return { tarkib, js: bolimJS };
   };
   const jamiQator = (matn: string, tarkib: readonly number[], js: number): number =>
@@ -353,6 +356,15 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
       ...(eski.length ? { sarlavha: 'РАСЧЕТ К ОПЛАТЕ — новые позиции (подвал сметы)', vsegoNom: 'ВСЕГО К ОПЛАТЕ — новые позиции' } : {}) });
     yangiVsegoQator = yp.vsegoQator;
     yangiVsegoJS = yp.natija.H.vsego ?? 0;
+    /* СПРАВОЧНО: транспорт - faqat t·km qatori bor hujjatda (aks holda hujjat o'zgarmaydi). Faqat matn: jamilarga kirmaydi. */
+    if (tkm.size) {
+      const q = yp.natija.H.qiymat;
+      const foiz = ['tr_mat', 'tr_kab', 'tr_ob'].map((kk) => q[kk]);
+      const sp = transportSpravka({ qatorlar: [...tanlangan.values()], tkm, rows: o.rows as unknown as readonly TransportMaydon[] | undefined,
+        foizTransport: foiz.every((x) => x == null) ? null : yaxlit2(foiz.reduce<number>((t, x) => t + (x ?? 0), 0)) });
+      v.bosh();
+      for (const matn of transportSpravkaQatorlari(sp)) v.izoh(matn);
+    }
   }
   if (eski.length) {
     // Sof jami: yangi + (minus) eski bloklar - bitta hujjat ichida (egasi 2026-11-03).

@@ -1,0 +1,9 @@
+{
+  "sana": "2027-01-20",
+  "sarlavha": "Transport: har material uchun bitta usul — ikki marta hisoblanmaydi",
+  "bandlar": [
+    "Material qatoriga transport usuli belgilanadi: foiz (podvaldagi transport %), t·km (alohida t·km qatori) yoki narxda (narxga kiritilgan). t·km yoki «narxda» bo'lgan material podvaldagi transport foizi bazasidan chiqariladi — transport ikki marta olinmaydi.",
+    "Yangi «transport_tekshir» tekshiruvi: t·km qatorisiz t·km material, materialsiz t·km qatori, ham t·km ham foizda turgan material va bitta materialga ikkita t·km qatori ko'rsatiladi.",
+    "F-2 Excel: t·km qatori materialining tagida «↳ ТРАНСПОРТ Т·КМ:» belgisi bilan chiqadi, podval tagida qisqa «СПРАВОЧНО: транспорт» (t·km, foiz va Е310/Е311 ishlari) beriladi. t·km qatori bo'lmasa hujjat o'zgarmaydi."
+  ]
+}
