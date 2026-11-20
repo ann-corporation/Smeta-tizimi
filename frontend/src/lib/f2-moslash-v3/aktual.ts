@@ -153,11 +153,12 @@ export function faktDeltaReja(satrlar: readonly FaktSatr[], mavjud: ReadonlyMap<
     const m = mavjud.get(s.qatorId) ?? 0;
     if (s.tur === 'rs') { reja.bor.push({ ...s, mavjud: m, sabab: RS_SABAB }); continue; }
     const delta = yaxlit(s.faylHajm - m);
-    if (!(s.faylHajm > 0)) { reja.bor.push({ ...s, mavjud: m, sabab: "fayl hajmi ≤ 0 — yozilmaydi" }); continue; }
-    if (delta <= 0) { reja.bor.push({ ...s, mavjud: m, sabab: FAKT_BOR_SABAB }); continue; }
+    // Minus qator (normaga keltirish) ishorasi bilan yoziladi; faqat aynan 0 / son emas yozilmaydi.
+    if (!Number.isFinite(s.faylHajm) || s.faylHajm === 0) { reja.bor.push({ ...s, mavjud: m, sabab: "fayl hajmi 0 — yozilmaydi" }); continue; }
+    if (s.faylHajm < 0 ? delta >= 0 : delta <= 0) { reja.bor.push({ ...s, mavjud: m, sabab: FAKT_BOR_SABAB }); continue; }
     const jami = yaxlit(m + delta);
     reja.yoziladi.push({ ...s, mavjud: m, delta,
-      ...(s.smetaHajm != null && jami > s.smetaHajm + 1e-9 ? { ogohlantirish: `fakt ${jami} smeta hajmi ${s.smetaHajm} dan oshadi (yoziladi — faqat ogohlantirish)` } : {}) });
+      ...(s.smetaHajm != null && (s.smetaHajm < 0 ? jami < s.smetaHajm - 1e-9 : jami > s.smetaHajm + 1e-9) ? { ogohlantirish: `fakt ${jami} smeta hajmi ${s.smetaHajm} dan oshadi (yoziladi — faqat ogohlantirish)` } : {}) });
   }
   return reja;
 }

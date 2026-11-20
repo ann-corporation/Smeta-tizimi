@@ -11,6 +11,7 @@ import uz.anncorp.smeta.core.data.f2ListRequest
 import uz.anncorp.smeta.core.data.objectsRequest
 import uz.anncorp.smeta.core.data.parseDebts
 import uz.anncorp.smeta.core.data.parseF2List
+import uz.anncorp.smeta.core.data.parseHierarchyBody
 import uz.anncorp.smeta.core.data.parseRahbarPanel
 import uz.anncorp.smeta.core.data.parseSb
 import uz.anncorp.smeta.core.data.rahbarPanelRequest
@@ -26,6 +27,9 @@ class Repo(private val sv: Services) {
     private suspend fun sb(body: JsonObject) = sv.api.bff("/api/sb", "POST", body)
 
     suspend fun objects(cid: Long) = sv.read("obyektlar:$cid", { sb(objectsRequest(cid)) }, ::parseObjs)
+    /** Loyiha > Shartnoma > Obyekt grouping source (4 tenant-scoped reads folded into one cached answer). Forbidden / failed -> the screens show the plain list. */
+    suspend fun hierarchy(cid: Long): Loaded<uz.anncorp.smeta.core.data.HierarchySource> =
+        sv.read("ierarxiya:$cid", { uz.anncorp.smeta.core.data.fetchHierarchy(sv.api, cid) }, ::parseHierarchyBody)
     suspend fun money(cid: Long): Loaded<Map<Long, ObjectMoney>> = sv.read("money:$cid", { sb(rahbarPanelRequest(cid)) }, ::parseRahbarPanel)
     suspend fun f2Acts(oid: Long) = sv.read("f2:$oid", { sb(f2ListRequest(oid)) }, ::parseF2List)
     suspend fun packet(oid: Long) = sv.read("paket:$oid", { sv.api.bff("/api/obyekt-paket?obyekt_id=$oid") }, ::parsePacket)

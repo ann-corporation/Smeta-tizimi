@@ -1,0 +1,11 @@
+{
+  "Barcha omborlar": { "ru": "Все склады", "en": "All warehouses" },
+  "Barcha obyektlar": { "ru": "Все объекты", "en": "All objects" },
+  "Avval omborni tanlang.": { "ru": "Сначала выберите склад.", "en": "Select a warehouse first." },
+  "BERDIM — ombordan obyektga": { "ru": "ВЫДАЛ — со склада на объект", "en": "ISSUED — from warehouse to object" },
+  "Yuqoridan omborni tanlang — kirim va chiqim aniq omborda yoziladi.": { "ru": "Выберите склад сверху — приход и расход записываются в конкретный склад.", "en": "Select a warehouse above — receipts and issues are recorded in a specific warehouse." },
+  "Yuqoridan omborni tanlang.": { "ru": "Выберите склад сверху.", "en": "Select a warehouse above." },
+  "Obyektlarga berilgan pozitsiyalar": { "ru": "Позиции, выданные на объекты", "en": "Positions issued to objects" },
+  "Bu yerda omborda emas — obyektlarga berilgan (sarflangan) materiallar. Standart: barcha obyektlar.": { "ru": "Здесь не склад — материалы, выданные (израсходованные) на объекты. По умолчанию: все объекты.", "en": "Not warehouse stock — materials issued (consumed) to objects. Default: all objects." },
+  "Obyekt jurnalini ko‘rish uchun obyektni tanlang (omborga kirimlar «Kirim» bo‘limida).": { "ru": "Выберите объект для журнала (приходы на склад — в разделе «Приход»).", "en": "Select an object to see its journal (warehouse receipts are under \"Receipts\")." }
+}

@@ -7,6 +7,9 @@
   "Hujjat muddati yaqinlashmoqda": { "ru": "Срок по документу истекает", "en": "A document deadline is approaching" },
   "Hujjat muddati o‘tib ketdi": { "ru": "Срок по документу истёк", "en": "A document deadline has passed" },
   "Muddat: {muddat}": { "ru": "Срок: {muddat}", "en": "Deadline: {muddat}" },
+  "Texnadzor F-2 ni ko‘rib chiqdi": { "ru": "Технадзор рассмотрел Ф-2", "en": "Supervision reviewed the F-2" },
+  "PTO texnadzor taklifi bo‘yicha qaror qildi": { "ru": "ПТО принял решение по предложению технадзора", "en": "The PTO decided on the supervision proposal" },
+  "F-2 yangilandi: o‘zgarishlarni ko‘ring": { "ru": "Ф-2 обновлена: посмотрите изменения", "en": "F-2 updated: see the changes" },
   "Hujjatni ochish": { "ru": "Открыть документ", "en": "Open the document" },
   "Yangi chizma revizyasi chiqarildi": { "ru": "Выпущена новая ревизия чертежа", "en": "A new drawing revision was issued" },
   "Chizma revizyasi bo‘yicha qaror keldi": { "ru": "Получено решение по ревизии чертежа", "en": "A decision on the drawing revision arrived" }

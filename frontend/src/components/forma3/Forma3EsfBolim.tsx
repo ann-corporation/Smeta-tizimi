@@ -15,6 +15,7 @@ import {
 } from '../../lib/esf/esf-tayyorlash';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { diskJoy } from '../../lib/disk-joy';
 import { toast } from '../../umumiy/ui/Toast';
 
 type Holat = 'tayyor' | 'yuborildi' | 'qabul' | 'rad';
@@ -79,7 +80,8 @@ export function Forma3EsfBolim({ kompaniyaId, boshHolat = null, boshTashqiId = '
     const nom = `ESF_${(shartnoma.raqam || 'shartnoma').replace(/[^\w.-]+/g, '_')}_${oy}`;
     // Token: yagona hujjat mexanizmi. Xesh KANONIK JSON dan olinadi (format fayldan mustaqil) — shu ESF qayta yuklansa (JSON yoki CSV) bepul.
     const r = await hujjatTokenBilan(
-      { kompaniyaId, bytes: new TextEncoder().encode(json), hujjat: 'ESF', sabab: `ESF · Форма №3 ${forma3Raqam ?? forma3Id ?? ''} · № ${shartnoma.raqam} · ${oy}`, yacheykalar: 0 },
+      { kompaniyaId, bytes: new TextEncoder().encode(json), hujjat: 'ESF', sabab: `ESF · Форма №3 ${forma3Raqam ?? forma3Id ?? ''} · № ${shartnoma.raqam} · ${oy}`, yacheykalar: 0,
+        disk: diskJoy({ tur: 'esf', kompaniyaId, oy, qism: shartnoma.raqam || 'shartnoma', qismNom: shartnoma.raqam ? `shartnoma №${shartnoma.raqam}` : null, faylNomi: `${nom}.json`, mime: 'application/json' }) },
       () => {
         if (tur === 'json') downloadBlob(new TextEncoder().encode(json), `${nom}.json`, 'application/json');
         else downloadBlob(new TextEncoder().encode(esfCsv(p)), `${nom}.csv`, 'text/csv;charset=utf-8');

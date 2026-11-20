@@ -73,7 +73,7 @@ const summaMatn = (m: F2Malumot) => {
 
 export function f2Kontekst(m: F2Malumot): string {
   const ishlar = m.bolimlar.reduce((s, b) => s + b.ishlar.length, 0);
-  const mumkinIsh = m.bolimlar.reduce((s, b) => s + b.ishlar.filter((i) => i.mumkin > 0).length, 0);
+  const mumkinIsh = m.bolimlar.reduce((s, b) => s + b.ishlar.filter((i) => i.mumkin !== 0).length, 0);
   const ildizlar = m.ier.tugunlar.filter((t) => t.ota == null);
   return [`Sahifa: F2 tayyorlash${m.obyektNomi ? ` — obyekt «${m.obyektNomi}»` : ''}, davr ${m.oy}. Hajm manbai: ${m.manba === 'fakt' ? 'fakt qoldig‘i' : 'smeta (faktsiz)'}.`,
     `F2 ga olinadigan ishlar: ${mumkinIsh} / ${ishlar}.`,

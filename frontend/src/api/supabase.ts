@@ -1070,6 +1070,11 @@ export function sbSkladQoldiqOl(obyektId: number) {
   });
 }
 
+/** Obyektlarga berilgan (sarflangan) pozitsiyalar — butun kompaniya bo'yicha; obyekt filtri UI da (jimgina default obyekt yo'q). */
+export function sbSkladQoldiqKompaniyaOl(kompaniyaId: number) {
+  return sbOqi<T2SkladQoldiq>({ jadval: 't2_sklad_qoldiq', filtr: 'kompaniya_id=eq.' + kompaniyaId, limit: 5000 });
+}
+
 /** ⚠️ `operation_id` MAJBURIY — sklad qoldig'iga ta'sir qiladi, qayta
  *  urinishda ikkinchi harakat yaratmasligi kerak. */
 export function sbSkladgaYozish(kompaniya_id: number, operatsiya: 'prixod' | 'rasxod', item: T2SkladHarakat) {

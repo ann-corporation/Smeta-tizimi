@@ -164,8 +164,16 @@ describe('/api/hujjat-yarat — Disk (A2): natija kompaniya diskiga yoziladi', (
     expect(put).toHaveBeenCalledTimes(1);
   });
 
-  it('F-2 qoralama (tasdiqlanmagan) Diskka yozilmaydi', async () => {
+  it('F-2 qoralama Diskka YOZILADI (egasi 2026-11-19: qoralama ham Diskda turadi; kalit o\'sha f2:<akt_id> — keyin tasdiqlansa yangi versiya)', async () => {
     mocks.reestr.mockResolvedValue({ ok: true, qatorlar: [{ ...AKT, holat: 'qoralama' }] });
+    const c = diskFetch(); const { ctx } = soR2({ amal: 'yarat', tur: 'f2', format: 'xlsx', kompaniya_id: 17, obyekt_id: 79, akt_id: 246 });
+    const r = await onRequestPost(ctx);
+    expect(r.status).toBe(200); expect(r.headers.get('X-Disk-Holat')).toBe('ok');
+    expect(c.filter((x) => x.nom === 't2_disk_tizim_yoz_v1')).toHaveLength(1);
+  });
+
+  it('taxminiy qoralama F-2 (prorab tasdig\'i kutilmoqda) Diskka yozilmaydi', async () => {
+    mocks.reestr.mockResolvedValue({ ok: true, qatorlar: [{ ...AKT, holat: 'qoralama', raqam: 'TAXMINIY-1' }] });
     const c = diskFetch(); const { ctx } = soR2({ amal: 'yarat', tur: 'f2', format: 'xlsx', kompaniya_id: 17, obyekt_id: 79, akt_id: 246 });
     const r = await onRequestPost(ctx);
     expect(r.status).toBe(200); expect(r.headers.get('X-Disk-Holat')).toBe('otkazildi');

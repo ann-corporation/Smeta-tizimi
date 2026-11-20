@@ -1,10 +1,9 @@
+import { NBSP, pulMatni } from './format-yagona';
 
 
-// Oddiy string format (CountUp va hokazolar uchun)
+// Oddiy string format (CountUp va hokazolar uchun). Yagona qoida: NBSP guruh, noma'lum — «—» (lib/format-yagona.ts).
 export function formatSum(num: number | undefined | null): string {
-  if (num == null) return '0';
-  const val = Math.round(num); // yoki .toFixed(2) kerakmi? Hujjatda kasr so'ralgan
-  return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return pulMatni(num, 0);
 }
 
 export function formatPercent(num: number | undefined | null): string {
@@ -40,8 +39,8 @@ export function FmtN({ val, cl = '', qisqa = false, kasr = 2 }: { val?: number |
   
   // Butun va kasr qismga ajratish
   const parts = absVal.toFixed(kasr).split('.');
-  const whole = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-  const fraction = parts[1] ? `.${parts[1]}` : '';
+  const whole = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, NBSP);
+  const fraction = parts[1] ? `,${parts[1]}` : '';
 
   // whitespace-nowrap: egasi 2026-09-29 — tor katakda "9 632.68 / 755" bo'lib ikki qatorga bo'linardi.
   return (

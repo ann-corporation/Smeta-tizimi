@@ -34,6 +34,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import uz.anncorp.qurai.ui.components.QButton
 import uz.anncorp.qurai.ui.components.QButtonKind
+import uz.anncorp.qurai.ui.components.QDialog
 import uz.anncorp.qurai.ui.components.QLoading
 import uz.anncorp.qurai.ui.components.QSelect
 import uz.anncorp.qurai.ui.icons.QIcons
@@ -51,6 +52,10 @@ import uz.anncorp.smeta.core.data.JarvisRepository
 import uz.anncorp.smeta.core.data.ChatMsg
 import uz.anncorp.smeta.core.data.JarvisResult
 import uz.anncorp.smeta.core.data.TodayRepository
+import uz.anncorp.smeta.core.data.ObjectLeaf
+import uz.anncorp.smeta.core.data.WorkScope
+import uz.anncorp.smeta.core.data.scopeSummary
+import uz.anncorp.smeta.core.data.scopedLeaves
 import uz.anncorp.smeta.core.data.Workplace
 import uz.anncorp.smeta.core.data.arr
 import uz.anncorp.smeta.core.data.num
@@ -64,9 +69,12 @@ object Shortcuts {
     fun dispatch(e: KeyEvent): Boolean = handler?.invoke(e) ?: false
 }
 
+/** Lets a screen open another module by its id (the site reaches «Foto-dalil» through the module list, not the menu tree): set by the shell while it is on screen. */
+object ModNav { @Volatile var go: ((String) -> Unit)? = null }
+
 /** The pages this app implements: ids are those of the ONE navigation model ([QNav]) shared with Android and the website. */
 enum class Mod(val id: String, val needsObject: Boolean) {
-    Objects("obyektlar", false), Smeta("smeta", true), F2("f2", true), Fakt("fakt", true), Nakop("nakop", true),
+    Today("bugun", false), Objects("obyektlar", false), Smeta("smeta", true), F2("f2", true), Fakt("fakt", true), Foto("foto", true), Nakop("nakop", true),
     Narx("narx", false), Ombor("ombor", false), Money("moliya", false), Docs("hujjat", false), Flow("aylanish", true), Notif("bildirish", false), Settings("sozlama", false);
     companion object { val ids: Set<String> = entries.map { it.id }.toSet(); fun of(id: String): Mod = entries.first { it.id == id } }
 }
@@ -80,7 +88,11 @@ class JarvisState {
     var etag by mutableStateOf<String?>(null)
     var showChats by mutableStateOf(false)
     var input by mutableStateOf("")
-    fun reset() { msgs.clear(); chatId = UUID.randomUUID().toString(); etag = null; showChats = false }
+    /** Write previews waiting for confirmation: message index -> server token (kept in memory only; a reloaded chat has no buttons). */
+    val previews = androidx.compose.runtime.mutableStateMapOf<Int, String>()
+    var recording by mutableStateOf(false)
+    var transcribing by mutableStateOf(false)
+    fun reset() { previews.clear(); msgs.clear(); chatId = UUID.randomUUID().toString(); etag = null; showChats = false }
 }
 
 @Composable
@@ -88,11 +100,13 @@ fun MainScreen(sv: Services, me: SessionUser) {
     val repo = remember(sv) { Repo(sv) }
     var places by remember { mutableStateOf<List<Workplace>>(emptyList()) }
     var place by remember { mutableStateOf<Workplace?>(null) }
-    var mod by remember { mutableStateOf(Mod.Objects) }
+    var mod by remember { mutableStateOf(Mod.entries.firstOrNull { it.id == System.getenv("QURAI_START") } ?: Mod.Today) }
     var tick by remember { mutableStateOf(0) }
     var jarvisOpen by remember { mutableStateOf(false) }
     var focusTick by remember { mutableStateOf(0) }
     var objId by remember { mutableStateOf<Long?>(null) }
+    var scopeOpen by remember { mutableStateOf(false) }
+    var scope by remember { mutableStateOf(WorkScope()) }
     var unread by remember { mutableStateOf(0) }
     val jarvis = remember { JarvisState() }
     // The language setting retranslates the shared menu titles (Android strings; unknown titles stay Uzbek).
@@ -110,6 +124,7 @@ fun MainScreen(sv: Services, me: SessionUser) {
         places = r.valueOrNull().orEmpty()
         place = place ?: places.firstOrNull()
     }
+    DisposableEffect(Unit) { ModNav.go = { id -> runCatching { mod = Mod.of(id); jarvisOpen = false } }; onDispose { ModNav.go = null } }
     DisposableEffect(order) {
         Shortcuts.handler = h@{ e ->
             if (e.type != KeyEventType.KeyDown) return@h false
@@ -131,7 +146,20 @@ fun MainScreen(sv: Services, me: SessionUser) {
     }
     val objects = if (p == null) null else load(p.companyId, tick) { repo.objects(p.companyId) }
     val list = objects.valueOrNull().orEmpty()
-    val obj = list.firstOrNull { it.id == objId } ?: list.firstOrNull()
+    // Loyiha > Shartnoma > Obyekt source; unreadable (no right / offline without copy) -> null and the screens show the plain list.
+    val hierLoad = if (p == null) null else load(p.companyId, tick) { repo.hierarchy(p.companyId) }
+    val hier = hierLoad.valueOrNull()
+    // The chosen context is remembered per company (not in the demo).
+    LaunchedEffect(p?.companyId) {
+        if (p == null) return@LaunchedEffect
+        scope = if (sv.demo) WorkScope() else TreePrefs.scope(p.companyId)
+        objId = scope.obyektId
+    }
+    fun applyScope(s: WorkScope) { scope = s; s.obyektId?.let { objId = it }; if (p != null && !sv.demo) TreePrefs.setScope(p.companyId, s) }
+    val leaves = remember(list) { list.map { ObjectLeaf(it.id, it.nom) } }
+    val scoped = remember(leaves, hier, scope) { scopedLeaves(leaves, hier, scope).map { it.id }.toSet() }
+    val shown = if (scope.loyihaId == null && scope.shartnomaId == null) list else list.filter { it.id in scoped }
+    val obj = shown.firstOrNull { it.id == objId } ?: shown.firstOrNull()
 
     val jarvisPanel: @Composable () -> Unit = {
         if (p != null) JarvisPanel(sv, p, obj, jarvis, focusTick) { jarvisOpen = false }
@@ -155,7 +183,11 @@ fun MainScreen(sv: Services, me: SessionUser) {
         topBar = {
             Row(Modifier.fillMaxWidth().padding(horizontal = Q.layout.gutter, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 QSelect(place, places, { it.nom.ifBlank { "Kompaniya" } + " (${it.rol})" }, { place = it; objId = null }, placeholder = "Kompaniya tanlang", minWidth = if (Q.layout.wide) 220 else 120, modifier = Modifier.weight(1f, fill = false))
-                if (mod.needsObject) QSelect(obj, list, { it.nom }, { objId = it.id }, placeholder = "Obyekt tanlang", minWidth = if (Q.layout.wide) 240 else 120, modifier = Modifier.weight(1f, fill = false))
+                QButton(
+                    if (Q.layout.wide) (scopeSummary(scope, hier, leaves, I18n.s("ier_no_loyiha", "Loyihasiz"), I18n.s("ier_no_shartnoma", "Shartnomasiz")) ?: I18n.s("ier_context_all", "Kontekst: hammasi")) else "",
+                    { scopeOpen = true }, kind = if (scope.isEmpty) QButtonKind.Secondary else QButtonKind.Primary, icon = QIcons.FolderKanban,
+                )
+                if (mod.needsObject) QSelect(obj, shown, { it.nom }, { applyScope(scope.copy(obyektId = it.id)) }, placeholder = "Obyekt tanlang", minWidth = if (Q.layout.wide) 240 else 120, modifier = Modifier.weight(1f, fill = false))
                 Box(Modifier.weight(1f))
                 QButton(if (Q.layout.wide) "Yangilash (F5)" else "", { tick++ }, icon = QIcons.RefreshCw)
                 QButton(if (Q.layout.wide) "Jarvis (Ctrl+K)" else "", { jarvisOpen = !jarvisOpen; if (jarvisOpen) focusTick++ }, kind = if (jarvisOpen) QButtonKind.Primary else QButtonKind.Secondary, icon = QIcons.Sparkles)
@@ -165,18 +197,21 @@ fun MainScreen(sv: Services, me: SessionUser) {
             Column(Modifier.width(420.dp).fillMaxHeight().background(Q.colors.surface)) { jarvisPanel() }
         }) else null,
     ) {
+        if (scopeOpen) QDialog(I18n.s("ier_context", "Kontekst"), { scopeOpen = false }, dismissText = I18n.s("ier_d_close", "Yopish")) { ScopeBody(leaves, hier, scope, ::applyScope) }
         Column(Modifier.fillMaxSize()) {
             objects?.Banner()
             if (jarvisOpen && p != null && !Q.layout.wide) jarvisPanel()
             else if (p == null) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { QLoading(text = "Kompaniya yuklanmoqda...") }
             else Box(Modifier.fillMaxSize().padding(Q.layout.gutter)) {
                 if (objects == null && mod != Mod.Settings) QLoading() else {
-                    val ctx = Ctx(sv, repo, me, p, list, obj, tick)
+                    val ctx = Ctx(sv, repo, me, p, list, obj, tick, hier, hierLoad != null, scope, ::applyScope)
                     when (mod) {
-                        Mod.Objects -> ObjectsScreen(ctx) { objId = it.id; mod = Mod.Smeta }
+                        Mod.Today -> TodayScreen(ctx) { mod = it }
+                        Mod.Objects -> ObjectsScreen(ctx, onGo = { mod = it }) { applyScope(scope.copy(obyektId = it.id)) }
                         Mod.Smeta -> SmetaScreen(ctx)
                         Mod.F2 -> F2Screen(ctx)
                         Mod.Fakt -> FaktScreen(ctx)
+                        Mod.Foto -> FotoScreen(ctx)
                         Mod.Nakop -> NakopScreen(ctx)
                         Mod.Narx -> NarxScreen(ctx)
                         Mod.Ombor -> OmborScreen(ctx)
@@ -208,6 +243,8 @@ fun JarvisPanel(sv: Services, p: Workplace, obj: Obj?, st: JarvisState, focusTic
         scope.launch {
             val res = sv.jarvis.ask(q, p.companyId, history, obj?.id)
             Log.i("jarvis ${res::class.simpleName}")
+            val idx = st.msgs.size
+            (res as? JarvisResult.Answer)?.previewToken?.let { st.previews[idx] = it }
             st.msgs.add(ChatMsg(false, when (res) {
                 is JarvisResult.Answer -> res.text
                 is JarvisResult.Budget -> res.message ?: "Token yetarli emas"
@@ -226,7 +263,22 @@ fun JarvisPanel(sv: Services, p: Workplace, obj: Obj?, st: JarvisState, focusTic
             }
         }
     }
-    val bubbles = st.msgs.map { if (it.mine) QBubble.Mine(it.text) else QBubble.Jarvis(it.text) }
+    val bubbles = st.msgs.mapIndexed { i, it -> if (it.mine) QBubble.Mine(it.text) else QBubble.Jarvis(it.text, st.previews[i]) }
+    val recorder = remember { DesktopRecorder() }
+    DisposableEffect(Unit) { onDispose { recorder.cancel() } }
+    val voice = uz.anncorp.qurai.ui.screens.QJarvisVoice(
+        recording = st.recording, busy = st.transcribing,
+        onStart = { if (recorder.start()) st.recording = true else Log.i("jarvis mic unavailable") },
+        onStop = {
+            st.recording = false
+            val a = recorder.stop()
+            if (a != null) { st.transcribing = true; scope.launch {
+                val (t, err) = sv.jarvis.transcribe(p.companyId, a.bytes, "audio/wav")
+                st.transcribing = false
+                if (t != null) st.input = (st.input.trim() + " " + t).trim() else Log.i("jarvis stt " + err)
+            } }
+        },
+    )
     Column(Modifier.fillMaxSize()) {
         QJarvisChat(
             bubbles, st.busy, st.input, { st.input = it }, { send(st.input) },
@@ -239,6 +291,8 @@ fun JarvisPanel(sv: Services, p: Workplace, obj: Obj?, st: JarvisState, focusTic
             onOpenChat = { ch -> scope.launch { (sv.jarvis.syncChats(p.companyId, ChatCursor(ch.id))?.active as? ChatSnapshot.Changed)?.let { s -> st.msgs.clear(); st.msgs.addAll(s.messages.orEmpty()); st.chatId = ch.id; st.etag = s.etag; st.showChats = false } } },
             headerExtra = { QButton("", onClose, kind = QButtonKind.Ghost, icon = QIcons.X) },
             focus = focus,
+            onConfirm = { token -> sv.jarvis.confirm(p.companyId, token) },
+            voice = voice,
         )
     }
 }

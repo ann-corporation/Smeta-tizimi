@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Google Play: account deletion request (in-app path + web page) -->
+    <string name="play_delete_section">Account and data</string>
+    <string name="play_delete_button">Request account deletion</string>
+    <string name="play_delete_title">Delete account</string>
+    <string name="play_delete_body">Your account and the personal data linked to it (name, phone, photo, sign-in methods) will be deleted. A company\'s estimates, acts and financial documents are kept by the company owner as required by law. Request instructions are on the web page.</string>
+    <string name="play_delete_continue">Continue</string>
+</resources>

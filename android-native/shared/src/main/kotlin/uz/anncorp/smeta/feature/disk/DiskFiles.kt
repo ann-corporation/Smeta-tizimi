@@ -9,6 +9,9 @@ import uz.anncorp.smeta.core.data.arr
 import uz.anncorp.smeta.core.data.num
 import uz.anncorp.smeta.core.data.obj
 import uz.anncorp.smeta.core.data.str
+import kotlinx.serialization.json.put
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.net.URLEncoder
 
 /*
@@ -36,6 +39,51 @@ fun parseDiskVersions(body: JsonElement?): List<DiskVersion>? {
     }
 }
 
+/** One-shot upload ceiling of POST /api/mobil/hujjat-yukla (MOBIL_HM_BIR_MARTA_MAX on the server). Bigger files use the website. */
+const val DISK_UPLOAD_MAX_BYTES = 25L * 1024 * 1024
+
+/**
+ * Multipart body of POST /api/mobil/hujjat-yukla: `fayl`, `operation_id` (UUID; the server de-duplicates a retried upload by it), and the target
+ * (`kompaniya_id` = company drive, none = personal; `papka_id` = folder, none = root). Same field names the server reads.
+ */
+fun diskUploadForm(name: String, mime: String, bytes: ByteArray, operationId: String, companyId: Long?, folderId: Long?): okhttp3.MultipartBody =
+    okhttp3.MultipartBody.Builder().setType(okhttp3.MultipartBody.FORM)
+        .addFormDataPart("operation_id", operationId)
+        .apply { if (companyId != null) addFormDataPart("kompaniya_id", companyId.toString()); if (folderId != null) addFormDataPart("papka_id", folderId.toString()) }
+        .addFormDataPart("fayl", name, bytes.toRequestBody(mime.ifBlank { "application/octet-stream" }.toMediaTypeOrNull()))
+        .build()
+
+/** Body of POST /api/hujjat-maydoni for a folder action: op = yarat | nomla | kochir | ochir (the site's hmPapka). Absent ids are left out, not sent as null. */
+fun diskFolderBody(companyId: Long?, op: String, folderId: Long? = null, name: String? = null, parentId: Long? = null): kotlinx.serialization.json.JsonObject = kotlinx.serialization.json.buildJsonObject {
+    put("amal", "papka"); put("op", op)
+    companyId?.let { put("kompaniya_id", it) }; folderId?.let { put("papka_id", it) }; name?.let { put("nom", it) }; parentId?.let { put("ota_id", it) }
+}
+
+/** Body of POST /api/hujjat-maydoni for a file action: op = nomla | kochir | savat | tikla (the site's hmFaylAmal). */
+fun diskFileBody(fileId: Long, op: String, name: String? = null, folderId: Long? = null): kotlinx.serialization.json.JsonObject = kotlinx.serialization.json.buildJsonObject {
+    put("amal", "fayl"); put("fayl_id", fileId); put("op", op)
+    name?.let { put("nom", it) }; folderId?.let { put("papka_id", it) }
+}
+
+/** Result of a Disk write (upload, folder or file action), one list for both apps; the host maps it to a message. */
+enum class DiskOp { DONE, OFFLINE, FORBIDDEN, TOO_LARGE, QUOTA, BAD_TYPE, EXISTS, NOT_EMPTY, FAILED }
+
+/** Maps a write answer: HTTP status + server `code` (KVOTA_TUGADI 413, MIME_REJECTED 415, NOM_BAND 409, RUXSAT_YOQ 403, PAPKA_BOSH_EMAS, FILE_TOO_LARGE 413). Code wins over status. */
+fun diskOpResult(status: Int, code: String?, bodyOk: Boolean?): DiskOp {
+    val c = code.orEmpty().uppercase()
+    return when {
+        status == 0 -> DiskOp.OFFLINE
+        status in 200..299 && bodyOk != false -> DiskOp.DONE
+        c == "KVOTA_TUGADI" -> DiskOp.QUOTA
+        c == "FILE_TOO_LARGE" -> DiskOp.TOO_LARGE
+        c == "MIME_REJECTED" || status == 415 -> DiskOp.BAD_TYPE
+        c == "NOM_BAND" || status == 409 -> DiskOp.EXISTS
+        c == "PAPKA_BOSH_EMAS" -> DiskOp.NOT_EMPTY
+        c == "RUXSAT_YOQ" || status == 401 || status == 403 -> DiskOp.FORBIDDEN
+        status == 413 -> DiskOp.TOO_LARGE
+        else -> DiskOp.FAILED
+    }
+}
 /** Why a download did not produce bytes (one list for both apps; the host maps it to a message). */
 enum class DiskNotice { SAVED, OFFLINE, FORBIDDEN, TOO_LARGE, MISSING, PAYMENT, FAILED }
 

@@ -1,0 +1,9 @@
+{
+  "sana": "2027-01-19",
+  "sarlavha": "Hujjatlar doim tayyor — Excel o‘zi yangilanadi",
+  "bandlar": [
+    "F-2 o‘zgarsa (qoralamani saqlash, holat, narx yoki hajm tahriri, podval) rasmiy Excel fonda qayta yasalib Diskka yangi versiya bo‘lib yoziladi. Yuklab olganingizda Disk allaqachon tayyor — kutish yo‘q. F-2 sahifasida «Excel tayyor · v5 · 2 daqiqa oldin» ko‘rinadi.",
+    "«Hujjatlar paketi» qayta qurildi: bitta ixcham filtr (Shartnoma, Obyekt, Oy, Hujjat turi, Holat) va oddiy natija ro‘yxati. Keraklisini tanlang yoki hammasini belgilang, «Yuklab olish» — ZIP yoki bitta Excel. Token narxi yuklashdan oldin ko‘rinadi; to‘langan hujjat qayta yuklansa bepul.",
+    "Filtrni nom bilan saqlab qo‘ying («Texnadzor to‘plami») va keyin bir bosishda qayta oching. Yangilanayotgan hujjat «yangilanmoqda» belgisi bilan ko‘rinadi."
+  ]
+}

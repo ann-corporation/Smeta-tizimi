@@ -5,11 +5,12 @@
  * Yuklangan fayl tekshiruvi brauzerda: mazmun xeshi hisoblanadi, faylning o'zi hech qayerga yuborilmaydi.
  */
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, Navigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Download, FileCheck2, LogIn, ShieldQuestion } from 'lucide-react';
 import { t } from '../i18n/til';
 import { ochiqTekshir, tokenOchish, xatoMatni } from '../api/t2-imzo';
+import { tekshiruvOchish } from '../api/t2-tekshiruv';
 import { hujjatOl, hujjatYuklabOlishUrl } from '../api/t2-hujjat-canonical';
 import { ImzoQatorlari } from '../components/imzo/ImzoUi';
 import { hujjatMazmunXeshi, mazmunFarqi, xlsxKanonik, type KanonMazmun, type MazmunFarqi } from '../lib/imzo/mazmun';
@@ -30,12 +31,16 @@ export default function ImzoTekshiruv() {
   const q = useQuery({ queryKey: ['t-ochiq', token], queryFn: () => ochiqTekshir(token), retry: false });
   // Kirganmi: sessiya bor bo'lsa ruxsat so'raladi (server a'zolik/tomon ruxsatini tekshiradi)
   const ruxsat = useQuery({ queryKey: ['t-ruxsat', token], enabled: q.data?.ok === true, retry: false, queryFn: () => tokenOchish(token) });
+  // F-2 nashr QR i: ko'rib chiqish huquqi bor odam (texnadzor/PTO) to'g'ridan-to'g'ri tekshiruv paneliga o'tadi; boshqalar quyidagi oddiy sahifani ko'radi.
+  const f2Nashr = q.data?.ok === true && q.data.tur === 'nashr' && /^f-?2/i.test(q.data.nashr?.turi ?? '');
+  const panel = useQuery({ queryKey: ['t-tekshiruv-panel', token], enabled: f2Nashr, retry: false, staleTime: 60_000, queryFn: () => tekshiruvOchish(token) });
   const [fayl, setFayl] = useState<{ nom: string; mos: boolean; farq: MazmunFarqi[] | null } | null>(null);
   const [band, setBand] = useState(false);
   const [chop, setChop] = useState<KanonMazmun | null>(null);
   const korilayotgan = ruxsat.data && ruxsat.data.ok ? ruxsat.data.hujjat_id : null;
   useEffect(() => { joriyHujjatOrnat(korilayotgan); return () => joriyHujjatOrnat(null); }, [korilayotgan]);
 
+  if (panel.data?.ok === true) return <Navigate to={'/tekshiruv/' + token} replace />;
   if (!tokenMi(token) || (q.data && !q.data.ok && q.data.status === 404)) {
     return (
       <Qobiq><Karta>
@@ -117,6 +122,14 @@ export default function ImzoTekshiruv() {
           ? <p className="m-0 text-[13px] font-semibold" style={{ color: 'var(--ok, #1a7f37)' }}>{t('Asl nashr: bu hujjatning joriy tahriri.')}</p>
           : <p className="m-0 text-[13px] font-semibold" style={{ color: 'var(--warn, #9a6700)' }}>{t('Bu nashr eskirgan: hujjat keyin o‘zgargan, yangi tahriri bor.')} {nashr.joriy_token && <Link to={'/t/' + nashr.joriy_token} className="underline">{t('Joriy tahrirni ko‘rish')}</Link>}</p>)}
       </Karta>
+
+      {nashr && /^f-?2/i.test(nashr.turi ?? '') && (
+        <Karta>
+          <h2 className="text-[15px] font-semibold m-0">{t('Texnik nazorat tekshiruvi')}</h2>
+          <p className="m-0 text-[13px]">{t('Texnadzor: shu F-2 ni tekshirish paneliga o‘tish (izoh, hajm taklifi, qator qo‘shish).')}</p>
+          <Link to={'/tekshiruv/' + token} className="fz-btn fz-btn--primary self-start">{t('Tekshirishni boshlash')}</Link>
+        </Karta>
+      )}
 
       <Karta>
         <h2 className="text-[15px] font-semibold m-0">{t('Imzolar')}</h2>

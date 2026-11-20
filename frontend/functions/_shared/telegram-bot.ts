@@ -12,6 +12,7 @@
  *  • Fakt summasi/hajmi YOZILMAYDI. Xabar matni, rasm, summa, chat_id loglanmaydi.
  */
 import { type TgEnv, type TgTil, miniAppYoliTugma, saytUrl, tgFaylOl, tgRpc, tgT } from './telegram';
+import { type Kutilgan, sinovniSuz } from './telegram-holat';
 import { botChaqiruv } from './telegram-amal';
 import { FOTO_BOLIMLAR } from './telegram-tugma';
 import { onRequest as middleware } from '../api/_middleware';
@@ -21,7 +22,9 @@ import { onRequestPost as aiSavolPost } from '../api/ai-savol';
 import { onRequestPost as yuklaPost } from '../api/hujjat-yukla';
 import { onRequestPost as fotoDalilPost } from '../api/foto-dalil';
 
-export type BotJavob = { matn: string; markup?: Record<string, unknown>; /** Xabar bilan bog'liq obyekt (menyu tugmasini shunga o'rnatish uchun). */ obyektId?: number };
+export type BotJavob = { matn: string; markup?: Record<string, unknown>; /** Xabar bilan bog'liq obyekt (menyu tugmasini shunga o'rnatish uchun). */ obyektId?: number;
+  /** Matnda ko'rinmaydigan belgilar (tasdiq tokeni): text_link entity — xom `#OB:…` matnda chiqmaydi. */ entities?: Record<string, unknown>[];
+  /** Yuborilgach chat holatiga yoziladi: keyingi oddiy xabar shu amalni yakunlaydi (telegram-holat.ts). */ kutish?: Kutilgan };
 type BotEnv = TgEnv & Record<string, unknown>;
 
 /* ───────── yengil limit (bitta isolate ichida; asosiy limit — bazada t2_telegram_update_qabul_v1, 20/daq) ───────── */
@@ -36,7 +39,7 @@ export function limitOshdi(kalit: string, maks: number, oynaMs = 60_000, hozir =
 export const limitTozala = () => TARIX.clear();
 
 const musbat = (v: unknown): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v > 0;
-const IJRO_ROLLARI = new Set(['superadmin', 'admin', 'boss', 'rahbar', 'director', 'bugalter', 'pto', 'prorab']);
+export const IJRO_ROLLARI = new Set(['superadmin', 'admin', 'boss', 'rahbar', 'director', 'bugalter', 'pto', 'prorab']);
 
 type Men = { ok?: boolean; foydalanuvchi?: { ism?: string | null; login?: string | null }; platform_role?: string;
   azoliklar?: { kompaniya_id?: number; nom?: string; rol?: string; faol?: boolean }[] };
@@ -99,11 +102,19 @@ export async function bugunJavobi(env: BotEnv, uid: number, til: TgTil): Promise
 /* ───────── /obyektlar ───────── */
 export type ObyektQator = { id: number; nom: string; kompaniya_id: number };
 export async function obyektlarOl(env: BotEnv, uid: number, limit = 12): Promise<ObyektQator[] | null> {
+  // Sinov obyektlari (SINOV…) haqiqiy ro'yxatda chiqmaydi: ularni suzish uchun ko'proq olinadi (telegram-holat.ts).
   const r = await botChaqiruv<{ ok?: boolean; qatorlar?: { id?: number; nom?: string; kompaniya_id?: number }[] }>(env, uid,
-    { api: 'sb', json: { jadval: 't2_obyekt', filtr: 'holat=eq.faol', ustunlar: 'id,nom,kompaniya_id', tartib: 'yangilandi.desc', limit } }, middleware, sbPost);
+    { api: 'sb', json: { jadval: 't2_obyekt', filtr: 'holat=eq.faol', ustunlar: 'id,nom,kompaniya_id', tartib: 'yangilandi.desc', limit: Math.max(limit, 50) } }, middleware, sbPost);
   if (r.status !== 200 || !r.body?.ok || !Array.isArray(r.body.qatorlar)) return null;
-  return r.body.qatorlar.filter((q) => musbat(q.id) && musbat(q.kompaniya_id)).slice(0, limit)
+  return sinovniSuz(r.body.qatorlar.filter((q) => musbat(q.id) && musbat(q.kompaniya_id))).slice(0, limit)
     .map((q) => ({ id: q.id as number, nom: String(q.nom ?? '—').replace(/\s+/g, ' ').slice(0, 80), kompaniya_id: q.kompaniya_id as number }));
+}
+
+async function obyektBitta(env: BotEnv, uid: number, id: number): Promise<ObyektQator | undefined> {
+  const r = await botChaqiruv<{ ok?: boolean; qatorlar?: { id?: number; nom?: string; kompaniya_id?: number }[] }>(env, uid,
+    { api: 'sb', json: { jadval: 't2_obyekt', filtr: `id=eq.${id}&holat=eq.faol`, ustunlar: 'id,nom,kompaniya_id', limit: 1 } }, middleware, sbPost);
+  const q = r.status === 200 && r.body?.ok && Array.isArray(r.body.qatorlar) ? r.body.qatorlar.find((x) => x.id === id) : undefined;
+  return q && musbat(q.id) && musbat(q.kompaniya_id) ? { id: q.id, nom: String(q.nom ?? '—').replace(/\s+/g, ' ').slice(0, 80), kompaniya_id: q.kompaniya_id } : undefined;
 }
 
 export async function obyektlarJavobi(env: BotEnv, uid: number, til: TgTil): Promise<BotJavob> {
@@ -175,11 +186,13 @@ export async function fotoAmali(env: BotEnv, uid: number, til: TgTil, rasmlar: T
   // «Joriy obyekt»: izohdagi #raqam → yagona obyekt → aks holda so'raymiz (taxmin qilinmaydi). Obyekt ro'yxati foydalanuvchiga ochiq obyektlardan.
   const hint = /(?:^|\s)#(\d{1,12})(?=\s|$)/.exec(izoh)?.[1];
   let obyekt: ObyektQator | undefined;
-  if (hint) obyekt = obyektlar.find((o) => o.id === Number(hint));
+  if (hint) obyekt = obyektlar.find((o) => o.id === Number(hint)) ?? await obyektBitta(env, uid, Number(hint));   // aniq #raqam — sinov obyekt ham (ro'yxatda yashirin bo'lsa ham; ruxsat sb da)
   else if (obyektlar.length === 1) obyekt = obyektlar[0];
   if (!obyekt) {
-    return { matn: [tgT(hint ? 'Bu raqamli obyekt sizga ochiq emas.' : 'Qaysi obyektga? Rasmni qayta yuboring, izohga #raqam yozing:', til),
-      ...obyektlar.slice(0, 8).map((o) => `• #${o.id} ${o.nom}`)].join('\n') };
+    // Rasm saqlab qo'yiladi: foydalanuvchi obyekt raqamini yozsa («240») rasm qayta yuborilmasdan yakunlanadi (kutilgan niyat).
+    return { matn: [tgT(hint ? 'Bu raqamli obyekt sizga ochiq emas.' : 'Qaysi obyektga? Raqamini yozing (masalan: 240):', til),
+      ...obyektlar.slice(0, 8).map((o) => `• #${o.id} ${o.nom}`)].join('\n'),
+    kutish: { tur: 'foto', fileId: eng.file_id, w: eng.width, h: eng.height, izoh: izoh.replace(/(?:^|\s)#\d{1,12}(?=\s|$)/g, ' ').trim() } };
   }
   const f = await tgFaylOl(env, eng.file_id, FOTO_MAX_BAYT);
   if (!f) return { matn: tgT('Rasmni olib bo‘lmadi (10 MB gacha rasm yuboring).', til) };
@@ -206,7 +219,7 @@ export async function fotoAmali(env: BotEnv, uid: number, til: TgTil, rasmlar: T
 }
 
 /* ───────── callback (menyu). Hujjat tasdiqi va 2-bosqich oqimlari: telegram-bot-oqim.ts (callbackIshlaV2) ───────── */
-export type Callback = { id?: string; from?: { id?: number; language_code?: string }; data?: string; message?: { message_id?: number; text?: string; chat?: { id?: number; type?: string } } };
+export type Callback = { id?: string; from?: { id?: number; language_code?: string }; data?: string; message?: { message_id?: number; text?: string; entities?: { type?: string; url?: string }[]; chat?: { id?: number; type?: string } } };
 
 /** Callback ishlovi. `uid` — chaqiruvchi (bog'lanishdan). Qaytadi: javob matni (answerCallbackQuery) + ixtiyoriy yangi xabar/markup tozalash. */
 export async function callbackIshla(env: BotEnv, uid: number, til: TgTil, cb: Callback): Promise<{ toast: string; xabar?: BotJavob; tugmalarniOlibTashla?: boolean; amal: string }> {
@@ -225,6 +238,9 @@ export const yordamMatni = (til: TgTil) => [
   '/jarvis — ' + tgT('Jarvis ga savol (tokenlar sarflanadi)', til),
   '/fakt — ' + tgT('fakt qoralamasi: /fakt <obyekt#> <nima va qancha> (tokenlar sarflanadi)', til),
   '/kunlik — ' + tgT('kunlik xulosani yoqish/o‘chirish', til),
+  '/menyu — ' + tgT('asosiy menyu: obyekt, fakt, F-2, hujjat, tasdiqlar', til),
+  '/til — ' + tgT('tilni o‘zgartirish (uz, ru, en)', til),
+  '/tasdiqlar — ' + tgT('qaroringizni kutayotgan hujjatlar (Tasdiqlash / Rad)', til),
   '/men — ' + tgT('men kimman (hisob, kompaniya, rol)', til),
   '/username — ' + tgT('QURAI username’ingiz: /username <nom>', til),
   '/taklif — ' + tgT('odamni kompaniyaga taklif qilish: /taklif <@username|telefon|email> <rol>', til),

@@ -33,20 +33,20 @@ const musbat = (v: unknown): v is number => typeof v === 'number' && Number.isSa
 const bosh = (s: unknown, n: number) => String(s ?? '').replace(/\s+/g, ' ').trim().slice(0, n);
 
 /** `sb` o'qish shlyuzi (tenant filtri serverda). `null` — o'qib bo'lmadi (noma'lum; 0 emas). */
-async function sbOqi<T>(env: BotEnv, uid: number, json: Record<string, unknown>): Promise<T[] | null> {
+export async function sbOqi<T>(env: BotEnv, uid: number, json: Record<string, unknown>): Promise<T[] | null> {
   const r = await botChaqiruv<{ ok?: boolean; qatorlar?: T[] }>(env, uid, { api: 'sb', json }, middleware, sbPost);
   return r.status === 200 && r.body?.ok && Array.isArray(r.body.qatorlar) ? r.body.qatorlar : null;
 }
 
-type ObyektKompaniya = { id: number; nom: string; kompaniya_id: number };
+export type ObyektKompaniya = { id: number; nom: string; kompaniya_id: number };
 /** Bitta obyekt (foydalanuvchiga ochiq bo'lsa). Tenant filtri `sb` da. */
-async function obyektOl(env: BotEnv, uid: number, oid: number): Promise<ObyektKompaniya | null> {
+export async function obyektOl(env: BotEnv, uid: number, oid: number): Promise<ObyektKompaniya | null> {
   const q = await sbOqi<{ id?: number; nom?: string; kompaniya_id?: number }>(env, uid, { jadval: 't2_obyekt', filtr: `id=eq.${oid}`, ustunlar: 'id,nom,kompaniya_id', limit: 1 });
   const x = q?.find((r) => r.id === oid);
   return x && musbat(x.kompaniya_id) ? { id: oid, nom: bosh(x.nom ?? '—', 80), kompaniya_id: x.kompaniya_id } : null;
 }
 
-const XATO_OQISH = 'Ma’lumotni o‘qib bo‘lmadi. Birozdan keyin urinib ko‘ring.';
+export const XATO_OQISH = 'Ma’lumotni o‘qib bo‘lmadi. Birozdan keyin urinib ko‘ring.';
 
 /* ═════════ 1) Hujjat tasdig'i: tafsilot + qadam belgisi ═════════ */
 type Tafsilot = {
@@ -182,7 +182,7 @@ export async function qatorQidir(env: BotEnv, uid: number, oid: number, sozlar: 
   }
   return rows.slice(0, limit);
 }
-const qatorMatni = (q: Pick<QatorNomzod, 'kod' | 'nom' | 'birlik'>) => [q.kod, q.nom].filter(Boolean).join(' ') + (q.birlik ? ` (${q.birlik})` : '');
+export const qatorMatni = (q: Pick<QatorNomzod, 'kod' | 'nom' | 'birlik'>) => [q.kod, q.nom].filter(Boolean).join(' ') + (q.birlik ? ` (${q.birlik})` : '');
 
 /* ═════════ 2) Rasm → fakt qatori ═════════ */
 const SAHIFA = 8;
@@ -315,7 +315,7 @@ export async function faktTaklif(env: BotEnv, uid: number, til: TgTil, arg: stri
 export const bugunToshkent = (hozir = Date.now()) => new Date(hozir + 5 * 3600_000).toISOString().slice(0, 10);
 
 /** Deterministik UUID (v5 shakli): bir xabardagi takroriy bosish ikkinchi qoralama yaratmasin. */
-async function opId(manba: string): Promise<string> {
+export async function opId(manba: string): Promise<string> {
   const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(manba)))].slice(0, 16);
   h[6] = (h[6] & 0x0f) | 0x50; h[8] = (h[8] & 0x3f) | 0x80;
   const x = h.map((b) => b.toString(16).padStart(2, '0')).join('');

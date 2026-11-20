@@ -192,6 +192,14 @@ describe('mobil BFF: P10 profile, sessions, texnadzor, notification preferences'
     await notTarget(await bff('/api/tomon', 'POST', { amal: 'nazorat_qaror', kompaniya_id: 8, taqdim_id: 3, qaror: 'rad', izoh: 'Armatura qadami noto\'g\'ri' }));
     for (const amal of ['taklif', 'kod_qabul', 'grant_saqla', 'tolov_qaror', 'taqdim_yarat', 'vakolat_ber', 'qaror', 'ichki_qaror', '']) expect((await bff('/api/tomon', 'POST', { amal })).status).toBe(400);
   });
+  it('hujjat-paket: baho/yig POST va amal=ol GET faqat', async () => {
+    await notTarget(await bff('/api/hujjat-paket', 'POST', { amal: 'baho', kompaniya_id: 8 }));
+    await notTarget(await bff('/api/hujjat-paket', 'POST', { amal: 'yig', kompaniya_id: 8, yetkazish: 'havola' }));
+    await notTarget(await bff('/api/hujjat-paket?amal=ol&k=paket%2Fu1%2Fx'));
+    for (const amal of ['', 'x', 'ol']) expect((await bff('/api/hujjat-paket', 'POST', { amal })).status).toBe(400);
+    expect((await bff('/api/hujjat-paket?amal=baho')).status).toBe(400);
+    expect(MOBIL_PATH.test('/api/hujjat-paket')).toBe(true);
+  });
   it('notification preferences: telegram status read + sozlama only', async () => {
     await notTarget(await bff('/api/telegram'));
     await notTarget(await bff('/api/telegram', 'POST', { amal: 'sozlama', bildirishnoma: { topshiriq: true } }));
@@ -224,10 +232,17 @@ describe('mobil BFF: ombor-buyruq (omborchi matn/ovoz buyrug\'i)', () => {
       return base(raw, init);
     }));
   });
+  it('MOBIL_PATH ombor-ovoz (Jarvis ovozli kiritish) ni o\'tkazadi, qo\'shnilarini emas', () => {
+    expect(MOBIL_PATH.test('/api/ombor-ovoz')).toBe(true);
+    expect(MOBIL_PATH.test('/api/ombor-ovoz-x')).toBe(false);
+    expect(MOBIL_PATH.test('/api/ombor-ovozX')).toBe(false);
+    expect(MOBIL_PATH.test('/api/ombor-ovoz/x')).toBe(false);
+  });
   it('MOBIL_PATH ombor-buyruq ni o\'tkazadi, qo\'shnilarini emas', () => {
     expect(MOBIL_PATH.test('/api/ombor-buyruq')).toBe(true);
-    expect(MOBIL_PATH.test('/api/ombor-ovoz')).toBe(false);
+    expect(MOBIL_PATH.test('/api/ombor-buyruqX')).toBe(false);
     expect(MOBIL_PATH.test('/api/ombor-buyruq-x')).toBe(false);
+    expect(MOBIL_PATH.test('/api/ombor-eksport')).toBe(false);
   });
   it('matn: tahlil → preview + token → tasdiq → RPC (aktor sessiyadan, qurilma tokenidan)', async () => {
     const t1 = await bff('/api/ombor-buyruq', 'POST', { amal: 'tahlil', kompaniya_id: 8, sklad_id: 3, til: 'uz', matn: '50 kg mix keldi' });
@@ -240,6 +255,13 @@ describe('mobil BFF: ombor-buyruq (omborchi matn/ovoz buyrug\'i)', () => {
     expect(t2.status).toBe(200);
     const yoz = rpcs.find(r => r.nom === 't2_ombor_prixod_v1')!;
     expect(yoz.body).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 8, p_sklad_id: 3, p_miqdor: '50' });
+  });
+  it('ombor lug\'ati: lugat_royxat / lugat_tahrir BFF orqali (sayt bilan bir xil RPC; aktor qurilmadan, kompaniya tekshiruvi serverda); alias/eksport yopiq', async () => {
+    expect((await bff('/api/ombor-buyruq', 'POST', { amal: 'lugat_royxat', kompaniya_id: 8, sklad_id: 3 })).status).not.toBe(400);
+    expect(rpcs.find(r => r.nom === 't2_ombor_lugat_royxat_v1')!.body).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 8, p_sklad_id: 3 });
+    expect((await bff('/api/ombor-buyruq', 'POST', { amal: 'lugat_tahrir', kompaniya_id: 8, sklad_id: 3, lugat_amal: 'qosh', yuk: { tur: 'material', ibora: 'mix', kanonik: 'Mix 20 kg' } })).status).not.toBe(400);
+    expect(rpcs.find(r => r.nom === 't2_ombor_lugat_yoz_v1')!.body).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 8, p_amal: 'qosh' });
+    for (const amal of ['alias', 'eksport', 'eksport_reja']) expect((await bff('/api/ombor-buyruq', 'POST', { amal, kompaniya_id: 8, sklad_id: 3 })).status).toBe(400);
   });
   it('eslatma (autocomplete) va ostatka o\'qish BFF orqali ishlaydi', async () => {
     expect((await bff('/api/ombor-buyruq', 'POST', { amal: 'eslatma', kompaniya_id: 8, sklad_id: 3, q: 'sem' })).status).not.toBe(400);
@@ -414,5 +436,23 @@ describe('mobil BFF: yuk-tashish (Logistika yuk birjasi)', () => {
     }
     expect((await bff('/api/yuk-tashish', 'GET')).status).toBe(400);
     expect(rpcs).toHaveLength(0);
+  });
+});
+
+describe('mobil BFF: tekshiruv (PTO texnadzor takliflari)', () => {
+  const notTarget = async (r: Response) => expect(((await r.json().catch(() => ({}))) as { code?: string }).code).not.toBe('TARGET_INVALID');
+  const refused = async (r: Response) => expect(((await r.json().catch(() => ({}))) as { code?: string }).code).toBe('TARGET_INVALID');
+  it('reaches exactly GET amal=akt and POST amal=qaror (the endpoint itself enforces the session / PTO right)', async () => {
+    await notTarget(await bff('/api/tekshiruv?amal=akt&kompaniya_id=8&akt_id=5'));
+    await notTarget(await bff('/api/tekshiruv', 'POST', { amal: 'qaror', taklif_id: 3, qaror: 'qabul' }));
+    expect(MOBIL_PATH.test('/api/tekshiruv?amal=akt&kompaniya_id=8&akt_id=5')).toBe(true);
+    expect(MOBIL_PATH.test('/api/tekshiruv-x')).toBe(false);
+  });
+  it('everything else of /api/tekshiruv stays web-only', async () => {
+    await refused(await bff('/api/tekshiruv?token=' + 'a'.repeat(43)));                 // token reading (texnadzor panel)
+    await refused(await bff('/api/tekshiruv?amal=akt&token=' + 'a'.repeat(43)));
+    await refused(await bff('/api/tekshiruv?amal=boshqa'));
+    for (const amal of ['saqla', 'holat', 'qidir', 'kod_ber', 'kod_ol', 'bog', 'hujjat', 'import', '']) await refused(await bff('/api/tekshiruv', 'POST', { amal }));
+    await refused(await bff('/api/tekshiruv', 'PUT', { amal: 'qaror' }));
   });
 });

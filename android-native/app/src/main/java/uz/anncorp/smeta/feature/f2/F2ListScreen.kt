@@ -168,7 +168,7 @@ private fun statusExplain(s: F2Status): String = stringResource(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun F2ListScreen(onBack: () -> Unit, onDocs: (Long) -> Unit = {}, vm: F2ListViewModel = hiltViewModel()) {
+fun F2ListScreen(onBack: () -> Unit, onDocs: (Long) -> Unit = {}, onOpenAct: (Long, Long) -> Unit = { _, _ -> }, vm: F2ListViewModel = hiltViewModel()) {
     val ui by vm.state.collectAsStateWithLifecycle()
     var detail by remember { mutableStateOf<F2Act?>(null) }
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
@@ -195,7 +195,7 @@ fun F2ListScreen(onBack: () -> Unit, onDocs: (Long) -> Unit = {}, vm: F2ListView
     }
     detail?.let { a ->
         ModalBottomSheet(onDismissRequest = { detail = null }) {
-            DetailSheet(a, onDocs = { detail = null; onDocs(vm.id) }, vm = vm, onDone = { detail = null })
+            DetailSheet(a, onDocs = { detail = null; onDocs(vm.id) }, onRows = { detail = null; onOpenAct(vm.id, a.id) }, vm = vm, onDone = { detail = null })
         }
     }
 }
@@ -265,7 +265,7 @@ internal fun StatusChip(s: F2Status, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun DetailSheet(a: F2Act, onDocs: () -> Unit, vm: F2ListViewModel, onDone: () -> Unit) {
+private fun DetailSheet(a: F2Act, onDocs: () -> Unit, onRows: () -> Unit, vm: F2ListViewModel, onDone: () -> Unit) {
     val msg by vm.stepMsg.collectAsStateWithLifecycle()
     val busy by vm.stepBusy.collectAsStateWithLifecycle()
     var rejecting by remember(a.id) { mutableStateOf(false) }
@@ -281,8 +281,8 @@ private fun DetailSheet(a: F2Act, onDocs: () -> Unit, vm: F2ListViewModel, onDon
         Text(statusExplain(a.state), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         DetailLine(stringResource(R.string.f2_month), f2MonthLabel(a.oy) ?: "—")
         DetailLine(stringResource(R.string.f2_rows), a.rows?.toString() ?: "—")
-        DetailLine(stringResource(R.string.f2_unpriced), (a.unpriced ?: 0).toString(), warn = (a.unpriced ?: 0) > 0)
-        DetailLine(stringResource(R.string.f2_minus_rows), (a.negativeRows ?: 0).toString())
+        DetailLine(stringResource(R.string.f2_unpriced), a.unpriced?.toString() ?: "\u2014", warn = (a.unpriced ?: 0) > 0)
+        DetailLine(stringResource(R.string.f2_minus_rows), a.negativeRows?.toString() ?: "\u2014")
         if (a.hasDiff) Text(stringResource(R.string.f2_flag_diff_long), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
         summa?.takeIf { it.first == a.id }?.second?.let { s ->
             when (s) {
@@ -297,14 +297,15 @@ private fun DetailSheet(a: F2Act, onDocs: () -> Unit, vm: F2ListViewModel, onDon
             Button(onClick = { uz.anncorp.smeta.core.data.f2NextStep(a.state)?.let { vm.step(a, it, null) } }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(label) }
         }
         if (uz.anncorp.smeta.core.data.f2CanReject(a.state)) {
-            androidx.compose.material3.OutlinedButton(onClick = { rejecting = !rejecting }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text("Rad etish") }
+            androidx.compose.material3.OutlinedButton(onClick = { rejecting = !rejecting }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.f2_reject)) }
             if (rejecting) {
-                androidx.compose.material3.OutlinedTextField(reason, { reason = it }, label = { Text("Rad etish sababi") }, modifier = Modifier.fillMaxWidth())
-                Button(onClick = { if (reason.isNotBlank()) vm.step(a, F2Status.REJECTED, reason) else vm.stepMsg.value = uz.anncorp.smeta.core.data.serverErrorText("REASON_REQUIRED") }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text("Rad etishni tasdiqlash") }
+                androidx.compose.material3.OutlinedTextField(reason, { reason = it }, label = { Text(stringResource(R.string.f2_reject_reason)) }, modifier = Modifier.fillMaxWidth())
+                Button(onClick = { if (reason.isNotBlank()) vm.step(a, F2Status.REJECTED, reason) else vm.stepMsg.value = uz.anncorp.smeta.core.data.serverErrorText("REASON_REQUIRED") }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.f2_reject_confirm)) }
             }
         }
         msg?.takeIf { it != "OK" }?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
-        Button(onClick = onDocs, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.docs_f2_button)) }
+        Button(onClick = onRows, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.f2d_open)) }
+        androidx.compose.material3.OutlinedButton(onClick = onDocs, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.docs_f2_button)) }
     }
 }
 

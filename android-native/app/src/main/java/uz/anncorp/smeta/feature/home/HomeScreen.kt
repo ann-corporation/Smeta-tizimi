@@ -123,7 +123,7 @@ fun HomeScreen(
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        topBar = { Column { WorkplaceBar(state.selected, state.workplaces.size > 1, workspace, onCabinets = { cabinetSheet = true }) { sheet = true }; UpdateBanner() } },
+        topBar = { Column { WorkplaceBar(state.selected, state.workplaces.size > 1, workspace, onCabinets = { cabinetSheet = true }) { sheet = true }; uz.anncorp.smeta.feature.company.ContextBar(); UpdateBanner() } },
         // With the keyboard open the bar would sit under it and push the content below the keyboard (Ombor command field was hidden): drop it, the Scaffold then pads for the IME.
         bottomBar = {
             if (androidx.compose.foundation.layout.WindowInsets.Companion.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current) == 0) {

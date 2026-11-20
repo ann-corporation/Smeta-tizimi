@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+﻿import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Box, ArrowDownToLine, ArrowUpFromLine, ClipboardCheck, QrCode, Building2, History, Layers, FileSpreadsheet, Plus, Warehouse } from 'lucide-react';
 import { useKompaniya } from './KompaniyaTanlov';
@@ -6,13 +6,13 @@ import { FmtN } from '../lib/format';
 import { toast } from '../umumiy/ui/Toast';
 import { t } from '../i18n/til';
 import { Sahifa } from '../umumiy/ui/Sahifa';
-import { sbT2ObyektlarOl, sbSkladQoldiqOl, type T2Obyekt, type T2SkladQoldiq } from '../api/supabase';
+import { sbT2ObyektlarOl, sbSkladQoldiqKompaniyaOl, type T2Obyekt, type T2SkladQoldiq } from '../api/supabase';
 import { sbSkladlarOl, sbSkladYarat, type SkladMustaqil } from '../api/t2-resurs';
 import { sbSkladKonsolidatsiyaOl, type SkladKonsolidatsiya } from '../api/t2-sklad-konsolidatsiya';
 import { obyektUlushlari, skladXulosa } from '../lib/kompaniya-ops-korinish';
-import { OpsBoshQator, OpsKpi, OpsKpiQator, OpsMaydon, OpsQidiruv, OpsTablar } from '../components/kompaniya-ops/OpsUi';
+import { OpsBoshQator, OpsKpi, OpsKpiQator, OpsQidiruv, OpsTablar } from '../components/kompaniya-ops/OpsUi';
 import { PrixodKitobPreview } from '../components/ombor/PrixodKitobPreview';
-import { KirimKunlikForm } from '../components/ombor/KirimKunlikForm';
+import { SKLAD_HAMMASI, aniqSklad, boshSkladTanlovi, berdimBoshObyekti, obyektFiltri, obyektlarBoyicha, type SkladTanlovi } from '../lib/ombor-kunlik/sklad-birinchi';
 import { KirimKunlikJurnal } from '../components/ombor/KirimKunlikJurnal';
 import { OmborTanlov } from '../components/ombor/OmborTanlov';
 import { OmborIshJoyi } from '../components/ombor/OmborIshJoyi';
@@ -23,6 +23,15 @@ import { kirimRuxsat } from '../lib/ombor-prixod/yozish';
 /** Egasi (KOORDINATSIYA 2026-10-28): «Navoiy park.xlsx» → «Приход» shu omborda ko'rinsin. Avtomatik yaratilmaydi — tugma bilan. */
 export const NAVOIY_SKLAD_NOMI = "NEW TIMES BUILDINGS MCHJ — Navoiy bog' skladi";
 const NAVOIY_KOMPANIYA_ID = 123;
+
+/** Server vaqt belgisi (ISO) → «18.11.2026 17:15»; bo'sh/yaroqsiz → «—» yoki asl matn. */
+function vaqtKorinishi(v: string | null | undefined): string {
+  if (!v) return '—';
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return v;
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
 
 /**
  * Ombor (sklad) — qoldiq va kirim/chiqim yozuvi (egasi 2026-10-25: Firuza ko'rinishi).
@@ -44,8 +53,6 @@ export default function TestSklad() {
   const [berdimOchiq, setBerdimOchiq] = useState(false);
   const [kirimYangilash, setKirimYangilash] = useState(0);
   const [skladYaratilmoqda, setSkladYaratilmoqda] = useState(false);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [opType, setOpType] = useState<'kirim' | 'chiqim'>('kirim');
 
   const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
   const [obyektId, setObyektId] = useState<number | null>(null);
@@ -58,6 +65,8 @@ export default function TestSklad() {
 
   const [markaziySkladlar, setMarkaziySkladlar] = useState<SkladMustaqil[]>([]);
   const [markaziyId, setMarkaziyId] = useState<number | null>(null);
+  /** Omborlar ro'yxati serverdan kelganmi: kelmaguncha «ombor yo'q» / «yaratish» ko'rsatilmaydi (dublikat ombor xavfi). */
+  const [skladlarYuklandi, setSkladlarYuklandi] = useState(false);
   const [konsQoldiqlar, setKonsQoldiqlar] = useState<SkladKonsolidatsiya[]>([]);
 
   useEffect(() => {
@@ -70,7 +79,7 @@ export default function TestSklad() {
       if (!active || kompaniyaRef.current !== kompaniya) return;
       const qatorlar = r.ok && r.qatorlar ? r.qatorlar.filter((o) => o.kompaniya_id === kompaniya) : [];
       setObyektlar(qatorlar);
-      if (qatorlar.length > 0) setObyektId(qatorlar[0].id);
+      // Jimgina «birinchi obyekt» tanlanmaydi: obyekt filtri faqat «Obyekt qoldiqlari»da, standart — barcha obyektlar.
       setObyektlarYuklanmoqda(false);
     }).catch(() => { if (active && kompaniyaRef.current === kompaniya) setObyektlarYuklanmoqda(false); });
     skladlarniYukla();
@@ -84,15 +93,19 @@ export default function TestSklad() {
     void sbSkladlarOl(aktKomp).then((r) => {
       if (r.ok && r.qatorlar) {
         setMarkaziySkladlar(r.qatorlar);
+        setSkladlarYuklandi(true);
         const nomli = tanla ? r.qatorlar.find((s) => s.nomi === tanla) : undefined;
-        const navoiy = r.qatorlar.find((s) => s.nomi === NAVOIY_SKLAD_NOMI);
         if (nomli) setMarkaziyId(nomli.id);
-        else if (!markaziyId || !r.qatorlar.some((s) => s.id === markaziyId)) setMarkaziyId((navoiy ?? r.qatorlar[0])?.id ?? null);
+        else {
+          // Jimgina «birinchi ombor» yo'q: bitta ombor bo'lsa o'sha, aks holda «Barcha omborlar» (null).
+          const t0 = boshSkladTanlovi(r.qatorlar, markaziyId ?? SKLAD_HAMMASI);
+          setMarkaziyId(typeof t0 === 'number' ? t0 : null);
+        }
       }
     });
   }
 
-  const navoiySkladYoq = aktKomp === NAVOIY_KOMPANIYA_ID && !markaziySkladlar.some((s) => s.nomi === NAVOIY_SKLAD_NOMI);
+  const navoiySkladYoq = skladlarYuklandi && aktKomp === NAVOIY_KOMPANIYA_ID && !markaziySkladlar.some((s) => s.nomi === NAVOIY_SKLAD_NOMI);
   const navoiySkladYarat = async () => {
     setSkladYaratilmoqda(true);
     const r = await sbSkladYarat({ kompaniyaId: aktKomp, nomi: NAVOIY_SKLAD_NOMI });
@@ -100,7 +113,8 @@ export default function TestSklad() {
     if (r.ok) { toast(t('Ombor yaratildi.'), 'ok'); skladlarniYukla(NAVOIY_SKLAD_NOMI); }
     else toast(t('Xato yuz berdi: {x}', { x: r.error ?? '' }), 'danger');
   };
-  const tanlanganSklad = markaziySkladlar.find((s) => s.id === markaziyId) ?? null;
+  const skladTanlovi: SkladTanlovi = markaziyId ?? SKLAD_HAMMASI;
+  const tanlanganSklad = aniqSklad(markaziySkladlar, skladTanlovi);
 
   useEffect(() => {
     if (activeTab === 'konsolidatsiya' && markaziyId) {
@@ -114,26 +128,40 @@ export default function TestSklad() {
 
   useEffect(() => {
     let active = true;
-    const company = aktKomp; const object = tanlanganObyekt;
+    const company = aktKomp;
     setSkladQoldiq([]);
-    if (!object || company <= 0) { setYuklanmoqda(false); return () => { active = false; }; }
+    if (company <= 0) { setYuklanmoqda(false); return () => { active = false; }; }
     setYuklanmoqda(true);
-    void sbSkladQoldiqOl(object.id).then((r) => {
-      if (!active || kompaniyaRef.current !== company || obyektRef.current !== object.id) return;
+    // Obyektlarga berilgan pozitsiyalar — butun kompaniya bo'yicha; obyekt filtri pastda (standart: barcha obyektlar).
+    void sbSkladQoldiqKompaniyaOl(company).then((r) => {
+      if (!active || kompaniyaRef.current !== company) return;
       setYuklanmoqda(false);
-      setSkladQoldiq(r.ok && r.qatorlar ? r.qatorlar : []);
+      setSkladQoldiq(r.ok && r.qatorlar ? r.qatorlar.filter((q) => q.kompaniya_id === company) : []);
     });
     return () => { active = false; };
-  }, [aktKomp, tanlanganObyekt, harakatYangilash]);
+  }, [aktKomp, harakatYangilash]);
 
-  const filteredQoldiq = skladQoldiq.filter((item) => item.nomi.toLowerCase().includes(searchTerm.toLowerCase()));
-  const xulosa = useMemo(() => skladXulosa(skladQoldiq), [skladQoldiq]);
+  const obyektNomlari = useMemo(() => new Map(obyektlar.map((o) => [o.id, o.nom] as const)), [obyektlar]);
+  const korinadiganQoldiq = useMemo(() => obyektFiltri(skladQoldiq, obyektId), [skladQoldiq, obyektId]);
+  const sarfObyektlar = useMemo(() => obyektlarBoyicha(skladQoldiq, obyektNomlari), [skladQoldiq, obyektNomlari]);
+  const filteredQoldiq = korinadiganQoldiq.filter((item) => item.nomi.toLowerCase().includes(searchTerm.toLowerCase()));
+  const xulosa = useMemo(() => skladXulosa(korinadiganQoldiq), [korinadiganQoldiq]);
+  const obyektSelect = <label className="inline-flex items-center gap-1.5 text-[12px] text-text-dim">
+    <Building2 size={15} className="text-text-mute" aria-hidden="true" />
+    <select aria-label={t('Obyekt')} value={obyektId ?? ''} disabled={!aktKomp || obyektlarYuklanmoqda} onChange={(e) => setObyektId(e.target.value ? Number(e.target.value) : null)} className="min-h-[48px]">
+      <option value="">{t('Barcha obyektlar')}</option>
+      {obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
+    </select>
+  </label>;
   const obyektRangi = useMemo(() => {
     const m = new Map<number, string>();
     for (const k of konsQoldiqlar) for (const o of k.obyektlar_boyicha ?? []) if (!m.has(o.obyekt_id)) m.set(o.obyekt_id, OBYEKT_RANGLARI[m.size % OBYEKT_RANGLARI.length]);
     return m;
   }, [konsQoldiqlar]);
-  const ochOyna = (tur: 'kirim' | 'chiqim') => { if (!tanlanganObyekt) return; setOpType(tur); setIsFormOpen(true); };
+  /** KELDI: kirim har doim omborga (obyektga emas) — omborchi bo'limi tanlangan omborda ochiladi. */
+  const kirimOch = () => { if (tanlanganSklad) { setActiveTab('omborchi'); setExcelOchiq(false); } };
+  /** BERDIM: ombordan obyektga — obyekt formada majburiy, oldindan tanlanmaydi. */
+  const chiqimOch = () => { if (tanlanganSklad) { setActiveTab('omborchi'); setBerdimOchiq(true); } };
 
   return (
     <Sahifa
@@ -141,20 +169,21 @@ export default function TestSklad() {
       tavsif="Kirim — omborga keldi, chiqim — obyektga sarflandi. Qoldiq = kirim − chiqim; manfiy qoldiq — kirim kiritilmagan."
       amallar={<>
         <label className="inline-flex items-center gap-1.5 text-[12px] text-text-dim">
-          <Building2 size={15} className="text-text-mute" />
-          <OmborTanlov label={t('Obyekt')} value={tanlanganObyekt ? String(tanlanganObyekt.id) : ''} disabled={!aktKomp || obyektlarYuklanmoqda}
-            options={obyektlar.map((o) => ({ value: String(o.id), label: o.nom }))} onChange={(v) => setObyektId(Number(v))} />
+          <Warehouse size={15} className="text-text-mute" aria-hidden="true" />
+          <OmborTanlov label={t('Ombor')} value={markaziyId ? String(markaziyId) : SKLAD_HAMMASI}
+            options={[{ value: SKLAD_HAMMASI, label: t('Barcha omborlar') }, ...markaziySkladlar.map((s) => ({ value: String(s.id), label: s.nomi }))]}
+            onChange={(v) => { setMarkaziyId(v === SKLAD_HAMMASI ? null : Number(v)); setExcelOchiq(false); }} />
         </label>
-        <button type="button" disabled={!tanlanganObyekt} onClick={() => ochOyna('chiqim')} className="fz-btn min-h-[48px] disabled:opacity-50"><ArrowUpFromLine /> {t('BERDIM — ombordan chiqim')}</button>
-        <button type="button" disabled={!tanlanganObyekt} onClick={() => ochOyna('kirim')} className="fz-btn fz-btn--primary min-h-[48px] disabled:opacity-50"><ArrowDownToLine /> {t('KELDI — omborga kirim')}</button>
+        <button type="button" disabled={!tanlanganSklad || !ruxsat.yozish} title={tanlanganSklad ? undefined : t('Avval omborni tanlang.')} onClick={chiqimOch} className="fz-btn min-h-[48px] disabled:opacity-50"><ArrowUpFromLine /> {t('BERDIM — ombordan obyektga')}</button>
+        <button type="button" disabled={!tanlanganSklad || !ruxsat.yozish} title={tanlanganSklad ? undefined : t('Avval omborni tanlang.')} onClick={kirimOch} className="fz-btn fz-btn--primary min-h-[48px] disabled:opacity-50"><ArrowDownToLine /> {t('KELDI — omborga kirim')}</button>
       </>}
     >
       <div className="flex flex-col gap-3">
         <OpsKpiQator yorliq={t('Ombor ko‘rsatkichlari')}>
-          <OpsKpi nom={t('Pozitsiyalar (tanlangan obyekt)')} qiymat={xulosa.pozitsiya} />
+          <OpsKpi nom={t('Obyektlarga berilgan pozitsiyalar')} qiymat={xulosa.pozitsiya} />
           <OpsKpi nom={t('Manfiy qoldiq')} rang="var(--danger)" qiymat={<span className={xulosa.manfiy ? 'text-danger' : ''}>{xulosa.manfiy}</span>} ost={t('chiqim bor, kirim yo‘q — tekshiring')} />
           <OpsKpi nom={t('Tugagan (0)')} rang="var(--warn)" qiymat={xulosa.nol} />
-          <OpsKpi nom={t('Oxirgi harakat')} qiymat={<span className="text-[15px]">{xulosa.oxirgi ?? '—'}</span>} />
+          <OpsKpi nom={t('Oxirgi harakat')} qiymat={<span className="text-[15px]">{vaqtKorinishi(xulosa.oxirgi)}</span>} />
         </OpsKpiQator>
 
         <OpsTablar<Tab> yorliq={t('Ombor bo‘limlari')} joriy={activeTab} onTanla={setActiveTab} tablar={[
@@ -170,13 +199,6 @@ export default function TestSklad() {
         {(activeTab === 'omborchi' || activeTab === 'ombor-kirim' || activeTab === 'ombor-qoldiq') && (
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-              <OpsMaydon nom={t('Ombor')}>
-                <select aria-label={t('Ombor')} value={markaziyId ?? ''} onChange={(e) => { setMarkaziyId(e.target.value ? Number(e.target.value) : null); setExcelOchiq(false); }}
-                  className="min-h-[48px] w-full sm:max-w-md">
-                  <option value="">{t('— tanlang —')}</option>
-                  {markaziySkladlar.map((s) => <option key={s.id} value={s.id}>{s.nomi}</option>)}
-                </select>
-              </OpsMaydon>
               {navoiySkladYoq && ruxsat.yozish && <button type="button" className="fz-btn min-h-[48px] justify-center" disabled={skladYaratilmoqda} onClick={() => void navoiySkladYarat()}>
                 <Plus size={16} aria-hidden="true" />{t('«{nom}» omborini yaratish', { nom: NAVOIY_SKLAD_NOMI })}</button>}
               {activeTab === 'ombor-kirim' && tanlanganSklad && ruxsat.yozish && <button type="button" className={`fz-btn ${excelOchiq ? '' : 'fz-btn--primary'} min-h-[56px] justify-center text-[15px] font-semibold`}
@@ -187,13 +209,13 @@ export default function TestSklad() {
             </div>
             {!ruxsat.korish && <p className="m-0 text-[12px] text-warn">{t('Omborni ko‘rish uchun «Hujjatlarni ko‘rish» huquqi kerak.')}</p>}
             {!tanlanganSklad && <div className="rounded-md border border-dashed border-[var(--border-strong)] px-4 py-8 text-center text-[13px] text-text-mute">
-              {markaziySkladlar.length ? t('Omborni tanlang.') : t('Bu kompaniyada hali ombor yo‘q.')}</div>}
+              {!skladlarYuklandi ? t('Yuklanmoqda...') : markaziySkladlar.length ? t('Yuqoridan omborni tanlang — kirim va chiqim aniq omborda yoziladi.') : t('Bu kompaniyada hali ombor yo‘q.')}</div>}
             {tanlanganSklad && activeTab === 'ombor-kirim' && excelOchiq && ruxsat.yozish && <PrixodKitobPreview kompaniyaId={aktKomp} skladId={tanlanganSklad.id}
               skladNomi={tanlanganSklad.nomi} yozishMumkin={ruxsat.yozish} onYozildi={() => setKirimYangilash((n) => n + 1)} />}
             {tanlanganSklad && ruxsat.korish && activeTab === 'omborchi' && <OmborIshJoyi key={aktKomp + ':' + tanlanganSklad.id} kompaniyaId={aktKomp} skladId={tanlanganSklad.id} skladNomi={tanlanganSklad.nomi} yozishMumkin={ruxsat.yozish} />}
             {tanlanganSklad && ruxsat.korish && activeTab === 'ombor-kirim' && <OmborKirimJadval kompaniyaId={aktKomp} skladId={tanlanganSklad.id} yozishMumkin={ruxsat.yozish} yangilash={kirimYangilash} />}
             {tanlanganSklad && berdimOchiq && ruxsat.yozish && <MarkaziyBerdimForm key={`${aktKomp}:${tanlanganSklad.id}`} kompaniyaId={aktKomp} skladId={tanlanganSklad.id}
-              skladNomi={tanlanganSklad.nomi} obyektlar={obyektlar} boshObyektId={tanlanganObyekt?.id ?? null} onYop={() => setBerdimOchiq(false)}
+              skladNomi={tanlanganSklad.nomi} obyektlar={obyektlar} boshObyektId={berdimBoshObyekti()} onYop={() => setBerdimOchiq(false)}
               onYozildi={() => { setBerdimOchiq(false); setKirimYangilash((n) => n + 1); setHarakatYangilash((n) => n + 1); toast(t('Obyektga berildi — obyekt qoldigʻiga tushdi.'), 'ok'); }} />}
             {tanlanganSklad && ruxsat.korish && activeTab === 'ombor-qoldiq' && <OmborQoldiqJadval kompaniyaId={aktKomp} skladId={tanlanganSklad.id} yangilash={kirimYangilash} />}
           </div>
@@ -201,13 +223,8 @@ export default function TestSklad() {
 
         {activeTab === 'konsolidatsiya' && (
           <div className="flex flex-col gap-3">
-            <OpsMaydon nom={t('Markaziy sklad')}>
-              <select value={markaziyId || ''} onChange={(e) => setMarkaziyId(Number(e.target.value))} className="max-w-sm">
-                <option value="">{t('— tanlang —')}</option>
-                {markaziySkladlar.map((s) => <option key={s.id} value={s.id}>{s.nomi} {s.manzil ? `(${s.manzil})` : ''}</option>)}
-              </select>
-            </OpsMaydon>
-            {yuklanmoqda ? <div className="skel h-40 rounded-xl" /> : (
+            {!markaziyId && <p className="m-0 text-[13px] text-text-mute">{t('Yuqoridan omborni tanlang.')}</p>}
+            {!markaziyId ? null : yuklanmoqda ?<div className="skel h-40 rounded-xl" /> : (
               <div className="fz-table-wrap">
                 <table className="fz-table">
                   <thead>
@@ -251,6 +268,9 @@ export default function TestSklad() {
 
         {activeTab === 'qoldiq' && (
           <div className="flex flex-col gap-2">
+            <p className="m-0 text-[12px] text-text-dim">{t('Bu yerda omborda emas — obyektlarga berilgan (sarflangan) materiallar. Standart: barcha obyektlar.')}</p>
+            {sarfObyektlar.length > 0 && <p className="m-0 text-[12px] text-text-mute">{sarfObyektlar.map((o) => `${o.nom}: ${o.pozitsiya}`).join(' · ')}</p>}
+            <div className="flex flex-wrap items-center gap-2">{obyektSelect}</div>
             <OpsQidiruv qiymat={searchTerm} onChange={setSearchTerm} placeholder={t('Material nomi bo‘yicha…')} />
             {yuklanmoqda ? <div className="skel h-40 rounded-xl" /> : (
               <div className="fz-table-wrap">
@@ -269,7 +289,7 @@ export default function TestSklad() {
                             : item.qoldiq === 0 ? <span className="fz-stamp fz-stamp--warn">{t('tugagan')}</span>
                               : <span className="fz-stamp fz-stamp--ok">{t('bor')}</span>}
                         </td>
-                        <td className="text-[12px] text-text-mute">{item.oxirgi_harakat || '—'}</td>
+                        <td className="text-[12px] text-text-mute">{vaqtKorinishi(item.oxirgi_harakat)}</td>
                         <td className="text-center">
                           <button type="button" className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" aria-label={t('QR pasport')} title={t('QR pasport')}><QrCode /></button>
                         </td>
@@ -293,16 +313,12 @@ export default function TestSklad() {
           </section>
         )}
 
-        {activeTab === 'kirim' && <KirimKunlikJurnal kompaniyaId={aktKomp} obyektId={tanlanganObyekt?.id ?? null} obyektNomi={tanlanganObyekt?.nom} yangilashKaliti={harakatYangilash} />}
+        {activeTab === 'kirim' && <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">{obyektSelect}</div>
+          {!tanlanganObyekt && <p className="m-0 text-[13px] text-text-mute">{t('Obyekt jurnalini ko‘rish uchun obyektni tanlang (omborga kirimlar «Kirim» bo‘limida).')}</p>}
+          <KirimKunlikJurnal kompaniyaId={aktKomp} obyektId={tanlanganObyekt?.id ?? null} obyektNomi={tanlanganObyekt?.nom} yangilashKaliti={harakatYangilash} />
+        </div>}
       </div>
-
-      {isFormOpen && <KirimKunlikForm key={`${aktKomp}:${tanlanganObyekt?.id ?? 0}:${opType}`} kompaniyaId={aktKomp} obyekt={tanlanganObyekt}
-        amal={opType === 'kirim' ? 'prixod' : 'rasxod'} onYop={() => setIsFormOpen(false)}
-        onYozildi={({ kompaniyaId, obyektId: yozilganObyekt }) => {
-          if (kompaniyaRef.current !== kompaniyaId || obyektRef.current !== yozilganObyekt) return;
-          setIsFormOpen(false); setHarakatYangilash((n) => n + 1);
-          toast(t('Ombor harakati yozildi.'), 'ok');
-        }} />}
     </Sahifa>
   );
 }

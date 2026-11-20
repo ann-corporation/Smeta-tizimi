@@ -154,4 +154,7 @@
     <string name="sm_qty">Кол-во</string>
     <string name="sm_price">Цена</string>
     <string name="p5_enter_fakt_short">Факт</string>    <string name="sm_amount">Сумма</string>
+    <string name="f2_reject">Отклонить</string>
+    <string name="f2_reject_reason">Причина отклонения</string>
+    <string name="f2_reject_confirm">Подтвердить отклонение</string>
 </resources>

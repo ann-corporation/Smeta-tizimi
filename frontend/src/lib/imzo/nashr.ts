@@ -15,7 +15,7 @@ import { hujjatMazmunXeshi, imzoVaraqiBormi, xlsxMi } from './mazmun';
 import { imzoVaraqQosh } from './qr-varaq';
 import { nashrKompaniyasi } from './nashr-kontekst';
 
-export type NashrMeta = { turi?: string; obyektId?: number | null; atama?: string };
+export type NashrMeta = { turi?: string; obyektId?: number | null; atama?: string; /** F-2: nashr tokeni shu aktga (va uning joriy versiyasiga) bog'lanadi - QR texnadzor tekshiruv paneliga olib boradi (/tekshiruv/<token>). */ aktId?: number | null; /** Server (Worker) yasashi: faol kompaniya global kontekstdan emas, shu yerdan (bir vaqtda bir necha kompaniya). */ kompaniyaId?: number | null };
 
 /** Fayl nomidan hujjat turi kaliti: «F2_Obyekt_5.xlsx» -> «f2». */
 export function turiFaylNomidan(nom: string): string {
@@ -28,11 +28,13 @@ export type NashrAdapter = {
   yukla: (b: { bytes: Uint8Array; nom: string; kompaniyaId: number; obyektId: number | null }) => Promise<number | null>;
   biriktir: (token: string, hujjatId: number) => Promise<boolean>;
   origin: () => string;
+  /** Ixtiyoriy: nashr tokenini F-2 (akt, versiya) ga bog'lash. Xato eksportni to'xtatmaydi. */
+  bogla?: (token: string, aktId: number) => Promise<boolean>;
 };
 
 /** Nashr: QR li xlsx baytlarini qaytaradi; qo'llab bo'lmasa (xlsx emas, kontekst yo'q, xato) - null. */
 export async function nashrQoy(bytes: Uint8Array, filename: string, meta: NashrMeta | undefined, a: NashrAdapter): Promise<Uint8Array | null> {
-  const kompaniyaId = nashrKompaniyasi();
+  const kompaniyaId = meta?.kompaniyaId ?? nashrKompaniyasi();
   // IMZO varag'i bor fayl (imzolangan nusxa) qayta shtamplanmaydi: imzo qatorlari yo'qolmasin
   if (!kompaniyaId || !/\.(xlsx|xlsm)$/i.test(filename) || !xlsxMi(bytes) || imzoVaraqiBormi(bytes)) return null;
   try {
@@ -40,6 +42,7 @@ export async function nashrQoy(bytes: Uint8Array, filename: string, meta: NashrM
     const atama = (meta?.atama ?? filename.replace(/\.[A-Za-z0-9]+$/, '')).slice(0, 160);
     const r = await a.tayyor({ kompaniya_id: kompaniyaId, obyekt_id: meta?.obyektId ?? null, turi: meta?.turi ?? turiFaylNomidan(filename), atama, mazmun_xesh: xesh });
     if (!r.ok) return null;
+    if (meta?.aktId && a.bogla) await a.bogla(r.token, meta.aktId).catch(() => false);
     const kop = imzoVaraqQosh(bytes, { imzolar: [], kutilmoqda: [], origin: a.origin(), mazmunXesh: xesh, manbaToken: r.token });
     if (!kop) return null;
     if (!r.hujjat_id) {

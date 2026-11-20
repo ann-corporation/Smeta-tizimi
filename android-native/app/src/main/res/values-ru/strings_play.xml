@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Google Play: запрос на удаление аккаунта (путь в приложении + веб-страница) -->
+    <string name="play_delete_section">Аккаунт и данные</string>
+    <string name="play_delete_button">Запросить удаление аккаунта</string>
+    <string name="play_delete_title">Удаление аккаунта</string>
+    <string name="play_delete_body">Ваш аккаунт и связанные личные данные (имя, телефон, фото, способы входа) будут удалены. Сметы, акты и финансовые документы компании по закону остаются у владельца компании. Инструкция по запросу — на веб-странице.</string>
+    <string name="play_delete_continue">Продолжить</string>
+</resources>

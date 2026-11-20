@@ -144,4 +144,7 @@
     <string name="sm_qty">Qty</string>
     <string name="sm_price">Price</string>
     <string name="p5_enter_fakt_short">Fact</string>    <string name="sm_amount">Amount</string>
+    <string name="f2_reject">Reject</string>
+    <string name="f2_reject_reason">Reason for rejection</string>
+    <string name="f2_reject_confirm">Confirm rejection</string>
 </resources>

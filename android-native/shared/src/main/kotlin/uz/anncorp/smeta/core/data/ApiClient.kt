@@ -83,6 +83,9 @@ interface BffApi {
     /** Multipart upload through POST /api/mobil/yukla (the canonical document upload; tenant scope travels in the query). */
     suspend fun upload(companyId: Long, obyektId: Long, body: okhttp3.RequestBody): ApiResult
 
+    /** Multipart upload into the Disk (POST /api/mobil/hujjat-yukla: one file up to 25 MB, device-bound actor; quota/permission/MIME are enforced by the same server code as the site). */
+    suspend fun diskUpload(body: okhttp3.RequestBody): ApiResult = ApiResult(404, null)
+
     /** One-time (30 s) link that signs the in-app WebView into the website page [path] (POST /api/mobil/web-bilet; body "url"). */
     suspend fun webTicket(path: String): ApiResult = ApiResult(404, null)
 
@@ -192,6 +195,9 @@ class ApiClient(
             .addQueryParameter("kompaniya_id", companyId.toString()).addQueryParameter("obyekt_id", obyektId.toString()).build()
         return send(Request.Builder().url(url).post(body).build(), uploadHttp)
     }
+
+    override suspend fun diskUpload(body: okhttp3.RequestBody): ApiResult =
+        send(Request.Builder().url(baseUrl.resolve("/api/mobil/hujjat-yukla")!!).post(body).build(), uploadHttp)
 
     override suspend fun webTicket(path: String): ApiResult = post("/api/mobil/web-bilet", buildJsonObject { put("yol", path) })
 

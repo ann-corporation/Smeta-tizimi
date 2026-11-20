@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="qa4_disk_upload">Upload</string>
+    <string name="qa4_disk_new_folder">New folder</string>
+    <string name="qa4_disk_rename_folder">Folder name</string>
+    <string name="qa4_disk_move_folder">Move folder</string>
+    <string name="qa4_disk_delete_folder">Delete folder</string>
+    <string name="qa4_disk_ok">Save</string>
+    <string name="qa4_disk_cancel">Cancel</string>
+    <string name="qa4_disk_name">Name</string>
+    <string name="qa4_disk_root">Main folder</string>
+    <string name="qa4_disk_move_title">Move to where?</string>
+    <string name="qa4_disk_source_title">What to upload?</string>
+    <string name="qa4_disk_camera">Camera</string>
+    <string name="qa4_disk_gallery">Gallery</string>
+    <string name="qa4_disk_file">File</string>
+    <string name="qa4_disk_rename">Rename</string>
+    <string name="qa4_disk_move">Move</string>
+    <string name="qa4_disk_trash">To trash</string>
+    <string name="qa4_disk_restore">Restore from trash</string>
+    <string name="qa4_disk_pick">Choose from Disk</string>
+    <string name="qa4_disk_picking">Getting the file...</string>
+    <string name="qa4_disk_op_done">Done</string>
+    <string name="qa4_disk_op_forbidden">You do not have permission for this action</string>
+    <string name="qa4_disk_op_too_large">The file is over 25 MB. Upload large files on the website</string>
+    <string name="qa4_disk_op_quota">The disk is full. Free some space or upgrade the plan</string>
+    <string name="qa4_disk_op_bad_type">This file type cannot be uploaded</string>
+    <string name="qa4_disk_op_exists">A file or folder with this name already exists here</string>
+    <string name="qa4_disk_op_not_empty">The folder is not empty</string>
+    <string name="qa4_disk_op_failed">Could not complete, please try again</string>
+    <string name="qa4_disk_cam_denied">Camera access is not granted</string>
+    <string name="qa4_disk_read_failed">Could not read the file</string>
+</resources>

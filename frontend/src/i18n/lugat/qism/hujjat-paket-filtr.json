@@ -1,0 +1,21 @@
+{
+  "Filtr nomini yozing": { "ru": "Введите название фильтра", "en": "Enter a filter name" },
+  "Filtr saqlandi": { "ru": "Фильтр сохранён", "en": "Filter saved" },
+  "Filtr saqlanmadi": { "ru": "Фильтр не сохранён", "en": "Filter was not saved" },
+  "Hujjatlar Diskda doim tayyor turadi va o‘zgarsa o‘zi yangilanadi. Keraklisini tanlab paket qiling.": { "ru": "Документы всегда готовы на Диске и обновляются сами при изменении. Выберите нужные и соберите пакет.", "en": "Documents are always ready on Disk and refresh themselves when something changes. Pick what you need and build a package." },
+  "Obyekt nomini yozing…": { "ru": "Введите название объекта…", "en": "Type an object name…" },
+  "Saqlangan filtrlar": { "ru": "Сохранённые фильтры", "en": "Saved filters" },
+  "Filtr nomi": { "ru": "Название фильтра", "en": "Filter name" },
+  "Masalan: Texnadzor to‘plami": { "ru": "Например: набор для технадзора", "en": "For example: Supervision set" },
+  "Topildi: {n}": { "ru": "Найдено: {n}", "en": "Found: {n}" },
+  "Tanlovni bekor qilish": { "ru": "Снять выбор", "en": "Clear selection" },
+  "Hujjat topilmadi.": { "ru": "Документы не найдены.", "en": "No documents found." },
+  "oyga ikkinchi F-2": { "ru": "второй Ф-2 за месяц", "en": "second F-2 for the month" },
+  "yangilanmoqda": { "ru": "обновляется", "en": "updating" },
+  "Yana {n} ta": { "ru": "Ещё {n}", "en": "{n} more" },
+  "Bitta Excel": { "ru": "Один Excel", "en": "Single Excel" },
+  "Token: narx hisoblanmoqda": { "ru": "Токены: цена считается", "en": "Tokens: price is being calculated" },
+  "Bepul (to‘langan)": { "ru": "Бесплатно (оплачено)", "en": "Free (already paid)" },
+  "Token: ≈ {n} ({k} ta yangi hujjat)": { "ru": "Токены: ≈ {n} ({k} новых документов)", "en": "Tokens: ≈ {n} ({k} new documents)" },
+  "+{n} ta ro‘yxatda ko‘rinmagan (yuklashda aniqlanadi)": { "ru": "+{n} не показаны в списке (уточнится при загрузке)", "en": "+{n} not shown in the list (determined on download)" }
+}

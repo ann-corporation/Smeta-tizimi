@@ -36,7 +36,7 @@ describe('Disk A5: hujjat joylari - yagona kalit/nom yo‘li', () => {
     expect(kalitQism('x', { kompaniyaId: 2 }, '2026-01', 'a'.repeat(200)).length).toBeLessThan(80);
   });
   it('migratsiya: kompaniya_* turi Kompaniya hujjatlari papkasiga; barcha JOY_NOMI turlari SQL da nomlangan; rollback A1 nusxasi', () => {
-    const m = sql('');
+    const m = sql('') + readFileSync(join(MIG, '20270118000000_t2_disk_tur_nomlari_v1.sql'), 'utf8'); // A5 + keyingi tur nomlari migratsiyasi
     expect(m).toContain("like 'kompaniya\\_%'"); expect(m).toContain("'Kompaniya hujjatlari'"); expect(m).toContain("'biriktirilmagan'");
     for (const t of Object.keys(JOY_NOMI)) expect(m, t).toContain(`'${t}'`);
     expect(sql('.rollback')).toContain("'biriktirilmagan'"); expect(sql('.rollback')).not.toContain('Kompaniya hujjatlari');

@@ -151,6 +151,8 @@ private const val HUJJAT = "hujjat"
 private const val AYLANISH = "aylanish?xat={xat}"
 private const val SMETA = "smeta/{id}"
 private const val F2LIST = "f2/{id}"
+private const val F2DRAFT = "f2draft/{id}/{akt}"
+private const val PAKET = "paket"
 private const val DOCS = "docs/{id}?f2={f2}"
 private const val NOTIFICATIONS = "notifications"
 private const val F2REG = "f2reestr"
@@ -258,7 +260,7 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
         composable(PICK_RESURS) { PickObjectScreen(R.string.p8_rv_title, onBack = { nav.popBackStack() }) { nav.navigate("resurs/$it") } }
         composable(F2REG) {
             uz.anncorp.smeta.feature.f2.F2RegistryScreen(
-                onBack = { nav.popBackStack() }, onOpenF2 = { nav.navigate("f2/$it") }, onDocs = { nav.navigate("docs/$it?f2=true") }, onNakop = { nav.navigate("nakop/$it") },
+                onBack = { nav.popBackStack() }, onOpenF2 = { nav.navigate("f2/$it") }, onDocs = { nav.navigate("docs/$it?f2=true") }, onNakop = { nav.navigate("nakop/$it") }, onPaket = { nav.navigate(PAKET) },
             )
         }
         composable(NAKOP, idArg) {
@@ -281,9 +283,10 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
         composable(SMETA, idArg) { SmetaBrowseScreen(onBack = { nav.popBackStack() }, onDraft = { nav.navigate("draft/$it") }, onJarvis = { nav.navigate("$JARVIS?obyekt=$it") }) }
         composable(F2LIST, idArg) {
             F2ListScreen(
-                onBack = { nav.popBackStack() }, onDocs = { nav.navigate("docs/$it?f2=true") },
+                onBack = { nav.popBackStack() }, onDocs = { nav.navigate("docs/$it?f2=true") }, onOpenAct = { o, a -> nav.navigate("f2draft/$o/$a") },
             )
         }
+        composable(F2DRAFT, idArg + listOf(navArgument("akt") { type = NavType.LongType })) { uz.anncorp.smeta.feature.f2.F2DraftScreen(onBack = { nav.popBackStack() }) }
         composable(DOCS, idArg + listOf(navArgument("f2") { type = NavType.BoolType; defaultValue = false })) { DocumentsScreen(onBack = { nav.popBackStack() }) }
         composable(NOTIFICATIONS) { NotificationsScreen(onBack = { nav.popBackStack() }, onOpenApproval = { nav.navigate("approval/$it") }, onOpenLetter = { nav.navigate("aylanish?xat=$it") }) }
         composable(PEOPLE_INVITE) { CompanyInviteScreen(onBack = { nav.popBackStack() }) }
@@ -301,6 +304,7 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
                 "nakop" -> nav.navigate(if (obyekt != null) "nakop/$obyekt" else PICK_NAKOP); "m29" -> nav.navigate(M29); "naryad" -> nav.navigate(NARYAD)
             }
         }) }
+        composable(PAKET) { uz.anncorp.smeta.feature.hujjat.PaketScreen(onBack = { nav.popBackStack() }) }
         composable(OUTBOX) { OutboxScreen(onBack = { nav.popBackStack() }, onEditDraft = { nav.navigate("draft/$it") }) }
     }
     uz.anncorp.smeta.feature.jarvis.JarvisOverlay(visible = !jarvisHidden, epoch = jarvisEpoch, scrollHidden = fabHidden)

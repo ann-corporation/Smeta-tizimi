@@ -14,6 +14,7 @@ vi.mock('../../umumiy/ui/Toast', () => ({ toast: m.toast }));
 vi.mock('../../umumiy/kontekst/KompaniyaKontekst', () => ({ useKompaniya: () => ({ joriyId: 1, joriy: { id: 1 } }) }));
 
 import NarxTekshiruv from './NarxTekshiruv';
+import { oddiyProbel } from '../../tests/matn-yordam';
 
 /* Sintetik: asosiy norma 0,4 «100М3», mehnat 12 000, beton 20 000; armatura 6 т — 48 000; istisno −6 т, mehnat −1 200. */
 const ASOS: SmetaQator = {
@@ -62,7 +63,7 @@ describe('NarxTekshiruv', () => {
     fireEvent.change(within(bolim).getByLabelText('Rejadagi miqdor'), { target: { value: '100' } });
     // Mehnat ustamali (ustama 0, QQS siz) 27 → 81/27 = 3 baravar; qamrov (hamma bosqich, material biz) = 27 → +200 %.
     await waitFor(() => expect(within(bolim).getByTestId('hukm').textContent).toBe('Usta narxi smeta mehnatidan (ustama bilan) 3 baravar ko‘p; tanlangan qamrov narxidan 200% ortiq.'));
-    expect(within(bolim).getByText('Smeta mehnati (ShNQ)').closest('tr')!.textContent).toContain('5 400');
+    expect(oddiyProbel(within(bolim).getByText('Smeta mehnati (ShNQ)').closest('tr')!.textContent)).toContain('5 400');
   });
 
   it('qamrov: faqat beton bosqichi + beton materiali ustadan', async () => {

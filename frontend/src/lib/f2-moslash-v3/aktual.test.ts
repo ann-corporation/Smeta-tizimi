@@ -60,6 +60,6 @@ describe('fakt delta', () => {
     expect(reja.yoziladi[0].ogohlantirish).toMatch(/oshadi/);
     expect(reja.bor.find((x) => x.qatorId === 201)?.sabab).toBe(FAKT_BOR_SABAB);
     expect(reja.bor.find((x) => x.qatorId === 202)?.sabab).toMatch(/resurs/);
-    expect(reja.bor.find((x) => x.qatorId === 104)?.sabab).toMatch(/≤ 0/);
+    expect(reja.bor.find((x) => x.qatorId === 104)?.sabab).toMatch(/hajmi 0/);
   });
 });

@@ -120,7 +120,40 @@ jobs:
             '{version:$version,generatedAtUtc:$generatedAtUtc,file:$file,bytes:$bytes,sha256:$sha256,signed:$signed,minSdk:$minSdk}' \
             > "$(dirname "$APK_PATH")/android-native-manifest.json"
           cat "$(dirname "$APK_PATH")/android-native-manifest.json"
+      - name: Build Play AAB (Play flavour: no self-update, monotonic versionCode)
+        # Google Play requires an .aab. -Pplay=true hides the in-app APK updater (Play policy); versionCode = 3_000_000 + run number is monotonic per repo
+        # (always above the site APK's 2_000_xxx). Same upload key as the APK; Play App Signing re-signs for users. See docs/play-market/QOLLANMA.md.
+        run: ./gradlew --no-daemon -Pplay=true -PversionCode=$((3000000 + GITHUB_RUN_NUMBER)) bundleRelease
+      - name: Sign AAB with the upload key
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set +x
+          AAB_IN="app/build/outputs/bundle/release/app-release.aab"
+          test -f "$AAB_IN" || { echo "release AAB not found"; exit 1; }
+          AAB_OUT="$RUNNER_TEMP/out/qurai-${APK_VERSION}-play-${GITHUB_RUN_NUMBER}.aab"
+          mkdir -p "$RUNNER_TEMP/out"
+          cp "$AAB_IN" "$AAB_OUT"
+          if [ "$RELEASE_SIGNING" = "true" ]; then
+            KS="$RUNNER_TEMP/release-aab.keystore"
+            printf '%s' "$KS_B64" | base64 -d > "$KS"
+            jarsigner -keystore "$KS" -storepass:env ANDROID_KEYSTORE_PASSWORD -keypass:env ANDROID_KEY_PASSWORD "$AAB_OUT" "$ANDROID_KEY_ALIAS" >/dev/null
+            rm -f "$KS"
+            jarsigner -verify "$AAB_OUT" | head -n 1
+            echo "AAB signed with the upload key"
+          else
+            echo "AAB left unsigned (pull_request or secrets missing): CI proof only, never uploaded to Play"
+          fi
+          echo "AAB_PATH=$AAB_OUT" >> "$GITHUB_ENV"
       - uses: actions/upload-artifact@v4
+        with:
+          name: android-native-aab
+          path: ${{ env.AAB_PATH }}
+          if-no-files-found: error
+          retention-days: 30      - uses: actions/upload-artifact@v4
         with:
           name: android-native-apk
           path: |
