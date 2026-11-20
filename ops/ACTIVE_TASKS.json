@@ -3737,6 +3737,8 @@
       "production_write_allowed": false,
       "owns": [
         "frontend/src/lib/jarvis/navigation.ts",
+        "frontend/src/lib/jarvis/f2-navigation-evidence.ts",
+        "frontend/src/lib/jarvis/f2-navigation-evidence.test.ts",
         "frontend/functions/_shared/jarvis/navigation.ts",
         "frontend/functions/_shared/jarvis/navigation.test.ts",
         "frontend/functions/api/agent-ish.test.ts",
