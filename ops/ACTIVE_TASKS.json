@@ -3,10 +3,29 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
-      "id": "JARVIS-EVIDENCE-SUMMARY-20261119", "title": "Bind read conclusions to exact source paragraphs",
-      "owner": "codex", "machine": "Anvar", "branch": "codex/jarvis-m3-evidence-summary", "base_sha": "6b733cbc",
-      "status": "active", "depends_on": [], "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md"], "production_write_allowed": false,
-      "owns": ["frontend/src/lib/jarvis/tool-evidence.ts", "frontend/src/lib/jarvis/tool-evidence.test.ts", "frontend/src/lib/jarvis/write-tools.ts", "frontend/src/lib/jarvis/write-tools.test.ts", "frontend/functions/_shared/jarvis/chat.ts", "frontend/functions/_shared/jarvis/jarvis-eval.test.ts", "docs/architecture/JARVIS_YADRO.md", ".github/workflows/android-native.yml"],
+      "id": "JARVIS-EVIDENCE-SUMMARY-20261119",
+      "title": "Bind read conclusions to exact source paragraphs",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/jarvis-m3-evidence-summary",
+      "base_sha": "6b733cbc",
+      "status": "active",
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md"
+      ],
+      "production_write_allowed": false,
+      "owns": [
+        "frontend/src/lib/jarvis/tool-evidence.ts",
+        "frontend/src/lib/jarvis/tool-evidence.test.ts",
+        "frontend/src/lib/jarvis/write-tools.ts",
+        "frontend/src/lib/jarvis/write-tools.test.ts",
+        "frontend/functions/_shared/jarvis/chat.ts",
+        "frontend/functions/_shared/jarvis/jarvis-eval.test.ts",
+        "docs/architecture/JARVIS_YADRO.md",
+        ".github/workflows/android-native.yml"
+      ],
       "note": "Proven 1e6/million bypass of old numeric token guard. Model selects exact source paragraphs. No business writer or permission changes."
     },
     {
@@ -18,15 +37,25 @@
       "base_sha": "548ce612",
       "status": "completed",
       "depends_on": [],
-      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md"],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md"
+      ],
       "owns": [
-        "frontend/src/lib/jarvis/write-tools.ts", "frontend/src/lib/jarvis/write-tools.test.ts",
-        "frontend/src/lib/jarvis/f2-preview-card.ts", "frontend/src/lib/jarvis/f2-preview-card.test.ts",
-        "frontend/functions/_shared/jarvis/chat.ts", "frontend/functions/_shared/jarvis/jarvis-eval.test.ts",
+        "frontend/src/lib/jarvis/write-tools.ts",
+        "frontend/src/lib/jarvis/write-tools.test.ts",
+        "frontend/src/lib/jarvis/f2-preview-card.ts",
+        "frontend/src/lib/jarvis/f2-preview-card.test.ts",
+        "frontend/functions/_shared/jarvis/chat.ts",
+        "frontend/functions/_shared/jarvis/jarvis-eval.test.ts",
         "frontend/functions/_shared/jarvis/telegram-preview-delivery.test.ts",
-        "frontend/functions/api/agent-ish.ts", "frontend/src/api/t2-agent-ish.ts", "frontend/src/umumiy/ui/AiChat.tsx",
-        "frontend/functions/_shared/telegram-jarvis.ts", "frontend/functions/_shared/telegram-jarvis.test.ts",
-        "frontend/functions/api/telegram/webhook.ts", "frontend/src/i18n/lugat/qism/telegram-jarvis.json"
+        "frontend/functions/api/agent-ish.ts",
+        "frontend/src/api/t2-agent-ish.ts",
+        "frontend/src/umumiy/ui/AiChat.tsx",
+        "frontend/functions/_shared/telegram-jarvis.ts",
+        "frontend/functions/_shared/telegram-jarvis.test.ts",
+        "frontend/functions/api/telegram/webhook.ts",
+        "frontend/src/i18n/lugat/qism/telegram-jarvis.json"
       ],
       "production_write_allowed": false,
       "note": "L0 LANE-1 PR-2 after merged #646. Existing F2 preview endpoint only. Minimal web/Telegram adapters required by L0 acceptance; no existing F2 tool or endpoint edits. Merge and production belong to L0."
@@ -39,9 +68,15 @@
       "branch": "codex/fakt-root-node",
       "base_sha": "3122a8d01fb99a0106105dcff7521b5fce4d9828",
       "status": "ready_for_review",
-      "owns": ["frontend/src/admin/sahifalar/FaktJurnal.tsx", "frontend/src/admin/sahifalar/FaktJurnal.root-node.test.tsx"],
+      "owns": [
+        "frontend/src/admin/sahifalar/FaktJurnal.tsx",
+        "frontend/src/admin/sahifalar/FaktJurnal.root-node.test.tsx"
+      ],
       "depends_on": [],
-      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md"],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md"
+      ],
       "production_write_allowed": false,
       "note": "L0 assignment in KOORDINATSIYA 07.11 evening: virtual Bo‘limsiz, search and restore; one PR <=400 lines, no financial/RPC/F2 changes. Shared registry entry and news129 explicitly assigned by L0; no broad shared-file lock."
     },
@@ -100,17 +135,43 @@
       "must_read": [
         "docs/architecture/OBYEKT_PAKET_OFFLINE_DESKTOP_V1.md"
       ],
-      "production_write_allowed": false,
       "note": "PR217 D3a aligned to exact main; shared signed/null core, optional f2_summa_yoq transport; no push, SQL extension and final D3b integration owned by parent L0. Parent bounded extension: packet null fixture/test wording, one optional-field comment, quantity-only precision helper and fail-closed missing zero-amount guard with own regressions; Obsidian note logged by parent."
     },
     {
-      "id": "DESKTOP-D1B-AUTH-20261103", "owner": "codex", "machine": "noutbuk",
+      "id": "DESKTOP-D1B-AUTH-20261103",
+      "owner": "codex",
+      "machine": "noutbuk",
       "title": "Bounded D1b online object authorization, ephemeral key lifecycle and native command ACL",
-      "branch": "codex/desktop-d1b-auth-20261103", "base_sha": "fc65e645", "status": "ready_for_review",
-      "owns": ["frontend/src/ombor/sessiya.ts", "frontend/src/ombor/sessiya.test.ts", "docs/architecture/DESKTOP_SESSION_LIFECYCLE.md", "ops/handoff/DESKTOP_D1B_AUTH_20261103.md"],
-      "runtime_sublease": { "from_tasks": ["DESKTOP-D1-STORE-20261031", "DESKTOP-TAURI-SHELL-20261031"], "paths": ["frontend/src/ombor/oqish.ts", "frontend/src/ombor/oqish.test.ts", "frontend/src-tauri/src/maxfiy.rs", "frontend/src-tauri/build.rs", "frontend/src-tauri/capabilities/default.json", "frontend/src-tauri/permissions/"], "basis": "Explicit parent bounded D1b assignment 2026-11-03 under Claude L0. Original author ownership retained; no runtime hook/auth integration." },
-      "production_write_allowed": false, "depends_on": [],
-      "must_read": ["AGENTS.md", "docs/architecture/OBYEKT_PAKET_OFFLINE_DESKTOP_V1.md"],
+      "branch": "codex/desktop-d1b-auth-20261103",
+      "base_sha": "fc65e645",
+      "status": "ready_for_review",
+      "owns": [
+        "frontend/src/ombor/sessiya.ts",
+        "frontend/src/ombor/sessiya.test.ts",
+        "docs/architecture/DESKTOP_SESSION_LIFECYCLE.md",
+        "ops/handoff/DESKTOP_D1B_AUTH_20261103.md"
+      ],
+      "runtime_sublease": {
+        "from_tasks": [
+          "DESKTOP-D1-STORE-20261031",
+          "DESKTOP-TAURI-SHELL-20261031"
+        ],
+        "paths": [
+          "frontend/src/ombor/oqish.ts",
+          "frontend/src/ombor/oqish.test.ts",
+          "frontend/src-tauri/src/maxfiy.rs",
+          "frontend/src-tauri/build.rs",
+          "frontend/src-tauri/capabilities/default.json",
+          "frontend/src-tauri/permissions/"
+        ],
+        "basis": "Explicit parent bounded D1b assignment 2026-11-03 under Claude L0. Original author ownership retained; no runtime hook/auth integration."
+      },
+      "production_write_allowed": false,
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/architecture/OBYEKT_PAKET_OFFLINE_DESKTOP_V1.md"
+      ],
       "note": "Explicit parent sublease under Claude L0 Desktop03.11, old D1 oqish and native shell ownership retained. Own task entry only. No hook/auth/server integration, D7 lease, external session writes or production writes. Commit only; parent reviews before push."
     },
     {
@@ -3472,150 +3533,193 @@
       ],
       "production_write_allowed": false,
       "note": "Issue #195 (L0 → cloud, egasi 2026-10-29). Migratsiyani prodga faqat L0 qo'llaydi. Keyingi PR'lar: (2) SummaJuft kengaytirish + inventarizatsiya, (3) panel §1–§5, (4) §6–§7."
+    },
+    {
+      "id": "STUDIO-EASY-ESTIMATE-20261102",
+      "title": "Shared norm picker: quantity-first, inline expression, expandable recipe",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/studio-easy-estimate-20261102",
+      "base_sha": "09f6c483ae371f831f5d8f15a99f3f6a4b0cd3f1",
+      "status": "in_progress",
+      "owns": [
+        "frontend/src/admin/sahifalar/NormKatalogPanel.tsx",
+        "frontend/src/admin/sahifalar/NormKatalogPanel.test.tsx",
+        "frontend/src/i18n/lugat/qism/studio-easy-estimate.json",
+        "frontend/src/lib/smeta-studio/source-measure-basis.ts",
+        "frontend/src/lib/smeta-studio/source-measure-basis.test.ts",
+        "ops/mailbox/STUDIO-EASY-ESTIMATE-20261102/"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md"
+      ],
+      "production_write_allowed": false,
+      "note": "Owner resumes UX request 02.11: reduce re-entry and scrolling from selection to quantity and shared command. Existing exact parseQuantityInput reused. SmetaStudio/Claude design and calc/catalog-bridge/commands untouched. No production business writes."
+    },
+    {
+      "id": "TRANSPORT-V1-20261103",
+      "title": "Transport logistika moduli: park, reys, tannarx, narxlash, rentabellik, xarita",
+      "owner": "claude",
+      "machine": "cloud",
+      "branch": "claude/logistika-v1",
+      "status": "in_progress",
+      "owns": [
+        "supabase/migrations/20261123000000_t2_transport_v1.sql",
+        "supabase/migrations/20261123000000_t2_transport_v1.rollback.sql",
+        "supabase/migrations/20261123000000_t2_transport_v1.acceptance.sql",
+        "frontend/src/api/t2-transport.ts",
+        "frontend/src/lib/transport/",
+        "frontend/src/i18n/lugat/qism/transport.json",
+        "frontend/src/transport/",
+        "frontend/functions/api/sb.ts",
+        "frontend/functions/api/sb-yoz.ts",
+        "frontend/functions/_shared/write-command-policy.ts",
+        "frontend/testlar/t2_kompaniya.test.cjs",
+        "frontend/src/lib/nav/navReestr.ts",
+        "frontend/public/yangiliklar.json",
+        "frontend/src/lib/sayt-xaritasi/generated.ts"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "ops/mailbox/KOORDINATSIYA-L0-CLOUD-20261028/01-kelishuv.md"
+      ],
+      "production_write_allowed": false,
+      "note": "Yangi /admin/transport. Ombor (C11, Codex) kodiga tegilmaydi; /admin/logistika sahifasi o'zgarmaydi. Migratsiya 20261123xxxxxx (koordinator ajratgan oraliq). Xarajat obyektga faqat mavjud t2_xarajat_kirit_v1 orqali. Prodga faqat L0."
+    },
+    {
+      "id": "UY-SOTUV-V1-20261103",
+      "title": "Uy sotish moduli: inventar (shaxmatka), narx, CRM bitim/bron, to'lov grafigi, tushum/qarz paneli",
+      "owner": "claude@cloud",
+      "machine": "cloud",
+      "branch": "claude/uy-sotuv-v1",
+      "base_sha": "c7f437e02d76e9449402755f84a4247be512f13d",
+      "status": "in_progress",
+      "owns": [
+        "supabase/migrations/20261124000000_t2_uy_sotuv_v1*.sql",
+        "frontend/functions/_shared/sotuv-yuk.ts",
+        "frontend/functions/_shared/sotuv-yuk.test.ts",
+        "frontend/src/api/t2-sotuv.ts",
+        "frontend/src/lib/sotuv/",
+        "frontend/src/admin/sotuv/",
+        "frontend/src/i18n/lugat/qism/sotuv.json"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md"
+      ],
+      "production_write_allowed": false,
+      "note": "Egasi 2026-11-03: «uy ham sotadi — 0 dan 100 gacha, sotuvchi ham oluvchi uchun». Umumiy fayllarga faqat qo'shimcha qatorlar: sb.ts/sb-yoz.ts (sotuv_* ro'yxati), write-command-policy, permission-policy (sotuv_ → sales.*), tenant-yozish (ID_JADVAL), effective-authorization/permission-labels (sales.*, rol sotuvchi), t2_kompaniya.test.cjs KUTILGAN. S2 (UI) umumiy fayllari: App.tsx (sotuv marshruti), lib/nav/navReestr.ts + navFiltr.test.ts (Uy sotish guruhi), route-permission.ts (sotuv → sales.read), umumiy/marshrutTekshir.ts, sayt-xaritasi/pageCatalog.ts + generated.ts. Migratsiya prodga — faqat L0."
+    },
+    {
+      "id": "TENDER-V1-20261103",
+      "title": "Tender / xarid protsessi: tasdiq zanjiri, muhrlangan takliflar, baholash, g'olib, yetkazuvchi portali",
+      "owner": "claude",
+      "machine": "cloud",
+      "branch": "claude/tender-v1",
+      "base_sha": "c7f437e0",
+      "status": "in_progress",
+      "owns": [
+        "supabase/migrations/20261122000200_t2_tender_protsess_v1.sql",
+        "supabase/migrations/20261122000200_t2_tender_protsess_v1.rollback.sql",
+        "supabase/migrations/20261122000200_t2_tender_protsess_v1.acceptance.sql",
+        "frontend/functions/_shared/tender-yuk.ts",
+        "frontend/functions/_shared/tender-yuk.test.ts",
+        "frontend/functions/_shared/permission-policy.ts",
+        "frontend/functions/_shared/write-command-policy.ts",
+        "frontend/functions/api/sb.ts",
+        "frontend/functions/api/sb-yoz.ts",
+        "frontend/testlar/t2_kompaniya.test.cjs",
+        "frontend/src/api/t2-tender.ts",
+        "frontend/src/lib/tender/",
+        "frontend/src/admin/sahifalar/Tender*",
+        "frontend/src/admin/tender/",
+        "frontend/src/i18n/lugat/qism/tender.json",
+        "frontend/src/lib/nav/navReestr.ts",
+        "frontend/src/lib/nav/navFiltr.ts",
+        "frontend/src/admin/AdminShell.tsx",
+        "frontend/src/lib/sayt-xaritasi/generated.ts",
+        "frontend/public/yangiliklar.json",
+        "ops/mailbox/INBOX.md",
+        "ops/ACTIVE_TASKS.json"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "ops/mailbox/KOORDINATSIYA-L0-CLOUD-20261028/01-kelishuv.md"
+      ],
+      "production_write_allowed": false,
+      "note": "Egasi 2026-11-03: «tendr ... mukammal jarayon». P2/P3 (t2_birja_*, t2_buyurtma) ustiga additiv; migratsiya 20261122000200 prodga FAQAT L0 qo'llaydi. PR-T1 (claude/tender-v1): baza + shlyuz + api + lib; PR-T2 (claude/tender-v1-ui): UI. v1 RPC lar (elon/golib/yop/tafsilot) service_role dan yig'iladi (muhr va tasdiq aylanib o'tilmasin)."
+    },
+    {
+      "id": "JARVIS-DOMAIN-READ-REGISTRY-20261119",
+      "title": "Jarvis registry: existing task inbox, approval queue and source money core",
+      "owner": "codex",
+      "machine": "anvar-laptop",
+      "branch": "codex/jarvis-m3-registry-domain-reads",
+      "base_sha": "0ffd388b729583a79befaabf8f34bedc70c2e9a3",
+      "status": "ready_for_review",
+      "owns": [
+        "frontend/functions/api/ai-savol.test.ts",
+        "frontend/functions/_shared/jarvis/read-tools.ts",
+        "frontend/functions/_shared/jarvis/read-tools.test.ts",
+        "frontend/functions/_shared/jarvis/approvals.ts",
+        "frontend/functions/_shared/jarvis/domain-read-tools.test.ts",
+        "frontend/functions/_shared/jarvis/chat.ts",
+        "frontend/functions/_shared/jarvis/jarvis-eval.test.ts",
+        "frontend/src/lib/jarvis/tool-registry.ts"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md"
+      ],
+      "production_write_allowed": false,
+      "note": "L0 expanded LANE1, ACK KOORDINATSIYA. Existing handlers only; shared role visibility and footer money core, no new writes or formulas."
+    },
+    {
+      "id": "JARVIS-M3-WAREHOUSE-20261119",
+      "title": "Jarvis warehouse preview and existing confirmation workflow",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/jarvis-m3-warehouse",
+      "base_sha": "7a2c21d5",
+      "status": "ready_for_review",
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md"
+      ],
+      "production_write_allowed": false,
+      "owns": [
+        "frontend/src/lib/jarvis/warehouse-command.ts",
+        "frontend/src/lib/jarvis/WarehouseCard.tsx",
+        "frontend/src/lib/jarvis/WarehouseCard.test.tsx",
+        "frontend/functions/_shared/jarvis/warehouse-command.ts",
+        "frontend/functions/_shared/jarvis/warehouse-command.test.ts",
+        "frontend/functions/_shared/jarvis/warehouse-core.test.ts",
+        "frontend/functions/_shared/jarvis/warehouse-routing.test.ts",
+        "frontend/functions/_shared/jarvis/warehouse-telegram.ts",
+        "frontend/functions/_shared/jarvis/warehouse-telegram.test.ts",
+        "frontend/functions/_shared/jarvis/chat.ts",
+        "frontend/functions/api/agent-ish.ts",
+        "frontend/src/api/t2-agent-ish.ts",
+        "frontend/src/umumiy/ui/AiChat.tsx",
+        "frontend/functions/_shared/telegram-jarvis.ts",
+        "frontend/functions/api/telegram/webhook.ts",
+        "frontend/src/i18n/lugat/qism/telegram-jarvis.json",
+        "frontend/functions/_shared/telegram-ombor.ts",
+        "frontend/functions/_shared/telegram-ombor-savol.test.ts",
+        "frontend/src/components/ombor/OmborKiritish.tsx",
+        "frontend/src/lib/jarvis/write-tools.ts",
+        "frontend/src/lib/jarvis/write-tools.test.ts",
+        "frontend/functions/_shared/jarvis/read-tools.test.ts",
+        "frontend/src/lib/yordamchi/vosita/f2-mcp-liniya.ts",
+        "frontend/src/i18n/lugat/qism/jarvis-f2-errors.json"
+      ],
+      "note": "L0 expanded LANE-1 PR-3 plus explicit 19.11 F2 review followups. Existing warehouse endpoint/cards only. No SQL or model confirmation. Review and merge at L0."
     }
-  ,
-{
-  "id": "STUDIO-EASY-ESTIMATE-20261102",
-  "title": "Shared norm picker: quantity-first, inline expression, expandable recipe",
-  "owner": "codex",
-  "machine": "Anvar",
-  "branch": "codex/studio-easy-estimate-20261102",
-  "base_sha": "09f6c483ae371f831f5d8f15a99f3f6a4b0cd3f1",
-  "status": "in_progress",
-  "owns": [
-    "frontend/src/admin/sahifalar/NormKatalogPanel.tsx",
-    "frontend/src/admin/sahifalar/NormKatalogPanel.test.tsx",
-    "frontend/src/i18n/lugat/qism/studio-easy-estimate.json",
-    "frontend/src/lib/smeta-studio/source-measure-basis.ts",
-    "frontend/src/lib/smeta-studio/source-measure-basis.test.ts",
-    "ops/mailbox/STUDIO-EASY-ESTIMATE-20261102/"
-  ],
-  "depends_on": [],
-  "must_read": [
-    "AGENTS.md",
-    "docs/governance/CONSTITUTION.md"
-  ],
-  "production_write_allowed": false,
-  "note": "Owner resumes UX request 02.11: reduce re-entry and scrolling from selection to quantity and shared command. Existing exact parseQuantityInput reused. SmetaStudio/Claude design and calc/catalog-bridge/commands untouched. No production business writes."
-},
-{
-  "id": "TRANSPORT-V1-20261103",
-  "title": "Transport logistika moduli: park, reys, tannarx, narxlash, rentabellik, xarita",
-  "owner": "claude",
-  "machine": "cloud",
-  "branch": "claude/logistika-v1",
-  "status": "in_progress",
-  "owns": [
-    "supabase/migrations/20261123000000_t2_transport_v1.sql",
-    "supabase/migrations/20261123000000_t2_transport_v1.rollback.sql",
-    "supabase/migrations/20261123000000_t2_transport_v1.acceptance.sql",
-    "frontend/src/api/t2-transport.ts",
-    "frontend/src/lib/transport/",
-    "frontend/src/i18n/lugat/qism/transport.json",
-    "frontend/src/transport/",
-    "frontend/functions/api/sb.ts",
-    "frontend/functions/api/sb-yoz.ts",
-    "frontend/functions/_shared/write-command-policy.ts",
-    "frontend/testlar/t2_kompaniya.test.cjs",
-    "frontend/src/lib/nav/navReestr.ts",
-    "frontend/public/yangiliklar.json",
-    "frontend/src/lib/sayt-xaritasi/generated.ts"
-  ],
-  "depends_on": [],
-  "must_read": ["AGENTS.md", "ops/mailbox/KOORDINATSIYA-L0-CLOUD-20261028/01-kelishuv.md"],
-  "production_write_allowed": false,
-  "note": "Yangi /admin/transport. Ombor (C11, Codex) kodiga tegilmaydi; /admin/logistika sahifasi o'zgarmaydi. Migratsiya 20261123xxxxxx (koordinator ajratgan oraliq). Xarajat obyektga faqat mavjud t2_xarajat_kirit_v1 orqali. Prodga faqat L0."
-},
-{
-  "id": "UY-SOTUV-V1-20261103",
-  "title": "Uy sotish moduli: inventar (shaxmatka), narx, CRM bitim/bron, to'lov grafigi, tushum/qarz paneli",
-  "owner": "claude@cloud",
-  "machine": "cloud",
-  "branch": "claude/uy-sotuv-v1",
-  "base_sha": "c7f437e02d76e9449402755f84a4247be512f13d",
-  "status": "in_progress",
-  "owns": [
-    "supabase/migrations/20261124000000_t2_uy_sotuv_v1*.sql",
-    "frontend/functions/_shared/sotuv-yuk.ts",
-    "frontend/functions/_shared/sotuv-yuk.test.ts",
-    "frontend/src/api/t2-sotuv.ts",
-    "frontend/src/lib/sotuv/",
-    "frontend/src/admin/sotuv/",
-    "frontend/src/i18n/lugat/qism/sotuv.json"
-  ],
-  "depends_on": [],
-  "must_read": [
-    "AGENTS.md",
-    "docs/governance/CONSTITUTION.md"
-  ],
-  "production_write_allowed": false,
-  "note": "Egasi 2026-11-03: «uy ham sotadi — 0 dan 100 gacha, sotuvchi ham oluvchi uchun». Umumiy fayllarga faqat qo'shimcha qatorlar: sb.ts/sb-yoz.ts (sotuv_* ro'yxati), write-command-policy, permission-policy (sotuv_ → sales.*), tenant-yozish (ID_JADVAL), effective-authorization/permission-labels (sales.*, rol sotuvchi), t2_kompaniya.test.cjs KUTILGAN. S2 (UI) umumiy fayllari: App.tsx (sotuv marshruti), lib/nav/navReestr.ts + navFiltr.test.ts (Uy sotish guruhi), route-permission.ts (sotuv → sales.read), umumiy/marshrutTekshir.ts, sayt-xaritasi/pageCatalog.ts + generated.ts. Migratsiya prodga — faqat L0."
-}
-  ,
-  {
-    "id": "TENDER-V1-20261103",
-    "title": "Tender / xarid protsessi: tasdiq zanjiri, muhrlangan takliflar, baholash, g'olib, yetkazuvchi portali",
-    "owner": "claude",
-    "machine": "cloud",
-    "branch": "claude/tender-v1",
-    "base_sha": "c7f437e0",
-    "status": "in_progress",
-    "owns": [
-      "supabase/migrations/20261122000200_t2_tender_protsess_v1.sql",
-      "supabase/migrations/20261122000200_t2_tender_protsess_v1.rollback.sql",
-      "supabase/migrations/20261122000200_t2_tender_protsess_v1.acceptance.sql",
-      "frontend/functions/_shared/tender-yuk.ts",
-      "frontend/functions/_shared/tender-yuk.test.ts",
-      "frontend/functions/_shared/permission-policy.ts",
-      "frontend/functions/_shared/write-command-policy.ts",
-      "frontend/functions/api/sb.ts",
-      "frontend/functions/api/sb-yoz.ts",
-      "frontend/testlar/t2_kompaniya.test.cjs",
-      "frontend/src/api/t2-tender.ts",
-      "frontend/src/lib/tender/",
-      "frontend/src/admin/sahifalar/Tender*",
-      "frontend/src/admin/tender/",
-      "frontend/src/i18n/lugat/qism/tender.json",
-      "frontend/src/lib/nav/navReestr.ts",
-      "frontend/src/lib/nav/navFiltr.ts",
-      "frontend/src/admin/AdminShell.tsx",
-      "frontend/src/lib/sayt-xaritasi/generated.ts",
-      "frontend/public/yangiliklar.json",
-      "ops/mailbox/INBOX.md",
-      "ops/ACTIVE_TASKS.json"
-    ],
-    "depends_on": [],
-    "must_read": [
-      "AGENTS.md",
-      "ops/mailbox/KOORDINATSIYA-L0-CLOUD-20261028/01-kelishuv.md"
-    ],
-    "production_write_allowed": false,
-    "note": "Egasi 2026-11-03: «tendr ... mukammal jarayon». P2/P3 (t2_birja_*, t2_buyurtma) ustiga additiv; migratsiya 20261122000200 prodga FAQAT L0 qo'llaydi. PR-T1 (claude/tender-v1): baza + shlyuz + api + lib; PR-T2 (claude/tender-v1-ui): UI. v1 RPC lar (elon/golib/yop/tafsilot) service_role dan yig'iladi (muhr va tasdiq aylanib o'tilmasin)."
-  },
-  {
-    "id": "JARVIS-DOMAIN-READ-REGISTRY-20261119",
-    "title": "Jarvis registry: existing task inbox, approval queue and source money core",
-    "owner": "codex",
-    "machine": "anvar-laptop",
-    "branch": "codex/jarvis-m3-registry-domain-reads",
-    "base_sha": "0ffd388b729583a79befaabf8f34bedc70c2e9a3",
-    "status": "ready_for_review",
-    "owns": [
-      "frontend/functions/api/ai-savol.test.ts",
-      "frontend/functions/_shared/jarvis/read-tools.ts",
-      "frontend/functions/_shared/jarvis/read-tools.test.ts",
-      "frontend/functions/_shared/jarvis/approvals.ts",
-      "frontend/functions/_shared/jarvis/domain-read-tools.test.ts",
-      "frontend/functions/_shared/jarvis/chat.ts",
-      "frontend/functions/_shared/jarvis/jarvis-eval.test.ts",
-      "frontend/src/lib/jarvis/tool-registry.ts"
-    ],
-    "depends_on": [],
-    "must_read": [
-      "AGENTS.md"
-    ],
-    "production_write_allowed": false,
-    "note": "L0 expanded LANE1, ACK KOORDINATSIYA. Existing handlers only; shared role visibility and footer money core, no new writes or formulas."
-  }
-]
+  ]
 }

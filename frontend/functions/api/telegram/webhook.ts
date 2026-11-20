@@ -114,7 +114,7 @@ async function callbackAjrat(env: TgEnv, cb: Callback, tgId: number | undefined)
   if (typeof cb.data === 'string' && cb.data.startsWith('j:')) {
     await javobBer();
     await jarvisYubor(env, chat.id as number, await telegramJarvisSelect(env, a.foydalanuvchi_id, tgId as number, til, cb.data, cb.message));
-    if ((cb.data === 'j:f:y' || cb.data === 'j:f:n') && cb.message?.message_id) {
+    if ((cb.data === 'j:f:y' || cb.data === 'j:f:n' || cb.data.startsWith('j:w:')) && cb.message?.message_id) {
       await tgApi(env, 'editMessageReplyMarkup', { chat_id: chat.id, message_id: cb.message.message_id, reply_markup: { inline_keyboard: [] } });
     }
     return 'cb:jarvis';
@@ -250,6 +250,11 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
   // KANAL-BOSHQARUV: «Tahrirlash» xabariga javob — qoralama matni yangilanadi (chiqarilmaydi).
   const kpId = tahrirBelgisi(msg.reply_to_message);
   if (kpId && typeof msg.text === 'string') return kanalTahrirJavobi(env as KanalEnv, uid, til, chatId, kpId, msg.text);
+  // A bound Jarvis reply must be resolved before the general warehouse inbox.
+  if (!b && typeof msg.text === 'string' && chatId === tgId && !qidiruvKonteksti(msg.reply_to_message)) {
+    const reply = await telegramJarvisReply(env, uid, chatId, til, msg.reply_to_message, msg.text);
+    if (reply) { await jarvisYubor(env, chatId, reply); return 'jarvis_reply'; }
+  }
   // TO'LIQ BOT: chuqur havola (/start o_79), force_reply javoblari (qidiruv/hajm) va doimiy menyu tugmalari.
   if (b?.buyruq === 'start' && b.arg) {
     const data = chuqurHavolaOl(b.arg);

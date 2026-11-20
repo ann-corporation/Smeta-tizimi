@@ -189,7 +189,7 @@ const tanlovTozala = (x: unknown): Tanlov => {
 };
 
 /** Server javobi → Telegram xabari. `savol`/`variantlar` va «QQS bilan/siz» savoli uchun inline tugmalar (imzolangan `#OS:` token xabar matnida). */
-async function javobYasa(env: BotEnv, uid: number, ombor: { id: number; kompaniya_id: number; nomi: string }, j: Javob, til: TgTil, c: SavolCtx): Promise<BotJavob> {
+export async function javobYasa(env: BotEnv, uid: number, ombor: { id: number; kompaniya_id: number; nomi: string }, j: Javob, til: TgTil, c: SavolCtx): Promise<BotJavob> {
   const karta = kartaMatni(j, til);
   const variantlar = ((j.variantlar as { yorliq?: unknown; tanlov?: unknown }[] | undefined) ?? [])
     .filter((x) => typeof x?.yorliq === 'string' && x.yorliq).slice(0, 6).map((x) => ({ yorliq: String(x.yorliq).slice(0, 60), tanlov: tanlovTozala(x.tanlov) }));
@@ -200,7 +200,7 @@ async function javobYasa(env: BotEnv, uid: number, ombor: { id: number; kompaniy
     try { belgi = await tokenYarat(String(env.SESSIYA_KALIT), { a: uid, k: ombor.kompaniya_id, s: ombor.id, op: 'sv', p: { matn: c.matn, t: c.t, r: c.r, n: ombor.nomi, v: variantlar.map((x) => x.tanlov) } satisfies Record<string, unknown> }); } catch { belgi = ''; }
   }
   if (j.holat === 'tasdiq_kerak' && j.token) {
-    const qatorlar: Record<string, unknown>[][] = [[{ text: tgT('Tasdiqlash', til), callback_data: OMBOR_HA }, { text: tgT('Bekor', til), callback_data: OMBOR_YOQ }]];
+    const qatorlar: Record<string, unknown>[][] = [[...(narxSorov ? [] : [{ text: tgT('Tasdiqlash', til), callback_data: OMBOR_HA }]), { text: tgT('Bekor', til), callback_data: OMBOR_YOQ }]];
     if (narxSorov && belgi) qatorlar.push([{ text: tgT('QQS bilan', til), callback_data: 'os:r:b' }, { text: tgT('QQS siz', til), callback_data: 'os:r:s' }]);
     return { ...belgiliMatn(env, [`${tgT('Ombor', til)}: ${ombor.nomi}`, ...karta.split('\n')], [{ k: 'ob', q: j.token }, ...(belgi ? [{ k: 'os' as const, q: belgi }] : [])]), markup: { inline_keyboard: qatorlar } };
   }
