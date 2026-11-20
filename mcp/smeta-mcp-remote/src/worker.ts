@@ -11,6 +11,7 @@ import { authorizeGet, authorizePost, googleSozlangan } from './kirish';
 import { mcpFetch, VERSIYA, type McpCtx } from './mcp';
 import { healthDbMb, sovutishCron } from './sovutish';
 import { resursUrl } from './url';
+import { jarvisFetch } from './jarvis';
 
 const defaultHandler = {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -56,7 +57,8 @@ function provider(env: Env): OAuthProvider<Env> {
 }
 
 export default {
-  fetch: (request: Request, env: Env, ctx: never) => provider(env).fetch(request, env, ctx),
+  fetch: (request: Request, env: Env, ctx: never) => new URL(request.url).pathname === '/jarvis/mcp'
+    ? jarvisFetch(request, env, ctx) : provider(env).fetch(request, env, ctx),
   /** Kunlik: muddati o'tgan OAuth yozuvlarini tozalash (wrangler.toml [triggers]). */
   scheduled: (_e: unknown, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }) => {
     ctx.waitUntil(provider(env).purgeExpiredData(env));
