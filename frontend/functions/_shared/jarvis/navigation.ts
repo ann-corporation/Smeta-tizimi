@@ -6,6 +6,7 @@ import type { RpcNatija } from '../agent-rpc';
 import { jarvisHasPermission } from './authority';
 import { resolveJarvisObject, type JarvisObjectScope, type JarvisReadRpc } from './object-scope';
 import { f2RegisterAnswer, f2RegisterIntent } from './f2-register';
+import { f2NavigationSelection } from '../../../src/lib/jarvis/f2-navigation-evidence';
 
 export function navigationVisible(men: RpcNatija | null, company: number, key: string): boolean {
   const contexts = men?.data.context_kompaniyalar;
@@ -29,9 +30,9 @@ export async function navigationAnswer(rpc: JarvisReadRpc, scope: JarvisObjectSc
   if (f2?.number && (!key || key === 'f2-tarix')) {
     if (!navigationVisible(men, scope.company, 'f2-tarix')) return { rad: true, javob: text('F2 ni ko‘rish uchun ruxsat kerak.', 'Для просмотра КС-2 нужен доступ.') };
     const answer = await f2RegisterAnswer(rpc, scope, f2);
-    const evidence = 'dalil' in answer ? answer.dalil as { id: number; akt_ids: number[] } : null;
-    const target = evidence?.akt_ids.length === 1 && navigationVisible(men, scope.company, 'f2-tarix')
-      ? navigationTarget('f2-tarix', { obyekt: evidence.id, akt: evidence.akt_ids[0] }) : null;
+    const selection = f2NavigationSelection('dalil' in answer ? answer.dalil : null);
+    const target = selection && navigationVisible(men, scope.company, 'f2-tarix')
+      ? navigationTarget('f2-tarix', selection) : null;
     return { ...answer, ...(target ? { ochish: target, sahifalar: [{ yol: navigationUrl(target), nom: text('F2 ni ochish', 'Открыть КС-2') }] } : {}) };
   }
   const keys = key ? [key] : navigationPages(scope.question);
