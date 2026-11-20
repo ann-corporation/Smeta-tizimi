@@ -12,6 +12,7 @@ import type { Env, Props } from './env';
 import { hyperdriveHovuz } from './hovuz';
 import { MASOFAVIY_TOOLLAR, OQISH, masofaviyChaqir, masofaviyKirish, masofaviyTavsif } from './siyosat';
 import { vakolatOl, type Vakolat } from './vakolat';
+import { normativUla } from './normativ';
 
 export const VERSIYA = '0.1.0';
 /** So'rov tanasi chegarasi (f2_yarat 5000 qator ≈ 0,5 MB). */
@@ -97,6 +98,7 @@ export async function mcpVakolatFetch(request: Request, env: Env, ctx: Pick<McpC
   const t = Number(env.SMETA_MCP_TIMEOUT_MS);
   const mu = new Muhit({ dbUrl: null, aktorId: v.foydalanuvchiId, auditFayl: null, dbRol: null, timeoutMs: Number.isFinite(t) && t > 0 ? t : 25_000, sslVerify: false },
     () => hyperdriveHovuz(env.HYPERDRIVE.connectionString));
+  normativUla(mu, env, v);
   const server = masofaviyServer(mu, v, env.SAYT_URL, faqatOqish);
   const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   try {

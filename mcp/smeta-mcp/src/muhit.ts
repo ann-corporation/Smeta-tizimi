@@ -32,6 +32,8 @@ export class Muhit {
    * foydalanuvchining kompaniyalari; ro'yxat beruvchi toollar (obyektlar) shu bilan filtrlanadi.
    */
   kompaniyaDoira: number[] | null = null;
+  /** Remote MCP reuses the site's authoritative R2 normative reader, when supplied by its host. */
+  normativQidir?: (company: number, query: string, limit: number, edition?: string) => Promise<Record<string, unknown>>;
   constructor(readonly sozlama: Sozlama, private readonly hovuzYasa: (s: Sozlama) => Hovuz = (s) => { pgTurlariniOrnat(); return pgHovuz(s); }) {
     this.aktorId = sozlama.aktorId;
   }

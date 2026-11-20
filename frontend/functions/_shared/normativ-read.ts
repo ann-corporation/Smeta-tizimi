@@ -1,8 +1,8 @@
-import { normativEvidence, type NormativCandidate } from './normativ-evidence';
+import { normativEvidence, type NormativCandidate, type NormativBucket } from './normativ-evidence';
 import { supabaseBaseUrl } from './supabase-url';
 import { DEFAULT_PREFIX, docUuid, evidenceFor, findUnitBySha, loadCorpus, searchIndex } from './normativ-r2-index';
 
-export type NormativEnv = { SUPABASE_URL: string; SUPABASE_KEY: string; NORMATIV_R2?: R2Bucket;
+export type NormativEnv = { SUPABASE_URL: string; SUPABASE_KEY: string; NORMATIV_R2?: NormativBucket;
   NORMATIV_R2_PREFIX?: string; NORMATIV_R2_STATES?: string; NORMATIV_DB_FALLBACK?: string };
 const json = (body: object, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 const fail = (code: string, status: number) => json({ ok: false, code }, status);

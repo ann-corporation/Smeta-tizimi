@@ -1,3 +1,4 @@
+import type { NormativBucket } from '../../../frontend/functions/_shared/normativ-evidence';
 /** Worker muhiti (wrangler.toml binding'lari + `wrangler secret put` sirlari). Qiymatlar hech qachon log/javobga chiqmaydi. */
 export interface RateLimit { limit(o: { key: string }): Promise<{ success: boolean }> }
 
@@ -36,6 +37,8 @@ export interface Env {
   SAYT_URL?: string;
   /** Ixtiyoriy var: tranzaksiya vaqt chegarasi (ms). */
   SMETA_MCP_TIMEOUT_MS?: string;
+  NORMATIV_R2_PREFIX?: string;
+  NORMATIV_DB_FALLBACK?: string;
 }
 
 /** OAuthProvider'ning ichki yordamchilari (faqat ishlatiladigan qismi). */
@@ -50,9 +53,8 @@ export type AuthRequest = { responseType: string; clientId: string; redirectUri:
 export type Props = { foydalanuvchi_id: number; login: string; /** chiqarilgan vaqt (ms) — t2_foydalanuvchi.sessiya_bekor_dan bilan solishtiriladi */ iat: number };
 
 /** R2 bucket binding'ining ishlatiladigan qismi. */
-export interface R2BucketLike {
+export interface R2BucketLike extends NormativBucket {
   put(key: string, value: Uint8Array): Promise<unknown>;
-  get(key: string): Promise<{ arrayBuffer(): Promise<ArrayBuffer> } | null>;
 }
 
 export interface KVNamespace {
