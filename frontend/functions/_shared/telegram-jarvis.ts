@@ -9,6 +9,7 @@ import type { F2Javob } from '../../src/lib/jarvis/f2-javob';
 import { botChaqiruv } from './telegram-amal';
 import { limitOshdi } from './telegram-bot';
 import { saytUrl, tengSatr, tgRpc, tgT, type TgEnv, type TgTil } from './telegram';
+import { holatOl, holatYoz, type JarvisHolat } from './telegram-holat';
 import { validJarvisTurns, type JarvisTurn as Turn } from '../../src/lib/jarvis/conversation-contract';
 
 type Chat = { id: string; sarlavha: string };
@@ -81,7 +82,9 @@ async function prompt(env: TgEnv, actor: number, telegram: number, til: TgTil, t
   const value = [target.company, target.id, target.mode, Math.floor(Date.now() / 60_000)].join(':');
   const signature = await sign(env, actor, telegram, value);
   if (!signature) return unavailable(til);
-  const guide = tgT('Savolingizni shu xabarga javob qilib yozing.', til);
+  // Faol Jarvis suhbati chat holatida: keyingi oddiy xabar shu suhbatga ketadi (reply shart emas; reply ham ishlaydi).
+  await holatYoz(telegram, 'jarvis', { company: target.company, id: target.id, mode: target.mode } satisfies JarvisHolat, 3600);
+  const guide = tgT('Savolingizni yozing — shu suhbatda davom etamiz.', til);
   const url = `${saytUrl(env)}/admin${PREFIX}${value}:${signature}`;
   return { matn: body ? `${guide}\n\n${body.slice(0, 3800)}` : guide, options: {
     reply_markup: FORCE_REPLY,
@@ -189,6 +192,17 @@ export async function telegramJarvisReply(
   }
   const target = await conversationTarget(env, actor, telegram, replyTo);
   if (!target) return replyTo?.entities?.some(entity => entity.url?.startsWith(`${saytUrl(env)}/admin${PREFIX}`)) ? unavailable(til) : null;
+  return jarvisSuhbat(env, actor, telegram, til, target, text);
+}
+
+/** Reply shart emas: faol suhbat chat holatida (prompt() yozgan). Faol suhbat yo'q — null (chaqiruvchi yagona Jarvis savoliga o'tadi). */
+export async function telegramJarvisMatn(env: TgEnv, actor: number, telegram: number, til: TgTil, text: string): Promise<JarvisBotReply | null> {
+  const h = await holatOl<JarvisHolat>(telegram, 'jarvis');
+  if (!h || !number(h.company) || !CHAT_ID.test(String(h.id)) || (h.mode !== 'n' && h.mode !== 'o')) return null;
+  return jarvisSuhbat(env, actor, telegram, til, { company: h.company, id: h.id, mode: h.mode }, text);
+}
+
+async function jarvisSuhbat(env: TgEnv, actor: number, telegram: number, til: TgTil, target: Target, text: string): Promise<JarvisBotReply> {
   const { company, id, mode } = target;
   const savol = text.trim();
   if (!savol || savol.length > 1000) return { matn: tgT('Savol juda uzun (1000 belgigacha).', til) };

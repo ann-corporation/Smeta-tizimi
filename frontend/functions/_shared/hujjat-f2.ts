@@ -27,7 +27,13 @@ export type F2YasaOpsiya = {
   /** Summalar (ustamasiz / ustamali / QQS bilan, qator soni) - hujjat bilan bir xil hisob (`portfelAktMoliya`). */
   moliya?: boolean;
 };
-export type F2Tayyor = Tayyor & { akt: F2YasaAkt; moliya: AktMoliya | null };
+export type F2Tayyor = Tayyor & {
+  akt: F2YasaAkt; moliya: AktMoliya | null;
+  /** Server yasashida QR qo'yilgan bo'lsa: nashr tokeni, nusxa hali biriktirilmaganmi, va QR dan OLDINGI mazmun xeshi (Disk operatsiya kaliti uchun). */
+  nashr?: { token: string; nusxaKerak: boolean; mazmunXesh: string };
+};
+/** F-2 Diskka yoziladimi: bekor va taxminiy qoralama (raqamida taxminiy/prorab belgisi; PR #670 qoidasi) yozilmaydi; qolgan hammasi yoziladi. */
+export const f2DiskkaArxivlansinmi = (a: Pick<F2YasaAkt, 'holat' | 'raqam'>): boolean => a.holat !== 'bekor' && !/(taxminiy|prorab)/i.test(a.raqam ?? '');
 export async function f2Yasa(kompaniyaId: number, obyektId: number, aktId: number, opsiya: F2YasaOpsiya = {}): Promise<F2Tayyor> {
   const reestr = await sbT2AktReestrOl(obyektId, 'f2');
   if (!reestr.ok || reestr.toliq === false) throw new Rad(502, 'REESTR_OQILMADI', 'F-2 reestri o‘qilmadi');
@@ -52,6 +58,6 @@ export async function f2Yasa(kompaniyaId: number, obyektId: number, aktId: numbe
   const moliya = opsiya.moliya ? portfelAktMoliya(m, { ...akt, hujjat_jami: akt.hujjat_jami ?? null }, akt.obyekt || '', raqamlar) : null;
   const xesh = f2HujjatKaliti(obyektId, akt.oy || '', akt.raqam) ?? `akt:${akt.id}:${await mazmunXeshi(h.bytes)}`;
   return { akt: akt as F2YasaAkt, moliya, bytes: h.bytes, faylNomi: h.faylNomi, turi: 'f2_hujjat', obyektId, davr: akt.oy || null, xesh,
-    /* Disk: faqat tasdiqlangan F-2 (qoralama Diskni to'ldirmaydi); kalit f2:<akt_id> - tahrirlanib qayta yasalsa o'sha fayl yangi versiya oladi. */
-    arxivla: akt.holat === 'tasdiqlangan', manba: f2Manba({ aktId: akt.id, raqam: akt.raqam ?? null, obyekt: akt.obyekt || null, oy: akt.oy || null }) };
+    /* Disk (egasi 2026-11-19: qoralama ham, tasdiqlangan ham Diskda turadi); kalit f2:<akt_id> - qayta yasalsa/tasdiqlansa o'sha fayl yangi versiya oladi. */
+    arxivla: f2DiskkaArxivlansinmi(akt), manba: f2Manba({ aktId: akt.id, raqam: akt.raqam ?? null, obyekt: akt.obyekt || null, oy: akt.oy || null }) };
 }

@@ -129,6 +129,9 @@ object DataModule {
     fun moneyRepository(api: BffApi, db: AppDb, json: Json) = MoneyRepository(api, db, json)
 
     @Provides @Singleton
+    fun hierarchyRepository(api: BffApi, db: AppDb, json: Json) = HierarchyRepository(api, db, json)
+
+    @Provides @Singleton
     fun rahbarRepository(api: BffApi, db: AppDb, json: Json, money: MoneyRepository) = RahbarRepository(api, db, json, money)
 
     @Provides @Singleton

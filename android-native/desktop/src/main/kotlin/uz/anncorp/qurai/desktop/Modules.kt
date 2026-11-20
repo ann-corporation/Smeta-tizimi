@@ -3,6 +3,7 @@ package uz.anncorp.qurai.desktop
 import uz.anncorp.smeta.core.data.formatDate
 
 import uz.anncorp.qurai.ui.components.*
+import uz.anncorp.qurai.ui.icons.QIcons
 
 import uz.anncorp.smeta.core.data.Loaded
 import uz.anncorp.smeta.feature.common.*
@@ -13,12 +14,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -69,7 +72,12 @@ import java.time.LocalDate
 import java.util.UUID
 
 /** What every module receives: services, the chosen company, the chosen object (modules that need one), and a refresh counter (F5). */
-class Ctx(val sv: Services, val repo: Repo, val me: SessionUser, val place: Workplace, val objects: List<Obj>, val obj: Obj?, val tick: Int)
+class Ctx(
+    val sv: Services, val repo: Repo, val me: SessionUser, val place: Workplace, val objects: List<Obj>, val obj: Obj?, val tick: Int,
+    /** Loyiha > Shartnoma > Obyekt source (null = unreadable: plain list), whether its read finished, the chosen context and its setter. */
+    val hier: uz.anncorp.smeta.core.data.HierarchySource? = null, val hierLoaded: Boolean = false,
+    val scope: uz.anncorp.smeta.core.data.WorkScope = uz.anncorp.smeta.core.data.WorkScope(), val setScope: (uz.anncorp.smeta.core.data.WorkScope) -> Unit = {},
+)
 
 @Composable
 fun <T> load(k1: Any?, k2: Any?, f: suspend () -> Loaded<T>): Loaded<T>? {
@@ -85,14 +93,12 @@ private fun NeedObject(c: Ctx, content: @Composable (Obj) -> Unit) {
 }
 
 @Composable
-private fun Page(title: String, sub: String? = null, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+internal fun Page(title: String, sub: String? = null, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) { QPageHead(title, desc = sub); content() }
 }
 
-private fun statusUz(s: F2Status, raw: String?): String = when (s) {
-    F2Status.DRAFT -> "Qoralama"; F2Status.SUBMITTED -> "Yuborilgan"; F2Status.CHECKED -> "Tekshirilgan"; F2Status.APPROVED -> "Tasdiqlangan"
-    F2Status.REJECTED -> "Rad etilgan"; F2Status.CANCELLED -> "Bekor qilingan"; F2Status.SUPERSEDED -> "Almashtirilgan"; F2Status.UNKNOWN -> raw ?: T_DASH
-}
+/** Labels come from design/tokens.json (same as the site and Android): one wording for every platform. */
+private fun statusUz(s: F2Status, raw: String?): String = uz.anncorp.smeta.core.ui.DesignTokens.status["f2"]?.get(s.code)?.label ?: raw ?: T_DASH
 
 private const val T_DASH = "\u2014"
 
@@ -105,24 +111,6 @@ fun PackStrip(label: String, p: SumPack?) {
     }
 }
 
-// ============================ Obyektlar ============================
-
-@Composable
-fun ObjectsScreen(c: Ctx, onOpen: (Obj) -> Unit) {
-    val mny = load(c.place.companyId, c.tick) { c.repo.money(c.place.companyId) }
-    var q by remember { mutableStateOf("") }
-    val m = mny.valueOrNull().orEmpty()
-    Page("Obyektlar", "${c.objects.size} ta obyekt. Qatorni bosing: obyekt tanlanadi") {
-        mny?.Banner()
-        QInput(q, { q = it }, label = "Qidirish", singleLine = true, modifier = Modifier.width(360.dp))
-        val rows = c.objects.filter { q.isBlank() || it.nom.contains(q, ignoreCase = true) }
-        uz.anncorp.qurai.ui.screens.QObjectList(
-            rows.map { o -> val s = m[o.id]?.smeta; uz.anncorp.qurai.ui.screens.QObjectRow(o.id, o.nom, o.tur, o.rows, o.unpriced, s?.qqsBilan?.let(::money), s?.ustamali?.let(::money), s?.ustamasiz?.let(::money), m[o.id]?.factPct?.let { formatPercent(it) }, m[o.id]?.f2Pct?.let { formatPercent(it) }) },
-            { r -> rows.firstOrNull { it.id == r.id }?.let(onOpen) }, Modifier.weight(1f), selectedId = c.obj?.id,
-        )
-   }
-}
-
 // ============================ Smeta (tree) ============================
 
 @Composable
@@ -131,6 +119,7 @@ fun SmetaScreen(c: Ctx) = NeedObject(c) { o ->
     val mny = load(c.place.companyId, c.tick) { c.repo.money(c.place.companyId) }
     var q by remember(o.id) { mutableStateOf("") }
     var expanded by remember(o.id) { mutableStateOf(setOf<Long>()) }
+    var sel by remember(o.id) { mutableStateOf<Long?>(null) }
     Page("Smeta: ${o.nom}") {
         if (pk == null) { QLoading(); return@Page }
         pk.Banner()
@@ -143,22 +132,46 @@ fun SmetaScreen(c: Ctx) = NeedObject(c) { o ->
             QHint("${p.nodes.size} ta tugun, ${p.blCount} ta ish")
         }
         val vis = remember(p, expanded, q) { visibleNodes(p.nodes, if (q.isBlank()) expanded else p.nodes.filter { it.hasChildren }.map { it.id }.toSet(), q) }
-        Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant).padding(vertical = 6.dp)) {
-            Text("Kod / nom", Modifier.weight(1f).padding(horizontal = 6.dp), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge); HeadCell("Birlik", 70.dp); HeadCell("Hajm", 100.dp, true); HeadCell("Narx", 110.dp, true); HeadCell("Smeta summa", 150.dp, true); HeadCell("Fakt", 140.dp, true); HeadCell("F-2", 140.dp, true)
+        val selNode = sel?.let { p.byId[it] }
+        Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.weight(1f)) {
+        GridTable(
+            vis, listOf(
+                QCol("Kod / nom", 290.dp) { x -> "\u2003".repeat(x.depth) + (if (x.hasChildren) (if (x.id in expanded || q.isNotBlank()) "\u25BE " else "\u25B8 ") else "\u2003") + (x.kod?.let { "$it  " } ?: "") + x.nom },
+                QCol("Birlik", 70.dp) { x -> uz.anncorp.smeta.core.data.displayUnit(x.birlik) },
+                QCol("Hajm", 90.dp, true) { x -> if (x.isRz) "" else qty(x.hajm) },
+                QCol("Narx", 110.dp, true) { x -> if (x.isRz) "" else money(x.narx) },
+                QCol("Smeta summa", 130.dp, true) { x -> money(if (x.isRz) x.roll else x.summa) },
+                QCol("Fakt", 120.dp, true) { x -> if (x.isBl) money(x.faktSumma) else "" },
+                QCol("F-2", 120.dp, true) { x -> if (x.isBl) money(x.f2Summa) else "" },
+            ), modifier = Modifier.fillMaxSize(), key = { it.id },
+            onClick = { x -> sel = x.id; if (x.hasChildren) expanded = if (x.id in expanded) expanded - x.id else expanded + x.id },
+        )
         }
-        LazyColumn(Modifier.weight(1f)) {
-            items(vis, key = { it.id }) { x ->
-                val sum = if (x.isRz) x.roll else x.summa
-                Row(Modifier.fillMaxWidth().clickable(enabled = x.hasChildren) { expanded = if (x.id in expanded) expanded - x.id else expanded + x.id }.padding(vertical = 4.dp)) {
-                    val mark = if (x.hasChildren) (if (x.id in expanded || q.isNotBlank()) "\u25BE " else "\u25B8 ") else "   "
-                    Text(
-                        mark + (x.kod?.let { "$it  " } ?: "") + x.nom, Modifier.weight(1f).padding(start = (x.depth * 16).dp, end = 6.dp),
-                        fontWeight = if (x.isRz) FontWeight.Bold else if (x.isBl) FontWeight.Medium else FontWeight.Normal, maxLines = 2,
-                    )
-                    DataCell(uz.anncorp.smeta.core.data.displayUnit(x.birlik), 70.dp); DataCell(if (x.isRz) "" else qty(x.hajm), 100.dp, true); DataCell(if (x.isRz) "" else money(x.narx), 110.dp, true)
-                    DataCell(money(sum), 150.dp, true); DataCell(if (x.isBl) money(x.faktSumma) else "", 140.dp, true); DataCell(if (x.isBl) money(x.f2Summa) else "", 140.dp, true)
-                }
+        if (Q.layout.wide) SmetaRowDetail(selNode, Modifier.width(340.dp).fillMaxHeight()) { sel = null }
+        }
+        if (!Q.layout.wide && selNode != null) QDialog(I18n.s("ier_d_title", "Qator tafsiloti"), { sel = null }, dismissText = I18n.s("ier_d_close", "Yopish")) { SmetaRowDetail(selNode, Modifier.fillMaxWidth(), null) }
+    }
+}
+
+/** Detail of one estimate row: plan (hajm, narx, summa), fakt and F-2 side by side, and what is left. Unknown = a dash; a negative remainder is shown as it is (norm correction). */
+@Composable
+private fun SmetaRowDetail(x: SNode?, modifier: Modifier, onClose: (() -> Unit)?) {
+    if (x == null) { Box(modifier) { QHint(I18n.s("ier_d_pick", "Tafsilot uchun qatorni bosing")) }; return }
+    val sum = if (x.isRz) x.roll else x.summa
+    val leftQty = if (x.isBl) x.hajm?.let { it - x.faktHajm } else null
+    val leftSum = if (x.isBl) x.summa?.let { it - x.faktSumma } else null
+    QCard(modifier, title = (x.kod?.let { "$it  " } ?: "") + x.nom, actions = onClose?.let { cl -> { QButton("", cl, kind = QButtonKind.Ghost, icon = uz.anncorp.qurai.ui.icons.QIcons.X) } }) {
+        Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            QKv(I18n.s("ier_d_unit", "Birlik"), uz.anncorp.smeta.core.data.displayUnit(x.birlik).ifBlank { Tx.dash })
+            if (!x.isRz) { QKv(I18n.s("ier_d_volume", "Hajm"), qty(x.hajm)); QKv(I18n.s("ier_d_price", "Narx (QQS siz)"), money(x.narx)) }
+            QKv(I18n.s("ier_d_sum", "Summa") + " (" + I18n.s("ier_card_smeta", "Smeta") + ")", money(sum))
+            if (x.isBl) {
                 HorizontalDivider(thickness = 0.5.dp)
+                QKv(I18n.s("ier_card_fakt", "Fakt") + ": " + I18n.s("ier_d_volume", "Hajm"), qty(x.faktHajm)); QKv(I18n.s("ier_card_fakt", "Fakt") + ": " + I18n.s("ier_d_sum", "Summa"), money(x.faktSumma))
+                QKv(I18n.s("ier_card_f2", "F-2") + ": " + I18n.s("ier_d_volume", "Hajm"), qty(x.f2Hajm)); QKv(I18n.s("ier_card_f2", "F-2") + ": " + I18n.s("ier_d_sum", "Summa"), money(x.f2Summa))
+                HorizontalDivider(thickness = 0.5.dp)
+                QKv(I18n.s("ier_d_left", "Qoldiq") + ": " + I18n.s("ier_d_volume", "Hajm"), qty(leftQty)); QKv(I18n.s("ier_d_left", "Qoldiq") + ": " + I18n.s("ier_d_sum", "Summa"), money(leftSum))
             }
         }
     }
@@ -181,8 +194,10 @@ fun F2Screen(c: Ctx) = NeedObject(c) { o ->
     val mny = load(c.place.companyId, c.tick) { c.repo.money(c.place.companyId) }
     val gen = load(o.id, c.tick) { Loaded.Fresh(DocGenRepository(c.sv.api).list(c.place.companyId, o.id).orEmpty()) }
     var pick by remember(o.id) { mutableStateOf<F2Act?>(null) }
+    var editing by remember(o.id) { mutableStateOf<F2Act?>(null) }
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf<String?>(null) }
+    editing?.let { e -> F2DraftScreen(c, o, e) { editing = null; refreshF2++ }; return@NeedObject }
     Page("F-2 aktlar: ${o.nom}", "Qatorni bosing: akt qatorlari ochiladi") {
         if (acts == null) { QLoading(); return@Page }
         acts.Banner()
@@ -190,7 +205,7 @@ fun F2Screen(c: Ctx) = NeedObject(c) { o ->
         PackStrip("Qabul qilingan F-2 (server)", mo?.f2)
         val list = acts.valueOrNull().orEmpty()
         Box(Modifier.fillMaxWidth().height(220.dp)) {
-            QTable(
+            GridTable(
                 list, listOf(
                     QCol("Oy", 90.dp, sort = { it.oy }) { f2MonthLabel(it.oy) ?: T_DASH },
                     QCol("Raqam", 140.dp, sort = { it.raqam }) { it.raqam ?: T_DASH },
@@ -205,6 +220,7 @@ fun F2Screen(c: Ctx) = NeedObject(c) { o ->
         val a = pick
         if (a != null) AktSummaStrip(c, a.id)
         if (a != null) F2StepBar(c, a) { pick = null; refreshF2++ }
+        if (a != null) QButton("F-2 tayyorlash: qatorlarni tahrirlash", { editing = a }, kind = QButtonKind.Primary, icon = QIcons.Pencil)
         if (a != null) ActRows(c, o, a)
         val f2docs = gen.valueOrNull().orEmpty().filter { it.isF2 }
         if (f2docs.isNotEmpty()) {
@@ -230,7 +246,7 @@ private fun ActRows(c: Ctx, o: Obj, a: F2Act) {
     Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) { QKv("Qatorlar soni", r.size.toString()); QKv("Qatorlar summasi (ustamasiz, QQS siz)", money(direct.total)); if (direct.unpriced > 0) QKv("Narxsiz qatorlar", direct.unpriced.toString()) }
     QHint("Ustamali va QQS bilan summalar faqat serverdan (yuqorida, obyekt bo'yicha qabul qilingan F-2). Akt qatorlari summasi: faqat ustamasiz.")
     Box(Modifier.fillMaxWidth().height(260.dp)) {
-        QTable(
+        GridTable(
             r, listOf(
                 QCol("Kod", 120.dp, sort = { it.kod }) { it.kod ?: "" },
                 QCol("Nomi", 420.dp, sort = { it.nom.lowercase() }) { it.nom },
@@ -262,81 +278,6 @@ private fun GenRow(g: GenItem, busy: Boolean, onGen: (String) -> Unit) {
 }
 
 // ============================ Fakt ============================
-
-@Composable
-fun FaktScreen(c: Ctx) = NeedObject(c) { o ->
-    var refresh by remember { mutableStateOf(0) }
-    val journal = load(o.id, c.tick + refresh) { c.repo.faktJournal(o.id) }
-    val pk = load(o.id, c.tick) { c.repo.packet(o.id) }
-    val scope = rememberCoroutineScope()
-    var q by remember(o.id) { mutableStateOf("") }
-    var vol by remember(o.id) { mutableStateOf("") }
-    var date by remember(o.id) { mutableStateOf(LocalDate.now().toString()) }
-    var chosen by remember(o.id) { mutableStateOf<SNode?>(null) }
-    val draft = remember(o.id) { mutableStateListOf<Pair<SNode, Double>>() }
-    var confirm by remember { mutableStateOf(false) }
-    var msg by remember { mutableStateOf<String?>(null) }
-    var busy by remember { mutableStateOf(false) }
-    Page("Fakt: ${o.nom}") {
-        Text("Fakt foto-dalil", fontWeight = FontWeight.SemiBold)
-        UploadBar(c, o.id)
-        journal?.Banner()
-        Text("Fakt jurnali", fontWeight = FontWeight.SemiBold)
-        Box(Modifier.fillMaxWidth().height(180.dp)) {
-            if (journal == null) QLoading() else QTable(
-                journal.valueOrNull().orEmpty(), listOf(
-                    QCol("Raqam", 140.dp, sort = { it.raqam }) { it.raqam ?: "#${it.id}" },
-                    QCol("Oy", 100.dp, sort = { it.oy }) { f2MonthLabel(it.oy) ?: T_DASH },
-                    QCol("Holat", 130.dp, sort = { it.status }) { statusUz(F2Status.of(it.status), it.status) },
-                    QCol("Jami (hujjat)", 160.dp, true, { it.jami }) { money(it.jami) },
-                ), key = { it.id },
-            )
-        }
-        HorizontalDivider()
-        Text("Yangi fakt yozuvi", fontWeight = FontWeight.SemiBold)
-        val p = pk.valueOrNull()
-        if (pk == null) QLoading() else if (p == null) { pk.Banner() } else {
-            val works = remember(p) { p.nodes.filter { it.isBl } }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                QInput(q, { q = it; chosen = null }, label = "Ishni qidiring (kod / nom)", singleLine = true, modifier = Modifier.width(360.dp))
-                QInput(vol, { vol = it }, label = "Hajm (minus mumkin)", singleLine = true, modifier = Modifier.width(160.dp), keyboardOptions = KeyboardOptions())
-                uz.anncorp.qurai.ui.components.QDateField(date, { date = it }, label = T("Sana"), modifier = Modifier.width(170.dp))
-                val v = uz.anncorp.smeta.core.data.parseVolume(vol)
-                QPrimaryButton(onClick = { chosen?.let { draft.add(it to v!!) }; vol = ""; chosen = null }, enabled = chosen != null && v != null) { Text("Qo'shish") }
-            }
-            val hits = if (q.isBlank() || chosen != null) emptyList() else works.filter { (it.kod ?: "").contains(q, true) || it.nom.contains(q, true) }.take(8)
-            hits.forEach { w ->
-                Text("${w.kod ?: ""}  ${w.nom}  [${uz.anncorp.smeta.core.data.displayUnit(w.birlik)}]  smeta ${qty(w.hajm)}, fakt ${qty(w.faktHajm)}", Modifier.fillMaxWidth().clickable { chosen = w; q = w.nom }.padding(vertical = 3.dp), style = MaterialTheme.typography.bodyMedium)
-            }
-            chosen?.let { QHint("Tanlandi: ${it.nom}") }
-            draft.forEachIndexed { i, (n, h) ->
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("${n.kod ?: ""} ${n.nom}", Modifier.weight(1f), maxLines = 1); Text("${qty(h)} ${uz.anncorp.smeta.core.data.displayUnit(n.birlik)}")
-                    QGhostButton(onClick = { draft.removeAt(i) }) { Text("Olib tashlash") }
-                }
-            }
-            msg?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
-            QPrimaryButton(onClick = { confirm = true }, enabled = draft.isNotEmpty() && !busy && Regex("^\\d{4}-\\d{2}-\\d{2}$").matches(date)) { Text("Yozish (${draft.size} qator)") }
-        }
-        if (confirm) QDialog("Faktni yozish", { confirm = false }, buttons = {
-            QGhostButton(onClick = { confirm = false }) { Text("Bekor") }
-            QPrimaryButton(onClick = {
-                confirm = false; busy = true
-                scope.launch {
-                    val r = c.sv.api.bff("/api/sb-yoz", "POST", faktPayload(AMAL_FAKT, c.place.companyId, o.id, date, draft.map { FaktLine(it.first.id, it.second) }, UUID.randomUUID().toString()))
-                    val out = parseFaktResult(r.body)
-                    msg = when {
-                        r.networkError -> Tx.offlineWrite
-                        out?.ok == true -> "Yozildi: ${out.raqam ?: ""} ${out.jami?.let { "jami " + money(it) } ?: ""} ${faktWarnings(out).joinToString("; ")}".trim().also { draft.clear(); refresh++ }
-                        else -> "Xato: ${out?.error ?: r.code ?: "HTTP ${r.status}"}"
-                    }
-                    Log.i("fakt write ok=${out?.ok} status=${r.status}")
-                    busy = false
-                }
-            }) { Text("Yozish") }
-        }) { Text("${o.nom}: ${draft.size} qator, sana $date. Serverga yoziladi.") }
-    }
-}
 
 // ============================ Nakopitelniy / Slichitelniy ============================
 
@@ -392,7 +333,7 @@ fun NarxScreen(c: Ctx) {
         }
         val rows = narx.valueOrNull().orEmpty().filter { (q.isBlank() || it.nom.contains(q, true)) && (!onlyRisk || it.xavf) }
         QHint("${rows.size} ta resurs")
-        QTable(
+        GridTable(
             rows, listOf(
                 QCol("Resurs", 400.dp, sort = { it.nom.lowercase() }) { it.nom },
                 QCol("Birlik", 70.dp, sort = { it.birlik }) { uz.anncorp.smeta.core.data.displayUnit(it.birlik) },
@@ -427,7 +368,7 @@ fun MoneyScreen(c: Ctx) {
             val m = mny.valueOrNull().orEmpty()
             val rows = c.objects.filter { m[it.id]?.any == true }
             QHint("${rows.size} ta obyekt (moliyaviy ma'lumoti borlari)")
-            QTable(
+            GridTable(
                 rows, listOf(
                     QCol("Obyekt", 300.dp, sort = { it.nom.lowercase() }) { it.nom },
                     QCol("Smeta QQS bilan", 150.dp, true, { m[it.id]?.smeta?.qqsBilan }) { money(m[it.id]?.smeta?.qqsBilan) },
@@ -452,7 +393,7 @@ fun MoneyScreen(c: Ctx) {
             val rows = debts.valueOrNull().orEmpty()
             val known = rows.mapNotNull { it.debt }
             Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) { QKv("Qarz jami (ma'lum qatorlar)", money(if (known.isEmpty()) null else known.sum())); QKv("Shartnoma", rows.size.toString()) }
-            QTable(
+            GridTable(
                 rows, listOf(
                     QCol("Kontragent", 260.dp, sort = { it.counterparty?.lowercase() }) { it.counterparty ?: "" },
                     QCol("Shartnoma", 200.dp, sort = { it.number }) { listOfNotNull(it.number, it.name).joinToString(" ") },
@@ -487,6 +428,31 @@ fun DiskScreen(c: Ctx, onOpenModule: (String, Long?) -> Unit = { _, _ -> }) {
     }
     LaunchedEffect(ctl, host) { ctl.host = host }
     LaunchedEffect(c.place.companyId, c.tick) { ctl.reload() }
+    // ----- Disk writes: Windows file picker -> DiskController.upload -> /api/mobil/hujjat-yukla (same server code as the site) -----
+    var dlg by remember { mutableStateOf("") }
+    val wl = uz.anncorp.qurai.ui.screens.QDiskWriteLabels(
+        upload = I18n.s("qa4_disk_upload", "Yuklash"), newFolder = I18n.s("qa4_disk_new_folder", "Yangi papka"), renameFolder = I18n.s("qa4_disk_rename_folder", "Papka nomi"),
+        moveFolder = I18n.s("qa4_disk_move_folder", "Papkani ko'chirish"), deleteFolder = I18n.s("qa4_disk_delete_folder", "Papkani o'chirish"), ok = I18n.s("qa4_disk_ok", "Saqlash"),
+        cancel = I18n.s("qa4_disk_cancel", "Bekor qilish"), name = I18n.s("qa4_disk_name", "Nomi"), root = I18n.s("qa4_disk_root", "Asosiy papka"),
+        moveTitle = I18n.s("qa4_disk_move_title", "Qayerga ko'chiriladi?"), sourceTitle = I18n.s("qa4_disk_source_title", "Nimani yuklaymiz?"), camera = I18n.s("qa4_disk_camera", "Kamera"),
+        gallery = I18n.s("qa4_disk_gallery", "Galereya"), file = I18n.s("qa4_disk_file", "Fayl"),
+    )
+    val opText = st.op?.let { op -> when (op) {
+        uz.anncorp.smeta.feature.disk.DiskOp.DONE -> I18n.s("qa4_disk_op_done", "Bajarildi"); uz.anncorp.smeta.feature.disk.DiskOp.OFFLINE -> Tx.offlineWrite
+        uz.anncorp.smeta.feature.disk.DiskOp.FORBIDDEN -> I18n.s("qa4_disk_op_forbidden", "Bu amal uchun ruxsat yo'q"); uz.anncorp.smeta.feature.disk.DiskOp.TOO_LARGE -> I18n.s("qa4_disk_op_too_large", "Fayl 25 MB dan katta. Katta faylni saytdan yuklang")
+        uz.anncorp.smeta.feature.disk.DiskOp.QUOTA -> I18n.s("qa4_disk_op_quota", "Disk to'ldi"); uz.anncorp.smeta.feature.disk.DiskOp.BAD_TYPE -> I18n.s("qa4_disk_op_bad_type", "Bu turdagi faylni yuklab bo'lmaydi")
+        uz.anncorp.smeta.feature.disk.DiskOp.EXISTS -> I18n.s("qa4_disk_op_exists", "Bu joyda shu nomli fayl yoki papka bor"); uz.anncorp.smeta.feature.disk.DiskOp.NOT_EMPTY -> I18n.s("qa4_disk_op_not_empty", "Papka bo'sh emas")
+        uz.anncorp.smeta.feature.disk.DiskOp.FAILED -> I18n.s("qa4_disk_op_failed", "Bajarib bo'lmadi, qayta urinib ko'ring")
+    } }
+    fun pickAndUpload() {
+        val f = pickFile(I18n.s("qa4_disk_file", "Fayl")) ?: return
+        scope.launch {
+            if (f.length() > uz.anncorp.smeta.feature.disk.DISK_UPLOAD_MAX_BYTES) { ctl.report(uz.anncorp.smeta.feature.disk.DiskOp.TOO_LARGE); return@launch }
+            val bytes = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { runCatching { f.readBytes() }.getOrNull() }
+            val mime = runCatching { java.nio.file.Files.probeContentType(f.toPath()) }.getOrNull() ?: "application/octet-stream"
+            if (bytes == null) ctl.report(uz.anncorp.smeta.feature.disk.DiskOp.FAILED) else ctl.upload(f.name, mime, bytes)
+        }
+    }
     val tabs = listOf(
         uz.anncorp.qurai.ui.screens.QDiskTab("mine", I18n.s("qa2_disk_mine", "Mening diskim")), uz.anncorp.qurai.ui.screens.QDiskTab("company", I18n.s("qa2_disk_company", "Kompaniya diski")),
         uz.anncorp.qurai.ui.screens.QDiskTab("shared", I18n.s("qa2_disk_shared", "Ulashilgan")), uz.anncorp.qurai.ui.screens.QDiskTab("trash", I18n.s("qa2_disk_trash", "Savat")),
@@ -500,6 +466,12 @@ fun DiskScreen(c: Ctx, onOpenModule: (String, Long?) -> Unit = { _, _ -> }) {
                 "shared" -> ctl.select(uz.anncorp.smeta.feature.disk.DiskTab.SHARED); "trash" -> ctl.select(uz.anncorp.smeta.feature.disk.DiskTab.TRASH)
             }
         })
+        uz.anncorp.qurai.ui.screens.QDiskWriteBar(
+            visible = st.canWrite, inFolder = st.canGoUp, working = st.working, labels = wl, onUpload = { pickAndUpload() }, onNewFolder = { dlg = "newfolder" },
+            onRenameFolder = { dlg = "rename_folder" }, onMoveFolder = { dlg = "move_folder" }, onDeleteFolder = { dlg = "del_folder" },
+        )
+        opText?.let { uz.anncorp.qurai.ui.components.QNote(it, tone = if (st.op == uz.anncorp.smeta.feature.disk.DiskOp.DONE) uz.anncorp.qurai.ui.components.QTone.Ok else uz.anncorp.qurai.ui.components.QTone.Danger, modifier = Modifier.padding(bottom = 6.dp)) }
+        LaunchedEffect(st.op) { if (st.op != null) { kotlinx.coroutines.delay(4000); ctl.clearOp() } }
         uz.anncorp.qurai.ui.screens.QDiskList(
             rows = st.rows.map { uz.anncorp.qurai.ui.screens.QDiskRow(it.key, it.folder, it.name, it.sub, it.meta) },
             state = when (st.status) {
@@ -532,7 +504,25 @@ fun DiskScreen(c: Ctx, onOpenModule: (String, Long?) -> Unit = { _, _ -> }) {
             busy = d.busy, notice = notice, noticeOk = d.notice == uz.anncorp.smeta.feature.disk.DiskNotice.SAVED, labels = labels,
             onOpen = { ctl.deliver(null, true) }, onDownload = { ctl.deliver(null, false) }, onVersion = { ctl.deliver(it, false) },
             onSystem = if (ctl.systemTarget() != null) ({ ctl.openInSystem() }) else null, onClose = { ctl.closeFile() },
+            actions = when {
+                d.file.inTrash -> uz.anncorp.qurai.ui.screens.QDiskFileActions(onRestore = { ctl.restoreFile() })
+                st.canWrite && !d.file.system -> uz.anncorp.qurai.ui.screens.QDiskFileActions(onRename = { dlg = "rename_file" }, onMove = { dlg = "move_file" }, onTrash = { ctl.trashFile() })
+                else -> uz.anncorp.qurai.ui.screens.QDiskFileActions()
+            },
         )
+    }
+    when (dlg) {
+        "newfolder" -> uz.anncorp.qurai.ui.screens.QDiskNameDialog(wl.newFolder, "", wl, { dlg = ""; ctl.createFolder(it) }, { dlg = "" })
+        "rename_folder" -> uz.anncorp.qurai.ui.screens.QDiskNameDialog(wl.renameFolder, st.stack.lastOrNull()?.name.orEmpty(), wl, { dlg = ""; ctl.renameFolder(it) }, { dlg = "" })
+        "rename_file" -> uz.anncorp.qurai.ui.screens.QDiskNameDialog(I18n.s("qa4_disk_rename", "Nomini o'zgartirish"), st.detail?.file?.name.orEmpty(), wl, { dlg = ""; ctl.renameFile(it) }, { dlg = "" })
+        "move_folder", "move_file" -> {
+            val forFolder = dlg == "move_folder"
+            uz.anncorp.qurai.ui.screens.QDiskChoiceDialog(wl.moveTitle, ctl.moveTargets(forFolder).map { it.id to it.name.ifBlank { wl.root } }, wl.cancel, { id ->
+                dlg = ""; val target = id.takeIf { it != 0L }
+                if (forFolder) ctl.moveFolder(target) else ctl.moveFile(target)
+            }, { dlg = "" })
+        }
+        "del_folder" -> uz.anncorp.qurai.ui.screens.QDiskChoiceDialog(wl.deleteFolder + ": " + st.stack.lastOrNull()?.name.orEmpty(), listOf(1L to wl.deleteFolder), wl.cancel, { dlg = ""; ctl.deleteFolder() }, { dlg = "" })
     }
 }
 
@@ -546,33 +536,16 @@ fun DocsScreen(c: Ctx) = NeedObject(c) { o ->
     val inbox = load(c.place.companyId, c.tick + bump) { Loaded.Fresh(ApprovalsRepository(c.sv.api).inbox(c.place.companyId).second) }
     val scope = rememberCoroutineScope()
     var msg by remember { mutableStateOf<String?>(null) }
-    Page("Hujjatlar: ${o.nom}", "Qatorni bosing: hujjat yuklanadi va ochiladi") {
+    Page("Hujjatlar: ${o.nom}", "Enter yoki ikki marta bosish: hujjat yuklanadi va ochiladi") {
         msg?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         UploadBar(c, o.id) { bump++ }
         if (docs == null) { QLoading(); return@Page }
         docs.Banner()
-        Box(Modifier.fillMaxWidth().height(300.dp)) {
-            QTable(
-                docs.valueOrNull().orEmpty(), listOf(
-                    QCol("Fayl", 420.dp, sort = { it.name.lowercase() }) { it.name },
-                    QCol("Turi", 110.dp, sort = { it.type }) { it.type },
-                    QCol("Hajmi", 100.dp, true, { it.size }) { "${it.size / 1024} KB" },
-                    QCol("Yangilangan", 150.dp, sort = { it.updated }) { formatIsoStamp(it.updated) },
-                    QCol("Tayyor", 80.dp) { if (it.ready) "ha" else "yo'q" },
-                ), key = { it.id },
-                onClick = { d ->
-                    scope.launch {
-                        msg = null
-                        val r = c.sv.api.bffBytes(docPath(d.id), DOC_MAX_BYTES)
-                        if (r.ok && r.bytes != null) saveAndOpen(r.filename ?: d.name, r.bytes!!) else msg = if (r.status == 0) Tx.offlineWrite else "Yuklab bo'lmadi: ${r.code ?: r.status}"
-                    }
-                },
-            )
-        }
+        DocsGridPanel(c, docs.valueOrNull().orEmpty(), Modifier.fillMaxWidth().height(380.dp))
         Text("Tasdiqlash kutayotganlar", fontWeight = FontWeight.SemiBold)
         val items = inbox.valueOrNull().orEmpty()
         if (inbox == null) QLoading() else if (items.isEmpty()) QHint("Hozircha tasdiqlash kutayotgan hujjat yo'q") else {
-            QTable(
+            GridTable(
                 items, listOf(
                     QCol("Sarlavha", 360.dp, sort = { it.sarlavha }) { it.sarlavha },
                     QCol("Turi", 110.dp, sort = { it.tur }) { it.tur },
@@ -603,7 +576,7 @@ fun NotifScreen(c: Ctx, onRead: () -> Unit) {
             Text("O'qilmagan: ${v.unread}")
             QPrimaryButton(onClick = { scope.launch { repo.markRead(v.items.filter { !it.oqildi }.map { it.id }); tick++; onRead() } }, enabled = v.unread > 0) { Text("Hammasini o'qilgan deb belgilash") }
         }
-        QTable(
+        GridTable(
             v.items, listOf(
                 QCol("", 30.dp) { if (it.oqildi) "" else "\u25CF" },
                 QCol("Mavzu", 420.dp, sort = { it.mavzu }) { notifKind(it.mavzu).label() },
@@ -613,7 +586,7 @@ fun NotifScreen(c: Ctx, onRead: () -> Unit) {
     }
 }
 
-private fun uz.anncorp.smeta.core.data.NotifKind.label(): String = when (this) {
+internal fun uz.anncorp.smeta.core.data.NotifKind.label(): String = when (this) {
     uz.anncorp.smeta.core.data.NotifKind.APPROVAL_WAITING -> "Tasdiqlash kutilmoqda"
     uz.anncorp.smeta.core.data.NotifKind.APPROVED -> "Tasdiqlandi"
     uz.anncorp.smeta.core.data.NotifKind.REJECTED -> "Rad etildi"

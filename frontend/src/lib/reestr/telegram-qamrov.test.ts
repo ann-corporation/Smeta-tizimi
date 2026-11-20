@@ -19,7 +19,9 @@ describe('Telegram bot qamrov matritsasi', () => {
       for (const q of QATORLAR) { const v = q.h[4].split('→')[idx].trim(); s[v] = (s[v] ?? 0) + 1; }
       return [s['✅'], s.qisman, s['❌']];
     };
-    const jadval = [...MD.matchAll(/^\| Shu PR (?:gacha|dan keyin) \| (\d+) \| (\d+) \| (\d+) \|$/gm)].map((m) => [Number(m[1]), Number(m[2]), Number(m[3])]);
-    expect(jadval).toEqual([sana(0), sana(1)]);
+    // Jadval tarixiy: «PR 1 gacha», «PR 1 dan keyin», «PR 2 dan keyin», ... — birinchi qator = «Hozir», oxirgisi = «Keyin».
+    const jadval = [...MD.matchAll(/^\| (?:Shu PR|PR \d+) (?:gacha|dan keyin) \| (\d+) \| (\d+) \| (\d+) \|$/gm)].map((m) => [Number(m[1]), Number(m[2]), Number(m[3])]);
+    expect(jadval.length).toBeGreaterThanOrEqual(2);
+    expect([jadval[0], jadval[jadval.length - 1]]).toEqual([sana(0), sana(1)]);
   });
 });

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="qa4_disk_upload">Загрузить</string>
+    <string name="qa4_disk_new_folder">Новая папка</string>
+    <string name="qa4_disk_rename_folder">Имя папки</string>
+    <string name="qa4_disk_move_folder">Переместить папку</string>
+    <string name="qa4_disk_delete_folder">Удалить папку</string>
+    <string name="qa4_disk_ok">Сохранить</string>
+    <string name="qa4_disk_cancel">Отмена</string>
+    <string name="qa4_disk_name">Название</string>
+    <string name="qa4_disk_root">Корневая папка</string>
+    <string name="qa4_disk_move_title">Куда переместить?</string>
+    <string name="qa4_disk_source_title">Что загрузить?</string>
+    <string name="qa4_disk_camera">Камера</string>
+    <string name="qa4_disk_gallery">Галерея</string>
+    <string name="qa4_disk_file">Файл</string>
+    <string name="qa4_disk_rename">Переименовать</string>
+    <string name="qa4_disk_move">Переместить</string>
+    <string name="qa4_disk_trash">В корзину</string>
+    <string name="qa4_disk_restore">Вернуть из корзины</string>
+    <string name="qa4_disk_pick">Выбрать с диска</string>
+    <string name="qa4_disk_picking">Получаем файл...</string>
+    <string name="qa4_disk_op_done">Готово</string>
+    <string name="qa4_disk_op_forbidden">Нет прав на это действие</string>
+    <string name="qa4_disk_op_too_large">Файл больше 25 МБ. Загрузите большой файл на сайте</string>
+    <string name="qa4_disk_op_quota">Диск заполнен. Освободите место или расширьте тариф</string>
+    <string name="qa4_disk_op_bad_type">Этот тип файла загрузить нельзя</string>
+    <string name="qa4_disk_op_exists">Здесь уже есть файл или папка с таким именем</string>
+    <string name="qa4_disk_op_not_empty">Папка не пуста</string>
+    <string name="qa4_disk_op_failed">Не удалось выполнить, попробуйте ещё раз</string>
+    <string name="qa4_disk_cam_denied">Нет доступа к камере</string>
+    <string name="qa4_disk_read_failed">Не удалось прочитать файл</string>
+</resources>

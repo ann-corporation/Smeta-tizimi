@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pk_title">Hujjatlar paketi</string>
+    <string name="pk_refresh">Yangilash</string>
+    <string name="pk_hint">Hujjatlar Diskda doim tayyor turadi va o‘zgarsa o‘zi yangilanadi. Keraklisini tanlab paket qiling.</string>
+    <string name="pk_contract">Shartnoma</string>
+    <string name="pk_all">Hammasi</string>
+    <string name="pk_from">Oydan</string>
+    <string name="pk_to">Oygacha</string>
+    <string name="pk_object">Obyekt</string>
+    <string name="pk_object_search">Obyekt qidirish</string>
+    <string name="pk_object_ph">Obyekt nomini yozing…</string>
+    <string name="pk_remove">Olib tashlash</string>
+    <string name="pk_type">Hujjat turi</string>
+    <string name="pk_status">Holat</string>
+    <string name="pk_clear">Filtrni tozalash</string>
+    <string name="pk_saved">Saqlangan filtrlar</string>
+    <string name="pk_fname">Filtr nomi</string>
+    <string name="pk_fname_ph">Masalan: Texnadzor to‘plami</string>
+    <string name="pk_save">Saqlash</string>
+    <string name="pk_found">Topildi: %1$s</string>
+    <string name="pk_loading">Yuklanmoqda…</string>
+    <string name="pk_sel_all">Hammasini tanlash</string>
+    <string name="pk_sel_none">Tanlovni bekor qilish</string>
+    <string name="pk_none">Hujjat topilmadi.</string>
+    <string name="pk_updating">yangilanmoqda</string>
+    <string name="pk_dup">oyga ikkinchi F-2</string>
+    <string name="pk_more">Yana %1$s ta</string>
+    <string name="pk_download">Yuklab olish</string>
+    <string name="pk_nosel">Hujjat tanlanmagan</string>
+    <string name="pk_fname_ask">Filtr nomini yozing</string>
+    <string name="pk_f_saved">Filtr saqlandi</string>
+    <string name="pk_f_notsaved">Filtr saqlanmadi</string>
+    <string name="pk_st_approved">Tasdiqlangan</string>
+    <string name="pk_st_draft">Qoralama</string>
+    <string name="pk_failed">Hujjat yasalmadi</string>
+    <string name="pk_ready">Paket tayyor</string>
+    <string name="pk_delete">O‘chirish</string>
+    <string name="pk_fresh_err">Yangilanmadi (qayta uriniladi)</string>
+    <string name="pk_nodisk">Diskda yo\'q</string>
+    <string name="pk_old">Eski versiya</string>
+    <string name="pk_updating2">Yangilanmoqda</string>
+    <string name="pk_excel_ready">Excel tayyor</string>
+</resources>

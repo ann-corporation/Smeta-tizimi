@@ -10,6 +10,7 @@ import { obyektOl, pulMatni, qidiruvSozlari, sbOqi } from './telegram-bot-oqim';
 import {
   type BotEnv, XATO_OQISH, bosh, musbat, navQatori, orqaQatori, rolOl, sahifala, soraydi, xatoMatni, yol,
 } from './telegram-toliq-yadro';
+import { sinovniSuz } from './telegram-holat';
 import { onRequest as middleware } from '../api/_middleware';
 import { onRequestGet as tugunGet } from '../api/obyekt-tugun-summa';
 
@@ -28,7 +29,7 @@ export async function obyektlarRoyxati(env: BotEnv, uid: number, til: TgTil, p: 
   const filtr = ['holat=eq.faol', ...(kid ? [`kompaniya_id=eq.${kid}`] : []), ...sozlar.map((s) => `nom=ilike.*${s}*`)].join('&');
   const q = await sbOqi<{ id?: number; nom?: string; kompaniya_id?: number }>(env, uid, { jadval: 't2_obyekt', filtr, ustunlar: 'id,nom,kompaniya_id', tartib: 'yangilandi.desc', limit: 100 });
   if (!q) return { matn: tgT(XATO_OQISH, til) };
-  const ro = q.filter((x) => musbat(x.id));
+  const ro = sozlar.length ? q.filter((x) => musbat(x.id)) : sinovniSuz(q.filter((x) => musbat(x.id)));   // sinov obyektlari (SINOV…) ro'yxatda chiqmaydi; aniq qidiruvda — chiqadi
   const sarlavha = yol(til, tgT('Obyektlar', til), ...(sozlar.length ? [`«${sozlar.join(' ')}»`] : []));
   if (!ro.length) {
     return { matn: [sarlavha, tgT(sozlar.length ? 'Bunday obyekt topilmadi. Boshqa so‘z yozing.' : 'Sizga ochiq obyekt topilmadi.', til)].join('\n'),
@@ -79,7 +80,7 @@ export async function obyektKarta(env: BotEnv, uid: number, til: TgTil, oid: num
     matn: [yol(til, tgT('Obyektlar', til), `#${oid} ${ob.nom}`), ...satrlar, tgT('Summalar so‘mda; birlik narxi QQS siz.', til)].join('\n'),
     markup: { inline_keyboard: [
       [...(rol?.ijro ? [b('Fakt kiritish', `g:y:${oid}`)] : []), b('F-2', `g:f:${oid}`)],
-      [b('Bo‘limlar', `g:b:${oid}:0`), b('Hujjatlar', `g:h:${oid}`)],
+      [b('Bo‘limlar', `g:b:${oid}:0`), b('Hujjatlar', `g:h:${oid}`), b('Fakt jurnali', `g:j:${oid}:0:0`)],
       [miniAppYoliTugma(env, til, `/admin/obyektlar?obyekt=${oid}`, 'Mini App da ochish')],
       orqaQatori(til, 'g:o:0'),
     ] },

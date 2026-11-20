@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pk_title">Пакет документов</string>
+    <string name="pk_refresh">Обновить</string>
+    <string name="pk_hint">Документы всегда готовы на Диске и обновляются сами при изменении. Выберите нужные и соберите пакет.</string>
+    <string name="pk_contract">Договор</string>
+    <string name="pk_all">Все</string>
+    <string name="pk_from">С месяца</string>
+    <string name="pk_to">По месяц</string>
+    <string name="pk_object">Объект</string>
+    <string name="pk_object_search">Поиск объекта</string>
+    <string name="pk_object_ph">Введите название объекта…</string>
+    <string name="pk_remove">Удалить</string>
+    <string name="pk_type">Тип документа</string>
+    <string name="pk_status">Статус</string>
+    <string name="pk_clear">Сбросить фильтр</string>
+    <string name="pk_saved">Сохранённые фильтры</string>
+    <string name="pk_fname">Название фильтра</string>
+    <string name="pk_fname_ph">Например: набор для технадзора</string>
+    <string name="pk_save">Сохранить</string>
+    <string name="pk_found">Найдено: %1$s</string>
+    <string name="pk_loading">Загрузка…</string>
+    <string name="pk_sel_all">Выбрать все</string>
+    <string name="pk_sel_none">Снять выбор</string>
+    <string name="pk_none">Документы не найдены.</string>
+    <string name="pk_updating">обновляется</string>
+    <string name="pk_dup">второй Ф-2 за месяц</string>
+    <string name="pk_more">Ещё %1$s</string>
+    <string name="pk_download">Скачать</string>
+    <string name="pk_nosel">Документы не выбраны</string>
+    <string name="pk_fname_ask">Введите название фильтра</string>
+    <string name="pk_f_saved">Фильтр сохранён</string>
+    <string name="pk_f_notsaved">Фильтр не сохранён</string>
+    <string name="pk_st_approved">утвержден</string>
+    <string name="pk_st_draft">Черновик</string>
+    <string name="pk_failed">Документ не сформирован</string>
+    <string name="pk_ready">Пакет готов</string>
+    <string name="pk_delete">Удалить</string>
+    <string name="pk_fresh_err">Yangilanmadi (qayta uriniladi)</string>
+    <string name="pk_nodisk">Diskda yo\'q</string>
+    <string name="pk_old">Старая версия</string>
+    <string name="pk_updating2">обновляется</string>
+    <string name="pk_excel_ready">Excel tayyor</string>
+</resources>

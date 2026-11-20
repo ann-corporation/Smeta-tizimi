@@ -169,6 +169,44 @@ fun HujjatScreen(onBack: () -> Unit, onOpenChain: (Long) -> Unit, onOpenModule: 
         }
     }
     androidx.compose.runtime.LaunchedEffect(host) { vm.disk.host = host }
+    // ----- Disk writes: where the file comes from (camera / gallery / file picker); the upload itself is DiskController.upload -> /api/mobil/hujjat-yukla -----
+    var dlg by rememberSaveable { mutableStateOf("") }
+    var camPath by rememberSaveable { mutableStateOf("") }
+    val ioScope = androidx.compose.runtime.rememberCoroutineScope()
+    fun upload(uri: android.net.Uri?) {
+        if (uri == null) return
+        ioScope.launch {
+            val picked = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { runCatching { readPicked(context, uri) }.getOrNull() }
+            if (picked == null) android.widget.Toast.makeText(context, context.getString(R.string.qa4_disk_read_failed), android.widget.Toast.LENGTH_LONG).show()
+            else vm.disk.upload(picked.first, picked.second, picked.third)
+        }
+    }
+    val pickFile = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { upload(it) }
+    val pickGallery = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()) { upload(it) }
+    val takePhoto = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.TakePicture()) { ok ->
+        val f = java.io.File(camPath)
+        if (ok && camPath.isNotEmpty()) upload(androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".files", f))
+    }
+    fun launchCamera() {
+        val dir = java.io.File(context.cacheDir, "webup").also { it.mkdirs() }
+        val f = java.io.File(dir, "disk-" + System.currentTimeMillis() + ".jpg")
+        camPath = f.absolutePath
+        takePhoto.launch(androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".files", f))
+    }
+    val camPerm = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) launchCamera() else android.widget.Toast.makeText(context, context.getString(R.string.qa4_disk_cam_denied), android.widget.Toast.LENGTH_LONG).show()
+    }
+    val opText = diskUi.op?.let { stringResource(diskOpRes(it)) }
+    LaunchedEffect(diskUi.op) { if (opText != null) { android.widget.Toast.makeText(context, opText, android.widget.Toast.LENGTH_LONG).show(); vm.disk.clearOp() } }
+    // System Back inside a folder goes one folder up (like the "Orqaga" row) instead of leaving the whole Disk screen.
+    androidx.activity.compose.BackHandler(enabled = section != "flow" && diskUi.canGoUp && diskUi.detail == null) { vm.disk.up() }
+    val wl = uz.anncorp.qurai.ui.screens.QDiskWriteLabels(
+        upload = stringResource(R.string.qa4_disk_upload), newFolder = stringResource(R.string.qa4_disk_new_folder), renameFolder = stringResource(R.string.qa4_disk_rename_folder),
+        moveFolder = stringResource(R.string.qa4_disk_move_folder), deleteFolder = stringResource(R.string.qa4_disk_delete_folder), ok = stringResource(R.string.qa4_disk_ok),
+        cancel = stringResource(R.string.qa4_disk_cancel), name = stringResource(R.string.qa4_disk_name), root = stringResource(R.string.qa4_disk_root),
+        moveTitle = stringResource(R.string.qa4_disk_move_title), sourceTitle = stringResource(R.string.qa4_disk_source_title), camera = stringResource(R.string.qa4_disk_camera),
+        gallery = stringResource(R.string.qa4_disk_gallery), file = stringResource(R.string.qa4_disk_file),
+    )
     val tabs = listOf(
         QDiskTab("mine", stringResource(R.string.qa2_disk_mine)), QDiskTab("company", stringResource(R.string.qa2_disk_company)), QDiskTab("shared", stringResource(R.string.qa2_disk_shared)),
         QDiskTab("trash", stringResource(R.string.qa2_disk_trash)),
@@ -181,6 +219,10 @@ fun HujjatScreen(onBack: () -> Unit, onOpenChain: (Long) -> Unit, onOpenModule: 
             section = id
             when (id) { "mine" -> vm.disk.select(DiskTab.MINE); "company" -> vm.disk.select(DiskTab.COMPANY); "shared" -> vm.disk.select(DiskTab.SHARED); "trash" -> vm.disk.select(DiskTab.TRASH) }
         })
+        if (section != "flow") uz.anncorp.qurai.ui.screens.QDiskWriteBar(
+            visible = diskUi.canWrite, inFolder = diskUi.canGoUp, working = diskUi.working, labels = wl,
+            onUpload = { dlg = "source" }, onNewFolder = { dlg = "newfolder" }, onRenameFolder = { dlg = "rename_folder" }, onMoveFolder = { dlg = "move_folder" }, onDeleteFolder = { dlg = "del_folder" },
+        )
         if (section != "flow") QDiskList(
             rows = diskUi.rows.map { QDiskRow(it.key, it.folder, it.name, it.sub, it.meta) },
             state = when (diskUi.status) { DiskController.Status.LOADING -> QDiskState.Loading; DiskController.Status.READY -> QDiskState.Ready; DiskController.Status.FAILED -> QDiskState.Failed },
@@ -267,7 +309,34 @@ fun HujjatScreen(onBack: () -> Unit, onOpenChain: (Long) -> Unit, onOpenModule: 
             busy = d.busy, notice = notice, noticeOk = d.notice == uz.anncorp.smeta.feature.disk.DiskNotice.SAVED, labels = labels,
             onOpen = { vm.disk.deliver(null, true) }, onDownload = { vm.disk.deliver(null, false) }, onVersion = { vm.disk.deliver(it, false) },
             onSystem = if (vm.disk.systemTarget() != null) ({ vm.disk.openInSystem() }) else null, onClose = { vm.disk.closeFile() },
+            actions = when {
+                d.file.inTrash -> uz.anncorp.qurai.ui.screens.QDiskFileActions(onRestore = { vm.disk.restoreFile() })
+                diskUi.canWrite && !d.file.system -> uz.anncorp.qurai.ui.screens.QDiskFileActions(onRename = { dlg = "rename_file" }, onMove = { dlg = "move_file" }, onTrash = { vm.disk.trashFile() })
+                else -> uz.anncorp.qurai.ui.screens.QDiskFileActions()
+            },
         )
+    }
+
+    when (dlg) {
+        "source" -> uz.anncorp.qurai.ui.screens.QDiskChoiceDialog(wl.sourceTitle, listOf(1L to wl.camera, 2L to wl.gallery, 3L to wl.file), wl.cancel, { id ->
+            dlg = ""
+            when (id) {
+                1L -> if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED) launchCamera() else camPerm.launch(android.Manifest.permission.CAMERA)
+                2L -> pickGallery.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly))
+                else -> pickFile.launch("*/*")
+            }
+        }, { dlg = "" })
+        "newfolder" -> uz.anncorp.qurai.ui.screens.QDiskNameDialog(wl.newFolder, "", wl, { dlg = ""; vm.disk.createFolder(it) }, { dlg = "" })
+        "rename_folder" -> uz.anncorp.qurai.ui.screens.QDiskNameDialog(wl.renameFolder, diskUi.stack.lastOrNull()?.name.orEmpty(), wl, { dlg = ""; vm.disk.renameFolder(it) }, { dlg = "" })
+        "rename_file" -> uz.anncorp.qurai.ui.screens.QDiskNameDialog(stringResource(R.string.qa4_disk_rename), diskUi.detail?.file?.name.orEmpty(), wl, { dlg = ""; vm.disk.renameFile(it) }, { dlg = "" })
+        "move_folder", "move_file" -> {
+            val forFolder = dlg == "move_folder"
+            uz.anncorp.qurai.ui.screens.QDiskChoiceDialog(wl.moveTitle, vm.disk.moveTargets(forFolder).map { it.id to it.name.ifBlank { wl.root } }, wl.cancel, { id ->
+                dlg = ""; val target = id.takeIf { it != 0L }
+                if (forFolder) vm.disk.moveFolder(target) else vm.disk.moveFile(target)
+            }, { dlg = "" })
+        }
+        "del_folder" -> uz.anncorp.qurai.ui.screens.QDiskChoiceDialog(wl.deleteFolder + ": " + diskUi.stack.lastOrNull()?.name.orEmpty(), listOf(1L to wl.deleteFolder), wl.cancel, { dlg = ""; vm.disk.deleteFolder() }, { dlg = "" })
     }
 
     if (ui.letter != null || ui.letterError) {
@@ -303,4 +372,27 @@ private fun LetterCard(l: LetterRow, today: LocalDate, onClick: () -> Unit) {
             l.muddat?.let { Text(stringResource(R.string.dl_doc_answer_by, formatIsoStamp(it)), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
     }
+}
+
+/** Display name, MIME and bytes (at most 25 MB + 1, so the shared upload rule can refuse an oversize file without reading it all) of a picked content/file URI. */
+private fun readPicked(context: android.content.Context, uri: android.net.Uri): Triple<String, String, ByteArray>? {
+    val cr = context.contentResolver
+    val name = cr.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+        ?: uri.lastPathSegment?.substringAfterLast('/') ?: "fayl"
+    val mime = cr.getType(uri) ?: "application/octet-stream"
+    val max = uz.anncorp.smeta.feature.disk.DISK_UPLOAD_MAX_BYTES + 1
+    val bytes = cr.openInputStream(uri)?.use { s ->
+        val out = java.io.ByteArrayOutputStream(); val buf = ByteArray(64 * 1024); var total = 0L
+        while (total < max) { val n = s.read(buf, 0, minOf(buf.size.toLong(), max - total).toInt()); if (n < 0) break; out.write(buf, 0, n); total += n }
+        out.toByteArray()
+    } ?: return null
+    return Triple(name, mime, bytes)
+}
+
+private fun diskOpRes(op: uz.anncorp.smeta.feature.disk.DiskOp): Int = when (op) {
+    uz.anncorp.smeta.feature.disk.DiskOp.DONE -> R.string.qa4_disk_op_done; uz.anncorp.smeta.feature.disk.DiskOp.OFFLINE -> R.string.err_network
+    uz.anncorp.smeta.feature.disk.DiskOp.FORBIDDEN -> R.string.qa4_disk_op_forbidden; uz.anncorp.smeta.feature.disk.DiskOp.TOO_LARGE -> R.string.qa4_disk_op_too_large
+    uz.anncorp.smeta.feature.disk.DiskOp.QUOTA -> R.string.qa4_disk_op_quota; uz.anncorp.smeta.feature.disk.DiskOp.BAD_TYPE -> R.string.qa4_disk_op_bad_type
+    uz.anncorp.smeta.feature.disk.DiskOp.EXISTS -> R.string.qa4_disk_op_exists; uz.anncorp.smeta.feature.disk.DiskOp.NOT_EMPTY -> R.string.qa4_disk_op_not_empty
+    uz.anncorp.smeta.feature.disk.DiskOp.FAILED -> R.string.qa4_disk_op_failed
 }

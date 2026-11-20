@@ -7,19 +7,10 @@
 import { mazmunXeshi } from '../../api/mazmun-xesh';
 import { hujjatTokenBilan, type HujjatTokenNatija } from '../token-hujjat';
 import { xlsxYacheykaSoni } from '../xlsx-yacheyka';
+import { parallelIsh } from './parallel';
+export { parallelIsh };
 
-export async function parallelIsh<T, R>(royxat: readonly T[], n: number, ish: (x: T, i: number) => Promise<R>, tayyor?: (bajarildi: number) => void): Promise<R[]> {
-  const out = new Array<R>(royxat.length);
-  let k = 0; let bajarildi = 0;
-  await Promise.all(Array.from({ length: Math.max(0, Math.min(n, royxat.length)) }, async () => {
-    while (k < royxat.length) {
-      const i = k++;
-      out[i] = await ish(royxat[i], i);
-      tayyor?.(++bajarildi);
-    }
-  }));
-  return out;
-}
+
 
 /** Tokenlanishi kerak hujjat (paketga kiradigan, mijozda yasalgan). */
 export type TolovHujjat = { bytes: Uint8Array; hujjat: string; sabab: string; obyekt?: number | null };

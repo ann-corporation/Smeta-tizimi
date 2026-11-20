@@ -1,0 +1,34 @@
+name: hujjat-yangila
+
+# «Hujjat doim tayyor»: F-2 o'zgarsa rasmiy Excel Diskda yangilanadi (navbat SQL da, debounce 2 daqiqa). Har 5 daqiqada ishlovchi chaqiriladi
+# (GitHub cron kechikishi mumkin - shu sabab paket ro'yxati ochilganda ishlovchi fonda ham ishga tushadi). Token yechilmaydi.
+# Sirlar hujjat-maydoni-kunlik bilan bir xil. Sozlanmasa jim o'tkazib yuboriladi.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hujjat-yangila
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BILDIRISHNOMA_CRON_KALIT: ${{ secrets.BILDIRISHNOMA_CRON_KALIT }}
+      PROD_URL: ${{ vars.PROD_URL }}
+    steps:
+      - name: Navbatni ishlash
+        run: |
+          if [ -z "$BILDIRISHNOMA_CRON_KALIT" ] || [ -z "$PROD_URL" ]; then
+            echo "BILDIRISHNOMA_CRON_KALIT yoki PROD_URL sozlanmagan - o'tkazib yuborildi."; exit 0
+          fi
+          code=$(curl -sS -o resp.json -w '%{http_code}' -X POST "$PROD_URL/api/hujjat-yangila-tick" \
+            -H 'Content-Type: application/json' -H "X-Cron-Kalit: $BILDIRISHNOMA_CRON_KALIT" --data '{}' --max-time 60 || echo 000)
+          echo "HTTP $code"; head -c 300 resp.json; echo
+          if [ "$code" != "200" ]; then echo "::warning::hujjat-yangila muvaffaqiyatsiz (HTTP $code)"; fi

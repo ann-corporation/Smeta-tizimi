@@ -89,7 +89,7 @@ export const JOY_NOMI: Readonly<Record<string, string>> = {
   bajarilmadi: 'Bajarilmadi ro‘yxati', loyiha_smeta_fakt: 'Loyiha-smeta-fakt solishtirmasi', narx_dalil: 'Narx asoslash', narx_protokol: 'Narx protokoli', naryad: 'Naryad',
   obosnovanie: 'Obosnovanie', pereraschet: 'Pereraschet', resurs_vedomost: 'Resurs vedomosti', smeta_dava: 'Smeta bo‘yicha da’vo', moliya_tahlil: 'Moliyaviy tahlil',
   boshqaruv_hisobot: 'Boshqaruv hisoboti', f2_portfel: 'F-2 portfeli', studio_hujjat: 'Studio hujjati', oferta: 'Oferta',
-  qarzdorlik: 'Qarzdorlik asosnomasi', tender_bayonnoma: 'Tender bayonnomasi', sub_akt: 'Subpudratchi akti', rahbar_panel: 'Rahbar paneli', zakazchik_hisobot: 'Buyurtmachi hisoboti',
+  texnadzor_solishtir: 'Texnadzor solishtirmasi', esf: 'ESF (Forma 3)', qarzdorlik: 'Qarzdorlik asosnomasi', tender_bayonnoma: 'Tender bayonnomasi', sub_akt: 'Subpudratchi akti', rahbar_panel: 'Rahbar paneli', zakazchik_hisobot: 'Buyurtmachi hisoboti',
   akt_sverki: 'Akt-sverka', bux_hisobot: 'Buxgalteriya hisoboti', kassa_order: 'Kassa orderi', oborot_saldo: 'Oborot-saldo vedomosti', sverka_tomon: 'Tomonlar sverkasi',
   ish_haqi: 'Ish haqi vedomosti', tekshiruv_jurnal: 'Tekshiruvlar jurnali', ombor_qoralama: 'Ombor kirim qoralamasi', hujjat_aylanish: 'Hujjat aylanishi', shartnoma_svod: 'Shartnomalar svodi',
 };

@@ -18,12 +18,12 @@ import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { serverQaytar, serverSarfla, sarfRad } from '../_shared/hujjat-sarf';
 import { ichkiRejimda } from '../_shared/hujjat-ichki';
-import { sbT2AktReestrOl, sbT2KompaniyalarOl, sbT2ObyektlarOlKomp } from '../../src/api/supabase';
+import { sbT2AktReestrOl } from '../../src/api/supabase';
 import { hujjatDizayniniYukla } from '../../src/api/f2-hujjat-kontekst';
 import { Rad, f2Yasa, rad, type Tayyor } from '../_shared/hujjat-f2';
 import { shartnomaSvodOl } from '../../src/api/t2-nakopitelniy';
-import { sotuvF3lar, type SvodShartnoma } from '../../src/lib/nakopitelniy-svod';
-import { f3ShaklTozala, forma3SotuvdanXlsx } from '../../src/lib/forma3-export';
+import { f3Yasa, obyektHujjati } from '../_shared/hujjat-boshqa';
+import { sotuvF3lar } from '../../src/lib/nakopitelniy-svod';
 import { hujjatKorinishi } from '../../src/lib/hujjat-yozuvchi/korinish';
 import { korinishdanPdf } from '../../src/lib/hujjat-pdf/pdf';
 import { tekshirBazasi } from '../../src/lib/brend';
@@ -31,13 +31,11 @@ import { imzoRpc } from '../_shared/imzo';
 import { hujjatMazmunXeshi } from '../../src/lib/imzo/mazmun';
 import { tasodifiyToken } from '../../src/lib/imzo/yadro';
 import { tizimImzoKodi, tizimImzosiniQoy } from '../../src/lib/hujjat-yozuvchi/tizim-imzo';
-import { mazmunXeshi } from '../../src/api/mazmun-xesh';
-import { nakopitelniyPaketFayli } from '../../src/lib/oylik-hujjat/nakopitelniy';
-import { ostatkaPaketFayli, paketImzosiOl } from '../../src/lib/oylik-hujjat/ostatka-slichitelniy';
-import { m29PaketFayli, pudratchiNomiOl } from '../../src/lib/oylik-hujjat/m29';
 import { NDS_SUKUT_FOIZ } from '../../src/lib/nakopitelniy-vedomost-export';
-import { forma3Manba, obyektHujjatManba, type DiskManba } from '../../src/lib/disk-hujjat';
 import { diskArxivla, diskHolatiMatni, type DiskArxivNatija } from '../_shared/disk-yoz';
+import { f2DiskdanTayyor } from '../_shared/hujjat-tayyor';
+import { hmRpc } from '../_shared/hujjat-maydoni';
+import { r2Oqi } from '../_shared/r2-saqlash';
 
 type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; BREND_URL?: string; R2_CANONICAL?: R2Bucket };
 export type HujjatFormat = 'xlsx' | 'pdf';
@@ -85,33 +83,6 @@ async function royxat(kompaniyaId: number, obyektId: number) {
   return hujjatlar;
 }
 
-async function f3Yasa(kompaniyaId: number, obyektId: number, shartnomaId: number, f3Id: number, shakl: unknown): Promise<Tayyor> {
-  const [svod, komp] = await Promise.all([shartnomaSvodOl(kompaniyaId), sbT2KompaniyalarOl()]);
-  if (!svod.ok) throw new Rad(502, 'SVOD_OQILMADI', 'Shartnoma svodi o‘qilmadi');
-  const sh: SvodShartnoma | undefined = svod.natija.shartnomalar.find((x) => x.id === shartnomaId);
-  if (!sh || !sh.obyektlar.some((o) => o.id === obyektId)) throw new Rad(404, 'SHARTNOMA_TOPILMADI', 'Shartnoma topilmadi');
-  const tashkilot = (komp.qatorlar ?? []).find((k) => k.id === kompaniyaId)?.nom ?? null;
-  const h = forma3SotuvdanXlsx(sh, f3Id, { tashkilot, shakl: f3ShaklTozala(shakl) });
-  if (!h) throw new Rad(409, 'F3_HISOBLANMADI', 'Форма № 3 hisoblanmadi (sana/summa yo‘q)');
-  const f3q = sotuvF3lar(sh).find((x) => x.id === f3Id);
-  return { bytes: h.bytes, faylNomi: h.faylNomi, turi: 'f3', obyektId, davr: null, xesh: await mazmunXeshi(h.bytes), arxivla: true,
-    manba: forma3Manba({ forma3Id: f3Id, shartnomaId: sh.id, raqam: f3q?.raqam ?? null, shartnomaRaqam: sh.raqam ?? null, davr: (f3q?.sotuv_sana ?? '').slice(0, 7) || null }) };
-}
-
-/** Oylik/obyekt hujjatlari: sayt sahifalari va oylik paket ishlatadigan AYNAN o'sha `*PaketFayli` quruvchilari (paket.test: sahifa yo'li bilan bayt-bayt teng). */
-async function obyektHujjati(tur: 'nakopitelniy' | 'm29' | 'slichitelniy' | 'ostatka', kompaniyaId: number, obyektId: number, oySon: number | null, ndsFoiz: number | null): Promise<Tayyor> {
-  const [obyektlar, imzo] = await Promise.all([sbT2ObyektlarOlKomp(kompaniyaId), paketImzosiOl(kompaniyaId, obyektId)]);
-  const ob = (obyektlar.qatorlar ?? []).find((o) => o.id === obyektId);
-  if (!ob) throw new Rad(404, 'OBYEKT_TOPILMADI', 'Obyekt topilmadi');
-  const oy = oySon ? `${String(oySon).slice(0, 4)}-${String(oySon).slice(4, 6)}` : null;
-  if ((tur === 'nakopitelniy' || tur === 'm29') && (!oy || !OY.test(oy))) throw new Rad(400, 'PARAMETR_YOQ', 'oy_son (YYYYMM) kerak');
-  const r = tur === 'nakopitelniy' ? await nakopitelniyPaketFayli({ kompaniyaId, obyektId, obyektNom: ob.nom, oy: oy!, imzo, ndsFoiz })
-    : tur === 'm29' ? await m29PaketFayli({ kompaniyaId, obyektId, obyektNom: ob.nom, oy: oy!, imzo, pudratchi: await pudratchiNomiOl(kompaniyaId).catch(() => null) })
-      : await ostatkaPaketFayli({ kompaniyaId, obyektId, obyektNom: ob.nom, imzo, tur });
-  if (!r.ok) throw new Rad(409, r.bosh ? 'HUJJAT_BOSH' : 'HUJJAT_TUZILMADI', r.xato.slice(0, 200));
-  return { bytes: r.bytes, faylNomi: r.nom, turi: tur, obyektId, davr: oy, xesh: await mazmunXeshi(r.bytes), arxivla: true, manba: obyektHujjatManba({ tur, obyektId, obyekt: ob.nom ?? null, oy }) };
-}
-
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   try {
     const sess = cachedAuthority(ctx) ?? await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
@@ -129,6 +100,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     const format = b.format as HujjatFormat;
     if (!FORMATLAR.includes(format)) return Response.json({ ok: false, code: 'FORMAT_NOMA_LUM', xato: 'format: xlsx yoki pdf' }, { status: 400 });
 
+    let manbaDisk: number | null = null;
     const tayyor = await ichkiRejimda(ctx, async () => {
       // YAGONA dizayn manbai: kompaniya «Hujjat dizayni» (hujjat.dizayn._uslub) HAR hujjat turi uchun shu yerda qo'llanadi
       // (ilgari faqat kontekst o'qiydigan turlarga tegardi; Worker da localStorage yo'q edi — sukut chiqardi).
@@ -136,6 +108,12 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       if (b.tur === 'f2') {
         const aktId = musbat(b.akt_id);
         if (!aktId) throw new Rad(400, 'PARAMETR_YOQ', 'akt_id kerak');
+        /* Tayyor yo'l: Diskdagi yangi versiya bo'lsa - shuni beramiz (zudlik bilan); eskirgan/yo'q bo'lsa - yangidan yasaymiz. Token ikkala holda ham yuklab olishda (pastda). */
+        if ((b.disk_afzal === true || b.disk_afzal === 1) && ctx.env.R2_CANONICAL) {
+          const r2 = ctx.env.R2_CANONICAL;
+          const d = await f2DiskdanTayyor({ rpc: (nom, args) => hmRpc(ctx.env as never, nom, args), r2Bayt: async (k) => { const o = await r2Oqi(r2, k); return o ? new Uint8Array(await new Response(o.body).arrayBuffer()) : null; } }, { actorId, kompaniyaId, obyektId, aktId }).catch(() => null);
+          if (d) { manbaDisk = d.diskVersiya ?? 0; return d; }
+        }
         return f2Yasa(kompaniyaId, obyektId, aktId);
       }
       if (b.tur === 'forma3') {
@@ -162,6 +140,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       try {
         // QR: hujjat nashri tokeni (mavjud /t/<token> ochiq tekshiruv sahifasi); baza — BREND_URL yoki joriy sayt. Xato bo'lsa QR siz beriladi.
         const token = await nashrTokeni(ctx.env, actorId, kompaniyaId, obyektId, tayyor);
+        // QR texnadzor tekshiruviga ham olib boradi: nashr tokeni F-2 (akt, versiya) ga bog'lanadi; xato PDF ni to'xtatmaydi.
+        if (token && b.tur === 'f2') await imzoRpc(ctx.env, 't2_tekshiruv_bog_v1', { p_actor_id: actorId, p_token: token, p_akt_id: musbat(b.akt_id) }).catch(() => null);
         const baza = tekshirBazasi(ctx.env, ctx.request.url);
         chiqish = await korinishdanPdf(hujjatKorinishi(tayyor.bytes), { faylNomi: tayyor.faylNomi, kod: tizimImzoKodi(tayyor.bytes), ...(token ? { tekshirHavola: `${baza}/t/${token}` } : {}) });
         faylNomi = tayyor.faylNomi.replace(/\.xlsx$/i, '') + '.pdf';
@@ -177,7 +157,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       'Content-Disposition': 'attachment; filename*=UTF-8\'\'' + encodeURIComponent(faylNomi),
       'Content-Length': String(chiqish.byteLength),
       'X-Hujjat-Sarf': String(s.sarflandi), 'X-Hujjat-Bepul-Takror': s.bepulTakror ? '1' : '0',
-      'Cache-Control': 'private, no-store', 'X-Disk-Holat': diskHolatiMatni(diskNatija),
+      'Cache-Control': 'private, no-store', 'X-Disk-Holat': manbaDisk != null ? 'tayyor' : diskHolatiMatni(diskNatija), 'X-Hujjat-Manba': manbaDisk != null ? 'disk' : 'yasaldi',
     });
     return new Response(chiqish, { headers });
   } catch (e) {

@@ -30,6 +30,7 @@ import { F2ReestrOylik } from '../../components/f2-hujjat/F2ReestrOylik';
 import { F2DavomRoyxat } from './F2DavomRoyxat';
 import { F2OylikPaket } from './F2OylikPaket';
 import { F2Portfel } from './F2Portfel';
+import { HujjatPaket } from './HujjatPaket';
 import { F2Takrorlar } from './F2Takrorlar';
 import { ozgarishlarOl } from '../../api/t2-ozgarish';
 import { f2ReestrOl, obyektF2Fayllari, type ReestrMalumot } from '../../api/t2-f2-reestr';
@@ -302,8 +303,13 @@ export default function F2Reestr() {
       <F2DavomRoyxat kompaniyaId={kompaniyaId} />
       {malumot && <F2BittaBanner takrorlar={oyTakrorlari(malumot.aktlar)} obyektNom={(id) => malumot.obyektlar.find((o) => o.id === id)?.nom ?? null} />}
       {malumot && <F2Takrorlar malumot={malumot} />}
-      {malumot && kompaniyaId != null && <F2Portfel kompaniyaId={kompaniyaId} malumot={malumot} tashkilot={joriy?.nom ?? null} yangila={yangilaJim} />}
-      {malumot && kompaniyaId != null && <F2OylikPaket kompaniyaId={kompaniyaId} malumot={malumot} tashkilot={joriy?.nom ?? null} yangila={yangilaJim} />}
+      {kompaniyaId != null && <HujjatPaket kompaniyaId={kompaniyaId} tashkilot={joriy?.nom ?? null} />}
+      {malumot && kompaniyaId != null && (
+        <details className="mt-3"><summary className="cursor-pointer text-sm opacity-70">{t('Eski paketlar (vaqtincha, yangi «Hujjatlar paketi» to‘liq tasdiqlangunga qadar)')}</summary>
+          <F2Portfel kompaniyaId={kompaniyaId} malumot={malumot} tashkilot={joriy?.nom ?? null} yangila={yangilaJim} />
+          <F2OylikPaket kompaniyaId={kompaniyaId} malumot={malumot} tashkilot={joriy?.nom ?? null} yangila={yangilaJim} />
+        </details>
+      )}
       {reestr && <F2ReestrOylik aktlar={reestr.qatorlar.flatMap(q => q.aktlar)} />}
       {malumot && malumot.manbaXato > 0 && <div role="status" className="fz-note fz-note--warn"><AlertTriangle aria-hidden="true" /><span>{t('{n} ta aktning manbasi o‘qilmadi — ular «aniqlanmadi» deb ko‘rsatilgan.', { n: malumot.manbaXato })}</span></div>}
 

@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import uz.anncorp.qurai.ui.components.QButton
@@ -85,7 +87,11 @@ fun QDiskTabs(tabs: List<QDiskTab>, selected: String, onTab: (String) -> Unit, m
 data class QDiskFileLabels(
     val open: String = "Ochish", val download: String = "Yuklab olish", val system: String = "Tizimda ochish", val versions: String = "Versiyalar", val current: String = "joriy",
     val close: String = "Yopish", val loading: String = "Yuklanmoqda...", val versionsFailed: String = "Versiyalarni yuklab bo'lmadi", val busy: String = "Tayyorlanmoqda...",
+    val rename: String = "Nomini o'zgartirish", val move: String = "Ko'chirish", val trash: String = "Savatga", val restore: String = "Savatdan qaytarish",
 )
+
+/** What the card may do with the file (null = the button is not shown: system document, shared with me, read-only). */
+data class QDiskFileActions(val onRename: (() -> Unit)? = null, val onMove: (() -> Unit)? = null, val onTrash: (() -> Unit)? = null, val onRestore: (() -> Unit)? = null)
 
 data class QDiskVersionRow(val number: Int, val text: String, val current: Boolean)
 
@@ -96,7 +102,7 @@ data class QDiskVersionRow(val number: Int, val text: String, val current: Boole
 @Composable
 fun QDiskFileDialog(
     name: String, meta: String?, versions: List<QDiskVersionRow>?, versionsFailed: Boolean, busy: Boolean, notice: String?, noticeOk: Boolean, labels: QDiskFileLabels,
-    onOpen: () -> Unit, onDownload: () -> Unit, onVersion: (Int) -> Unit, onSystem: (() -> Unit)?, onClose: () -> Unit,
+    onOpen: () -> Unit, onDownload: () -> Unit, onVersion: (Int) -> Unit, onSystem: (() -> Unit)?, onClose: () -> Unit, actions: QDiskFileActions = QDiskFileActions(),
 ) {
     QDialog(name, onClose, buttons = { QButton(labels.close, onClose, kind = QButtonKind.Ghost) }) {
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -106,6 +112,12 @@ fun QDiskFileDialog(
                 QButton(labels.download, onDownload, enabled = !busy)
             }
             if (onSystem != null) QButton(labels.system, onSystem, kind = QButtonKind.Secondary, enabled = !busy)
+            if (actions.onRename != null || actions.onMove != null) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                actions.onRename?.let { QButton(labels.rename, it, enabled = !busy) }
+                actions.onMove?.let { QButton(labels.move, it, enabled = !busy) }
+            }
+            if (actions.onTrash != null) QButton(labels.trash, actions.onTrash, kind = QButtonKind.Danger, enabled = !busy)
+            if (actions.onRestore != null) QButton(labels.restore, actions.onRestore, kind = QButtonKind.Primary, enabled = !busy)
             if (busy) Text(labels.busy, style = Q.type.bodySmall, color = Q.colors.textMute)
             if (notice != null) QNote(notice, tone = if (noticeOk) QTone.Ok else QTone.Danger)
             Text(labels.versions, style = Q.type.labelMedium, color = Q.colors.textDim)
@@ -143,6 +155,70 @@ fun QDiskList(
                     QListRow(title = (if (r.folder) "\u25B8 " else "") + r.name, sub = r.sub, meta = r.meta, onClick = { onRow(r) })
                 }
             }
+        }
+    }
+}
+
+
+/** Texts of the Disk write controls; hosts pass translated ones. */
+data class QDiskWriteLabels(
+    val upload: String = "Yuklash", val newFolder: String = "Yangi papka", val renameFolder: String = "Papka nomi", val moveFolder: String = "Papkani ko'chirish", val deleteFolder: String = "Papkani o'chirish",
+    val ok: String = "Saqlash", val cancel: String = "Bekor qilish", val name: String = "Nomi", val root: String = "Asosiy papka", val moveTitle: String = "Qayerga ko'chiriladi?",
+    val sourceTitle: String = "Nimani yuklaymiz?", val camera: String = "Kamera", val gallery: String = "Galereya", val file: String = "Fayl",
+)
+
+/**
+ * The write bar above the list of a drive tab: "Yuklash" (the host then asks camera / gallery / file), "Yangi papka", and, inside a folder, that folder's
+ * rename / move / delete. Hidden in Ulashilgan and Savat (the host passes [visible] = false).
+ */
+@Composable
+fun QDiskWriteBar(visible: Boolean, inFolder: Boolean, working: Boolean, labels: QDiskWriteLabels, onUpload: () -> Unit, onNewFolder: () -> Unit, onRenameFolder: () -> Unit, onMoveFolder: () -> Unit, onDeleteFolder: () -> Unit, modifier: Modifier = Modifier) {
+    if (!visible) return
+    Column(modifier.fillMaxWidth().padding(horizontal = Q.layout.gutter, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            QButton(labels.upload, onUpload, kind = QButtonKind.Primary, enabled = !working, loading = working)
+            QButton(labels.newFolder, onNewFolder, enabled = !working)
+            if (inFolder) {
+                QButton(labels.renameFolder, onRenameFolder, enabled = !working)
+                QButton(labels.moveFolder, onMoveFolder, enabled = !working)
+                QButton(labels.deleteFolder, onDeleteFolder, kind = QButtonKind.Danger, enabled = !working)
+            }
+        }
+    }
+}
+
+/** One text field in a dialog (new folder, rename). The host validates; blank is never confirmed here. */
+@Composable
+fun QDiskNameDialog(title: String, initial: String, labels: QDiskWriteLabels, onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
+    var v by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(initial) }
+    QDialog(title, onDismiss, confirm = labels.ok, onConfirm = { onConfirm(v) }, dismissText = labels.cancel, confirmEnabled = v.isNotBlank()) {
+        uz.anncorp.qurai.ui.components.QInput(v, { v = it.take(120) }, Modifier.fillMaxWidth(), label = labels.name)
+    }
+}
+
+/** A short list of choices in a dialog (move target, upload source). */
+@Composable
+fun QDiskChoiceDialog(title: String, options: List<Pair<Long, String>>, cancel: String, onPick: (Long) -> Unit, onDismiss: () -> Unit) {
+    QDialog(title, onDismiss, buttons = { QButton(cancel, onDismiss, kind = QButtonKind.Ghost) }) {
+        Column(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
+            options.forEach { (id, label) -> QListRow(title = label, onClick = { onPick(id) }, modifier = Modifier.padding(0.dp)) }
+        }
+    }
+}
+
+/**
+ * "Diskdan tanlash": the picker the apps open where a file is attached. It shows a drive (tabs + folders + files) and returns the tapped FILE through
+ * [onRow]; folders are opened by the host exactly like in the Disk screen.
+ */
+@Composable
+fun QDiskPickDialog(
+    title: String, close: String, tabs: List<QDiskTab>, selected: String, onTab: (String) -> Unit, rows: List<QDiskRow>, state: QDiskState, onRow: (QDiskRow) -> Unit,
+    crumbs: String?, onUp: (() -> Unit)?, upLabel: String, emptyText: String, errorText: String, onRetry: (() -> Unit)?, busyText: String? = null, onClose: () -> Unit,
+) {
+    QDialog(title, onClose, buttons = { QButton(close, onClose, kind = QButtonKind.Ghost) }) {
+        Column(Modifier.fillMaxWidth().heightIn(min = 240.dp, max = 420.dp)) {
+            if (busyText != null) Text(busyText, style = Q.type.bodySmall, color = Q.colors.textMute)
+            QDiskBrowser(tabs, selected, onTab, rows, state, onRow, Modifier.fillMaxWidth().heightIn(min = 240.dp, max = 400.dp), crumbs, onUp, upLabel, emptyText, errorText, onRetry)
         }
     }
 }

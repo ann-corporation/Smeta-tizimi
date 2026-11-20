@@ -23,6 +23,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import uz.anncorp.smeta.core.ui.DesignTextSpec
+import uz.anncorp.smeta.core.ui.DesignTokens
 import uz.anncorp.smeta.core.ui.QuraiPalette
 import uz.anncorp.smeta.core.ui.QuraiTokens
 
@@ -39,7 +41,7 @@ class QColors(val p: QuraiPalette, val dark: Boolean) {
     val text = c(p.text); val textDim = c(p.textDim); val textMute = c(p.textMute)
     val accent = c(p.accent); val accentText = c(p.accentText); val onAccent = c(p.onAccent); val accentSoft = c(p.accentSoft)
     val info = c(p.info); val ok = c(p.ok); val warn = c(p.warn); val danger = c(p.danger); val dangerSoft = c(p.dangerSoft)
-    val okSoft = c(p.ok).copy(alpha = 0.14f); val warnSoft = c(p.warn).copy(alpha = 0.14f); val infoSoft = c(p.info).copy(alpha = 0.14f)
+    val okSoft = c(p.okSoft); val warnSoft = c(p.warnSoft); val infoSoft = c(p.infoSoft)
     val katChel = c(p.katChel); val katMash = c(p.katMash); val katMat = c(p.katMat); val katOb = c(p.katOb)
 }
 
@@ -53,7 +55,7 @@ data class QLayout(val widthDp: Float) {
     val controlLg: Dp get() = if (wide) QuraiTokens.CONTROL_LG.dp else 48.dp
     val rowHeight: Dp get() = if (wide) QuraiTokens.ROW_DENSE.dp else 48.dp
     val gutter: Dp get() = if (wide) QuraiTokens.SPACE_4.dp else QuraiTokens.SPACE_3.dp
-    companion object { const val WIDE_MIN = 840f }
+    companion object { const val WIDE_MIN = DesignTokens.BREAKPOINT_WIDE.toFloat() }
 }
 
 val LocalQColors = compositionLocalOf { QColors(QuraiTokens.dark, true) }
@@ -89,24 +91,24 @@ private val QShapes = Shapes(
 val QFontSans: FontFamily = FontFamily.SansSerif
 val QFontMono: FontFamily = FontFamily.Monospace
 
-private fun ts(size: Int, line: Int, w: FontWeight = FontWeight.Normal) =
-    TextStyle(fontFamily = QFontSans, fontSize = size.sp, lineHeight = line.sp, fontWeight = w)
+private fun ts(s: DesignTextSpec) =
+    TextStyle(fontFamily = QFontSans, fontSize = s.size.sp, lineHeight = s.line.sp, fontWeight = FontWeight(s.weight))
 
+/** Sizes/weights come from design/tokens.json `typography` (same scale as the site's --fs-* / --lh-* / --fw-* variables). */
 private val QType = Typography(
-    displaySmall = ts(26, 32, FontWeight.SemiBold),
-    headlineMedium = ts(22, 28, FontWeight.SemiBold),
-    headlineSmall = ts(19, 24, FontWeight.SemiBold),     // .fz-pagehead__title
-    titleLarge = ts(19, 24, FontWeight.SemiBold),
-    titleMedium = ts(15, 22, FontWeight.SemiBold),       // .fz-card__title
-    titleSmall = ts(13, 18, FontWeight.SemiBold),
-    bodyLarge = ts(14, 20),
-    bodyMedium = ts(13, 18),                              // body and tables
-    bodySmall = ts(12, 16),
-    labelLarge = ts(13, 18, FontWeight.Medium),
-    labelMedium = ts(12, 16, FontWeight.Medium),
-    labelSmall = ts(11, 16, FontWeight.SemiBold),        // chips
+    displaySmall = ts(DesignTokens.DISPLAY),
+    headlineMedium = ts(DesignTokens.HEADLINE),
+    headlineSmall = ts(DesignTokens.PAGE_TITLE),          // .fz-pagehead__title
+    titleLarge = ts(DesignTokens.PAGE_TITLE),
+    titleMedium = ts(DesignTokens.CARD_TITLE),            // .fz-card__title
+    titleSmall = ts(DesignTokens.BODY.copy(weight = 600)),
+    bodyLarge = ts(DesignTokens.BODY_LARGE),
+    bodyMedium = ts(DesignTokens.BODY),                   // body and tables
+    bodySmall = ts(DesignTokens.CAPTION),
+    labelLarge = ts(DesignTokens.BODY.copy(weight = 500)),
+    labelMedium = ts(DesignTokens.LABEL),
+    labelSmall = ts(DesignTokens.CHIP),                   // chips
 )
-
 /**
  * App root theme. [dark] true = site default (`:root`), false = `data-mavzu="ganch"`. Measures the window once and publishes [QLayout]
  * so every Q component and shared screen adapts the same way on the phone and on the desktop.

@@ -9,7 +9,8 @@ import { qiymatTuri, usernameNorm, usernameXato } from './username';
 
 export const USR_HA = 'usr:ha:';
 export const USR_YOQ = 'usr:yoq';
-const ROLLAR = ['rahbar', 'bugalter', 'pto', 'prorab', 'buyurtmachi', 'pudratchi', 'kuzatuvchi'];
+export const TAKLIF_ROLLAR = ['rahbar', 'bugalter', 'pto', 'prorab', 'buyurtmachi', 'pudratchi', 'kuzatuvchi'];
+const ROLLAR = TAKLIF_ROLLAR;
 
 type Ol = { ok?: boolean; username?: string | null; bugun_qoldi?: number };
 type Natija = { ok?: boolean; code?: string; username?: string | null; profil?: { ism?: string; username?: string | null } };

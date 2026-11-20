@@ -38,10 +38,11 @@ describe('Telegram ombor: aniqlovchi savol tugmalari (to\'liq oqim)', () => {
     expect(kb.map((q) => q[0].text)).toEqual(['Kirim', 'Chiqim']);
     expect(kb.map((q) => q[0].callback_data)).toEqual(['os:v:0', 'os:v:1']);
     expect(kb.every((q) => new TextEncoder().encode(q[0].callback_data).length <= 64)).toBe(true);
-    expect(j!.matn).toMatch(/#OS:[\w-]+\.[\w-]+$/);
+    expect(j!.matn).not.toMatch(/#O[SB]:/);   // xom token matnda chiqmaydi — ko'rinmas text_link entity ida
+    expect(JSON.stringify(j!.entities)).toMatch(/#os=[\w-]+\.[\w-]+/);
 
     javoblar = [{ status: 200, body: { ok: true, holat: 'tasdiq_kerak', token: 'a.b', preview: { tur: 'prixod', nomi: 'Sement', birligi: 'qop', miqdor: 10, sana: '2026-11-18', narx: null, ogohlantirish: [] } } }];
-    const r = await omborSavolCallback(env, 7, 'uz', { data: 'os:v:0', message: { text: j!.matn } });
+    const r = await omborSavolCallback(env, 7, 'uz', { data: 'os:v:0', message: { text: j!.matn, entities: j!.entities as never } });
     expect(r.amal).toBe('ombor_savol');
     expect(r.tugmalarniOlibTashla).toBe(true);
     const so = chaqiruvlar.at(-1)!.json!;
@@ -66,10 +67,11 @@ describe('Telegram ombor: aniqlovchi savol tugmalari (to\'liq oqim)', () => {
     const kb = (j!.markup as Kb).inline_keyboard;
     expect(kb[0].map((x) => x.callback_data)).toEqual(['ob:n']);
     expect(kb[1].map((x) => [x.text, x.callback_data])).toEqual([['QQS bilan', 'os:r:b'], ['QQS siz', 'os:r:s']]);
-    expect(j!.matn).toMatch(/#OS:[\w-]+\.[\w-]+\n#OB:a\.b$/);
+    expect(j!.matn).not.toMatch(/#O[SB]:/); expect(j!.entities).toHaveLength(2);   // #os (qayta so'rash) va #ob (tasdiq) — ikkalasi ko'rinmas
+    expect(JSON.stringify(j!.entities)).toMatch(/#ob=a\.b/);
 
     javoblar = [tasdiq(false)];
-    const r = await omborSavolCallback(env, 7, 'uz', { data: 'os:r:s', message: { text: j!.matn } });
+    const r = await omborSavolCallback(env, 7, 'uz', { data: 'os:r:s', message: { text: j!.matn, entities: j!.entities as never } });
     expect(chaqiruvlar.at(-1)!.json).toMatchObject({ amal: 'tahlil', matn: 'sement 10 qop 1120 dan keldi', narx_rejim: 'siz' });
     expect((r.xabar!.markup as Kb).inline_keyboard).toHaveLength(1); // rejim aniq — qayta so'ralmaydi
   });
@@ -78,9 +80,9 @@ describe('Telegram ombor: aniqlovchi savol tugmalari (to\'liq oqim)', () => {
     javoblar = [kontekst, savolJavob];
     const j1 = await omborBuyruq(env, 7, 'uz', { matn: 'x' });
     javoblar = [{ status: 200, body: { ok: true, holat: 'savol', savol: 'Qaysi yetkazuvchi?', variantlar: [{ yorliq: 'Alfa', tanlov: { kontragent: 'Alfa' } }] } }];
-    const r1 = await omborSavolCallback(env, 7, 'uz', { data: 'os:v:1', message: { text: j1!.matn } });
+    const r1 = await omborSavolCallback(env, 7, 'uz', { data: 'os:v:1', message: { text: j1!.matn, entities: j1!.entities as never } });
     javoblar = [{ status: 200, body: { ok: true, holat: 'javob', nomzodlar: [] } }];
-    await omborSavolCallback(env, 7, 'uz', { data: 'os:v:0', message: { text: r1.xabar!.matn } });
+    await omborSavolCallback(env, 7, 'uz', { data: 'os:v:0', message: { text: r1.xabar!.matn, entities: r1.xabar!.entities as never } });
     expect(chaqiruvlar.at(-1)!.json!.tanlov).toEqual({ amal: 'chiqim', kontragent: 'Alfa' });
   });
 

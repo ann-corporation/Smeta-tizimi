@@ -50,6 +50,9 @@ jobs:
         run: npx tsc -p tsconfig.functions.json --noEmit
       - name: Lint
         run: npx oxlint
+      - name: Yagona dizayn tokenlari (design/tokens.json bilan mos)
+        working-directory: .
+        run: node scripts/gen-design-tokens.mjs --check
       - name: Sayt xaritasi (generated bilan mos)
         run: npm run site-map:check
       - name: Biznes invariantlar va governance

@@ -8,7 +8,7 @@
  * callback_data ≤ 64 bayt, server holati yo'q: tasdiq tokeni (HMAC, 15 daq.) preview xabari MATNIDA saqlanadi (`#OB:<token>`); xabarni faqat
  * bot yozadi (foydalanuvchi uni tahrirlay olmaydi), token serverda qayta tekshiriladi (aktor/ombor/muddati).
  */
-import { type TgEnv, type TgTil, tgApi, tgT } from './telegram';
+import { type TgEnv, type TgTil, saytUrl, tgApi, tgT } from './telegram';
 import { botChaqiruv } from './telegram-amal';
 import { SON_FORMAT, tokenTekshir, tokenYarat } from './ombor-buyruq-yadro';
 import { onRequest as middleware } from '../api/_middleware';
@@ -18,7 +18,6 @@ import type { BotJavob } from './telegram-bot';
 type BotEnv = TgEnv & Record<string, unknown>;
 export const OMBOR_HA = 'ob:y';
 export const OMBOR_YOQ = 'ob:n';
-const TOKEN_BELGI = '#OB:';
 const MAX_OVOZ = 6 * 1024 * 1024;
 
 type Ombor = { id: number; kompaniya_id: number; nomi: string; yozish: boolean };
@@ -47,6 +46,28 @@ async function ovozYukla(env: BotEnv, fileId: string): Promise<Blob | null> {
     if (buf.byteLength === 0 || buf.byteLength > MAX_OVOZ) return null;
     return new Blob([buf], { type: /\.(oga|ogg|opus)$/i.test(yol) ? 'audio/ogg' : /\.mp3$/i.test(yol) ? 'audio/mpeg' : /\.m4a$/i.test(yol) ? 'audio/mp4' : 'audio/ogg' });
   } catch { return null; }
+}
+
+/* ───────── tasdiq tokenlari: xabar MATNIDA emas, ko'rinmas text_link URL ida (xom `#OB:eyJ…` foydalanuvchiga chiqmaydi) ───────── */
+const BELGI_URL = /#(ob|os)=([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)$/;
+const BELGI_MATN: Record<'ob' | 'os', RegExp> = { ob: /#OB:([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)\s*$/, os: /#OS:([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)(?:\s|$)/ };
+const URL_MAX = 1900;   // entity URL chegarasi; undan uzun token eski usulda (matn oxirida) qoladi
+export function belgiliMatn(env: BotEnv, satrlar: string[], belgilar: { k: 'ob' | 'os'; q: string }[]): { matn: string; entities?: Record<string, unknown>[] } {
+  const entities: Record<string, unknown>[] = []; const oxirgi: string[] = []; let ofs = 0;
+  satrlar.forEach((s, i) => {
+    const b = belgilar[i]; const url = b ? `${saytUrl(env)}/admin#${b.k}=${b.q}` : '';
+    if (b && s && url.length <= URL_MAX) entities.push({ type: 'text_link', offset: ofs, length: s.length, url });
+    else if (b) oxirgi.push(`#${b.k.toUpperCase()}:${b.q}`);
+    ofs += s.length + 1;
+  });
+  return { matn: [...satrlar, ...(oxirgi.length ? ['', ...oxirgi] : [])].join('\n'), ...(entities.length ? { entities } : {}) };
+}
+export function belgiOl(msg: { text?: string; entities?: { type?: string; url?: string }[] } | undefined, k: 'ob' | 'os'): string | null {
+  for (const e of msg?.entities ?? []) {
+    const m = e?.type === 'text_link' && typeof e.url === 'string' ? BELGI_URL.exec(e.url) : null;
+    if (m && m[1] === k) return m[2];
+  }
+  return BELGI_MATN[k].exec(String(msg?.text ?? ''))?.[1] ?? null;   // eski xabarlar (matnda token)
 }
 
 const ish = (v: unknown) => (v == null || v === '' ? '—' : String(v));
@@ -142,7 +163,6 @@ export async function omborBuyruq(env: BotEnv, uid: number, til: TgTil, kirish: 
 
 /* ───────────── aniqlovchi savol tugmalari (os:*) ───────────── */
 export const OMBOR_SAVOL = 'os:';
-const SAVOL_BELGI = '#OS:';
 const SAVOL_MAX_MATN = 700;
 type Tanlov = { nomi?: string; birligi?: string; amal?: 'prixod' | 'chiqim'; kontragent?: string };
 type Rejim = 'bilan' | 'siz';
@@ -177,14 +197,14 @@ export async function javobYasa(env: BotEnv, uid: number, ombor: { id: number; k
   const narxSorov = j.holat === 'tasdiq_kerak' && !!j.token && (j.preview as { narx_rejim_sorov?: unknown } | undefined)?.narx_rejim_sorov === true;
   let belgi = '';
   if ((savolli || narxSorov) && c.matn && c.matn.length <= SAVOL_MAX_MATN) {
-    try { belgi = SAVOL_BELGI + await tokenYarat(String(env.SESSIYA_KALIT), { a: uid, k: ombor.kompaniya_id, s: ombor.id, op: 'sv', p: { matn: c.matn, t: c.t, r: c.r, n: ombor.nomi, v: variantlar.map((x) => x.tanlov) } satisfies Record<string, unknown> }); } catch { belgi = ''; }
+    try { belgi = await tokenYarat(String(env.SESSIYA_KALIT), { a: uid, k: ombor.kompaniya_id, s: ombor.id, op: 'sv', p: { matn: c.matn, t: c.t, r: c.r, n: ombor.nomi, v: variantlar.map((x) => x.tanlov) } satisfies Record<string, unknown> }); } catch { belgi = ''; }
   }
   if (j.holat === 'tasdiq_kerak' && j.token) {
     const qatorlar: Record<string, unknown>[][] = [[...(narxSorov ? [] : [{ text: tgT('Tasdiqlash', til), callback_data: OMBOR_HA }]), { text: tgT('Bekor', til), callback_data: OMBOR_YOQ }]];
     if (narxSorov && belgi) qatorlar.push([{ text: tgT('QQS bilan', til), callback_data: 'os:r:b' }, { text: tgT('QQS siz', til), callback_data: 'os:r:s' }]);
-    return { matn: `${tgT('Ombor', til)}: ${ombor.nomi}\n${karta}\n\n${belgi ? belgi + '\n' : ''}${TOKEN_BELGI}${j.token}`, markup: { inline_keyboard: qatorlar } };
+    return { ...belgiliMatn(env, [`${tgT('Ombor', til)}: ${ombor.nomi}`, ...karta.split('\n')], [{ k: 'ob', q: j.token }, ...(belgi ? [{ k: 'os' as const, q: belgi }] : [])]), markup: { inline_keyboard: qatorlar } };
   }
-  if (savolli && belgi) return { matn: `${karta}\n\n${belgi}`, markup: { inline_keyboard: variantlar.map((x, i) => [{ text: x.yorliq, callback_data: `os:v:${i}` }]) } };
+  if (savolli && belgi) return { ...belgiliMatn(env, karta.split('\n'), [{ k: 'os', q: belgi }]), markup: { inline_keyboard: variantlar.map((x, i) => [{ text: x.yorliq, callback_data: `os:v:${i}` }]) } };
   return { matn: karta };
 }
 
@@ -192,10 +212,10 @@ export async function javobYasa(env: BotEnv, uid: number, ombor: { id: number; k
 export async function omborSavolCallback(env: BotEnv, uid: number, til: TgTil, cb: Kb): Promise<{ toast: string; xabar?: BotJavob; tugmalarniOlibTashla?: boolean; amal: string }> {
   const eskirgan = { toast: tgT('Eskirgan tugma', til), amal: 'ombor_eskirgan', tugmalarniOlibTashla: true };
   const q = savolCallbackOl(cb.data);
-  const m = /#OS:([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)(?:\s|$)/.exec(String(cb.message?.text ?? ''));
+  const m = belgiOl(cb.message, 'os');
   const sir = String(env.SESSIYA_KALIT || '');
   if (!q || !m || sir.length < 16) return eskirgan;
-  const y = await tokenTekshir(sir, m[1]);
+  const y = await tokenTekshir(sir, m);
   if (!y) return eskirgan;
   if (y === 'muddati') return { toast: tgT('Muddati tugagan', til), amal: 'ombor_muddat', tugmalarniOlibTashla: true, xabar: { matn: tgT('Tasdiq muddati tugagan. Buyruqni qaytadan yuboring.', til) } };
   if (y.op !== 'sv') return eskirgan;
@@ -218,16 +238,16 @@ export async function omborSavolCallback(env: BotEnv, uid: number, til: TgTil, c
   return { toast: tgT('Tanlandi', til), amal: 'ombor_savol', tugmalarniOlibTashla: true, xabar: await javobYasa(env, uid, ombor, j, til, { matn, t, r }) };
 }
 
-type Kb = { data?: string; message?: { text?: string } };
+type Kb = { data?: string; message?: { text?: string; entities?: { type?: string; url?: string }[] } };
 /** `ob:y` — preview xabaridagi token bilan tasdiq; `ob:n` — bekor. */
 export async function omborCallback(env: BotEnv, uid: number, til: TgTil, cb: Kb): Promise<{ toast: string; xabar?: BotJavob; tugmalarniOlibTashla?: boolean; amal: string }> {
   if (cb.data === OMBOR_YOQ) return { toast: tgT('Bekor qilindi', til), amal: 'ombor_bekor', tugmalarniOlibTashla: true };
-  const m = /#OB:([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)\s*$/.exec(String(cb.message?.text ?? ''));
+  const m = belgiOl(cb.message, 'ob');
   if (!m) return { toast: tgT('Eskirgan tugma', til), amal: 'ombor_eskirgan', tugmalarniOlibTashla: true };
   let k = 0, s = 0;
-  try { const yuk = JSON.parse(atob(m[1].split('.')[0].replace(/-/g, '+').replace(/_/g, '/'))) as { k?: number; s?: number }; k = Number(yuk.k); s = Number(yuk.s); } catch { /* quyida rad */ }
+  try { const yuk = JSON.parse(atob(m.split('.')[0].replace(/-/g, '+').replace(/_/g, '/'))) as { k?: number; s?: number }; k = Number(yuk.k); s = Number(yuk.s); } catch { /* quyida rad */ }
   if (!Number.isSafeInteger(k) || !Number.isSafeInteger(s) || k <= 0 || s <= 0) return { toast: tgT('Eskirgan tugma', til), amal: 'ombor_eskirgan', tugmalarniOlibTashla: true };
-  const r = await chaqir(env, uid, { json: { amal: 'tasdiq', kompaniya_id: k, sklad_id: s, token: m[1] } });
+  const r = await chaqir(env, uid, { json: { amal: 'tasdiq', kompaniya_id: k, sklad_id: s, token: m } });
   const j = r.body;
   if (r.status === 410 || j?.code === 'TOKEN_MUDDATI_OTGAN') return { toast: tgT('Muddati tugagan', til), amal: 'ombor_muddat', tugmalarniOlibTashla: true, xabar: { matn: tgT('Tasdiq muddati tugagan. Buyruqni qaytadan yuboring.', til) } };
   if (!j?.ok) {

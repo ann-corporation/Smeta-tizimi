@@ -85,6 +85,7 @@ describe('Bot — @username', () => {
     expect(c.rpc).not.toContain('t2_kompaniya_taklif_yubor_v1');
     c = tarmoq({ ...base, t2_men_v1: () => ({ ok: true, azoliklar: [] }) });
     await updateIshla(ENV, upd('/taklif salom', undefined, 5));
-    expect(c.tg[0].yuk.text).toContain('Foydalanish');
+    expect(c.tg[0].yuk.text).toContain('Qaysi rolda');   // rolsiz — rol so'raladi (kutilgan niyat); RPC hali yo'q
+    expect(c.rpc).not.toContain('t2_kompaniya_taklif_yubor_v1');
   });
 });

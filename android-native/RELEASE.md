@@ -40,3 +40,6 @@ Note: `reliz-yukla.ps1` computes version from `tauri.conf.json` unless `-Version
 ## Retiring the Tauri Android job
 
 When the native app ships (first signed native release uploaded and `mobile-release.json` points to it), remove the `android` job from `.github/workflows/mobile.yml`: delete the job, the `ANDROID_PLATFORM/BUILD_TOOLS/NDK` env entries, and change `release.needs` to `[ios, macos]`. The prepared change is a separate commit titled "chore(mobile): Tauri android jobini olib tashlash (native relizdan keyin)" on `claude/android-ci`; drop it until native has shipped. Do not delete `frontend/src-tauri` Android overlay files yet (desktop/iOS share the Tauri crate).
+## Google Play (AAB)
+
+CI also builds a Play bundle (`-Pplay=true`: in-app APK updater hidden; `-PversionCode=3000000+run`) and signs it with the upload key via `jarsigner` (artifact `android-native-aab`, never uploaded from PRs). Owner guide, policy audit and listing pack: `docs/play-market/`.

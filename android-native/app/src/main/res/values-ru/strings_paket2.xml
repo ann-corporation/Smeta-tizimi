@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pk_fmt">Выйти</string>
+    <string name="pk_fmt_zip">ZIP (папки)</string>
+    <string name="pk_fmt_excel">Один Excel</string>
+    <string name="pk_tok_wait">Токены: цена считается</string>
+    <string name="pk_tok_free">Бесплатно (оплачено)</string>
+    <string name="pk_tok_n">Токены: ≈ %1$s (%2$s новых документов)</string>
+    <string name="pk_busy">Сборка %1$s</string>
+    <string name="pk_partial">Пакет готов, не вошло документов: %1$s (см. Состав)</string>
+</resources>

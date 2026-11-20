@@ -171,10 +171,12 @@ export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarx
     if (faktM != null && faktM < 0) return ishoraliQoldiq(faktM, olinganF2(id));
     const orq = ortiqcha(id);
     if (orq != null) return orq;
-    if (s0 === 0) return Math.max(0, mum ?? 0);
+    // Ishorali (minus smeta qatori): manfiy qoldiq NORMAL - Math.max(0) uni jim tashlab yuborardi.
+    const ishora = (x: number) => ((smetaHajm(id) ?? 0) < 0 ? Math.min(0, x) : Math.max(0, x));
+    if (s0 === 0) return ishora(mum ?? 0);
     // Storno bor: server f2_mumkin (= max(0, fakt − f2)) eski F2 ni ham ayirgan — fakt va f2 dan qayta: fakt − (f2 − storno).
     const fakt = son(h.get(id)?.fakt_hajm);
-    return Math.max(0, fakt != null ? fakt - olinganF2(id) : (mum ?? 0) + s0);
+    return ishora(fakt != null ? fakt - olinganF2(id) : (mum ?? 0) + s0);
   };
   const baza = (id: number) => {
     if (!erkin) return faktBaza(id);
@@ -650,7 +652,8 @@ export function bolimOlRejasi(bs: readonly F2Bolim[]): BolimOlReja {
   const hajm: Record<number, string> = {}; let olindi = 0; let chang = 0; let nol = 0;
   for (const b of bs) {
     for (const i of b.ishlar) {
-      if (pulChangmi(ishQoldiqQiymati(i))) { chang++; continue; }
+      // Minus (chegirma) qator hech qachon «chang» emas: resursi yo'q qalinlik tuzatishi qiymati 0 chiqib jim tashlanardi.
+      if (i.mumkin >= 0 && pulChangmi(ishQoldiqQiymati(i))) { chang++; continue; }
       let bor = false;
       if (i.mumkin !== 0) { hajm[i.id] = sonMatn(i.mumkin); bor = true; }
       for (const r of i.resurslar) if (!r.avto && r.mumkin !== 0) { hajm[r.id] = sonMatn(r.mumkin); bor = true; }
@@ -658,7 +661,7 @@ export function bolimOlRejasi(bs: readonly F2Bolim[]): BolimOlReja {
     }
     for (const r of b.alohida) {
       if (r.mumkin === 0) { nol++; continue; }
-      if (pulChangmi(resursQoldiqQiymati(r))) { chang++; continue; }
+      if (r.mumkin > 0 && pulChangmi(resursQoldiqQiymati(r))) { chang++; continue; }
       hajm[r.id] = sonMatn(r.mumkin); olindi++;
     }
   }
