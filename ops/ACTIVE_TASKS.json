@@ -3694,6 +3694,8 @@
       ],
       "production_write_allowed": false,
       "owns": [
+        "android-native/shared/src/main/resources/site-i18n/ru.json",
+        "android-native/shared/src/main/resources/site-i18n/en.json",
         "frontend/src/lib/jarvis/warehouse-command.ts",
         "frontend/src/lib/jarvis/WarehouseCard.tsx",
         "frontend/src/lib/jarvis/WarehouseCard.test.tsx",
