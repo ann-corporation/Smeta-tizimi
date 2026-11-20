@@ -24,7 +24,7 @@ const actStatuses = {
 } as const;
 const billingUsage = { inputTokens: 180, outputTokens: 40 };
 const baseCategories = ['obyektlar', 'smeta_pul', 'f2_fakt_pul', 'ombor'];
-let configuration = { categories: baseCategories, missingFooter: false, foreignResponse: false, writePermission: false };
+let configuration = { categories: baseCategories, missingFooter: false, foreignResponse: false, writePermission: false, readPermission: true, domainReads: false };
 
 const remote = vi.fn(async (input: string, init?: RequestInit) => {
   const name = input.split('/').at(-1);
@@ -34,7 +34,9 @@ const remote = vi.fn(async (input: string, init?: RequestInit) => {
   const project = evalProjects.find(row => row.id === args.p_obyekt_id);
   switch (name) {
     case 't2_agent_kasb_v1': return Response.json({ ok: true, nom: 'Sinov PTO', rol: 'pto', profil: 'pto_smeta', vazifa: 'Sinov', boshqalar: [], namuna_savollar: [], kategoriyalar: configuration.categories, harakatlar: ['ombor_kirim'] });
-    case 't2_men_v1': return Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: evalCompany, permissions: ['warehouse.read', 'f2.read', ...(configuration.writePermission ? ['f2.prepare', 'fakt.write'] : [])] }] });
+    case 't2_men_v1': return Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: evalCompany, effective_role: configuration.domainReads ? 'pto' : undefined, permissions: ['warehouse.read', 'f2.read', ...(configuration.readPermission ? ['smeta.read'] : []), ...(configuration.domainReads ? ['company.read', 'document.read'] : []), ...(configuration.writePermission ? ['f2.prepare', 'fakt.write'] : [])] }] });
+    case 't2_topshiriqlar_v1': return Response.json({ ok: true, qatorlar: [], keyingi_id: null });
+    case 't2_hujjat_kiruvchi_v1': return Response.json({ ok: true, zanjirlar: [] });
     case 't2_agent_fakt_v1': return Response.json({ ok: true, fakt: { obyektlar: args.p_obyekt_id == null ? objects : objects.filter(row => row.id === args.p_obyekt_id) }, ishlatilgan: configuration.categories });
     case 't2_obyekt_nakrutka_v1': {
       if (!project) return Response.json({ ok: false, code: 'OBJECT_SCOPE' }, { status: 403 });
@@ -58,7 +60,7 @@ const remote = vi.fn(async (input: string, init?: RequestInit) => {
 });
 
 beforeEach(() => {
-  configuration = { categories: baseCategories, missingFooter: false, foreignResponse: false, writePermission: false };
+  configuration = { categories: baseCategories, missingFooter: false, foreignResponse: false, writePermission: false, readPermission: true, domainReads: false };
   boundary.auth.mockResolvedValue({ foydalanuvchi_id: evalActor, kompaniyalar: [{ kompaniya_id: evalCompany }] });
   boundary.model.mockReset();
   boundary.preview.mockReset();
@@ -103,6 +105,27 @@ it('model/tools: limits the billed loop to six verified, scoped read calls', asy
   expect(body.javob).toMatch(new RegExp('^- ' + evalProjects[0].material));
   expect(body.javob).not.toContain('1e6');
   expect(boundary.model.mock.calls[1][5].text).toContain('javob_parts');
+});
+
+it('model/domain-tools: combines task inbox, approvals and the canonical money core without writing', async () => {
+  configuration.domainReads = true;
+  const project = evalProjects[0];
+  for (const [name, question] of [['task_list', 'Mening ochiq topshiriqlarim'], ['approval_queue', 'Tasdiqlash navbati'],
+    ['estimate_total', `${project.name} smeta qiymati ustama va QQS bilan`]]) {
+    boundary.model.mockResolvedValueOnce({ provider: 'openrouter', model: 'synthetic-eval', usage: billingUsage,
+      text: JSON.stringify({ javob: '', harakatlar: [], tool_call: { name, arguments: { query: question } } }) });
+  }
+  boundary.model.mockResolvedValueOnce({ provider: 'openrouter', model: 'synthetic-eval', usage: billingUsage,
+    text: JSON.stringify({ javob: 'Tekshirilgan manbalar.', harakatlar: [] }) });
+  const { body } = await query('Jarayonlar bo‘yicha mavjud ma’lumotlarni tekshir', { obyekt_id: project.id });
+  expect(boundary.model).toHaveBeenCalledTimes(4);
+  expect(rpc('t2_topshiriqlar_v1')).toHaveLength(1);
+  expect(rpc('t2_hujjat_kiruvchi_v1')).toHaveLength(1);
+  expect(rpc('t2_obyekt_nakrutka_v1')).toEqual([{ p_actor_id: evalActor, p_obyekt_id: project.id }]);
+  expect(moneyValues(body.javob ?? '')).toEqual(project.money);
+  expect(body.javob).toContain('topshiriq'); expect(body.javob).toContain('Tasdiqlash navbati');
+  expect(rpc('t2_ai_telemetriya_yoz_v1').filter(args => args.p_manba === 'tool')).toHaveLength(3);
+  expect(rpc('t2_agent_harakat_taklif_v1')).toEqual([]);
 });
 
 it('model/tools: never executes a fabricated name or tenant override', async () => {
@@ -183,6 +206,15 @@ it.each(fixtures)('permission/finance $key', async ({ language, lexicon, project
   const { body } = await query(lexicon.money(project.name));
   expect(body.rad).toBe(true);
   expect(body.javob).toContain(localized[language].denied);
+  expect(moneyValues(body.javob ?? '')).toEqual([]);
+  expect(rpc('t2_obyekt_nakrutka_v1')).toEqual([]);
+  expect(boundary.model).not.toHaveBeenCalled();
+});
+
+it.each(fixtures)('permission/source-capability $key', async ({ lexicon, project }) => {
+  configuration.readPermission = false;
+  const { body } = await query(lexicon.money(project.name));
+  expect(body.rad).toBe(true);
   expect(moneyValues(body.javob ?? '')).toEqual([]);
   expect(rpc('t2_obyekt_nakrutka_v1')).toEqual([]);
   expect(boundary.model).not.toHaveBeenCalled();

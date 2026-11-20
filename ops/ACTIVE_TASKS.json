@@ -3591,6 +3591,31 @@
     ],
     "production_write_allowed": false,
     "note": "Egasi 2026-11-03: «tendr ... mukammal jarayon». P2/P3 (t2_birja_*, t2_buyurtma) ustiga additiv; migratsiya 20261122000200 prodga FAQAT L0 qo'llaydi. PR-T1 (claude/tender-v1): baza + shlyuz + api + lib; PR-T2 (claude/tender-v1-ui): UI. v1 RPC lar (elon/golib/yop/tafsilot) service_role dan yig'iladi (muhr va tasdiq aylanib o'tilmasin)."
+  },
+  {
+    "id": "JARVIS-DOMAIN-READ-REGISTRY-20261119",
+    "title": "Jarvis registry: existing task inbox, approval queue and source money core",
+    "owner": "codex",
+    "machine": "anvar-laptop",
+    "branch": "codex/jarvis-m3-registry-domain-reads",
+    "base_sha": "0ffd388b729583a79befaabf8f34bedc70c2e9a3",
+    "status": "ready_for_review",
+    "owns": [
+      "frontend/functions/api/ai-savol.test.ts",
+      "frontend/functions/_shared/jarvis/read-tools.ts",
+      "frontend/functions/_shared/jarvis/read-tools.test.ts",
+      "frontend/functions/_shared/jarvis/approvals.ts",
+      "frontend/functions/_shared/jarvis/domain-read-tools.test.ts",
+      "frontend/functions/_shared/jarvis/chat.ts",
+      "frontend/functions/_shared/jarvis/jarvis-eval.test.ts",
+      "frontend/src/lib/jarvis/tool-registry.ts"
+    ],
+    "depends_on": [],
+    "must_read": [
+      "AGENTS.md"
+    ],
+    "production_write_allowed": false,
+    "note": "L0 expanded LANE1, ACK KOORDINATSIYA. Existing handlers only; shared role visibility and footer money core, no new writes or formulas."
   }
 ]
 }

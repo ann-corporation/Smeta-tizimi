@@ -5,10 +5,10 @@ import { xotiraOqi } from '../jarvis-xotira';
 import { kontekstOl } from '../agent-kontekst-kesh';
 import { xotiraBloklari } from '../../../src/lib/smeta-ai/tajriba';
 import { kimMendan, kimPromptBloki } from '../../../src/lib/yordamchi/kim';
-import { pulJavobi, pulSorovi } from '../agent-pul-javob';
+import { pulSorovi } from '../agent-pul-javob';
 import { objectTotalAnswer, objectTotalDenied, objectTotalIntent, objectTotalUnavailable } from './object-finance';
-import { taskListAnswer, taskListIntent } from './tasks';
-import { approvalsAnswer, approvalsIntent } from './approvals';
+import { taskListIntent } from './tasks';
+import { approvalsIntent } from './approvals';
 import { verifiedPriceCandidates } from './prices';
 import { firstReadTool, jarvisReadTools, readToolCall } from './read-tools';
 import { jarvisToolCallSchema, jarvisToolNames, jarvisTools, parseJarvisToolCall } from '../../../src/lib/jarvis/tool-registry';
@@ -106,14 +106,12 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
     }
   }
   if (so.studio == null && approvalsIntent(savol)) {
-    const signal = AbortSignal.timeout(3500);
-    const answer = await approvalsAnswer((name, body) => rpcData(env, name, body, signal), objectScope, men ?? null);
+    const answer = await reads.run({ name: 'approval_queue', args: true });
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
   }
   const tasks = so.studio == null && !navigatsiyaSorovi(savol) ? taskListIntent(savol) : null;
   if (tasks) {
-    const signal = AbortSignal.timeout(3500);
-    const answer = await taskListAnswer((name, body) => rpcData(env, name, body, signal), objectScope, tasks, men ?? null);
+    const answer = await reads.run({ name: 'task_list', args: tasks });
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
   }
   const isMoneyQuestion = !writeIntent && pulSorovi(savol, so.tarix);
@@ -131,7 +129,7 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
   }
   /* Ustama (nakrutka) va QQS bilan smeta qiymati: tizim ma'lumotidan ANIQ hisob, model chaqirilmaydi. */
   const pulMatni = isMoneyQuestion
-    ? await pulJavobi((nom, yuk) => rpcData(env, nom, yuk), { actor, kid, savol, tarix: so.tarix, obyektId: objectId, ruxsat: kasb.kategoriyalar, text })
+    ? await reads.run({ name: 'estimate_total', args: savol })
       .catch(() => ({ javob: text('Smeta qiymatini tizimdan olib bo‘lmadi. Keyinroq qayta urinib ko‘ring.', 'Не удалось получить сметную стоимость. Повторите запрос позже.') }))
     : null;
   if (pulMatni) {
@@ -259,7 +257,7 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
         ...(ready ? { f2_preview: result } : { rad: true }) } };
     }
     const parsed = parseJarvisToolCall(proposed);
-    const call = parsed && allowedTools.includes(parsed.name) ? readToolCall(parsed.name, parsed.query) : null;
+    const call = parsed && allowedTools.includes(parsed.name) ? readToolCall(parsed.name, parsed.query, objectScope.history) : null;
     const signature = call ? call.name + ':' + JSON.stringify(call.args) : '';
     if (!call || seen.has(signature) || Date.now() >= deadline) {
       if (!results.length) results.push(reads.unavailable);

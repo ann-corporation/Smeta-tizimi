@@ -24,14 +24,18 @@ function validApproval(row: unknown): row is Approval {
   return id(a.id) && typeof a.sarlavha === 'string' && (a.muddat === null || typeof a.muddat === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(a.muddat));
 }
 
+export function approvalsVisible(authority: RpcNatija | null, company: number): boolean {
+  if (!jarvisHasPermission(authority, company, 'document.read')) return false;
+  const contexts = authority?.data.context_kompaniyalar;
+  const role = Array.isArray(contexts) ? contexts.find(row => row?.kompaniya_id === company)?.effective_role : null;
+  return typeof role === 'string' && decisionRoles.has(role);
+}
+
 export async function approvalsAnswer(rpc: JarvisReadRpc, scope: JarvisObjectScope, authority: RpcNatija | null) {
   const text = scope.text ?? jarvisText();
   const denied = { rad: true, javob: text('Tasdiqlash navbatini ko‘rish uchun hujjat va qaror ruxsati kerak.', 'Для просмотра очереди нужен доступ к документам и право принимать решения.') };
   const unavailable = { javob: text('Tasdiqlash navbatini tekshirib bo‘lmadi. Keyinroq urinib ko‘ring.', 'Не удалось проверить очередь согласования. Повторите запрос позже.') };
-  if (!jarvisHasPermission(authority, scope.company, 'document.read')) return denied;
-  const contexts = authority?.data.context_kompaniyalar;
-  const role = Array.isArray(contexts) ? contexts.find(row => row?.kompaniya_id === scope.company)?.effective_role : null;
-  if (typeof role !== 'string' || !decisionRoles.has(role)) return denied;
+  if (!approvalsVisible(authority, scope.company)) return denied;
 
   const scopeArgs = { p_actor_id: scope.actor, p_kompaniya_id: scope.company };
   const result = await rpc(source, scopeArgs).catch(() => null);
