@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 import { warehouseBotFollowup, warehouseBotReply, warehouseBotSelect } from './warehouse-telegram';
 import { tokenYarat } from '../ombor-buyruq-yadro';
+import { belgiOl } from '../telegram-ombor';
 const call = vi.hoisted(() => vi.fn());
 vi.mock('../telegram-amal', () => ({ botChaqiruv: call }));
 const env = { SESSIYA_KALIT: 'synthetic-warehouse-secret-32-chars' };
@@ -16,7 +17,10 @@ it('paginates all warehouses and rechecks company access after the signed select
   call.mockResolvedValueOnce({ status: 200, body: { ok: true, omborlar: stores } })
     .mockResolvedValueOnce({ status: 200, body: { ok: true, holat: 'tasdiq_kerak', token: 'signed.preview', preview: { tur: 'prixod', nomi: 'sement', miqdor: 10, birligi: 'qop' } } });
   const preview = await warehouseBotSelect(env, 7, 'uz', 'j:w:45', next.matn);
-  expect(preview.matn).toContain('#OB:signed.preview');
+  expect(preview.matn).not.toContain('#OB:');
+  expect(belgiOl({ text: preview.matn, entities: preview.options?.entities as Array<{ type?: string; url?: string }> }, 'ob')).toBe('signed.preview');
+  const markup = preview.options?.reply_markup as { inline_keyboard?: Array<Array<{ callback_data?: string }>> } | undefined;
+  expect(markup?.inline_keyboard?.flat()).toContainEqual(expect.objectContaining({ callback_data: 'ob:y' }));
   expect(call.mock.calls.at(-1)?.[2].json).toEqual({ amal: 'tahlil', kompaniya_id: 17, sklad_id: 45, matn: snapshot.question });
 });
 it('never lets a different actor or an expired token resume the command', async () => {

@@ -25,7 +25,9 @@ export async function warehouseBotReply(env: TgEnv, actor: number, til: TgTil, s
       card.matn += '\n#WQ:' + token;
     }
     if (card.matn.length > 3900) return tooLarge(env);
-    return { matn: card.matn, options: card.markup ? { reply_markup: card.markup } : undefined };
+    return { matn: card.matn, options: {
+      ...(card.markup ? { reply_markup: card.markup } : {}), ...(card.entities ? { entities: card.entities } : {}),
+    } };
   }
   if (!snapshot.warehouses.length) return retry(til);
   const token = await tokenYarat(String(env.SESSIYA_KALIT ?? ''), { a: actor, k: snapshot.company,
