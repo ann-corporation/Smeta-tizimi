@@ -3797,6 +3797,26 @@
       ],
       "production_write_allowed": false,
       "note": "L0 telegram-bot-sifat card and ACK KOORDINATSIYA 19.11. Source-preserving estimate stage; receipt prices remain a separate pending contract."
+    },
+    {
+      "id": "JARVIS-CONTRACT-SCOPE-20261119",
+      "title": "Jarvis: точный lot/contract scope для F2 чтения",
+      "owner": "codex",
+      "machine": "anvar-laptop",
+      "branch": "codex/jarvis-m3-contract-scope",
+      "base_sha": "83e37c190a86efb190e4f0fb8308f87bb963f9cf",
+      "status": "ready_for_review",
+      "owns": [
+        "frontend/functions/_shared/jarvis/contract-scope.ts",
+        "frontend/functions/_shared/jarvis/contract-scope.test.ts",
+        "frontend/functions/_shared/jarvis/f2-register.ts"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md"
+      ],
+      "production_write_allowed": false,
+      "note": "L0 telegram-bot-sifat ACK via KOORDINATSIYA 19.11; reuse t2_shartnoma_liniya_v1, no hardcoded aliases or production writes"
     }
   ]
 }
