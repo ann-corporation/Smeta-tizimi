@@ -1,7 +1,11 @@
 import { expect, it } from 'vitest';
 import { jarvisF2WriteIntent, jarvisWriteTools, parseJarvisWriteCall, toolSummary } from './write-tools';
+import { f2XatoMatni } from '../yordamchi/vosita/f2-mcp-liniya';
 
 const call = { name: 'f2_qoralama_tahrir', arguments: { akt_id: 41, ozgartir: [{ qator_id: 53, hajm: 2, narx: 0 }] } };
+it.each([{ code: 'F2_OY_QATOR_TAKROR' }, { holat: 'rad', xabar: 'F2_OY_QATOR_TAKROR' }])('explains duplicate monthly F2 rows for both response shapes', error => {
+  expect(f2XatoMatni(error)).toContain('Mavjud F-2 ni ochib tahrirlang.');
+});
 it.each(['41 F-2 da 53 hajmini 2 qil', 'Ф-2 да 53 ҳажмини 2 қил', 'Измени объём в КС-2', 'Faktga -2 qo‘sh'])('routes the natural write request %s', question => {
   expect(jarvisF2WriteIntent(question)).toBe(true);
 });

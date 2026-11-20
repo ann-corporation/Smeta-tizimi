@@ -1,4 +1,6 @@
 import { JarvisVazifa } from './ai-yordamchi/JarvisVazifa';
+import { WarehouseCard } from '../../lib/jarvis/WarehouseCard';
+import { warehouseWriteIntent } from '../../lib/jarvis/warehouse-command';
 import { f2PreviewCard } from '../../lib/jarvis/f2-preview-card';
 import { jarvisF2WriteIntent } from '../../lib/jarvis/write-tools';
 import { suhbatKonteksti } from '../../lib/ai-yordamchi/suhbat-kontekst';
@@ -654,7 +656,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
 
     /* YAGONA YORDAMCHI (Jarvis) qatlami: navigatsiya, o'qish, yozuv taklifi — bepul va bir zumda; hal qilmasa mavjud oqim davom etadi. */
     const ya = yaRef.current;
-    const f2Write = jarvisF2WriteIntent(s);
+    const f2Write = jarvisF2WriteIntent(s) || warehouseWriteIntent(s);
     if (f2Write) davomRef.current = null;
     if (ya && ya.sahifalar.length && !jarvisKichikGap(s) && !f2Write) {
       const davom = davomRef.current; davomRef.current = null;
@@ -894,6 +896,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
               {m.tanlov?.length ? <div className="mt-2 flex flex-wrap gap-1.5" data-testid="yordamchi-tanlov">{m.tanlov.map((v) => (
                 <button key={v.matn} type="button" onClick={() => void yubor(v.matn)} className="rounded-full border border-accent/50 px-2.5 py-1 text-xs text-accent hover:bg-accent/10">{v.nom}</button>))}</div> : null}
               {m.taklif && <YordamchiTaklif taklif={m.taklif} onTugadi={(natija) => { if (natija.length) setXabarlar((p) => [...p, { id: `${Date.now()}r`, rol: 'ai', jarvis: true, matn: natija.join('\n') }]); }} />}
+              {m.yakun?.warehouse_reply && <WarehouseCard key={m.id} snapshot={m.yakun.warehouse_reply} onDone={matn => setXabarlar(p => [...p, { id: `${Date.now()}w`, rol: 'ai', jarvis: true, matn }])} />}
               {kompaniyaId != null && m.yakun?.harakatlar?.map((h) => <AiHarakatKarta key={h.id} h={h} kompaniyaId={kompaniyaId} />)}
               {kompaniyaId != null && m.rol === 'ai' && m.yakun?.ok && !m.yakun.rad && m.yakun.model !== 'local' && <AiBaho kompaniyaId={kompaniyaId} profil={m.yakun.kasb?.profil} sahifa={sahifa} />}
               {m.yordam && <div className="mt-1 text-[11px] text-text-mute">{t('Tizim yordamchisi — model chaqirilmadi, token sarflanmadi')}</div>}

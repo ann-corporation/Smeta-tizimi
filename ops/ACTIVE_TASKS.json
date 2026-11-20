@@ -3,13 +3,29 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "JARVIS-M3-WAREHOUSE-20261119", "title": "Jarvis warehouse preview and existing confirmation workflow",
+      "owner": "codex", "machine": "Anvar", "branch": "codex/jarvis-m3-warehouse", "base_sha": "7a2c21d5",
+      "status": "ready_for_review", "depends_on": [], "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md"], "production_write_allowed": false,
+      "owns": [
+        "android-native/shared/src/main/resources/site-i18n/ru.json", "android-native/shared/src/main/resources/site-i18n/en.json",
+        "frontend/src/lib/jarvis/warehouse-command.ts", "frontend/src/lib/jarvis/WarehouseCard.tsx", "frontend/src/lib/jarvis/WarehouseCard.test.tsx",
+        "frontend/functions/_shared/jarvis/warehouse-command.ts", "frontend/functions/_shared/jarvis/warehouse-command.test.ts",
+        "frontend/functions/_shared/jarvis/warehouse-core.test.ts", "frontend/functions/_shared/jarvis/warehouse-routing.test.ts", "frontend/functions/_shared/jarvis/warehouse-telegram.ts", "frontend/functions/_shared/jarvis/warehouse-telegram.test.ts",
+        "frontend/functions/_shared/jarvis/chat.ts", "frontend/functions/api/agent-ish.ts", "frontend/src/api/t2-agent-ish.ts",
+        "frontend/src/umumiy/ui/AiChat.tsx", "frontend/functions/_shared/telegram-jarvis.ts", "frontend/functions/api/telegram/webhook.ts",
+        "frontend/src/i18n/lugat/qism/telegram-jarvis.json", "frontend/functions/_shared/telegram-ombor.ts", "frontend/functions/_shared/telegram-ombor-savol.test.ts", "frontend/src/components/ombor/OmborKiritish.tsx",
+        "frontend/src/lib/jarvis/write-tools.ts", "frontend/src/lib/jarvis/write-tools.test.ts", "frontend/functions/_shared/jarvis/read-tools.test.ts", "frontend/src/lib/yordamchi/vosita/f2-mcp-liniya.ts", "frontend/src/i18n/lugat/qism/jarvis-f2-errors.json"
+      ],
+      "note": "L0 expanded LANE-1 PR-3 plus explicit 19.11 F2 review followups. Existing warehouse endpoint/cards only. No SQL or model confirmation. Review and merge at L0."
+    },
+    {
       "id": "JARVIS-M3-F2-WRITE-20261119",
       "title": "Jarvis F2 and fact tools through existing preview and confirmation",
       "owner": "codex",
       "machine": "Anvar",
       "branch": "codex/jarvis-m3-f2-write",
       "base_sha": "548ce612",
-      "status": "ready_for_review",
+      "status": "completed",
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md"],
       "owns": [

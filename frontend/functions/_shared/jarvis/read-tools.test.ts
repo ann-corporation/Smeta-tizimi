@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest';
+import { jarvisF2WriteIntent } from '../../../src/lib/jarvis/write-tools';
 import { jarvisToolNames, parseJarvisToolCall, type JarvisToolName } from '../../../src/lib/jarvis/tool-registry';
 import { firstReadTool } from './read-tools';
 
@@ -26,4 +27,7 @@ it.each(cases.flatMap(([name, queries, expected]) => queries.map((query, index) 
 it('rejects an arbitrary operation or arguments that try to override server context', () => {
   expect(parseJarvisToolCall({ name: 'f2_update', arguments: { query: 'F2 №1' } })).toBeNull();
   expect(parseJarvisToolCall({ name: 'f2_register', arguments: { query: 'F2 №1', actor: 88, company: 9 } })).toBeNull();
+});
+it.each(['F-2 ni Excelga yoz', 'F-2 ni xlsx eksport qilib ber', 'F-2 ni ko‘rsatib ber', 'Выгрузи КС-2 в Excel', 'Покажи Ф-2'])('tool/export-readonly %s', question => {
+  expect(jarvisF2WriteIntent(question)).toBe(false);
 });

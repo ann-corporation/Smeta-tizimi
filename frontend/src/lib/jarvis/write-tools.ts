@@ -5,6 +5,8 @@ import { qidiruvKaliti } from '../../i18n/lotin-kirill';
 /** Route F2/fact edits past the legacy client intent rewriter to the shared server. */
 export function jarvisF2WriteIntent(question: string): boolean {
   const text = question.toLowerCase() + ' ' + qidiruvKaliti(question);
+  if (/excel|xlsx|eksport|export|скача|выгруз|экспорт|ko.rsat|покаж|просмотр|(?:^|\s)och(?:ib|ish)?(?:\s|$)|откро/.test(text) &&
+      !/o.zgartir|ozgartir|tuzat|kamaytir|oshir|almashtir|измени|исправ|уменьш|увелич|замени/.test(text)) return false;
   return /f-?2|ф-?2|кс-?2|fakt|факт/.test(text) &&
     /qil|ozgartir|o.zgartir|tuzat|yoz|kirit|qosh|qo.sh|kamaytir|oshir|almashtir|bekor|bajarilmadi|измени|установи|исправ|добав|запиши|уменьш|увелич|замени|отмени/.test(text);
 }
