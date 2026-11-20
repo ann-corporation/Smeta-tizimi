@@ -8,6 +8,7 @@ import * as siyosat from '../src/siyosat';
 import { SOROV_MAX } from '../src/mcp';
 import worker from '../src/worker';
 import { smetaMcpClient } from '../../../frontend/functions/_shared/jarvis/mcp-client';
+import { normativR2CacheClear } from '../../../frontend/functions/_shared/normativ-r2-index';
 
 vi.mock('cloudflare:workers', () => ({ WorkerEntrypoint: class {}, env: {} }));
 vi.mock('../../../frontend/functions/_shared/role-authority', async orig => ({
@@ -38,6 +39,20 @@ beforeEach(async () => {
   h = mockHovuz(() => []); pool.get.mockReturnValue(h);
 });
 describe('existing worker SSO read-only MCP (real SDK, mocked SQL/roleAuthority)', () => {
+  it('combined R2 source wiring reaches the real canonical reader without stale SQL fallback', async () => {
+    normativR2CacheClear();
+    const get = vi.fn(async () => null); const saved = env.SNAPSHOT_R2;
+    env.SNAPSHOT_R2 = { get, put: vi.fn() };
+    h = mockHovuz(sql => sql.includes('t2_obyekt') ? [{ id: 5, kompaniya_id: 17, nom: 'Synthetic' }] : []);
+    pool.get.mockReturnValue(h);
+    try {
+      const result = await (await rpc('tools/call', { name: 'normativ_qidir', arguments: { obyekt_id: 5, matn: 'synthetic norm' } })).json();
+      expect(result.result.isError).toBe(true);
+      expect(result.result.content[0].text).toContain('NORMATIV_SOURCE_UNAVAILABLE');
+      expect(get).toHaveBeenCalledWith('normativ/shnk/v1/corpus.json.gz', undefined);
+      expect(h.sorovlar.some(q => q.sql.includes('t2_normativ_qidir_v1'))).toBe(false);
+    } finally { env.SNAPSHOT_R2 = saved; normativR2CacheClear(); await Promise.all(pending); }
+  });
   it('real Jarvis client discovers the existing SDK tools/rules and calls through scoped SSO', async () => {
     const service = { fetch: (request: Request) => worker.fetch(request, env, {
       waitUntil: (p: Promise<unknown>) => pending.push(p),
