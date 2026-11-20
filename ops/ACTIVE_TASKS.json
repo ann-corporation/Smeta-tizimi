@@ -3817,6 +3817,27 @@
       ],
       "production_write_allowed": false,
       "note": "L0 telegram-bot-sifat ACK via KOORDINATSIYA 19.11; reuse t2_shartnoma_liniya_v1, no hardcoded aliases or production writes"
+    },
+    {
+      "id": "JARVIS-TELEGRAM-READ-COMPLETE-20261119",
+      "title": "Jarvis: complete Telegram read delivery without excerpt truncation",
+      "owner": "codex",
+      "machine": "anvar-laptop",
+      "branch": "codex/jarvis-m3-telegram-complete",
+      "base_sha": "59182669e2370270b6c53e4552144af402692b1c",
+      "status": "ready_for_review",
+      "owns": [
+        "frontend/functions/_shared/telegram-jarvis.ts",
+        "frontend/functions/_shared/telegram-jarvis.test.ts",
+        "frontend/functions/_shared/jarvis/telegram-read-delivery.ts",
+        "frontend/functions/_shared/jarvis/telegram-read-delivery.test.ts"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md"
+      ],
+      "production_write_allowed": false,
+      "note": "Expanded LANE-1 PR6 and ACK KOORDINATSIYA. Reuse existing transcript[] webhook sender, preserve signed guide/force_reply, no live messages."
     }
   ]
 }
