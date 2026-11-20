@@ -626,16 +626,26 @@ describe('agent-ish shlyuzi', () => {
     });
 
     it('sahifa ochish: faqat katalogdagi yo‘l qabul qilinadi (o‘ylab topilgan va tashqi havola tashlanadi); navigatsiya savolida tokensiz qidiruv qo‘shiladi', async () => {
-      const f = toliq('{"javob":"Mana.","harakatlar":[],"otish":"/admin/m29"}'); vi.stubGlobal('fetch', f);
+      const authorized = (body: string) => {
+        const base = toliq(body);
+        return vi.fn(async (url: string, init?: RequestInit) => String(url).includes('t2_men_v1')
+          ? rpcJavob({ ok: true, context_kompaniyalar: [{ kompaniya_id: 5, effective_role: 'pto', permissions: ['smeta.write', 'smeta.read', 'f2.read'] }] }) : base(url, init));
+      };
+      const f = authorized('{"javob":"Mana.","harakatlar":[],"otish":"/admin/m29"}'); vi.stubGlobal('fetch', f);
       let j = await (await post({ amal: 'kasb_savol', kompaniya_id: 5, savol: 'Material sarfi hisobotini ko‘rsat' }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined }))).json() as { sahifalar: Array<{ yol: string }> };
       expect(j.sahifalar.map((x) => x.yol)).toEqual(['/admin/m29']);
-      vi.stubGlobal('fetch', toliq('{"javob":"Mana.","harakatlar":[],"otish":"https://evil.example/x"}'));
+      vi.stubGlobal('fetch', authorized('{"javob":"Mana.","harakatlar":[],"otish":"https://evil.example/x"}'));
       j = await (await post({ amal: 'kasb_savol', kompaniya_id: 5, savol: 'Material sarfi hisobotini ko‘rsat' }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined }))).json() as { sahifalar: Array<{ yol: string }> };
       expect(j.sahifalar).toEqual([]);
-      vi.stubGlobal('fetch', toliq('{"javob":"Mana.","harakatlar":[],"otish":"/admin/yoq-sahifa"}'));
+      vi.stubGlobal('fetch', authorized('{"javob":"Mana.","harakatlar":[],"otish":"/admin/yoq-sahifa"}'));
       j = await (await post({ amal: 'kasb_savol', kompaniya_id: 5, savol: 'Nakopitelniy qayerda?' }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined }))).json() as { sahifalar: Array<{ yol: string }> };
       expect(j.sahifalar.map((x) => x.yol)).toContain('/admin/nakopitelniy');
       expect(j.sahifalar.map((x) => x.yol)).not.toContain('/admin/yoq-sahifa');
+      expect(f.mock.calls.some(([url]) => String(url).includes('openrouter.ai'))).toBe(true);
+      kontekstKeshTozala();
+      vi.stubGlobal('fetch', toliq('{"javob":"Mana.","harakatlar":[],"otish":"/admin/m29"}'));
+      j = await (await post({ amal: 'kasb_savol', kompaniya_id: 5, savol: 'Material sarfi hisobotini ko‘rsat' }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined }))).json() as { sahifalar: Array<{ yol: string }> };
+      expect(j.sahifalar).toEqual([]);
     });
 
     it('tizim_yordam: kompaniyasiz va TOKENSIZ (model/baza chaqirilmaydi); mos qo‘llanma yo‘q bo‘lsa halol aytadi', async () => {

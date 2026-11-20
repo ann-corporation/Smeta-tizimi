@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactN
 import ReactMarkdown, { type Components } from 'react-markdown';
 import { mdBolaklar } from '../../lib/yordamchi/jadval';
 import { ArrowRight, Bot, Mic, MicOff, Send, Square, User } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { kasbSavolOqim, niyatLlmOl, suhbatRoyxatOl, suhbatServerdanOl, suhbatServerga, type ServerSuhbat, tizimYordamSavol, type KasbIshchi, type KasbYakun, type Qadam, type SahifaIshora } from '../../api/t2-agent-ish';
 import { appendJarvisMessages, jarvisConversationPage, mutateJarvisConversation, syncJarvisConversation, type ConversationPageCursor } from '../../api/jarvis-suhbat-sync';
 import { jarvisOutboxRead, jarvisOutboxRemove, jarvisOutboxStore, type JarvisQueuedWrite } from '../../lib/jarvis/conversation-outbox';
@@ -98,6 +98,7 @@ function OtishTugmalari({ royxat, ochish }: { royxat?: SahifaIshora[]; ochish: (
 /** Kasb ishchisi bilan suhbat: har savolda AI qadamlari JONLI ko'rinadi; harakat takliflari tasdiq kartasi bilan keladi. */
 function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, onOtish, onOqildi, yordamchi, foydalanuvchiId = null, ixcham = false }: { ixcham?: boolean; foydalanuvchiId?: number | null; kompaniyaId: number | null; kasb: KasbIshchi | null; sahifa: string; generatsiya: number; tayyorSavol?: TayyorSavol | null; onOtish?: () => void; onOqildi?: () => void; yordamchi?: YordamchiUlanish }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [xabarlar, setXabarlar] = useState<Xabar[]>([]);
   const [matn, setMatn] = useState('');
   const [band, setBand] = useState(false);
@@ -106,7 +107,8 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const abort = useRef<AbortController | null>(null);
   const busy = useRef(false);
   const studioScope = useSyncExternalStore(studioKontekstObuna, () => studioKontekstScope(kompaniyaId, sahifa), () => '');
-  const scope = `${generatsiya}|${foydalanuvchiId}|${kompaniyaId}|${sahifa}|${studioScope}`;
+  const actScope = ['/admin/f2-tarix', '/admin/f2-tayyorlash'].includes(sahifa) ? location.search : '';
+  const scope = `${generatsiya}|${foydalanuvchiId}|${kompaniyaId}|${sahifa}|${studioScope}|${yordamchi?.joriyObyekt?.id ?? ''}|${actScope}`;
   const suhbatAvlod = useRef(0);
   const gen = useRef(scope);
   gen.current = `${scope}|${suhbatAvlod.current}`;
@@ -650,7 +652,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     const s = savol.trim();
     if (!s || outboxLoading || tahrirSorov.current === gen.current || (busy.current && !davom)) return;
     const boshlangich = gen.current;
-    const id = davom?.id ?? Date.now().toString();
+    const id = davom?.id ?? crypto.randomUUID();
     if (!davom) setMatn('');
     let qoshHavola: SahifaIshora[] = []; let yaqinHavola: SahifaIshora[] = [];
 
@@ -742,7 +744,9 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     if (katalog.length && gen.current === boshlangich)
       setXabarlar((p) => p.map((x) => (x.id === id + 'a' ? { ...x, qadamlar: [...(x.qadamlar ?? []), { ms: 0, belgi: '📚', matn: t('Platforma narx indeksidan {n} ta mos qator olindi', { n: katalog.length }) }] } : x)));
     const yakun = await kasbSavolOqim(kompaniyaId, s, {
-      sahifa, signal: ctrl.signal, katalog, studio, obyektNomi: ya?.joriyObyekt?.nom ?? null, tarix: tarixOl(id),
+      sahifa, signal: ctrl.signal, katalog, studio, obyektId: ya?.joriyObyekt?.id ?? null,
+      aktId: ['/admin/f2-tarix', '/admin/f2-tayyorlash'].includes(sahifa) ? Number(new URLSearchParams(location.search).get('akt')) || null : null,
+      obyektNomi: ya?.joriyObyekt?.nom ?? null, tarix: tarixOl(id),
       qadam: (q) => { if (gen.current === boshlangich) setXabarlar((p) => p.map((x) => (x.id === id + 'a' ? { ...x, qadamlar: [...(x.qadamlar ?? []), q] } : x))); },
     });
     if (gen.current !== boshlangich) return;   // kompaniya almashdi — eski javob ko'rsatilmaydi
