@@ -7,6 +7,7 @@ const cases: Array<[JarvisToolName, string[], unknown]> = [
   ['object_search', ['Obyektni top Sinov bino', 'Объектни топ Синов бино', 'Найди объект Синтетический корпус'], null],
   ['estimate_row', ['Smeta qatori E06-01-001-1', 'Смета қатори Е06-01-001-1', 'Найди позицию Е06-01-001-1'], 'E06-01-001-1'],
   ['estimate_price', ['Smetada M200 beton narxi?', 'Сметада М200 бетон нархи?', 'Сколько стоит бетон М200 в смете?'], expect.arrayContaining(['М200', 'БЕТОН'])],
+  ['material_prices', ['Obyektlar bo‘yicha M200 beton narxlari', 'Объектлар бўйича М200 бетон нархлари', 'Цены бетона М200 по объектам'], expect.arrayContaining(['М200', 'БЕТОН'])],
   ['norm_reference', ['ShNQ 4.02.06-04', 'ШНҚ 4.02.06-04', 'Покажи ШНК 4.02.06-04'], '4.02.06-04'],
   ['catalog_price', ['Katalogdagi #50 narxi?', 'Каталогдаги #50 нархи?', 'Цена каталога №50'], 50],
   ['f2_register', ['F2 № S-1 holati', 'Ф2 № S-1 ҳолати', 'Статус КС-2 № S-1'], expect.objectContaining({ number: 's-1' })],

@@ -3772,6 +3772,31 @@
         "frontend/functions/api/agent-ish.ts"
       ],
       "note": "PR-5 read portion, existing hujjat-buyruq endpoint only. L0 notified of missing signed/stable-idempotency write preview contract, endpoint owner untouched."
+    },
+    {
+      "id": "JARVIS-MATERIAL-PRICES-20261119",
+      "title": "Jarvis: source estimate unit prices across company objects",
+      "owner": "codex",
+      "machine": "anvar-laptop",
+      "branch": "codex/jarvis-m3-material-prices",
+      "base_sha": "c098146053f9ca72e7db81aec0ae0954e0f21d17",
+      "status": "ready_for_review",
+      "owns": [
+        "frontend/functions/_shared/jarvis/material-prices.ts",
+        "frontend/functions/_shared/jarvis/material-prices.test.ts",
+        "frontend/functions/_shared/jarvis/estimate-prices.ts",
+        "frontend/functions/_shared/jarvis/read-tools.ts",
+        "frontend/functions/_shared/jarvis/read-tools.test.ts",
+        "frontend/functions/_shared/jarvis/chat.ts",
+        "frontend/src/lib/jarvis/tool-registry.ts",
+        "frontend/src/lib/jarvis/qidiruv-sozlari.ts"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md"
+      ],
+      "production_write_allowed": false,
+      "note": "L0 telegram-bot-sifat card and ACK KOORDINATSIYA 19.11. Source-preserving estimate stage; receipt prices remain a separate pending contract."
     }
   ]
 }

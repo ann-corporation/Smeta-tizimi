@@ -5,6 +5,7 @@ import { jarvisMoney } from '../../../src/lib/jarvis/answers';
 import { jarvisHasPermission } from './authority';
 import { resolveJarvisObject, type JarvisObjectScope, type JarvisReadRpc } from './object-scope';
 import { jarvisText } from './reply-language';
+import type { PulObyekt } from '../agent-pul-javob';
 
 const source = 't2_agent_qidiruv_v1';
 const resources = new Set(['rs', 'mat', 'ob']);
@@ -46,7 +47,16 @@ export async function estimatePriceAnswer(rpc: JarvisReadRpc, scope: JarvisObjec
   if (object.tur === 'unavailable') return unavailable;
   if (object.tur === 'noaniq') return { javob: text('Qaysi obyekt? {names}', 'Какой объект? {names}', { names: object.variantlar.map(row => clean(row.nom)).join(' · ') }) };
   if (object.tur === 'yoq') return { javob: text('Narxni qaysi obyekt smetasidan qidiray?', 'В смете какого объекта искать цену?') };
-  const { id, nom } = object.obyekt;
+  return estimateObjectPriceAnswer(rpc, scope, object.obyekt, terms, authority, mayReadMoney);
+}
+
+/** Same permission, grade and unit checks for a server-selected object in a company comparison. */
+export async function estimateObjectPriceAnswer(rpc: JarvisReadRpc, scope: JarvisObjectScope, object: PulObyekt, terms: string[], authority: RpcNatija | null, mayReadMoney: boolean) {
+  const text = scope.text ?? jarvisText();
+  const denied = { rad: true, javob: text('Smetadagi narxlarni ko‘rish uchun ruxsat kerak.', 'Для просмотра цен сметы нужен доступ.') };
+  const unavailable = { javob: text('Smetadagi narxni tekshirib bo‘lmadi. Keyinroq urinib ko‘ring.', 'Не удалось проверить цену в смете. Повторите запрос позже.') };
+  if (!mayReadMoney || !jarvisHasPermission(authority, scope.company, 'smeta.read')) return denied;
+  const { id, nom } = object;
   const r = await rpc(source, { p_actor_id: scope.actor, p_kompaniya_id: scope.company, p_obyekt_id: id,
     p_obyekt_sozlar: [], p_resurs_sozlar: terms }).catch(() => null);
   if (r?.status === 403 || r?.data.narx_ruxsat === false) return denied;
@@ -83,6 +93,7 @@ export async function estimatePriceAnswer(rpc: JarvisReadRpc, scope: JarvisObjec
   if (rows.length === 15 || matches.length > 6) lines.push(text('Ko‘proq qatorni smetadan tekshiring.', 'Другие строки проверьте в смете.'));
   const title = text('**{object}** · smetadagi birlik narxi, QQSsiz', '**{object}** · цена единицы в смете, без НДС', { object: clean(nom) });
   return { javob: title + '\n\n' + lines.join('\n') + `\n\n[${name}](${path})`,
+    narx_qatorlar: matches.slice(0, 6), narx_qisqa: rows.length === 15 || matches.length > 6,
     dalil: { tur: 'smeta-resurs-narxi', id, rpc: source, yol: path },
     sahifalar: [{ yol: path, nom: name }] };
 }
