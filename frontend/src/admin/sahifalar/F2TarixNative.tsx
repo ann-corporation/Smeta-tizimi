@@ -135,10 +135,20 @@ export function F2TarixNative() {
 
   const obyektId = Number(params.get('obyekt'));
   const validId = Number.isSafeInteger(obyektId) && obyektId > 0;
+  const requestedAkt = params.get('akt');
+  const requestedAktId = requestedAkt != null && /^[1-9]\d*$/.test(requestedAkt) && Number.isSafeInteger(Number(requestedAkt)) ? Number(requestedAkt) : null;
   // Obyekt almashsa — belgilar va oyna tozalanadi (bir amal faqat bitta obyekt aktlari).
   useEffect(() => { setTanlangan(new Set()); setBekorOyna(null); setStornoOyna(null); }, [obyektId]);
   const f2Reestr = useMemo(() => reestr.filter((a) => a.tur === 'f2'), [reestr]);
-  const selectedAkt = f2Reestr.find((a) => a.id === selectedAktId) ?? f2Reestr[0] ?? null;
+  const selectedAkt = f2Reestr.find((a) => a.id === (requestedAkt != null ? requestedAktId : selectedAktId)) ?? (requestedAkt != null ? null : f2Reestr[0] ?? null);
+  const aktTanla = (id: number | null) => {
+    setSelectedAktId(id);
+    setParams(old => { const next = new URLSearchParams(old); if (id != null) next.set('akt', String(id)); else next.delete('akt'); return next; }, { replace: true });
+  };
+  const selectedLinkId = selectedAkt?.id;
+  useEffect(() => {
+    if (requestedAkt == null && selectedLinkId != null) setParams(old => { const next = new URLSearchParams(old); next.set('akt', String(selectedLinkId)); return next; }, { replace: true });
+  }, [requestedAkt, selectedLinkId, setParams]);
   useEffect(() => {
     const id = selectedAkt?.id;
     if (id == null) return;
@@ -352,7 +362,7 @@ export function F2TarixNative() {
     toast(t('Storno qoralamasi yaratildi. Tasdiqlash — shu sahifada; yangi pozitsiyalarni «F2 tayyorlash»da shu qoralama ostiga qo‘shing.'), 'ok');
     setStornoOyna(null);
     await yuklash();
-    setSelectedAktId(yangiAktId);
+    aktTanla(yangiAktId);
   }
   async function bekorTugadi(n: { bajarildi: number[]; xato: unknown }) {
     if (n.bajarildi.length) {
@@ -414,7 +424,7 @@ export function F2TarixNative() {
                     <div key={akt.id} className="flex items-start">
                     {bekorMumkin(akt) && <input type="checkbox" className="ml-2 mt-3 shrink-0" aria-label={t('F2 №{r} ni bekor qilish uchun tanlash', { r: akt.raqam || String(akt.id) })}
                       checked={tanlangan.has(akt.id)} onChange={(e) => belgila(akt.id, e.target.checked)} />}
-                    <button type="button" className="fz-list__q min-w-0 flex-1" aria-current={active} onClick={() => setSelectedAktId(akt.id)}>
+                    <button type="button" className="fz-list__q min-w-0 flex-1" aria-current={active} onClick={() => aktTanla(akt.id)}>
                       <span className="min-w-0">
                         <span className="fz-list__nom block truncate">{davrNomi(akt.oy, tilLocale()) || t('Davr noma’lum')}</span>
                         <span className="fz-list__sub">№ {akt.raqam || '—'} · {t('{n} qator', { n: akt.qator_soni ?? '—' })}</span>

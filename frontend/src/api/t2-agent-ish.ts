@@ -122,6 +122,7 @@ export type HarakatTaklif = {
 };
 export type SahifaIshora = { yol: string; nom: string };
 export type KasbYakun = {
+  ochish?: import('../lib/jarvis/navigation').JarvisOpen;
   f2_preview?: import('../lib/jarvis/write-tools').JarvisPreview;
   ok: boolean; status?: number; javob?: string; rad?: boolean; kasb?: { nom: string; rol: string; profil: string }; harakatlar?: HarakatTaklif[];
   sahifalar?: SahifaIshora[]; model_manba?: 'foydalanuvchi' | 'kompaniya' | 'platforma' | null;
@@ -129,13 +130,13 @@ export type KasbYakun = {
 };
 
 /** Savolni yuboradi va AI qadamlarini JONLI oladi (NDJSON). `qadam` har yangi qadamda chaqiriladi; yakunda to'liq natija qaytadi. */
-export async function kasbSavolOqim(k: number, savol: string, o: { sahifa?: string; obyektId?: number | null; obyektNomi?: string | null; tarix?: Array<{ rol: 'user' | 'assistant'; matn: string }>; qadam?: (q: Qadam) => void; signal?: AbortSignal;
+export async function kasbSavolOqim(k: number, savol: string, o: { sahifa?: string; obyektId?: number | null; aktId?: number | null; obyektNomi?: string | null; tarix?: Array<{ rol: 'user' | 'assistant'; matn: string }>; qadam?: (q: Qadam) => void; signal?: AbortSignal;
   /** Platform price index rows found in the browser for a price question (public reference data, R2). */
   katalog?: KatalogKontekst[]; studio?: StudioKontekst | null } = {}): Promise<KasbYakun> {
   let r: Response;
   try {
     r = await fetch('/api/agent-ish', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, signal: o.signal,
-      body: JSON.stringify({ amal: 'kasb_savol', kompaniya_id: k, savol, sahifa: o.sahifa, obyekt_id: o.obyektId ?? undefined, ...(o.obyektNomi ? { obyekt_nomi: o.obyektNomi } : {}), ...(o.tarix?.length ? { tarix: o.tarix } : {}), oqim: true, ...(o.katalog?.length ? { katalog: o.katalog } : {}), ...(o.studio ? { studio: o.studio } : {}) }) });
+      body: JSON.stringify({ amal: 'kasb_savol', kompaniya_id: k, savol, sahifa: o.sahifa, obyekt_id: o.obyektId ?? undefined, akt_id: o.aktId ?? undefined, ...(o.obyektNomi ? { obyekt_nomi: o.obyektNomi } : {}), ...(o.tarix?.length ? { tarix: o.tarix } : {}), oqim: true, ...(o.katalog?.length ? { katalog: o.katalog } : {}), ...(o.studio ? { studio: o.studio } : {}) }) });
   } catch (e) { return { ok: false, error: 'Tarmoq: ' + (e instanceof Error ? e.message : String(e)) }; }
   if (!(r.headers.get('content-type') ?? '').includes('x-ndjson') || !r.body) {
     try { return { ...(await r.json() as KasbYakun), status: r.status }; } catch { return { ok: false, error: `Server javob bermadi (HTTP ${r.status})` }; }

@@ -3,13 +3,20 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "JARVIS-M3-NAVIGATION-20261119", "title": "Shared registered navigation and verified page context",
+      "owner": "codex", "machine": "Anvar", "branch": "codex/jarvis-m3-navigation", "base_sha": "e7ef2a85",
+      "status": "active", "depends_on": [], "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md"], "production_write_allowed": false,
+      "owns": ["frontend/src/lib/jarvis/navigation.ts", "frontend/src/lib/jarvis/f2-navigation-evidence.ts", "frontend/src/lib/jarvis/f2-navigation-evidence.test.ts", "frontend/functions/_shared/jarvis/navigation.ts", "frontend/functions/_shared/jarvis/navigation.test.ts", "frontend/functions/api/agent-ish.test.ts", "frontend/functions/_shared/jarvis/chat.ts", "frontend/src/api/t2-agent-ish.ts", "frontend/src/umumiy/ui/AiChat.tsx", "frontend/src/umumiy/ui/AiChat.conversations.test.tsx", "frontend/src/admin/sahifalar/F2TarixNative.tsx", "frontend/src/admin/sahifalar/F2TarixNative.bugalter.test.tsx"],
+      "note": "L0 LANE-1 PR-4. Existing registry, menu permission filter, verified actor/company/object F2 context. Server transport unchanged; merge at L0."
+    },
+    {
       "id": "JARVIS-M3-F2-WRITE-20261119",
       "title": "Jarvis F2 and fact tools through existing preview and confirmation",
       "owner": "codex",
       "machine": "Anvar",
       "branch": "codex/jarvis-m3-f2-write",
       "base_sha": "548ce612",
-      "status": "ready_for_review",
+      "status": "completed",
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md"],
       "owns": [
@@ -3587,3 +3594,4 @@
   }
 ]
 }
+
