@@ -7,6 +7,7 @@
       "owner": "codex", "machine": "Anvar", "branch": "codex/jarvis-m3-warehouse", "base_sha": "7a2c21d5",
       "status": "ready_for_review", "depends_on": [], "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md"], "production_write_allowed": false,
       "owns": [
+        "android-native/shared/src/main/resources/site-i18n/ru.json", "android-native/shared/src/main/resources/site-i18n/en.json",
         "frontend/src/lib/jarvis/warehouse-command.ts", "frontend/src/lib/jarvis/WarehouseCard.tsx", "frontend/src/lib/jarvis/WarehouseCard.test.tsx",
         "frontend/functions/_shared/jarvis/warehouse-command.ts", "frontend/functions/_shared/jarvis/warehouse-command.test.ts",
         "frontend/functions/_shared/jarvis/warehouse-core.test.ts", "frontend/functions/_shared/jarvis/warehouse-routing.test.ts", "frontend/functions/_shared/jarvis/warehouse-telegram.ts", "frontend/functions/_shared/jarvis/warehouse-telegram.test.ts",
