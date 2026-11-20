@@ -11,6 +11,7 @@ import uz.anncorp.smeta.core.data.AuthRepository
 import uz.anncorp.smeta.core.data.EncryptedCache
 import uz.anncorp.smeta.core.data.Loaded
 import uz.anncorp.smeta.core.data.JarvisRepository
+import uz.anncorp.smeta.core.data.JarvisOutbox
 import uz.anncorp.smeta.core.data.SessionRepository
 import uz.anncorp.smeta.core.data.TokenStore
 import java.util.concurrent.TimeUnit
@@ -32,6 +33,10 @@ class Services(apiBase: String = System.getenv("QURAI_API_BASE") ?: BuildInfo.AP
     /** The API in use: the real one, or [DesktopDemoApi] while the demo is on (the saved real session is never touched by the demo). */
     var api: uz.anncorp.smeta.core.data.BffApi = realApi; private set
     var demo = false; private set
+    // Unsaved drafts are not read-cache entries: clearing offline copies must not delete them.
+    val jarvisOutbox = JarvisOutbox(java.io.File(AppPaths.root, "jarvis-outbox"), cipher, json) {
+        if (demo) "00000000-0000-4000-8000-000000000000" else tokens.load()?.deviceId
+    }
     val auth = AuthRepository(
         base, tokens, json, BuildInfo.VERSION,
         deviceName = { System.getenv("COMPUTERNAME") ?: "Windows" },

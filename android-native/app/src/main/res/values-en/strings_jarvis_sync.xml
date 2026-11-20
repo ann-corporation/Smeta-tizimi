@@ -1,0 +1,10 @@
+<resources>
+    <string name="jarvis_sync_loading">Loading chat history…</string>
+    <string name="jarvis_sync_stale">This chat changed on another device. You can copy the unsaved messages into a new chat.</string>
+    <string name="jarvis_sync_unreadable">Encrypted messages could not be read. The queue is retained; sending new messages is paused.</string>
+    <string name="jarvis_sync_device">The device session changed. Sign in again.</string>
+    <string name="jarvis_sync_failed">Messages were not saved. Keep the app open until you retry.</string>
+    <string name="jarvis_sync_retry">Retry saving</string>
+    <string name="jarvis_sync_fork">Save unsaved messages in a new chat</string>
+    <string name="jarvis_sync_wait">Finish saving first</string>
+</resources>
