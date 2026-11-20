@@ -58,6 +58,9 @@ import uz.anncorp.smeta.core.data.ChatWrite
 import uz.anncorp.smeta.core.data.ConnectivityMonitor
 import uz.anncorp.smeta.core.data.JarvisRepository
 import uz.anncorp.smeta.core.data.JarvisResult
+import uz.anncorp.smeta.core.data.JarvisWarehouse
+import uz.anncorp.smeta.core.data.JarvisWarehouseRequest
+import uz.anncorp.smeta.core.data.ApiResult
 import uz.anncorp.smeta.core.data.JarvisPendingStore
 import uz.anncorp.smeta.core.data.PendingJarvisWrite
 import uz.anncorp.smeta.core.data.ObjectsRepository
@@ -76,7 +79,7 @@ import javax.inject.Inject
 /** One bubble in the chat. Errors are first-class so a 402 (no tokens) is shown as a clear card, not a generic failure. */
 sealed interface Bubble {
     data class Mine(val text: String) : Bubble
-    data class Jarvis(val text: String, val local: Boolean, val previewToken: String? = null) : Bubble
+    data class Jarvis(val text: String, val local: Boolean, val previewToken: String? = null, val warehouse: JarvisWarehouse? = null) : Bubble
     data class Budget(val message: String?) : Bubble
     data class Problem(val kind: Kind, val message: String?) : Bubble
     enum class Kind { NETWORK, SERVER, CONTEXT }
@@ -135,6 +138,16 @@ class JarvisViewModel @Inject constructor(
 
     private fun companyId() = ctx.current.value?.companyId
     private fun current(epoch: Long, company: Long?) = generation == epoch && companyId() == company && ctx.current.value == workplace
+
+    suspend fun warehouseAction(index: Int, request: JarvisWarehouseRequest): ApiResult {
+        val original = (_ui.value.bubbles.getOrNull(index) as? Bubble.Jarvis)?.warehouse ?: return ApiResult(403, null, "PERMISSION_DENIED")
+        if (!_ui.value.canSend || ctx.current.value != workplace || original.companyId != companyId() ||
+            request.companyId != original.companyId || original.warehouses.none { it.id == request.warehouseId }) return ApiResult(403, null, "PERMISSION_DENIED")
+        val epoch = generation
+        _ui.update { it.copy(busy = true) }
+        return try { repo.warehouseRequest(request) }
+        finally { if (current(epoch, request.companyId)) _ui.update { it.copy(busy = false) } }
+    }
 
     init {
         viewModelScope.launch {
@@ -240,7 +253,7 @@ class JarvisViewModel @Inject constructor(
         _ui.update { it.copy(bubbles = it.bubbles + Bubble.Mine(q), busy = true, showList = false) }
         viewModelScope.launch {
             val reply: Bubble = when (val r = repo.ask(q, cid, history, objectId)) {
-                is JarvisResult.Answer -> Bubble.Jarvis(r.text, r.local, r.previewToken)
+                is JarvisResult.Answer -> Bubble.Jarvis(r.text, r.local, r.previewToken, r.warehouse)
                 is JarvisResult.Budget -> Bubble.Budget(r.message)
                 is JarvisResult.Context -> Bubble.Problem(Bubble.Kind.CONTEXT, r.message)
                 JarvisResult.Network -> Bubble.Problem(Bubble.Kind.NETWORK, null)
@@ -568,6 +581,11 @@ fun JarvisScreen(onBack: () -> Unit, vm: JarvisViewModel = hiltViewModel(), embe
             onNewChat = { if (!ui.busy && !ui.outboxUnreadable) { if (ui.saveIssue == null && text.isBlank()) vm.newChat() else confirmDiscard = true } },
             onOpenChat = { qc -> if (ui.canSend && text.isBlank()) ui.chats.firstOrNull { it.id == qc.id }?.let(vm::open) },
             maxInput = JarvisRepository.MAX_QUESTION, canSend = ui.canSend,
+            messageExtra = { index ->
+                (ui.bubbles.getOrNull(index) as? Bubble.Jarvis)?.warehouse?.let { frame ->
+                    JarvisWarehouseCard(frame, enabled = ui.canSend) { request -> vm.warehouseAction(index, request) }
+                }
+            },
             onConfirm = { token -> vm.confirmPreview(token) },
             voice = QJarvisVoice(recording = micRecording, busy = micBusy, onStart = startMic, onStop = stopMic),
             belowHeader = {

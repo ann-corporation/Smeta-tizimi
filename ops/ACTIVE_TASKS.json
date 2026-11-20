@@ -3838,6 +3838,30 @@
       ],
       "production_write_allowed": false,
       "note": "Expanded LANE-1 PR6 and ACK KOORDINATSIYA. Reuse existing transcript[] webhook sender, preserve signed guide/force_reply, no live messages."
+    },
+    {
+      "id": "JARVIS-NATIVE-WAREHOUSE-20261119",
+      "title": "Preserve Jarvis warehouse cards in native Android chat",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/jarvis-m3-native-warehouse",
+      "base_sha": "e7ef2a85",
+      "status": "active",
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md"
+      ],
+      "production_write_allowed": false,
+      "owns": [
+        "android-native/shared/src/main/kotlin/uz/anncorp/smeta/core/data/Jarvis.kt",
+        "android-native/shared/src/main/kotlin/uz/anncorp/smeta/core/data/JarvisWarehouse.kt",
+        "android-native/shared/src/test/kotlin/uz/anncorp/smeta/core/data/JarvisWarehouseTest.kt",
+        "android-native/app/src/main/java/uz/anncorp/smeta/feature/jarvis/JarvisScreen.kt",
+        "android-native/app/src/main/java/uz/anncorp/smeta/feature/jarvis/JarvisWarehouseCard.kt",
+        "android-native/ui-common/src/commonMain/kotlin/uz/anncorp/qurai/ui/screens/Jarvis.kt"
+      ],
+      "note": "L0 19.11 urgent APK warehouse request, coordinated in Obsidian. Existing BFF warehouse endpoint, no calculation/parser duplication, preview remains ephemeral and scoped. PR <=600, merge at L0."
     }
   ]
 }

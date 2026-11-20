@@ -106,6 +106,7 @@ fun QJarvisChat(
     listFooter: (@Composable () -> Unit)? = null,
     /** False while a send is not allowed (busy, unsaved chat problem): the send button and Enter are off, quick questions too. */
     canSend: Boolean = true,
+    messageExtra: (@Composable (Int) -> Unit)? = null,
     /** Confirms a write preview: returns null on success or the error text. Null = the platform cannot confirm (no buttons). */
     onConfirm: (suspend (String) -> String?)? = null,
     /** Voice input (mic button next to Send); null hides it. */
@@ -148,7 +149,12 @@ fun QJarvisChat(
                     Text(texts.hint, style = Q.type.bodyMedium, color = c.textMute)
                 }
             }
-            items(bubbles.size) { i -> Bubble(bubbles[i], texts, onConfirm) }
+            items(bubbles.size) { i ->
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Bubble(bubbles[i], texts, onConfirm)
+                    messageExtra?.invoke(i)
+                }
+            }
             if (busy) item {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) { QSpinner(16); Text(texts.thinking, style = Q.type.bodySmall, color = c.textMute) }
             }
