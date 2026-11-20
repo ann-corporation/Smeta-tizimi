@@ -9,21 +9,23 @@ const maxBytes = 220_000;
 const forbidden = new Set(['actor', 'actor_id', 'p_actor_id', 'aktor', 'kompaniya_id', 'p_kompaniya_id', 'tasdiq', 'dry_run', 'narx_override']);
 
 /** Request-scoped client of the EXISTING stateless Smeta MCP. Never connects to a caller URL. */
-export function smetaMcpClient(service: McpService | undefined, request: Request, company: number) {
+export function smetaMcpClient(service: McpService | undefined, request: Request, company: number, deadline = Date.now() + 45000) {
   const cookie = request.headers.get('Cookie');
   if (!service || !cookie || !Number.isSafeInteger(company) || company <= 0) return undefined;
   let sequence = 0;
-  async function rpc(method: string, params: RecordValue = {}): Promise<RecordValue> {
+  async function exchange(method: string, params: RecordValue, signal: AbortSignal): Promise<RecordValue> {
     const id = method.startsWith('notifications/') ? undefined : ++sequence;
-    const signal = AbortSignal.timeout(6000);
     const response = await service!.fetch(new Request('https://smeta-mcp.internal/jarvis/mcp', {
       method: 'POST', signal, headers: { Cookie: cookie!, 'X-Jarvis-Company': String(company),
         'Content-Type': 'application/json', Accept: 'application/json, text/event-stream', 'MCP-Protocol-Version': '2025-06-18' },
       body: JSON.stringify({ jsonrpc: '2.0', id, method, params }),
     }));
+    if (signal.aborted) { void response.body?.cancel().catch(() => undefined); throw new Error('MCP_DEADLINE'); }
     if (id === undefined && response.status === 202) { await response.body?.cancel(); return {}; }
     if (!response.ok || !response.headers.get('Content-Type')?.includes('application/json') || !response.body) throw new Error('MCP_UNAVAILABLE');
     const reader = response.body.getReader(); const chunks: Uint8Array[] = []; let size = 0;
+    const cancel = () => { void reader.cancel().catch(() => undefined); };
+    signal.addEventListener('abort', cancel, { once: true });
     try {
       for (;;) {
         const part = await reader.read(); if (part.done) break;
@@ -31,12 +33,22 @@ export function smetaMcpClient(service: McpService | undefined, request: Request
         if (size > maxBytes) throw new Error('MCP_RESULT_LIMIT');
         chunks.push(part.value);
       }
-    } finally { await reader.cancel().catch(() => undefined); }
+    } finally { signal.removeEventListener('abort', cancel); await reader.cancel().catch(() => undefined); }
     const bytes = new Uint8Array(size); let offset = 0;
     for (const part of chunks) { bytes.set(part, offset); offset += part.byteLength; }
     const body: unknown = JSON.parse(new TextDecoder().decode(bytes));
     if (!record(body) || body.jsonrpc !== '2.0' || body.id !== id || body.error || !record(body.result)) throw new Error('MCP_PROTOCOL_ERROR');
     return body.result;
+  }
+  async function rpc(method: string, params: RecordValue = {}): Promise<RecordValue> {
+    const remaining = Math.min(6000, deadline - Date.now());
+    if (remaining <= 0) throw new Error('MCP_DEADLINE');
+    const controller = new AbortController(); let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([exchange(method, params, controller.signal), new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => { controller.abort(); reject(new Error('MCP_DEADLINE')); }, remaining);
+      })]);
+    } finally { if (timer !== undefined) clearTimeout(timer); }
   }
   let loaded: Promise<{ tools: Tool[]; rules: string }> | undefined;
   const open = () => loaded ??= (async () => {

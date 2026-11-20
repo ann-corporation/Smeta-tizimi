@@ -84,3 +84,41 @@ it.each(['wrong_id', 'oversized'])('rejects invalid transport response %s', asyn
     : new Response('x'.repeat(220001), { headers: { 'Content-Type': 'application/json' } }));
   await expect(smetaMcpClient(service, request(), 902)!.open()).rejects.toThrow();
 });
+it('bounds a late tool call by the absolute deadline even when the service ignores abort', async () => {
+  vi.useFakeTimers();
+  try {
+    const client = smetaMcpClient(service, request(), 902, Date.now() + 45000)!;
+    await client.open(); await vi.advanceTimersByTimeAsync(44999);
+    let signal: AbortSignal | undefined;
+    vi.mocked(service.fetch).mockImplementationOnce(r => { signal = r.signal; return new Promise(() => undefined); });
+    const failed = expect(client.call('fakt_jurnal', {})).rejects.toThrow('MCP_DEADLINE');
+    await vi.advanceTimersByTimeAsync(1); await failed;
+    expect(signal?.aborted).toBe(true);
+    const count = vi.mocked(service.fetch).mock.calls.length;
+    await expect(client.call('fakt_jurnal', {})).rejects.toThrow('MCP_DEADLINE');
+    expect(service.fetch).toHaveBeenCalledTimes(count);
+  } finally { vi.useRealTimers(); }
+});
+it('also bounds stalled response bodies and cancels the source stream', async () => {
+  vi.useFakeTimers();
+  try {
+    const cancel = vi.fn();
+    vi.mocked(service.fetch).mockResolvedValueOnce(new Response(new ReadableStream({ cancel }), {
+      headers: { 'Content-Type': 'application/json' },
+    }));
+    const failed = expect(smetaMcpClient(service, request(), 902, Date.now() + 10)!.open()).rejects.toThrow();
+    await vi.advanceTimersByTimeAsync(10); await failed;
+    expect(cancel).toHaveBeenCalledOnce();
+  } finally { vi.useRealTimers(); }
+});
+it('disposes a response that arrives after an ignored cancellation', async () => {
+  vi.useFakeTimers();
+  try {
+    let release: (response: Response) => void = () => undefined;
+    vi.mocked(service.fetch).mockImplementationOnce(() => new Promise<Response>(resolve => { release = resolve; }));
+    const failed = expect(smetaMcpClient(service, request(), 902, Date.now() + 10)!.open()).rejects.toThrow('MCP_DEADLINE');
+    await vi.advanceTimersByTimeAsync(10); await failed;
+    const cancel = vi.fn(); release(new Response(new ReadableStream({ cancel })));
+    await vi.advanceTimersByTimeAsync(0); expect(cancel).toHaveBeenCalledOnce();
+  } finally { vi.useRealTimers(); }
+});
