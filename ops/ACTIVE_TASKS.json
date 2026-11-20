@@ -3748,6 +3748,30 @@
         "frontend/src/admin/sahifalar/F2TarixNative.bugalter.test.tsx"
       ],
       "note": "L0 LANE-1 PR-4. Existing registry, menu permission filter, verified actor/company/object F2 context. Server transport unchanged; merge at L0."
+    },
+    {
+      "id": "JARVIS-M3-DISK-READ-20261119",
+      "title": "Existing Disk read tools in shared Jarvis model loop",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/jarvis-m3-disk-read",
+      "base_sha": "e7ef2a85",
+      "status": "active",
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md"
+      ],
+      "production_write_allowed": false,
+      "owns": [
+        "frontend/src/lib/jarvis/disk-tools.ts",
+        "frontend/functions/_shared/jarvis/disk-tools.ts",
+        "frontend/functions/_shared/jarvis/disk-tools.test.ts",
+        "frontend/functions/_shared/jarvis/jarvis-eval.test.ts",
+        "frontend/functions/_shared/jarvis/chat.ts",
+        "frontend/functions/api/agent-ish.ts"
+      ],
+      "note": "PR-5 read portion, existing hujjat-buyruq endpoint only. L0 notified of missing signed/stable-idempotency write preview contract, endpoint owner untouched."
     }
   ]
 }

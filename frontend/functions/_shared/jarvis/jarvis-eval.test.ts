@@ -4,8 +4,9 @@ import { onRequestPost as interactivePost } from '../../api/agent-ish';
 import { kontekstKeshTozala } from '../agent-kontekst-kesh';
 import { evalActor, evalCompany, evalLexicon, evalProjects } from './eval-fixture';
 
-const boundary = vi.hoisted(() => ({ auth: vi.fn(), model: vi.fn(), preview: vi.fn() }));
+const boundary = vi.hoisted(() => ({ auth: vi.fn(), model: vi.fn(), preview: vi.fn(), disk: vi.fn() }));
 vi.mock('../../api/f2-buyruq', () => ({ onRequestPost: boundary.preview }));
+vi.mock('../../api/hujjat-buyruq', () => ({ onRequestPost: boundary.disk }));
 vi.mock('../auth', () => ({ tekshir: boundary.auth }));
 vi.mock('../agent-hisob', async load => ({ ...(await load<typeof import('../agent-hisob')>()), aiHisobli: boundary.model }));
 
@@ -24,7 +25,7 @@ const actStatuses = {
 } as const;
 const billingUsage = { inputTokens: 180, outputTokens: 40 };
 const baseCategories = ['obyektlar', 'smeta_pul', 'f2_fakt_pul', 'ombor'];
-let configuration = { categories: baseCategories, missingFooter: false, foreignResponse: false, writePermission: false, readPermission: true, domainReads: false };
+let configuration = { categories: baseCategories, missingFooter: false, foreignResponse: false, writePermission: false, readPermission: true, domainReads: false, diskPermission: false };
 
 const remote = vi.fn(async (input: string, init?: RequestInit) => {
   const name = input.split('/').at(-1);
@@ -34,7 +35,7 @@ const remote = vi.fn(async (input: string, init?: RequestInit) => {
   const project = evalProjects.find(row => row.id === args.p_obyekt_id);
   switch (name) {
     case 't2_agent_kasb_v1': return Response.json({ ok: true, nom: 'Sinov PTO', rol: 'pto', profil: 'pto_smeta', vazifa: 'Sinov', boshqalar: [], namuna_savollar: [], kategoriyalar: configuration.categories, harakatlar: ['ombor_kirim'] });
-    case 't2_men_v1': return Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: evalCompany, effective_role: configuration.domainReads ? 'pto' : undefined, permissions: ['warehouse.read', 'f2.read', ...(configuration.readPermission ? ['smeta.read'] : []), ...(configuration.domainReads ? ['company.read', 'document.read'] : []), ...(configuration.writePermission ? ['f2.prepare', 'fakt.write'] : [])] }] });
+    case 't2_men_v1': return Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: evalCompany, effective_role: configuration.domainReads ? 'pto' : undefined, permissions: ['warehouse.read', 'f2.read', ...(configuration.readPermission ? ['smeta.read'] : []), ...(configuration.domainReads ? ['company.read', 'document.read'] : []), ...(configuration.diskPermission ? ['document.read'] : []), ...(configuration.writePermission ? ['f2.prepare', 'fakt.write'] : [])] }] });
     case 't2_topshiriqlar_v1': return Response.json({ ok: true, qatorlar: [], keyingi_id: null });
     case 't2_hujjat_kiruvchi_v1': return Response.json({ ok: true, zanjirlar: [] });
     case 't2_agent_fakt_v1': return Response.json({ ok: true, fakt: { obyektlar: args.p_obyekt_id == null ? objects : objects.filter(row => row.id === args.p_obyekt_id) }, ishlatilgan: configuration.categories });
@@ -60,10 +61,11 @@ const remote = vi.fn(async (input: string, init?: RequestInit) => {
 });
 
 beforeEach(() => {
-  configuration = { categories: baseCategories, missingFooter: false, foreignResponse: false, writePermission: false, readPermission: true, domainReads: false };
+  configuration = { categories: baseCategories, missingFooter: false, foreignResponse: false, writePermission: false, readPermission: true, domainReads: false, diskPermission: false };
   boundary.auth.mockResolvedValue({ foydalanuvchi_id: evalActor, kompaniyalar: [{ kompaniya_id: evalCompany }] });
   boundary.model.mockReset();
   boundary.preview.mockReset();
+  boundary.disk.mockReset();
   kontekstKeshTozala(); remote.mockClear();
   vi.stubGlobal('fetch', remote);
 });
@@ -87,6 +89,38 @@ const mockModel = (answer: string, material: string) => boundary.model.mockResol
 
 const fixtures = Object.entries(evalLexicon).flatMap(([language, lexicon]) =>
   evalProjects.map(project => ({ key: `${language}/${project.id}`, language: language as EvalLanguage, lexicon, project })));
+
+it('disk/deterministic preserves original authenticated request and invokes only the existing read endpoint', async () => {
+  configuration.diskPermission = true;
+  boundary.disk.mockResolvedValue(Response.json({ ok: true, natija: { ishlatilgan: 0, limit: null, foiz: null } }));
+  const request = new Request('https://test.invalid/api/agent-ish', { method: 'POST', headers: { Authorization: 'Bearer synthetic-device' },
+    body: JSON.stringify({ amal: 'kasb_savol', kompaniya_id: evalCompany, savol: 'Disk qancha joy olgan?' }) });
+  const response = await interactivePost({ env, request } as never);
+  expect(response.status).toBe(200);
+  expect((await response.json() as ResponseBody).javob).toContain('0 bayt');
+  const forwarded = boundary.disk.mock.calls[0][0].request as Request;
+  expect(new URL(forwarded.url).pathname).toBe('/api/hujjat-buyruq');
+  expect(forwarded.headers.get('Authorization')).toBe('Bearer synthetic-device');
+  expect(await forwarded.json()).toEqual({ amal: 'vosita', nom: 'fayl_kvota', args: { kompaniya_id: evalCompany } });
+  expect(boundary.model).not.toHaveBeenCalled(); expect(boundary.preview).not.toHaveBeenCalled();
+});
+it('disk/model tool joins the same bounded billed loop', async () => {
+  configuration.diskPermission = true;
+  boundary.disk.mockResolvedValue(Response.json({ ok: true, natija: { ishlatilgan: 0, limit: 100, foiz: 0 } }));
+  boundary.model.mockResolvedValueOnce({ model: 'synthetic', provider: 'openrouter', text: JSON.stringify({ javob: '', harakatlar: [], tool_call: { name: 'fayl_kvota', arguments: {} } }) })
+    .mockResolvedValueOnce({ model: 'synthetic', provider: 'openrouter', text: JSON.stringify({ javob: 'Disk tekshirildi.', harakatlar: [], tool_call: null }) });
+  const { body } = await query('Yordam bering', {}, true);
+  expect(body.javob).toContain('100 bayt'); expect(boundary.disk).toHaveBeenCalledTimes(1);
+  expect(boundary.model).toHaveBeenCalledTimes(2);
+  expect(boundary.model.mock.calls[1][5].text).toContain('read-tool-results');
+  expect(rpc('t2_agent_harakat_taklif_v1')).toEqual([]);
+});
+it.each([['fayl_yukla', true], ['fayl_kvota', false]])('disk/rejects model write or missing capability %s', async (name, permitted) => {
+  configuration.diskPermission = permitted;
+  boundary.model.mockResolvedValue({ model: 'synthetic', provider: 'openrouter', text: JSON.stringify({ javob: '', harakatlar: [], tool_call: { name, arguments: {} } }) });
+  await query('Yordam bering', {}, true);
+  expect(boundary.disk).not.toHaveBeenCalled(); expect(boundary.preview).not.toHaveBeenCalled();
+});
 
 it('model/tools: limits the billed loop to six verified, scoped read calls', async () => {
   for (const { material } of evalProjects) {
