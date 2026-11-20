@@ -807,6 +807,36 @@ describe('agent-ish shlyuzi', () => {
       expect(r3.status).toBe(400); expect(f.mock.calls.some(([u]) => String(u).includes('t2_agent_taklif_yarat_v1'))).toBe(false);
     });
 
+    it('feedback defers stalled counters and preserves the existing negative signal without waiting', async () => {
+      let finish!: (response: Response) => void; const pending = new Promise<Response>(resolve => { finish = resolve; });
+      const jobs: Promise<unknown>[] = [];
+      const f = vi.fn(async (url: string) => url.endsWith('t2_osuvchi_yoz_v1') ? pending : rpcJavob({ ok: true }));
+      vi.stubGlobal('fetch', f);
+      try {
+        const response = await onRequestPost({ request: new Request('https://test.invalid/api/agent-ish', { method: 'POST',
+          body: JSON.stringify({ amal: 'javob_baho', kompaniya_id: 5, baho: 'yomon' }) }), env: env(),
+          waitUntil: (job: Promise<unknown>) => jobs.push(job) } as never);
+        expect(response.status).toBe(200); expect(jobs).toHaveLength(1);
+        expect(f.mock.calls.some(([u]) => u.endsWith('t2_agent_signal_yoz_v1'))).toBe(true);
+        let settled = false; void jobs[0].then(() => { settled = true; }); await Promise.resolve(); expect(settled).toBe(false);
+      } finally { finish(rpcJavob({ ok: true, qabul: 1 })); await Promise.all(jobs); }
+    });
+    it('feedback uses compact counters, signed-in actor and stable event id without user text', async () => {
+      const f = vi.fn(async (_u: string, _init?: RequestInit) => rpcJavob({ ok: true, qabul: 1 })); vi.stubGlobal('fetch', f);
+      const operation_id = '11111111-1111-4111-8111-111111111111';
+      for (const baho of ['yaxshi', 'yomon', 'noaniq']) {
+        f.mockClear();
+        expect((await post({ amal: 'javob_baho', kompaniya_id: 5, baho, operation_id, p_actor_id: 99,
+          savol: 'Synthetic private question', sahifa: '/admin/object/123456' })).status).toBe(200);
+        const body = JSON.parse(String(f.mock.calls.find(([u]) => u.endsWith('t2_osuvchi_yoz_v1'))?.[1]?.body));
+        expect(body).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 5, p_operation_id: operation_id,
+          p_amal: 'friksiya_yubor', p_yuk: { qatorlar: [{ s: 'jarvis', a: baho === 'yaxshi' ? 'feedback_good' : baho === 'yomon' ? 'feedback_bad' : 'feedback_unclear' }] } });
+        expect(JSON.stringify(body)).not.toMatch(/private|question|123456|99/);
+      }
+      f.mockClear();
+      expect((await post({ amal: 'javob_baho', kompaniya_id: 5, baho: 'invalid' })).status).toBe(400);
+      expect(f).not.toHaveBeenCalled();
+    });
     it('javob_baho: «qisqaroq» uslubni yangilaydi (o‘chirilgan bo‘lsa yo‘q); «yomon» matnsiz signal; noto‘g‘ri baho rad; actor sessiyadan', async () => {
       const f = vi.fn(async (u: string) => (String(u).includes('t2_agent_uslub_v1') ? rpcJavob({ ok: true, xususiyat: { n: 6, ru: 0, uzunlik: 50, batafsil: 0.5, qisqa: 0.1, jadval: 0, rasmiy: 0 }, korsatma: null, yoqilgan: true }) : rpcJavob({ ok: true }))); vi.stubGlobal('fetch', f);
       expect((await post({ amal: 'javob_baho', kompaniya_id: 5, baho: 'qisqaroq', p_actor_id: 99 })).status).toBe(200);

@@ -1,6 +1,7 @@
 import { jarvisTools, type JarvisToolName } from '../../../src/lib/jarvis/tool-registry';
 import { rpcData, type RpcNatija } from '../agent-rpc';
 import { telemetriyaYoz } from '../ai-telemetriya';
+import type { JarvisSignalSink } from './learning';
 import { jarvisHasPermission } from './authority';
 import type { JarvisEnv } from './chat';
 import { cumulativeAnswer, cumulativeIntent } from './cumulative';
@@ -49,7 +50,7 @@ export function firstReadTool(names: readonly JarvisToolName[], query: string): 
   return null;
 }
 
-export function jarvisReadTools(env: JarvisEnv, scope: JarvisObjectScope, men: RpcNatija | null, categories: readonly string[]) {
+export function jarvisReadTools(env: JarvisEnv, scope: JarvisObjectScope, men: RpcNatija | null, categories: readonly string[], onSignal?: JarvisSignalSink) {
   const text = scope.text ?? jarvisText();
   const { actor, company } = scope;
   const denied = { rad: true, javob: text('Bu ma’lumotni ko‘rish uchun ruxsat kerak.', 'Для просмотра этих данных нужен доступ.') };
@@ -64,6 +65,7 @@ export function jarvisReadTools(env: JarvisEnv, scope: JarvisObjectScope, men: R
     const rpc: JarvisReadRpc = (name, body) => rpcData(env, name, body, signal);
     let answer: Answer | null;
     let error: string | null = null;
+    let noAnswer = false;
     const args = call.args;
     try {
       if (!visible(call.name)) answer = denied;
@@ -75,6 +77,7 @@ export function jarvisReadTools(env: JarvisEnv, scope: JarvisObjectScope, men: R
           if (found.tur === 'unavailable') { answer = unavailable; error = 'SOURCE_UNAVAILABLE'; break; }
           const rows = found.tur === 'bor' ? [found.obyekt] : found.tur === 'noaniq' ? found.variantlar : [];
           const links = rows.map(row => ({ yol: '/admin/holat/' + row.id, nom: row.nom.replace(/[\r\n<>\[\]*_\x60]/g, ' ').slice(0, 160) }));
+          noAnswer = links.length === 0;
           answer = { javob: links.length ? links.map(link => `- [${link.nom}](${link.yol})`).join('\n') :
             text('Mos obyekt topilmadi.', 'Подходящий объект не найден.'), sahifalar: links };
           break;
@@ -100,6 +103,8 @@ export function jarvisReadTools(env: JarvisEnv, scope: JarvisObjectScope, men: R
     if (!answer) error = 'SOURCE_UNAVAILABLE';
     if (answer && 'source_unavailable' in answer && answer.source_unavailable === true) error = 'SOURCE_UNAVAILABLE';
     if (answer?.rad) error = 'FORBIDDEN';
+    onSignal?.({ kind: answer?.rad ? 'permission_denied' : answer === null || noAnswer ? 'no_answer'
+      : error ? 'tool_failed' : 'tool_finished', tool: call.name, ms: Date.now() - started });
     await telemetriyaYoz(env, { actor, kompaniyaId: company, yuza: 'jarvis', vositalar: [call.name], manba: 'tool',
       ok: error === null, xatoKod: error, vositaXato: error ? 1 : 0, kechikishMs: Date.now() - started });
     return answer;

@@ -12,6 +12,7 @@ import { taskPayload } from '../_shared/jarvis-vazifa';
  */
 import { kasbQuvur, type JarvisEnv, type Qadam } from '../_shared/jarvis/chat';
 import { onRequestPost as warehousePost } from './ombor-buyruq';
+import { jarvisSignalYoz } from '../_shared/jarvis/learning';
 import { onRequestPost as f2Buyruq } from './f2-buyruq';
 import { onRequestPost as hujjatBuyruq } from './hujjat-buyruq';
 import { smetaMcpClient } from '../_shared/jarvis/mcp-client';
@@ -596,7 +597,7 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
     const t0 = Date.now();
     if (so.oqim !== true) {
       const qadamlar: Qadam[] = [];
-      const r = await kasbQuvur(jarvisEnv, k.actor, kid, so, (b, m) => qadamlar.push({ ms: Date.now() - t0, belgi: b, matn: m }), 'interactive', preview);
+      const r = await kasbQuvur(jarvisEnv, k.actor, kid, so, (b, m) => qadamlar.push({ ms: Date.now() - t0, belgi: b, matn: m }), 'interactive', preview, ctx.waitUntil?.bind(ctx));
       return Response.json({ ...r.body, qadamlar }, { status: r.status, ...JAVOB });
     }
     /* OQIM (NDJSON): har qadam sodir bo'lishi bilan foydalanuvchiga yuboriladi — «hozir nima qilinayapti» jonli ko'rinadi. */
@@ -606,7 +607,7 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
     const ish = (async () => {
       const qadamlar: Qadam[] = [];
       try {
-        const r = await kasbQuvur(jarvisEnv, k.actor, kid, so, (b, m) => { const q = { ms: Date.now() - t0, belgi: b, matn: m }; qadamlar.push(q); void yoz({ t: 'qadam', ...q }); }, 'interactive', preview);
+        const r = await kasbQuvur(jarvisEnv, k.actor, kid, so, (b, m) => { const q = { ms: Date.now() - t0, belgi: b, matn: m }; qadamlar.push(q); void yoz({ t: 'qadam', ...q }); }, 'interactive', preview, ctx.waitUntil?.bind(ctx));
         await yoz({ t: 'yakun', status: r.status, ...r.body, qadamlar });
       } catch (e) {
         const m = aiXatoMalumoti(e);
@@ -641,6 +642,10 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
       if (us?.ok && us.data.yoqilgan !== false) {
         await rpcData(env, 't2_agent_uslub_yangila_v1', { p_actor_id: k.actor, p_xususiyat: uslubBaho(us.data.xususiyat as Partial<UslubXususiyat> | undefined, baho) }).catch(() => null);
       }
+    }
+    if (baho === 'yaxshi' || baho === 'yomon' || baho === 'noaniq') {
+      const work = jarvisSignalYoz(env, k.actor, kid, { kind: baho === 'yaxshi' ? 'feedback_good' : baho === 'yomon' ? 'feedback_bad' : 'feedback_unclear' }, so.operation_id);
+      if (ctx.waitUntil) ctx.waitUntil(work); else await work;
     }
     if (baho === 'yomon' || baho === 'noaniq') {
       await rpcData(env, 't2_agent_signal_yoz_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_profil: profil, p_sahifa: matn(so.sahifa, 200), p_tur: 'ai_javob_' + baho, p_xulosa: baho === 'yomon' ? 'Foydalanuvchi AI javobini yaroqsiz deb baholadi' : 'Foydalanuvchi AI javobini noaniq deb baholadi' }).catch(() => null);

@@ -3,6 +3,33 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "JARVIS-M5-COMPACT-SIGNALS-20261121",
+      "title": "Jarvis feedback and read outcomes reuse existing bounded friction counters",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/jarvis-learning-counters",
+      "base_sha": "1d9eb5acfb23e7a451369e69a636c475580c7d86",
+      "status": "ready_for_review",
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md"
+      ],
+      "owns": [
+        "frontend/functions/_shared/jarvis/learning.ts",
+        "frontend/functions/_shared/jarvis/learning.test.ts",
+        "frontend/functions/_shared/jarvis/learning-integration.test.ts",
+        "frontend/functions/_shared/jarvis/read-tools.ts",
+        "frontend/functions/api/agent-ish.ts",
+        "frontend/functions/_shared/jarvis/chat.ts",
+        "frontend/functions/api/ai-savol.ts",
+        "frontend/functions/api/agent-ish.test.ts",
+        "docs/architecture/JARVIS_SIGNALS.md"
+      ],
+      "production_write_allowed": false,
+      "note": "M5 of owner goal; fixed counter codes only, existing osuvchi RPC and storage/idempotency/settings/cardinality, no raw transcript or automatic learning/promotion. Old negative feedback weekly-proposal signal preserved. Read tail only; #738 authority guard retained in rehearsal. Same Codex AI-lane narrow API edits; L0 review/merge/release. No schema/prod/config changes."
+    },
+    {
       "id": "JARVIS-MCP-R2-NORMATIVES-20261121",
       "title": "Existing MCP normative search uses the canonical published R2 reader",
       "owner": "codex",

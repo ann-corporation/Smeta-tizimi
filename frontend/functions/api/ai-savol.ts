@@ -44,7 +44,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   try {
     const result = await kasbQuvur({ ...ctx.env, jarvisMcp: smetaMcpClient(ctx.env.SMETA_MCP, ctx.request, company) }, actor, company, {
       savol, obyekt_id: id(body.obyekt_id), tarix: body.tarix,
-    }, () => undefined, 'read-only');
+    }, () => undefined, 'read-only', undefined, ctx.waitUntil?.bind(ctx));
     if (result.body.ok === true) return javob(result.body);
     const { error, xabar, code } = result.body;
     return Response.json({ ok: false, xabar: xabar ?? error ?? 'So‘rov bajarilmadi', code }, { status: result.status, headers });

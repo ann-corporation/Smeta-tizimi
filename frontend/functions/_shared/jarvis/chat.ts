@@ -24,6 +24,7 @@ import { navigationAnswer, navigationVisible, verifiedPageContext } from './navi
 import { diskReadCall, diskReadIntent, diskReadSchemas, diskReadTools, type DiskTransport } from '../../../src/lib/jarvis/disk-tools';
 import { diskReadAnswer } from './disk-tools';
 import { telemetriyaYoz } from '../ai-telemetriya';
+import { jarvisSignalBatch, type JarvisSignalSink } from './learning';
 import { jarvisLanguage, jarvisText } from './reply-language';
 import { callJarvisModel, type JarvisModelEnv } from './model';
 import type { JarvisMcpClient, McpService } from './mcp-client';
@@ -55,7 +56,18 @@ const nomlar = (t: readonly string[]) => t.map((x) => MAVZU_NOMI[x as Toifa] ?? 
  * KASB AGENTI quvuri: lavozim → mavzu qo'riqchisi → rolga ruxsat etilgan ma'lumot → qoidalar → limit/hamyon → model → harakat takliflari → jurnal.
  * Har qadam `log` orqali chiqariladi (jonli ko'rinadi va jurnalga yoziladi). Ruxsatsiz mavzu modelga umuman yuborilmaydi.
  */
-export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: Yuk, log: (belgi: string, matn: string) => void, mode: 'interactive' | 'read-only' = 'interactive', preview?: JarvisPreviewCall): Promise<{ status: number; body: Record<string, unknown> }> {
+export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: Yuk, log: (belgi: string, matn: string) => void,
+  mode: 'interactive' | 'read-only' = 'interactive', preview?: JarvisPreviewCall, waitUntil?: (work: Promise<unknown>) => void) {
+  const signals = jarvisSignalBatch(env, actor, kid);
+  try { return await kasbQuvurIchki(env, actor, kid, so, log, mode, preview, signals.record); }
+  finally {
+    const work = signals.flush();
+    if (waitUntil) { try { waitUntil(work); } catch { await work; } } else await work;
+  }
+}
+
+async function kasbQuvurIchki(env: JarvisEnv, actor: number, kid: number, so: Yuk, log: (belgi: string, matn: string) => void,
+  mode: 'interactive' | 'read-only', preview: JarvisPreviewCall | undefined, signal: JarvisSignalSink): Promise<{ status: number; body: Record<string, unknown> }> {
   const t0 = Date.now();
   const savol = matn(so.savol, 2000) ?? '';
   const sessiya = crypto.randomUUID();
@@ -95,7 +107,7 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
     await yozJurnal('salom', javob, qadamlar, {});
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', javob } };
   }
-  const reads = jarvisReadTools(env, objectScope, men ?? null, kasb.kategoriyalar);
+  const reads = jarvisReadTools(env, objectScope, men ?? null, kasb.kategoriyalar, signal);
   const writeIntent = jarvisF2WriteIntent(savol) || warehouseWriteIntent(savol);
   const localDisk = so.studio == null && !writeIntent ? diskReadIntent(savol) : null;
   if (localDisk && env.jarvisDisk) {
