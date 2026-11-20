@@ -14,6 +14,9 @@ import { resolveJarvisObject, type JarvisObjectScope, type JarvisReadRpc } from 
 import { priceRowAnswer, priceRowIntent, priceSearchAnswer, priceSearchIntent } from './prices';
 import { jarvisText } from './reply-language';
 import { warehouseAnswer, warehouseIntent } from './warehouse';
+import { taskListAnswer, taskListIntent } from './tasks';
+import { approvalsAnswer, approvalsIntent, approvalsVisible } from './approvals';
+import { pulJavobi, pulSorovi } from '../agent-pul-javob';
 
 type Answer = { javob: string; rad?: boolean; dalil?: unknown; sahifalar?: Array<{ yol: string; nom: string }> };
 type LocalCall = { name: JarvisToolName; args: unknown };
@@ -27,10 +30,13 @@ const parsers = {
   norm_reference: normReference, catalog_price: catalogIntent, f2_register: f2RegisterIntent,
   cumulative: cumulativeIntent, discrepancy: (q: string) => discrepancyIntent(q) || null,
   warehouse_balance: warehouseIntent, document_search: documentIntent,
+  task_list: taskListIntent, approval_queue: (q: string) => approvalsIntent(q) || null,
+  estimate_total: (q: string, history?: unknown) => pulSorovi(q, history) ? q : null,
 } satisfies Record<JarvisToolName, (query: string) => unknown>;
 
-export function readToolCall(name: JarvisToolName, query: string): LocalCall | null {
-  const args = parsers[name](query);
+export function readToolCall(name: JarvisToolName, query: string, history?: unknown): LocalCall | null {
+  const parser: (q: string, history?: unknown) => unknown = parsers[name];
+  const args = parser(query, history);
   return args === null ? null : { name, args };
 }
 
@@ -48,7 +54,8 @@ export function jarvisReadTools(env: JarvisEnv, scope: JarvisObjectScope, men: R
   const denied = { rad: true, javob: text('Bu ma’lumotni ko‘rish uchun ruxsat kerak.', 'Для просмотра этих данных нужен доступ.') };
   const unavailable = { javob: text('Manbani hozir tekshirib bo‘lmadi. Keyinroq urinib ko‘ring.', 'Не удалось проверить источник. Повторите запрос позже.') };
   const visible = (name: JarvisToolName) => jarvisTools[name].permissions.every(permission => jarvisHasPermission(men, company, permission)) &&
-    (name !== 'estimate_price' || categories.includes('smeta_pul')) && (name !== 'cumulative' || categories.includes('f2_fakt_pul'));
+    (!['estimate_price', 'estimate_total'].includes(name) || categories.includes('smeta_pul')) &&
+    (name !== 'approval_queue' || approvalsVisible(men, company)) && (name !== 'cumulative' || categories.includes('f2_fakt_pul'));
 
   async function run(call: LocalCall, modelRequested = false): Promise<Answer | null> {
     const started = Date.now();
@@ -81,6 +88,11 @@ export function jarvisReadTools(env: JarvisEnv, scope: JarvisObjectScope, men: R
         case 'catalog_price': answer = typeof args === 'number' ? await priceRowAnswer(env.R2_CANONICAL, args, text)
           : await priceSearchAnswer(env.R2_CANONICAL, args as NonNullable<ReturnType<typeof priceSearchIntent>>, text); break;
         case 'document_search': answer = await documentAnswer(rpc, scope, args as NonNullable<ReturnType<typeof documentIntent>>, men); break;
+        case 'task_list': answer = await taskListAnswer(rpc, scope, args as 'today' | 'open', men); break;
+        case 'approval_queue': answer = await approvalsAnswer(rpc, scope, men); break;
+        case 'estimate_total': answer = !visible(call.name) ? denied : await pulJavobi(rpc, {
+          actor, kid: company, savol: String(args), tarix: scope.history, obyektId: scope.objectId, ruxsat: categories, text,
+        }); break;
       }
     } catch { answer = unavailable; error = 'SOURCE_UNAVAILABLE'; }
     if (!answer) error = 'SOURCE_UNAVAILABLE';
