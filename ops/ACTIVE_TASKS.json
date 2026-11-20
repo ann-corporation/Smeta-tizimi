@@ -6,7 +6,7 @@
       "id": "JARVIS-M3-NAVIGATION-20261119", "title": "Shared registered navigation and verified page context",
       "owner": "codex", "machine": "Anvar", "branch": "codex/jarvis-m3-navigation", "base_sha": "e7ef2a85",
       "status": "active", "depends_on": [], "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md"], "production_write_allowed": false,
-      "owns": ["frontend/src/lib/jarvis/navigation.ts", "frontend/functions/_shared/jarvis/navigation.ts", "frontend/functions/_shared/jarvis/navigation.test.ts", "frontend/functions/api/agent-ish.test.ts", "frontend/functions/_shared/jarvis/chat.ts", "frontend/src/api/t2-agent-ish.ts", "frontend/src/umumiy/ui/AiChat.tsx", "frontend/src/umumiy/ui/AiChat.conversations.test.tsx", "frontend/src/admin/sahifalar/F2TarixNative.tsx", "frontend/src/admin/sahifalar/F2TarixNative.bugalter.test.tsx"],
+      "owns": ["frontend/src/lib/jarvis/navigation.ts", "frontend/src/lib/jarvis/f2-navigation-evidence.ts", "frontend/src/lib/jarvis/f2-navigation-evidence.test.ts", "frontend/functions/_shared/jarvis/navigation.ts", "frontend/functions/_shared/jarvis/navigation.test.ts", "frontend/functions/api/agent-ish.test.ts", "frontend/functions/_shared/jarvis/chat.ts", "frontend/src/api/t2-agent-ish.ts", "frontend/src/umumiy/ui/AiChat.tsx", "frontend/src/umumiy/ui/AiChat.conversations.test.tsx", "frontend/src/admin/sahifalar/F2TarixNative.tsx", "frontend/src/admin/sahifalar/F2TarixNative.bugalter.test.tsx"],
       "note": "L0 LANE-1 PR-4. Existing registry, menu permission filter, verified actor/company/object F2 context. Server transport unchanged; merge at L0."
     },
     {
