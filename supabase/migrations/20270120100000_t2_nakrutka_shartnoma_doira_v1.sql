@@ -136,7 +136,7 @@ revoke all on function public.t2_nakrutka_podval_saqla_v1(bigint, bigint, bigint
 grant execute on function public.t2_nakrutka_podval_saqla_v1(bigint, bigint, bigint, text, jsonb, bigint, integer, uuid, text) to service_role;
 
 -- ---- 3. Qoralama F-2 podvalini joriy kaskaddan qayta yozish ----
-create or replace function public._t2_nakrutka_qoralama_sinxron_v1(p_obyekt_idlar bigint[])
+create or replace function public._t2_akt_podval_nakrutka_sinxron_v1(p_obyekt_idlar bigint[])
 returns integer language plpgsql security definer set search_path to 'public', 'pg_temp' as $f$
 declare r record; v_x jsonb; v_n integer := 0;
 begin
@@ -162,14 +162,14 @@ begin
   end loop;
   return v_n;
 end $f$;
-revoke all on function public._t2_nakrutka_qoralama_sinxron_v1(bigint[]) from public, anon, authenticated;
-grant execute on function public._t2_nakrutka_qoralama_sinxron_v1(bigint[]) to service_role;
+revoke all on function public._t2_akt_podval_nakrutka_sinxron_v1(bigint[]) from public, anon, authenticated;
+grant execute on function public._t2_akt_podval_nakrutka_sinxron_v1(bigint[]) to service_role;
 
 create or replace function public._t2_nakrutka_podval_sinxron_trg_v1() returns trigger
 language plpgsql security definer set search_path to 'public', 'pg_temp' as $f$
 begin
   begin
-    perform public._t2_nakrutka_qoralama_sinxron_v1(array_remove(array[new.obyekt_id, case when tg_op = 'UPDATE' then old.obyekt_id end], null));
+    perform public._t2_akt_podval_nakrutka_sinxron_v1(array_remove(array[new.obyekt_id, case when tg_op = 'UPDATE' then old.obyekt_id end], null));
   exception when others then
     raise warning 'qoralama podval sinxroni yiqildi: %', left(sqlerrm, 200); -- podval saqlash to'xtamasin
   end;
@@ -196,7 +196,7 @@ begin
     else
       select array_agg(o.id) into v_arr from public.t2_obyekt o where o.kompaniya_id = v_k;
     end if;
-    perform public._t2_nakrutka_qoralama_sinxron_v1(v_arr);
+    perform public._t2_akt_podval_nakrutka_sinxron_v1(v_arr);
   exception when others then
     raise warning 'qoralama podval sinxroni yiqildi: %', left(sqlerrm, 200); -- koeffitsient saqlash to'xtamasin
   end;

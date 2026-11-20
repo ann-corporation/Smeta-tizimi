@@ -4,7 +4,7 @@ drop trigger if exists t2_nakrutka_koef_sinxron on public.t2_nakrutka_koef;
 drop trigger if exists t2_nakrutka_podval_sinxron on public.t2_nakrutka_podval;
 drop function if exists public._t2_nakrutka_koef_sinxron_trg_v1();
 drop function if exists public._t2_nakrutka_podval_sinxron_trg_v1();
-drop function if exists public._t2_nakrutka_qoralama_sinxron_v1(bigint[]);
+drop function if exists public._t2_akt_podval_nakrutka_sinxron_v1(bigint[]);
 drop function if exists public.t2_podval_shartnoma_farq_v1(bigint, jsonb);
 create or replace function public.t2_nakrutka_podval_saqla_v1(
   p_kompaniya_id bigint, p_obyekt_id bigint, p_shartnoma_id bigint, p_nom text, p_qatorlar jsonb,

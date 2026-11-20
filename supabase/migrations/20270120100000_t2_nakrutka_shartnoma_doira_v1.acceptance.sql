@@ -4,7 +4,7 @@ begin;
 do $$
 declare f text;
 begin
-  foreach f in array array['public.t2_podval_shartnoma_farq_v1(bigint,jsonb)', 'public._t2_nakrutka_qoralama_sinxron_v1(bigint[])',
+  foreach f in array array['public.t2_podval_shartnoma_farq_v1(bigint,jsonb)', 'public._t2_akt_podval_nakrutka_sinxron_v1(bigint[])',
     'public.t2_nakrutka_podval_saqla_v1(bigint,bigint,bigint,text,jsonb,bigint,integer,uuid,text)'] loop
     if to_regprocedure(f) is null then raise exception 'ACC missing %', f; end if;
     if has_function_privilege('anon', f, 'execute') or has_function_privilege('authenticated', f, 'execute') then raise exception 'ACC anon/authenticated must not execute %', f; end if;
