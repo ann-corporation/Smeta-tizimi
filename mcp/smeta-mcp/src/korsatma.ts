@@ -7,7 +7,8 @@
 export const KORSATMA = 'QURAI (T2) bazasi bilan to\'g\'ridan-to\'g\'ri ishlash. Pul: NDS siz; ustamasiz + ustamali (ИТОГО-4), NDS alohida; null — noma\'lum (0 emas). '
   + 'Yozuvchi toollar avtomatik snapshot oladi (snapshot sxemasi bo\'lsa), bazaga audit yozadi; dry_run:true — preview + ROLLBACK. '
   + 'RPC aktori: SMETA_AKTOR_ID yoki aktor_tanla. Sxema: `sxema` tooli. '
-  + 'Rasmiy Ф-2 Excel: `f2_excel` (avval preview — token narxi; `tasdiq:true` token yechadi va faylni yozadi).';
+  + 'Rasmiy Ф-2 Excel: `f2_excel` (avval preview — token narxi; `tasdiq:true` token yechadi va faylni yozadi). '
+  + 'Transport (3 tur: ish / t·km / foiz; material uchun bitta usul): transport_tekshir, transport_belgila, transport_yoy (qoidalar — smeta://qoidalar «Transport»).';
 
 /** Domen qoidalari (har LLM to'g'ri ishlatishi uchun; masofaviy serverda `smeta://qoidalar` resursi). */
 export const QOIDALAR = `# QURAI (T2) — domen qoidalari
@@ -18,6 +19,11 @@ export const QOIDALAR = `# QURAI (T2) — domen qoidalari
 - \`null\` — **noma'lum** (narx yo'q), **0 emas**. Narx 0 — ongli nol. Kategoriya noma'lum qism ustamasiz qo'shiladi va izohda aytiladi.
 - Minus qator normal (normaga keltirish) — ishorasi bilan saqlanadi, tashlanmaydi.
 
+## Transport (3 tur — material uchun BITTA usul; ikki marta olinmaydi)
+- **ish**: Е310/С310 (avtovozka), Е311 (pogruzka-razgruzka) — oddiy bl qatorlar (yuk: grunt/chiqindi). Material transporti emas.
+- **tkm**: mahalliy ommaviy material (asfalt, ГПС, shag'al, beton, temirbeton) — «Расчёт затрат транспорта» varag'i: t·km qatori materialning tagida (kod «Т·КМ», kat МАШ, norma/hajm = material x zichlik x km). Material \`transport_usul = tkm\` bo'ladi va podval transport-% bazasidan chiqariladi.
+- **foiz**: podvaldagi «ТРАНСПОРТ ... ПРИВОЗНЫЕ МАТЕРИАЛЫ %» (sukut, usul NULL). **narx_ichida**: yetkazish material narxida (qo'shimcha transport yo'q; %-bazadan chiqariladi).
+- Smeta yuklanganda transport varag'i bo'lsa: \`transport_yoy\` (dry_run standart true) — preview'dagi farq/topilmaganlarni foydalanuvchiga ko'rsating, so'ng tasdiqlang. Usulni qo'lda belgilash: \`transport_belgila\`. Tekshirish: \`transport_tekshir\` (xato_soni = 0 bo'lishi shart; F-2 tasdiqlash aks holda rad etiladi). Transport uchun alohida «tender / qo'shimcha» bo'lim ochilmaydi.
 ## Smeta
 - **Asl smeta qatorlari o'zgarmaydi (const).** Fakt, F2, zamena, qo'shimcha ish — alohida qatlam. Asl qatorni tahrirlash/o'chirish yo'q.
 - Ustuvorlik: avval mavjud smeta qatori/normasi → keyin **zamena** (zamena_qosh) → oxirgi chora **qo'shimcha ish** (qoshimcha_ish).

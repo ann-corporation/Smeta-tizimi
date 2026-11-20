@@ -19,6 +19,7 @@ import {
 } from '../ish-oqimi';
 import { obyektIdS, tool } from '../tool';
 import { rpcChaqir } from './yozish';
+import { transportOgoh } from '../transport-ogoh';
 
 // ───────────────────────────── umumiy ─────────────────────────────
 
@@ -129,6 +130,7 @@ export const f2QoralamaYarat = tool({
       if (ochiq.length && !a.majburiy) return { nom: qisqa(ob.nom, 50), yozildi: false, sabab: 'ochiq F2 qoralama bor — avval uni tasdiqlang/tahrirlang yoki majburiy:true', ochiq_qoralamalar: ochiq };
       if (ochiq.length) ogoh.push(`ochiq qoralama(lar) bor: ${ochiq.map((x) => `#${x.id}`).join(', ')} — hajm ikki marta olinishi mumkin`);
       const { rows, bajHisobda } = await mumkinOl(m, id);
+      await transportOgoh(m, aktor, id, ogoh);
       if (!bajHisobda) ogoh.push('t2_qator_bajarilmadi jadvali yo\'q — «bajarilmadi» filtri qo\'llanmadi');
       const ovKalit = Object.keys(a.narx_override ?? {});
       const borId = new Set(rows.map((r) => String(r.qator_id)));

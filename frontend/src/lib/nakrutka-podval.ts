@@ -1,7 +1,7 @@
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { yaxlit2, type Qiymat, type RasmiyVaraq } from './hujjat-yozuvchi';
 import {
-  KATLAR, katAniqla, kaskad as yadroKaskad, type PodvalQator, kategoriyaKf as yadroKf, kOplate as yadroKOplate, podvalNdsFoizi,
+  KATLAR, katAniqla, kaskad as yadroKaskad, trChiqarKaliti, type TrKalit, type PodvalQator, kategoriyaKf as yadroKf, kOplate as yadroKOplate, podvalNdsFoizi,
   podvalVsegoKodi, standartPodval, type Kat, type KaskadNatija, type KatSummalar as YKatSummalar, type Podval,
 } from './hisob-yadro';
 import { YAXLIT_PODVAL_NOM } from './svod-yaxlit';
@@ -136,6 +136,12 @@ export type PodvalOpsiya = {
   yaxlitOldin?: Record<string, number> | null;
   /** Yaxlit qatorida bo'sh qoldiriladigan ustunlar (qiymati hisobga 0 bo'lib kiradi, katak bo'sh) — masalan ikki xil daraja solishtiriladigan farq. */
   yaxlitBosh?: readonly string[];
+  /**
+   * Transport usuli (tkm / narx_ichida) bo'lgan materiallar summasi — transport-% bazasidan chiqariladi (pul ustuni → kalit → summa).
+   * 	rUstun — qator belgisi (yashirin) ustuni: tkm / narx_ichida qatorlar uchun to'ldirilgan; ayirma SUMIFS formulasi bilan tirik.
+   */
+  trChiqar?: Record<string, Partial<Record<TrKalit, number>>> | null;
+  trUstun?: string;
 };
 
 /** QQS foizi: podvalning `nds` foiz qatori (standart podvalda — koeffitsientlardagi НДС). Noma'lum — null. */
@@ -161,7 +167,7 @@ export const NOMALUM_PODVAL_NOM = 'ВИД ЗАТРАТ НЕ УКАЗАН — б�
 export const NOMALUM_KAT = 'НЕ УКАЗАН';
 export const YAXLIT_OLDIN_PODVAL_NOM = 'Разделы по своду целой суммой (без НДС, после накладных расходов; облагаются НДС)';
 
-export type PodvalRef = { kat: (k: Kat) => string; qator: (kod: string) => string; foiz: string; qosh?: readonly string[] };
+export type PodvalRef = { kat: (k: Kat) => string; qator: (kod: string) => string; foiz: string; qosh?: readonly string[]; /** Transport-% bazasidan chiqariladigan summa katagi (yo'q — chiqarilmaydi). */ tr?: (k: TrKalit) => string | null };
 
 /**
  * YAGONA Excel formula quruvchisi (podval qatori → formula). Yadro baholovchisi bilan bir xil tuzilma — formula = kesh.
@@ -176,7 +182,9 @@ export function podvalQatorFormulasi(q: PodvalQator, r: PodvalRef): string | nul
     return (k < 0 ? '-' : i === 0 ? '' : '+') + ifoda;
   }).join('') || '0';
   if (q.tur === 'jami') return `ROUND(${hadlar}${(r.qosh ?? []).map((x) => `+${x}`).join('')},2)`;
-  return `ROUND((${hadlar})*${r.foiz}/100,2)`;
+  const tk = trChiqarKaliti(q);
+  const tref = tk ? r.tr?.(tk) ?? null : null;
+  return `ROUND((${hadlar}${tref ? `-${tref}` : ''})*${r.foiz}/100,2)`;
 }
 
 /** Podval qatori nomi: izoh va meros manbasi (foiz smetadan emas — `из договора / по умолчанию`) ko'rinadi. */
@@ -193,7 +201,7 @@ const vq = (x: number | null | undefined): number | string => (x == null ? '' : 
  * Podvalni yozadi (joriy qatordan). Formulalar tirik; har katak keshi (`v`) — yadro natijasi.
  * Qaytaradi: ВСЕГО qatori, Kf qatorlari, har pul ustunining yadro natijasi va eski shakli (to'liq bo'lsa).
  */
-export function nakrutkaPodvaliYoz(v: RasmiyVaraq, o: PodvalOpsiya): { bosh: number; vsegoQator: number; kfQator: Record<NakrutkaKat, number>; kaskad: Record<string, NakrutkaHisobJS | null>; natija: Record<string, KaskadNatija> } {
+export function nakrutkaPodvaliYoz(v: RasmiyVaraq, o: PodvalOpsiya): { bosh: number; vsegoQator: number; kfQator: Record<NakrutkaKat, number>; kaskad: Record<string, NakrutkaHisobJS | null>; natija: Record<string, KaskadNatija>; qator: Record<string, number> } {
   const n = v.ustunlar.length;
   const mc = v.matnUstuni;
   const fi = colIdx(o.foizUstun);
@@ -206,7 +214,7 @@ export function nakrutkaPodvaliYoz(v: RasmiyVaraq, o: PodvalOpsiya): { bosh: num
   const natija: Record<string, KaskadNatija> = {};
   const kaskad: Record<string, NakrutkaHisobJS | null> = {};
   o.pulUstunlar.forEach((c, i) => {
-    natija[c] = yadroKaskad(o.katSummalar[c], podval, { asosiy: i === 0, nomalumQism: nomalumBor ? yaxlit2(o.nomalum![c] ?? 0) : null, yaxlit: yaxlitBor ? { qqsBilan: yaxlit2(o.yaxlit![c] ?? 0) } : null,
+    natija[c] = yadroKaskad({ ...o.katSummalar[c], ...(o.trChiqar?.[c] ?? {}) }, podval, { asosiy: i === 0, nomalumQism: nomalumBor ? yaxlit2(o.nomalum![c] ?? 0) : null, yaxlit: yaxlitBor ? { qqsBilan: yaxlit2(o.yaxlit![c] ?? 0) } : null,
       yaxlitlar: oldinBor ? [{ bosqich: 'qqssiz_ustamadan_keyin', qqssiz: yaxlit2(o.yaxlitOldin![c] ?? 0) }] : null });
     if (natija[c].xato) throw new Error(`${natija[c].xato}: ИТОГО-4 dan keyin maxsus qator bor — ustamasiz qismni qayerga qo‘shish noaniq`);
     kaskad[c] = eskiShakl(natija[c]);
@@ -232,6 +240,26 @@ export function nakrutkaPodvaliYoz(v: RasmiyVaraq, o: PodvalOpsiya): { bosh: num
       }
       for (const col of o.pulUstunlar) c[colIdx(col)] = o.katFormulasiz ? yaxlit2(o.katSummalar[col][k]) : { f: `SUMIF(${o.katUstunPer?.[col] ?? o.katUstun}${a}:${o.katUstunPer?.[col] ?? o.katUstun}${b},"${k}",${o.summaUstunPer?.[col] ?? col}${a}:${o.summaUstunPer?.[col] ?? col}${b})`, v: yaxlit2(o.katSummalar[col][k]) };
     }));
+  }
+  /* Transport-% bazasidan chiqarilganlar (tkm / narx_ichida): alohida «в т.ч.» qatorlar — SUMIFS(summa; kat; belgi ustuni «tkm» / «narx_ichida»). Faqat bor bo'lsa. */
+  const trQ: Partial<Record<TrKalit, number>> = {};
+  const TR_NOM: Record<TrKalit, [string, readonly Kat[]]> = {
+    'ТР_МАТ': ['в т.ч. материалы с отдельным транспортом т·км / доставкой в цене — исключены из базы транспортных расходов, %', ['МАТ', 'М/К', 'БЕЗ СКЛАД']],
+    'ТР_КАБ': ['в т.ч. кабели с отдельным транспортом / доставкой в цене — исключены из базы транспорта, %', ['КАБ']],
+    'ТР_ОБ': ['в т.ч. оборудование с отдельным транспортом / доставкой в цене — исключено из базы транспорта, %', ['ОБ']],
+  };
+  if (o.trUstun) {
+    const tu = o.trUstun;
+    for (const kalit of ['ТР_МАТ', 'ТР_КАБ', 'ТР_ОБ'] as const) {
+      if (!o.pulUstunlar.some((c) => Math.abs(o.trChiqar?.[c]?.[kalit] ?? 0) >= 0.005)) continue;
+      trQ[kalit] = v.qator('oddiy', row((c) => {
+        c[mc] = TR_NOM[kalit][0];
+        for (const col of o.pulUstunlar) {
+          const kk = o.katUstunPer?.[col] ?? o.katUstun; const sc = o.summaUstunPer?.[col] ?? col;
+          c[colIdx(col)] = { f: TR_NOM[kalit][1].flatMap((k) => ['tkm', 'narx_ichida'].map((u) => `SUMIFS(${sc}${a}:${sc}${b},${kk}${a}:${kk}${b},"${k}",${tu}${a}:${tu}${b},"${u}")`)).join('+'), v: yaxlit2(o.trChiqar?.[col]?.[kalit] ?? 0) };
+        }
+      }));
+    }
   }
   // Podval qatorlari (standart ham maxsus ham — yagona formula quruvchisi). Formulalar tirik (`$` siz).
   const qr: Record<string, number> = {};
@@ -259,12 +287,12 @@ export function nakrutkaPodvaliYoz(v: RasmiyVaraq, o: PodvalOpsiya): { bosh: num
         // hisoblab yubormasin. Foiz noma'lum-u baza 0 — aniq 0 (formula emas).
         if (xom == null) { c[colIdx(col)] = null; continue; }
         if (q.tur === 'foiz' && q.foiz == null) { c[colIdx(col)] = xom; continue; }
-        const f = podvalQatorFormulasi(q, { kat: (k) => `${col}${katQ[k]}`, qator: (kod) => `${col}${qr[kod]}`, foiz: `${o.foizUstun}${r}`, qosh: q.kod === 'itogo4' ? qoshR.map((x) => `${col}${x}`) : q.kod === oxirgi && yaxR != null ? [`${col}${yaxR}`] : [] });
+        const f = podvalQatorFormulasi(q, { kat: (k) => `${col}${katQ[k]}`, qator: (kod) => `${col}${qr[kod]}`, foiz: `${o.foizUstun}${r}`, tr: (k) => (trQ[k] != null ? `${col}${trQ[k]}` : null), qosh: q.kod === 'itogo4' ? qoshR.map((x) => `${col}${x}`) : q.kod === oxirgi && yaxR != null ? [`${col}${yaxR}`] : [] });
         c[colIdx(col)] = { f: f as string, v: val };
       }
     }));
   }  const vsegoQator = qr[oxirgi];
-  if (o.kfJadval === false) return { bosh, vsegoQator, kfQator, kaskad, natija };
+  if (o.kfJadval === false) return { bosh, vsegoQator, kfQator, kaskad, natija, qator: qr };
   // Koeffitsientlar: standart podvalda foiz kataklaridan tirik formula; maxsus podvalda — yadro qiymati.
   const P = (kod: string) => `${o.foizUstun}${qr[kod]}/100`;
   const standart = !o.podval;
@@ -287,5 +315,5 @@ export function nakrutkaPodvaliYoz(v: RasmiyVaraq, o: PodvalOpsiya): { bosh: num
     }));
     if (r !== kfQator[k]) throw new Error('NAKRUTKA_PODVAL_SILJIDI');
   }
-  return { bosh, vsegoQator, kfQator, kaskad, natija };
+  return { bosh, vsegoQator, kfQator, kaskad, natija, qator: qr };
 }

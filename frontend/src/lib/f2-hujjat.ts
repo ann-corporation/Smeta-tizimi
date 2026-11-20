@@ -18,7 +18,7 @@ import { davrMatni } from './nakopitelniy-vedomost-export';
 import { lrvKalitYoz } from './lrv-qayta-import';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { NAKRUTKA_KATLAR, nakrutkaKat, nakrutkaPodvaliYoz, type KatSummalar, type NakrutkaKat } from './nakrutka-podval';
-import { serverMerosKoefQoy, yigindi2, type Podval } from './hisob-yadro';
+import { serverMerosKoefQoy, trChiqaradimi, trKaliti, yigindi2, type Podval, type TrKalit } from './hisob-yadro';
 import { kodlarMatni, resursGuruhKaliti, shifrKorinish } from './f2-resurs-guruh';
 import { BOLIMSIZ_KALIT, f2BolimIerarxiya } from './f2-bolim-daraxti';
 import { sumRefs } from './hujjat-yozuvchi/formula';
@@ -26,7 +26,7 @@ import type { T2Qator } from '../api/supabase';
 import { NARX_ANIQLANMAGAN, mashinistMehnati } from './narx-bildirishnoma';
 import { YAXLIT_KAT } from './svod-yaxlit';
 import { f2YaxlitQator } from './f2-akt-eksport';
-import { tkmNomi, tkmQatorlar, transportSpravka, transportSpravkaQatorlari, transportTartib, type TransportMaydon } from './f2-transport';
+import { SPRAVKA_NOMLAR, SPRAVKA_SARLAVHA, TR_BELGI, tashishIshimi, tkmQatorlar, tkmSarlavha, transportTartib, type TransportMaydon } from './f2-transport';
 
 /** Vedomost qatori: bitta resurs (kat + nom kaliti + birlik kaliti) va bitta narx; narxi farqli guruhlar alohida qatorlarga ajraladi. */
 type VedQator = { guruh: string; kat: NakrutkaKat | null; kodlar: string[]; nom: string; birlik: string; qatorlar: number[]; summaQatorlar: number[]; hajm: number; summa: number | null; narx: number | null; narxFarqli: boolean; /** Eng yuqori razdel (uchastka/fayl) - vedomost shu bo'yicha bo'limlanadi (iyerarxiya bo'lsa). */ ildiz: number | null; ildizNom: string };
@@ -89,6 +89,9 @@ const USTUNLAR: RasmiyUstun[] = [
   { sarlavha: 'КАЛИТ', kenglik: 10, tur: 'texnik', yashirin: true },
 ];
 
+/* L — yashirin «Транспорт» ustuni (faqat t·km / tkm-narx_ichida material / Е310-311 ish bor hujjatda): usul belgisi; podval SUMIFS va СПРАВОЧНО SUMIF shunga tayanadi. */
+const TR_USTUN: RasmiyUstun = { sarlavha: 'Транспорт', kenglik: 8, tur: 'texnik', yashirin: true };
+
 /** Imzolangan Ф-2 imzo yorliqlari (lavozim) — faqat shu hujjat turi uchun. */
 const TN_LAVOZIM = 'Представитель Тех.надзора Заказчика';
 /** Etalon tartibi: ЗАКАЗЧИК (Тех.надзор) ×2 → [СУБПОДРЯДЧИК] → ПОДРЯДЧИК (Производитель работ). Ikkinchi ЗАКАЗЧИК — texnadzor vakili (nomi imzo.texnadzor). */
@@ -127,6 +130,13 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
   const tanlangan = new Map(qatorlar.filter((x) => !x.xato).map((x) => [x.id, x]));
   /* Transport (20270120200000): t·km qatori id → material id. Bog'lanish yo'q bo'lsa bo'sh - hujjat avvalgidek. */
   const tkm = tkmQatorlar(o.rows as unknown as readonly TransportMaydon[] | undefined);
+  const rowT = new Map(((o.rows ?? []) as unknown as readonly TransportMaydon[]).map((r) => [r.id, r] as const));
+  const usulOf = (id: number): string | null => rowT.get(id)?.transport_usul ?? null;
+  const trBor = tkm.size > 0 || [...tanlangan.keys()].some((id) => trChiqaradimi(usulOf(id)));
+  /** Material qatori varaqdagi o'rni (t·km qatori formulasi shunga bog'lanadi) va transport-% bazasidan chiqarilgan summalar. */
+  const rowInfo = new Map<number, { r: number; norma: number | null }>();
+  const trks: Partial<Record<TrKalit, number>> = {};
+  let tkmJS = 0; let tashishJS = 0; let joriyTashish = false;
   const eski = o.eskiBloklar ?? [];
   const yangiBor = tanlangan.size > 0;
   if (!yangiBor && !eski.some((b) => b.qatorlar.length)) throw new Error('F2_HUJJAT_BOSH');
@@ -138,7 +148,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     yuqoriTitul: [['Подрядчик:', o.imzo?.pudratchi], ['Заказчик:', o.imzo?.zakazchik], ...(o.imzo?.subpudratchi ? [['Субподрядчик:', o.imzo.subpudratchi] as const] : [])],
     ostSarlavha: [`О выполненных работах по объекту «${o.obyektNom}»`, davrSozBilan(o.davr)],
     titul: [['Договор:', o.shartnoma]],
-    ustunlar: USTUNLAR,
+    ustunlar: trBor ? [...USTUNLAR, TR_USTUN] : USTUNLAR,
     yonalish: 'portrait',
   });
 
@@ -190,6 +200,25 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     const yaxlitQator = !!o.yaxlitIds && f2YaxlitQator(o.yaxlitIds, x);
     if (oxirgiSumma != null) { jamiJS = (jamiJS ?? 0) + oxirgiSumma; if (yaxlitQator) yaxlitJS += oxirgiSumma; else if (kat) ks[kat] += oxirgiSumma; else nomJS += oxirgiSumma; }
     const qatorR = v.r;
+    rowInfo.set(x.id, { r: qatorR, norma });
+    const tkmMid = tkm.get(x.id);
+    const tkmT = tkmMid != null ? rowT.get(x.id) : undefined;
+    /* t·km qatori: norma/hajm — materialning norma/hajmiga TIRIK formula (faqat hisob saqlangan hajmga aynan mos bo'lsa; aks holda qiymat). */
+    const tkmTirik = ((): { norma: Qiymat | null; hajm: Qiymat } | null => {
+      if (tkmMid == null || !tkmT) return null;
+      const z = Number(tkmT.transport_zichlik); const km = Number(tkmT.transport_km);
+      const mi = rowInfo.get(tkmMid); const m = tanlangan.get(tkmMid) as (F2Qator & { hajmNomalum?: true }) | undefined;
+      if (!(z > 0) || !(km >= 0) || !mi || !m || m.hajmNomalum || x.hajm == null) return null;
+      if (Math.abs(yaxlit6(m.hajm * z * km) - x.hajm) > 1e-6) return null;
+      return { hajm: { f: `ROUND(F${mi.r}*${z}*${km},6)`, v: yaxlit6(x.hajm) }, norma: mi.norma != null ? { f: `ROUND(E${mi.r}*${z}*${km},6)`, v: yaxlit6(mi.norma * z * km) } : null };
+    })();
+    const tashish = ishQatori ? tashishIshimi(kod) : joriyTashish;
+    const trBelgi = tkmMid != null ? TR_BELGI.tkmQator : trChiqaradimi(usulOf(x.id)) ? usulOf(x.id)! : tashish ? TR_BELGI.tashish : '';
+    if (oxirgiSumma != null && !yaxlitQator) {
+      if (tkmMid != null) tkmJS += oxirgiSumma;
+      else if (trChiqaradimi(usulOf(x.id))) { const tk = trKaliti(kat); if (tk) trks[tk] = (trks[tk] ?? 0) + oxirgiSumma; }
+      if (tashish && tkmMid == null) tashishJS += oxirgiSumma;
+    }
     const guruh = resursGuruhKaliti(kat, x.nom, x.birlik);
     const vk = `${joriyIldiz?.kalit ?? ''}|${guruh}|${narxBor ? x.narx : '-'}`;
     const vd: VedQator = vedomost.get(vk) ?? { guruh, kat, kodlar: [], nom: x.nom.trim(), birlik: (x.birlik ?? '').trim(), qatorlar: [], summaQatorlar: [], hajm: 0, summa: null, narx: narxBor ? (x.narx as number) : null, narxFarqli: false, ildiz: joriyIldiz?.kalit ?? null, ildizNom: joriyIldiz?.nom ?? '' };
@@ -199,14 +228,15 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     if (oxirgiSumma != null) { vd.summa = yaxlit2((vd.summa ?? 0) + oxirgiSumma); vd.summaQatorlar.push(qatorR); }
     vedomost.set(vk, vd);
     return v.qator(ishQatori ? 'ish' : 'oddiy', (r): Qiymat[] => [
-      ishQator != null || ishOstida ? ishOstiRaqam() : ++n, shifrKorinish(kod), tkm.has(x.id) ? tkmNomi(x.nom) : x.nom, x.birlik ?? '',
-      norma != null ? { n: norma, uslub: 'norma' } : null,
-      hajmNomalum ? null : ishgaBogliq ? { f: `ROUND(E${r}*F${ishQator},6)`, v: yaxlit6(x.hajm) } : x.hajm,
+      ishQator != null || ishOstida ? ishOstiRaqam() : ++n, shifrKorinish(kod), tkmMid != null ? tkmSarlavha(x.nom, { material: tanlangan.get(tkmMid)?.nom ?? rowT.get(tkmMid)?.nom, zichlik: tkmT?.transport_zichlik, km: tkmT?.transport_km, narx: x.narx }) : x.nom, x.birlik ?? '',
+      tkmTirik?.norma ?? (norma != null ? { n: norma, uslub: 'norma' } : null),
+      hajmNomalum ? null : tkmTirik ? tkmTirik.hajm : ishgaBogliq ? { f: `ROUND(E${r}*F${ishQator},6)`, v: yaxlit6(x.hajm) } : x.hajm,
       narxBor ? x.narx : null,
       // «—» (matn): SUM uni o'tkazib yuboradi, ИТОГО dagi «bo'sh summa» tekshiruvi esa uni yetishmovchilik deb sanamaydi.
       summaQiymat ? x.summa : narxBor ? { f: `ROUND(F${r}*G${r},2)`, v: hisob } : (narxsizBelgi ? NARX_ANIQLANMAGAN : ongliNarxsiz ? '—' : null),
       // J — podval SUMIF kaliti: yaxlit qator YAXLIT_KAT («СВОД») — ustama SUMIF ga kirmaydi (nakopitelniy bilan bir xil).
       x.tur, yaxlitQator ? YAXLIT_KAT : kat ?? '', lrvKalitYoz(x.id, kod, x.nom, x.birlik),
+      ...(trBor ? [trBelgi] : []),
     ], ishQatori ? { daraja: 1 } : { daraja: 2, rang: kat && (RANG_TARTIB as readonly string[]).includes(kat) ? kat as QatorRangi : null, ...(ishOstida ? { uslub: 'rs' as const } : {}) });
   };
 
@@ -223,6 +253,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     const qosh = (x: number | null) => { bolimJS += x ?? 0; };
     for (const ish of ishlar) {
       const bl = tanlangan.get(ish.id);
+      joriyTashish = tashishIshimi(ish.kod);
       const avto = bl ? ish.resurslar.filter((r) => r.avto && tanlangan.has(r.id)) : [];
       const mustaqil = transportTartib(ish.resurslar.filter((r) => tanlangan.has(r.id) && (!r.avto || !bl)), tkm);
       let blQ: number | null = null;
@@ -245,6 +276,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
       }
       for (const r of mustaqil) { tarkib.push(resursYoz(tanlangan.get(r.id)!, r.kod, null, null, false, bolaRaqam)); qosh(oxirgiSumma); }
     }
+    joriyTashish = false;
     for (const r of transportTartib(alohida, tkm)) { tarkib.push(resursYoz(tanlangan.get(r.id)!, r.kod, null, null)); qosh(oxirgiSumma); }
     return { tarkib, js: bolimJS };
   };
@@ -353,17 +385,23 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     const podval = o.podval ? serverMerosKoefQoy(o.podval, nk, o.nkManba) : null;
     const yp = nakrutkaPodvaliYoz(v, { podval, katUstun: 'J', oraliq: [birinchi, oxirgi], pulUstunlar: ['H'], foizUstun: 'G', nk, katSummalar: { H: ks }, kfJadval: false, nomalum: Math.abs(nomJS) >= 0.005 ? { H: yaxlit2(nomJS) } : null,
       yaxlitOldin: Math.abs(yaxlitJS) >= 0.005 ? { H: yaxlit2(yaxlitJS) } : null,
+      ...(trBor ? { trUstun: 'L', trChiqar: { H: trks } } : {}),
       ...(eski.length ? { sarlavha: 'РАСЧЕТ К ОПЛАТЕ — новые позиции (подвал сметы)', vsegoNom: 'ВСЕГО К ОПЛАТЕ — новые позиции' } : {}) });
     yangiVsegoQator = yp.vsegoQator;
     yangiVsegoJS = yp.natija.H.vsego ?? 0;
-    /* СПРАВОЧНО: транспорт - faqat t·km qatori bor hujjatda (aks holda hujjat o'zgarmaydi). Faqat matn: jamilarga kirmaydi. */
+    /* СПРАВОЧНО: транспорт - faqat t·km qatori bor hujjatda (aks holda hujjat o'zgarmaydi). H katakda TIRIK SUMIF formulalari
+       (yashirin L belgi ustuni; % — podvaldagi transport qatorlari yig'indisi). Jamilarga kirmaydi (podvaldan keyin). */
     if (tkm.size) {
-      const q = yp.natija.H.qiymat;
-      const foiz = ['tr_mat', 'tr_kab', 'tr_ob'].map((kk) => q[kk]);
-      const sp = transportSpravka({ qatorlar: [...tanlangan.values()], tkm, rows: o.rows as unknown as readonly TransportMaydon[] | undefined,
-        foizTransport: foiz.every((x) => x == null) ? null : yaxlit2(foiz.reduce<number>((t, x) => t + (x ?? 0), 0)) });
+      const qv = yp.natija.H.qiymat;
+      const foizKod = ['tr_mat', 'tr_kab', 'tr_ob'].filter((kk) => yp.qator[kk] != null);
+      const foizQ = foizKod.length && foizKod.every((kk) => qv[kk] != null) ? yaxlit2(foizKod.reduce((t, kk) => t + (qv[kk] as number), 0)) : null;
+      const rL = `L${birinchi}:L${oxirgi}`; const rH = `H${birinchi}:H${oxirgi}`;
+      const satr = (nom: string, h: Qiymat) => v.qator('oddiy', (): Qiymat[] => [null, null, nom, null, null, null, null, h, null, null]);
       v.bosh();
-      for (const matn of transportSpravkaQatorlari(sp)) v.izoh(matn);
+      v.bolim(SPRAVKA_SARLAVHA, { daraja: 0 });
+      satr(SPRAVKA_NOMLAR.tkm, { f: `SUMIF(${rL},"${TR_BELGI.tkmQator}",${rH})`, v: yaxlit2(tkmJS) });
+      satr(SPRAVKA_NOMLAR.foiz, foizQ == null ? null : { f: foizKod.map((kk) => `H${yp.qator[kk]}`).join('+'), v: foizQ });
+      satr(SPRAVKA_NOMLAR.tashish, { f: `SUMIF(${rL},"${TR_BELGI.tashish}",${rH})`, v: yaxlit2(tashishJS) });
     }
   }
   if (eski.length) {

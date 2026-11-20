@@ -12,6 +12,7 @@ import { f2HujjatKonteksti, type F2HujjatKonteksti } from './f2-hujjat-kontekst'
 import { shartnomaSvodOl } from './t2-nakopitelniy';
 import type { SvodShartnoma } from '../lib/nakopitelniy-svod';
 import { t2ToliqOqi } from './t2-toliq-oqish';
+import { transportBilan } from './t2-transport';
 
 export type OyObyektMalumot = { smeta: T2Qator[]; tafsilot: F2Tafsilot[]; kontekst: F2HujjatKonteksti };
 
@@ -100,7 +101,7 @@ export async function portfelObyektOl(kompaniyaId: number, obyektId: number, akt
   if (kontekst.xato) throw new Error(`USTAMA_OQILMADI: ${kontekst.xato}`);
   if (!pv.ok) throw new Error('PODVAL_OQILMADI');
   const lines = (tafsilot.qatorlar ?? []) as F2Tafsilot[];
-  const smeta = await smetaTarixBilan(obyektId, (daraxt.qatorlar ?? []) as unknown as T2Qator[], lines.map((l) => l.qator_id));
+  const smeta = await transportBilan(obyektId, await smetaTarixBilan(obyektId, (daraxt.qatorlar ?? []) as unknown as T2Qator[], lines.map((l) => l.qator_id)));
   return { smeta, tafsilot: lines, kontekst, aktQatorlar: aq as Map<number, PereraschetAktQator[]>, podvallar: aktPodvalXaritasi(pv.podvallar) };
 }
 
@@ -116,7 +117,7 @@ export async function oyObyektOl(kompaniyaId: number, obyektId: number, oylar: r
   // Ustama/podval o'qilmasa paket jimgina standart podval yoki ustamasiz hisoblanmaydi — sabab bilan to'xtaydi.
   if (kontekst.xato) throw new Error(`USTAMA_OQILMADI: ${kontekst.xato}`);
   const tafsilot = tafsilotlar.flatMap((d) => (d.qatorlar ?? []) as F2Tafsilot[]);
-  const smeta = await smetaTarixBilan(obyektId, (daraxt.qatorlar ?? []) as unknown as T2Qator[], tafsilot.map((l) => l.qator_id));
+  const smeta = await transportBilan(obyektId, await smetaTarixBilan(obyektId, (daraxt.qatorlar ?? []) as unknown as T2Qator[], tafsilot.map((l) => l.qator_id)));
   return { smeta, tafsilot, kontekst };
 }
 

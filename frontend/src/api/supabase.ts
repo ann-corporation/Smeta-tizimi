@@ -369,6 +369,9 @@ export type T2Qator = {
   transport_usul?: string | null;
   /** T·km transport qatori: u tashiydigan material qatori (	2_qator.transport_manba_qator_id). */
   transport_manba_qator_id?: number | null;
+  /** T·km qatori: material zichligi (t / birlik) va masofa (km); narx — qatorning o'z narxi (so'm/t·km). */
+  transport_zichlik?: number | null;
+  transport_km?: number | null;
 };
 
 /** Katta obyektda kalit (qator_id) oynalari PARALLEL o'qiladi — natija ketma-ket o'qish bilan aynan bir xil

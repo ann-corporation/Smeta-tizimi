@@ -1,10 +1,11 @@
-﻿/**
+/**
  * SAQLANGAN F2 AKTI — Ф-2 hujjati va pul bahosi uchun YAGONA tayyorlash (F2 tarixi va F2 portfeli, egasi 2026-11-05).
  * F2 tarixidagi «Ф-2 Excel» mantiqi shu yerga ko'chirildi (yangi formula yo'q):
  *  - storno bloklari (`raw_snapshot.stornoOf`) hujjat TEPASIDA, har biri o'z hujjat podvali bilan (`pereraschetBloklari`);
  *  - qolgan («yangi») qatorlar — aktning O'Z podvali (`t2_akt_podval`, blok '') bo'lsa o'shaniki, yo'q — obyekt smeta podvali;
  *  - pul: `f2Baholash` (hisob yadrosi, SQL `_t2_summa_paket_v1` bilan bir model). NULL ≠ 0.
  */
+import { transportUsulXaritasi, type TransportMaydon } from './f2-transport';
 import type { T2Qator } from '../api/supabase';
 import type { F2Tafsilot } from '../api/t2-narx';
 import type { F2HujjatKonteksti } from '../api/f2-hujjat-kontekst';
@@ -47,6 +48,8 @@ export type F2AktTayyor = {
   topilmagan: number;
   ozNk: AktPodvalNk | null;
   blokNk: (manbaAktId: number) => AktPodvalNk | null;
+  /** Transport-% bazasidan chiqariladigan materiallar (tkm / narx_ichida): qator id → usul. Podval hisobi (2AktBaho) shundan foydalanadi. */
+  transportUsul?: ReadonlyMap<number, string>;
   opsiya: F2HujjatOpsiya;
   /** Svod yaxlit bo'limi ichidagi qator idlari (ustamasiz, faqat QQS) — f2YaxlitdanChiqadi (ЧЕЛ/МАШ) bundan mustasno. */
   yaxlitIds?: ReadonlySet<number>;
@@ -93,7 +96,7 @@ export function f2AktTayyorla(k: F2AktEksportKirish): F2AktTayyor | null {
    * _t2_f2_ustamali (kesim.svod) bilan bir xil. Ilgari bu yerda hisobga olinmasdi: bronza F2 ga ustama (+309,8 mln) qo'shilardi. */
   const yaxlitIds = yaxlitQatorIdlari(k.smeta, ctx.svodYaxlit);
   return {
-    bolimlar: kir.bolimlar, qatorlar, eskiBloklar: eskiB, topilmagan: kir.topilmagan, ozNk, blokNk, yaxlitIds,
+    bolimlar: kir.bolimlar, qatorlar, eskiBloklar: eskiB, topilmagan: kir.topilmagan, ozNk, blokNk, yaxlitIds, transportUsul: transportUsulXaritasi(k.smeta as unknown as readonly TransportMaydon[]),
     opsiya: {
       obyektNom: k.obyektNom, davr: k.akt.oy || '', raqam: k.akt.raqam, imzo: ctx.imzo, shartnoma: ctx.shartnoma,
       // Hujjatning o'z podvali bo'lsa - uning foizlari (QQS ham o'ziniki); yo'q - obyekt podvali va tizim QQS stavkasi.
@@ -136,7 +139,7 @@ export function f2AktBaho(t: F2AktTayyor, kontekst: Pick<F2HujjatKonteksti, 'pod
   const bloklar: F2Blok[] = t.eskiBloklar.map((b) => ({ kalit: `s:${b.manbaAktId}`, nom: b.raqam ?? String(b.manbaAktId), kesim: b.kesim, nk: t.blokNk(b.manbaAktId) }));
   let narxsiz = t.eskiBloklar.reduce((s, b) => s + b.nomalum, 0);
   if (yangi.length) {
-    const kesim = katKesimYigish(yangi, (x: F2Qator) => x.kat ?? null, (x: F2Qator) => (x.narxsiz ? null : x.summa), (x: F2Qator) => f2YaxlitQator(t.yaxlitIds ?? new Set<number>(), x));
+    const kesim = katKesimYigish(yangi, (x: F2Qator) => x.kat ?? null, (x: F2Qator) => (x.narxsiz ? null : x.summa), (x: F2Qator) => f2YaxlitQator(t.yaxlitIds ?? new Set<number>(), x), (x: F2Qator) => t.transportUsul?.get(x.id));
     narxsiz += kesim.summasizSoni;
     bloklar.push({ kalit: 'yangi', nom: 'yangi', kesim, nk: t.ozNk });
   }

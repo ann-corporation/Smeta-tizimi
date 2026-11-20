@@ -4,6 +4,7 @@ const m = vi.hoisted(() => ({ kontekst: vi.fn() }));
 vi.mock('./supabase', () => ({ sbT2DaraxtOl: vi.fn(async () => ({ ok: true, qatorlar: [] })) }));
 vi.mock('./t2-narx', () => ({ sbT2F2TafsilotOl: vi.fn(async () => ({ ok: true, qatorlar: [] })) }));
 vi.mock('./t2-nakopitelniy', () => ({ shartnomaSvodOl: vi.fn() }));
+vi.mock('./t2-transport', () => ({ transportBilan: vi.fn(async (_o: number, s: unknown) => s) }));
 vi.mock('./f2-hujjat-kontekst', () => ({ f2HujjatKonteksti: m.kontekst }));
 import { oyObyektOl } from './f2-oylik-paket';
 

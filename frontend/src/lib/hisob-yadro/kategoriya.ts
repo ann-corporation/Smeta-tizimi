@@ -28,6 +28,21 @@ export function f2YaxlitdanChiqadi(kat: string | null | undefined): boolean {
   return k === 'ЧЕЛ' || k === 'МАШ';
 }
 
+/**
+ * TRANSPORT-% BAZASIDAN CHIQARILGAN summa kalitlari (20270120200000_t2_transport_turi_v1): `transport_usul` tkm / narx_ichida
+ * bo'lgan materiallar. Server `tr_ex_mat` (МАТ + М/К + БЕЗ СКЛАД) / `tr_ex_kab` (КАБ) / `tr_ex_ob` (ОБ) bilan bir xil.
+ * Faqat transport foizi bazasidan ayriladi; boshqa foizlar (prochie/strax/sklad) o'zgarmaydi.
+ */
+export const TR_KALITLAR = ['ТР_МАТ', 'ТР_КАБ', 'ТР_ОБ'] as const;
+export type TrKalit = typeof TR_KALITLAR[number];
+/** Transport-% dan chiqariladigan usullar. */
+export const trChiqaradimi = (usul: string | null | undefined): boolean => usul === 'tkm' || usul === 'narx_ichida';
+/** Kategoriya → chiqarish kaliti (ЧЕЛ/МАШ — yo'q). */
+export function trKaliti(kat: string | null | undefined): TrKalit | null {
+  const k = katAniqla(kat);
+  return k === 'МАТ' || k === 'М/К' || k === 'БЕЗ СКЛАД' ? 'ТР_МАТ' : k === 'КАБ' ? 'ТР_КАБ' : k === 'ОБ' ? 'ТР_ОБ' : null;
+}
+
 /** Kategoriya kesimi: aniq kat summalari + noma'lum qism + yaxlit (svod) qism. */
 export type Kesim = {
   summalar: Partial<Record<Kat, number>>;
@@ -43,23 +58,27 @@ export type Kesim = {
   yaxlit?: { qqssiz: number; barglar: number; svodQqsBilan?: number; svodQqssiz?: number };
   /** Yaxlit bo'lim avlodi qatorlar summasi (qator darajasi) — ustamasiz ИТОГО-4 ga. */
   yaxlitQator?: number;
+  /** Transport-% bazasidan chiqarilgan (tkm / narx_ichida) material summalari — hisob() kaskadga uzatadi. */
+  transportChiqar?: Partial<Record<TrKalit, number>>;
 };
 
 export const bosKesim = (): Kesim => ({ summalar: {}, nomalum: 0, nomalumSoni: 0, summasizSoni: 0 });
 
 /** Bitta qatorni kesimga qo'shadi (joyida). `yaxlitmi` — svod yaxlit avlodi. */
-export function kesimgaQosh(k: Kesim, kat: string | null | undefined, summa: number | null | undefined, yaxlitmi = false): Kesim {
+export function kesimgaQosh(k: Kesim, kat: string | null | undefined, summa: number | null | undefined, yaxlitmi = false, trUsul?: string | null): Kesim {
   if (summa == null || !Number.isFinite(summa)) { k.summasizSoni++; return k; }
   if (yaxlitmi) { k.yaxlitQator = (k.yaxlitQator ?? 0) + summa; return k; }
   const nk = katAniqla(kat);
   if (nk == null) { k.nomalum += summa; k.nomalumSoni++; return k; }
   k.summalar[nk] = (k.summalar[nk] ?? 0) + summa;
+  const tk = trChiqaradimi(trUsul) ? trKaliti(nk) : null;
+  if (tk) k.transportChiqar = { ...k.transportChiqar, [tk]: (k.transportChiqar?.[tk] ?? 0) + summa };
   return k;
 }
 
-export function kesimYigish<T>(qatorlar: Iterable<T>, kat: (x: T) => string | null | undefined, summa: (x: T) => number | null | undefined, yaxlitmi?: (x: T) => boolean): Kesim {
+export function kesimYigish<T>(qatorlar: Iterable<T>, kat: (x: T) => string | null | undefined, summa: (x: T) => number | null | undefined, yaxlitmi?: (x: T) => boolean, trUsul?: (x: T) => string | null | undefined): Kesim {
   const k = bosKesim();
-  for (const q of qatorlar) kesimgaQosh(k, kat(q), summa(q), yaxlitmi?.(q) ?? false);
+  for (const q of qatorlar) kesimgaQosh(k, kat(q), summa(q), yaxlitmi?.(q) ?? false, trUsul?.(q));
   return k;
 }
 
