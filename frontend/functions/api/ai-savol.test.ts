@@ -528,9 +528,17 @@ it('boshqa kompaniya model va DBga chiqmaydi', async () => {
   expect(rpc).not.toHaveBeenCalled(); expect(ai).not.toHaveBeenCalled();
 });
 it('QQS follow-up umumiy yadroda tarix orqali obyektni topadi', async () => {
+  men = () => Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: 17, permissions: ['smeta.read'] }] });
   const r = await run('QQS bilan shu obyekt qancha?', 17, { tarix: [{ rol: 'user', matn: 'Sinov Bino haqida' }], actor: 300 });
   expect(await r.json()).toMatchObject({ ok: true, provider: 'local', javob: expect.stringMatching(/Sinov Bino[\s\S]*QQS bilan[\s\S]*140/) });
   expect(JSON.parse(String(called('t2_obyekt_nakrutka_v1')[0][1]?.body))).toMatchObject({ p_actor_id: 7, p_obyekt_id: 34 });
+  expect(ai).not.toHaveBeenCalled();
+});
+it('money category does not replace the source read capability', async () => {
+  men = () => Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: 17, permissions: [] }] });
+  const r = await run('Sinov Bino smeta summasi QQS bilan qancha?');
+  expect(await r.json()).toMatchObject({ ok: true, rad: true });
+  expect(called('t2_obyekt_nakrutka_v1')).toHaveLength(0);
   expect(ai).not.toHaveBeenCalled();
 });
 it('smeta_pul ruxsati bo‘lmasa moliya RPCsi va model chaqirilmaydi', async () => {

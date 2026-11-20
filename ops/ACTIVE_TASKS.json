@@ -3594,6 +3594,7 @@
     "base_sha": "0ffd388b729583a79befaabf8f34bedc70c2e9a3",
     "status": "ready_for_review",
     "owns": [
+      "frontend/functions/api/ai-savol.test.ts",
       "frontend/functions/_shared/jarvis/read-tools.ts",
       "frontend/functions/_shared/jarvis/read-tools.test.ts",
       "frontend/functions/_shared/jarvis/approvals.ts",
