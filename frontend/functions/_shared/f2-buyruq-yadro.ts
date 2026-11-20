@@ -212,6 +212,10 @@ export function rejaQur(vosita: YozishNomi, a: Normal, k: Kontekst): Reja | Reja
         chaqiruvlar: ns.map((x) => ({ rpc: 't2_qator_tahrir', amal: 'qator_tahrir', aktorBor: false, opKalit: null,
           yuk: { p_qator_id: x.qator_id, p_maydon: 'narx', p_qiymat: String(x.narx), p_kutilgan_versiya: qat(x.qator_id)!.versiya, p_manba: 'jarvis', p_kim: `jarvis:actor:${k.aid}` } })) };
     }
+    /* Transport vositalari bu reja yo'lidan o'tmaydi: o'z preview si (RPC p_yoz:false) bilan `/api/f2-buyruq` dagi transportReja da. */
+    case 'transport_taqsimla':
+    case 'transport_belgila':
+      return rad('VOSITA_YOL_NOTOGRI', 'transport vositalari alohida yo\'ldan o\'tadi');
   }
 }
 

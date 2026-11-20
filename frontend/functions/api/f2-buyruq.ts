@@ -22,6 +22,9 @@ import { serverQaytar } from '../_shared/hujjat-sarf';
 import { F2_VOSITALAR, YOZISH_NOMLARI, vositaSorov, type Normal, type OqishNomi, type Vosita, type YozishNomi } from '../_shared/f2-vositalar';
 import { previewQur, rejaQur, rejaXeshi, tokenTekshir, tokenYarat, uchlik, uuidHosila, type AktMalumot, type AktQatorMalumot, type Chaqiruv, type Kontekst, type QatorMalumot, type Reja } from '../_shared/f2-buyruq-yadro';
 import { WRITE_COMMAND_POLICY } from '../_shared/write-command-policy';
+import { auditRpcYuki, belgilaKirish, belgilaRpcYuki, kirishXatomi, yoyKirish, yoyRpcYuki } from '../../src/lib/transport-yoy/kirish';
+import { belgilaPreviewMatni, yoyPreviewMatni, type BelgilaSatr, type YoyJavob } from '../../src/lib/transport-yoy/panel';
+import { TRANSPORT_JARVIS_GURUH, TRANSPORT_JARVIS_QATOR } from '../_shared/f2-vositalar';
 
 type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string };
 type Context = Parameters<PagesFunction<Env>>[0];
@@ -144,6 +147,13 @@ async function oqish(env: Env, s: Sess, kid: number, nom: OqishNomi, a: Normal):
       if (!r.data || r.status >= 400 || r.data.ok === false) return fail(String((r.data as { code?: string } | null)?.code ?? 'SERVER_XATO'), r.status >= 500 ? 502 : 400);
       return json({ ok: true, obyekt: ob, davr: r.data.davr ?? a.davr ?? null, jami: r.data.jami ?? null, davrlar: (Array.isArray(r.data.davrlar) ? r.data.davrlar : []).slice(0, 24), izoh: IZOH });
     }
+    case 'transport_tekshir': {
+      const r = await rpc<Record<string, unknown>>(env, 't2_qator_transport_audit_v1', auditRpcYuki(obyektId, aid));
+      if (r.status === 403 || (r.data as { code?: string } | null)?.code === '42501') return fail('PERMISSION_DENIED', 403);
+      if (!r.data || r.status >= 400 || r.data.ok === false) return fail(String((r.data as { code?: string } | null)?.code ?? 'SERVER_XATO'), r.status >= 500 ? 502 : 400);
+      return json({ ok: true, obyekt: ob, toza: Number((r.data.xulosa as { xato_soni?: number } | undefined)?.xato_soni ?? 0) === 0, xulosa: r.data.xulosa ?? null, xatolar: r.data.xatolar ?? [], materiallar: r.data.materiallar ?? [],
+        izoh: 'foiz = podval transport-% bazasida (sukut); tkm = alohida t·km qatori (bazadan chiqarilgan); narx_ichida = narxda. xato_soni = 0 bo\'lishi shart (F-2 tasdiqlash aks holda rad etiladi).' });
+    }
     case 'ostatka': {
       const faol = await rest<{ id: number }>(env, `t2_qator?obyekt_id=eq.${obyektId}&${FAOL}&tur=in.(rs,mat,ob)&select=id&limit=5000`);
       if (!faol) return fail('SERVER_XATO', 502);
@@ -211,7 +221,58 @@ async function chaqiruvYuki(ch: Chaqiruv, aid: number, opAsos: string): Promise<
   return { ...ch.yuk, ...(ch.aktorBor ? { p_actor_id: aid } : {}), ...(ch.opKalit ? { p_operation_id: await uuidHosila(opAsos, ch.opKalit) } : {}) };
 }
 
+/* ───────── TRANSPORT (taqsimla / belgila): bazadagi RPC larning o'z preview si (p_yoz:false / REST holat), dry_run reyestriga bog'liq emas ───────── */
+type TransportReja = { obyektId: number; rpc: string; yuk: Record<string, unknown>; korinish: string; bloklangan: boolean; xesh: string; tavsif: string; ogoh: string[] };
+const transportMi = (n: string): n is 'transport_taqsimla' | 'transport_belgila' => n === 'transport_taqsimla' || n === 'transport_belgila';
+
+/** Joriy holatdan preview + RPC yuki. Preview ham, tasdiq ham AYNAN shu yo'ldan o'tadi (xesh farq qilsa — 409). Hech narsa yozilmaydi. */
+async function transportReja(env: Env, s: Sess, kid: number, nom: 'transport_taqsimla' | 'transport_belgila', a: Normal): Promise<TransportReja | Response> {
+  const aid = s.foydalanuvchi_id as number;
+  const obyektId = butun(a.obyekt_id);
+  if (!obyektId || !(await obyektOl(env, kid, obyektId))) return fail('TOPILMADI', 404);
+  const xeshla = (x: unknown) => uuidHosila(JSON.stringify(x), 'transport');
+  if (nom === 'transport_taqsimla') {
+    const k = yoyKirish(a, { maxGuruh: TRANSPORT_JARVIS_GURUH, yoz: false });
+    if (kirishXatomi(k)) return fail(k.xato, 400, k.tafsilot ? { xabar: k.tafsilot } : {});
+    const r = await rpc<YoyJavob>(env, 't2_qator_transport_yoy_v1', yoyRpcYuki(k, aid));
+    if (r.status === 403 || (r.data as { code?: string } | null)?.code === '42501') return fail('PERMISSION_DENIED', 403);
+    if (!r.data || r.status >= 400) return fail('SERVER_XATO', 502);
+    if (r.data.ok === false) return fail(String(r.data.code ?? 'RPC_XATO'), 422, { xabar: String((r.data as { error?: string }).error ?? 'Server rad etdi') });
+    const bloklangan = r.data.bloklangan === true;
+    return { obyektId, rpc: 't2_qator_transport_yoy_v1', yuk: yoyRpcYuki({ ...k, yoz: true }, aid), korinish: yoyPreviewMatni(r.data.guruhlar, bloklangan), bloklangan,
+      xesh: await xeshla({ g: r.data.guruhlar, b: bloklangan, m: k.majburiy }), tavsif: `t·km taqsimlash (${k.qatorlar.length} guruh)`,
+      ogoh: bloklangan && !k.majburiy ? ['Bloklangan guruhlar bor — foydalanuvchi farqlarni ko\'rib aniq qabul qilmaguncha yozilmaydi (majburiy:true).'] : [] };
+  }
+  const k = belgilaKirish(a, TRANSPORT_JARVIS_QATOR);
+  if (kirishXatomi(k)) return fail(k.xato, 400, k.tafsilot ? { xabar: k.tafsilot } : {});
+  const q = await rest<{ id: number; kod: string | null; nom: string | null; kat: string | null; tur: string; transport_usul: string | null; transport_manba_qator_id: number | null }>(env,
+    `t2_qator?obyekt_id=eq.${obyektId}&id=in.(${idRoyxat(k.qator_idlar)})&${FAOL}&select=id,kod,nom,kat,tur,transport_usul,transport_manba_qator_id&order=id&limit=300`);
+  if (!q) return fail('SERVER_XATO', 502);
+  const bor = new Set(q.filter((x) => x.transport_manba_qator_id == null && ['rs', 'mat', 'ob'].includes(x.tur)).map((x) => Number(x.id)));
+  const yoq = k.qator_idlar.filter((id) => !bor.has(id));
+  if (yoq.length) return fail('QATOR_YARAMAYDI', 422, { xabar: `Faol material qatori emas (yoki t·km qatori / boshqa obyekt): ${yoq.slice(0, 10).map((i) => '#' + i).join(', ')}` });
+  const satrlar: BelgilaSatr[] = q.map((x) => ({ id: Number(x.id), kod: x.kod, nom: x.nom, oldin: x.transport_usul ?? 'foiz', keyin: k.usul }));
+  return { obyektId, rpc: 't2_qator_transport_belgila_v1', yuk: belgilaRpcYuki(k, aid), korinish: belgilaPreviewMatni(satrlar), bloklangan: false,
+    xesh: await xeshla(satrlar.map((x) => [x.id, x.oldin])), tavsif: `transport usuli: ${k.usul} (${k.qator_idlar.length} qator)`,
+    ogoh: k.usul === 'tkm' ? ['tkm tanlansa har material uchun t·km qatori kerak (transport_taqsimla yoki qo\'lda) — aks holda transport_tekshir xato beradi.'] : [] };
+}
+
+async function transportTaklif(env: Env, s: Sess, kid: number, v: Vosita, a: Normal): Promise<Response> {
+  const aid = s.foydalanuvchi_id as number;
+  const nom = v.nom as 'transport_taqsimla' | 'transport_belgila';
+  if (JSON.stringify(a).length > 11_000) return fail('ARGUMENT_KATTA', 413, { xabar: 'Juda katta — Transport panelidan foydalaning' });
+  const t = await transportReja(env, s, kid, nom, a);
+  if (t instanceof Response) return t;
+  const asos = { vosita: v.nom, obyekt_id: t.obyektId, tavsif: t.tavsif, ogohlantirish: t.ogoh, birlik_soni: 0, korinish: t.korinish,
+    preview: { qatorlar: [], jami: { oldin: null, keyin: null, farq: null }, natijalar: [{ rpc: t.rpc, ok: true }] } };
+  if (t.bloklangan && a.majburiy !== true) return json({ ok: true, holat: 'rad', ...asos, xabar: 'Bloklangan guruhlar bor — foydalanuvchi qabul qilsa majburiy:true bilan qayta so\'rang' });
+  const token = await tokenYarat(env.SESSIYA_KALIT, { a: aid, k: kid, o: t.obyektId, op: crypto.randomUUID(), rh: t.xesh, v: nom, args: a });
+  await audit(env, kid, t.obyektId, 'f2_buyruq_preview', aid, `vosita=${nom}; transport`);
+  return json({ ok: true, holat: 'tasdiq_kerak', ...asos, token, server_tekshiruv: true });
+}
+
 async function taklif(env: Env, s: Sess, kid: number, v: Vosita, a: Normal): Promise<Response> {
+  if (transportMi(v.nom)) return transportTaklif(env, s, kid, v, a);
   const aid = s.foydalanuvchi_id as number;
   const t = await rejaTayyorla(env, s, kid, v.nom as YozishNomi, a);
   if (t instanceof Response) return t;
@@ -247,6 +308,18 @@ async function tasdiq(env: Env, s: Sess, kid: number, tokenMatn: string): Promis
   if (rad) return rad;
   const q = vositaSorov(y.v, y.args);
   if ('xato' in q) return fail('TOKEN_YAROQSIZ', 403);
+  if (transportMi(y.v)) {
+    const tr = await transportReja(env, s, kid, y.v, q.a);
+    if (tr instanceof Response) return tr;
+    if (tr.xesh !== y.rh || tr.obyektId !== y.o) return fail('MALUMOT_OZGARGAN', 409, { xabar: 'Preview dan keyin ma\'lumot o\'zgargan — qayta preview oling' });
+    /* Transport smeta tahriri: token yechilmaydi (hujjat/AI natijasi emas). RPC idempotent — qayta bosish takror yozmaydi. */
+    const r = await rpc<Record<string, unknown>>(env, tr.rpc, tr.yuk);
+    const kod = String((r.data as { code?: string } | null)?.code ?? '');
+    const ok = !!r.data && r.status < 400 && r.data.ok !== false && !(r.data.bloklangan === true && r.data.yozildi !== true);
+    await audit(env, kid, tr.obyektId, 'f2_buyruq_tasdiq', aid, `vosita=${y.v}; ok=${ok}; operation_id=${y.op}`);
+    if (!ok) return json({ ok: false, code: r.status === 403 || kod === '42501' ? 'PERMISSION_DENIED' : kod || 'YOZUV_RAD', xabar: String((r.data as { error?: string } | null)?.error ?? 'Server rad etdi'), yozildi: 0, jami: 1, natijalar: [{ rpc: tr.rpc, ok: false }] }, r.status === 403 ? 403 : 409);
+    return json({ ok: true, holat: 'yozildi', vosita: y.v, obyekt_id: tr.obyektId, yozildi: 1, natijalar: [{ rpc: tr.rpc, ok: true, ...(r.data?.yaratildi != null ? { yaratildi: r.data.yaratildi } : {}), ...(r.data?.ozgardi != null ? { ozgardi: r.data.ozgardi } : {}) }], sarflandi: 0, bepul_takror: true });
+  }
   const t = await rejaTayyorla(env, s, kid, y.v, q.a);
   if (t instanceof Response) return t;
   if (t.xesh !== y.rh || t.reja.obyekt_id !== y.o) return fail('MALUMOT_OZGARGAN', 409, { xabar: 'Preview dan keyin ma\'lumot o\'zgargan — qayta preview oling' });

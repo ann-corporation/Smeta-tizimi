@@ -17,12 +17,13 @@ const PREVIEW: F2Javob = { ok: true, holat: 'tasdiq_kerak', token: 'tok-1', tavs
     jami: { oldin: { qqs_bilan: 1120, ustamali: 1000, ustamasiz: 800 }, keyin: { qqs_bilan: 1344, ustamali: 1200, ustamasiz: 960 }, farq: { qqs_bilan: 224, ustamali: 200, ustamasiz: 160 } }, natijalar: [{ rpc: 't2_fakt_yoz_v2', ok: true }] } };
 
 describe('F2 MCP vositalari Jarvis reestrida', () => {
-  it('12 ta vosita (7 o\'qish + 5 yozish) VOSITALAR va katalogda; id takrorlanmaydi; yozuvchilari pul/tasdiq belgisi bilan', () => {
-    const ids = ['f2_royxat', 'f2', 'fakt_jurnal', 'obyekt_holat', 'qator_qidir', 'nakopitelniy', 'ostatka', 'fakt_yoz', 'f2_qoralama_tahrir', 'zamena_qosh', 'bajarilmadi', 'narx_tuzat'];
+  it('15 ta vosita (8 o\'qish + 7 yozish, transport bilan) VOSITALAR va katalogda; id takrorlanmaydi; yozuvchilari pul/tasdiq belgisi bilan', () => {
+    const ids = ['f2_royxat', 'f2', 'fakt_jurnal', 'obyekt_holat', 'qator_qidir', 'nakopitelniy', 'ostatka', 'fakt_yoz', 'f2_qoralama_tahrir', 'zamena_qosh', 'bajarilmadi', 'narx_tuzat',
+      'transport_tekshir', 'transport_taqsimla', 'transport_belgila'];
     for (const n of ids) expect(VOSITALAR.some((v) => v.id === `mcp_${n}`), n).toBe(true);
     expect(new Set(VOSITALAR.map((v) => v.id)).size).toBe(VOSITALAR.length);
     const kat = barchaVositalar().filter((v) => v.id.includes('.mcp_'));
-    expect(kat).toHaveLength(12);
+    expect(kat).toHaveLength(15);
     expect(kat.filter((v) => v.tur === 'yozuv').every((v) => v.tasdiq !== 'yoq')).toBe(true);
     expect(kat.find((v) => v.id === 'yozuv.mcp_narx_tuzat')!.tasdiq).toBe('kartaPul');
     expect(vositaTop('mcp fakt_yoz {"obyekt_id":1}')?.id).toBe('mcp_fakt_yoz');
