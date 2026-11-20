@@ -4,6 +4,7 @@ import { aiXatoMalumoti } from '../_shared/agent-hisob';
 import { kasbQuvur, type JarvisEnv } from '../_shared/jarvis/chat';
 import { jarvisKichikGap, jarvisRahmatJavobi, jarvisSalomJavobi } from '../../src/lib/jarvis/intent';
 import { jarvisHelp } from '../../src/lib/jarvis/answers';
+import { smetaMcpClient } from '../_shared/jarvis/mcp-client';
 
 type Env = JarvisEnv & { SESSIYA_KALIT: string };
 const headers = { 'Cache-Control': 'no-store' };
@@ -41,7 +42,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (!ctx.env.SUPABASE_URL || !ctx.env.SUPABASE_KEY) return xato('Supabase AI konteksti sozlanmagan', 503);
 
   try {
-    const result = await kasbQuvur(ctx.env, actor, company, {
+    const result = await kasbQuvur({ ...ctx.env, jarvisMcp: smetaMcpClient(ctx.env.SMETA_MCP, ctx.request, company) }, actor, company, {
       savol, obyekt_id: id(body.obyekt_id), tarix: body.tarix,
     }, () => undefined, 'read-only');
     if (result.body.ok === true) return javob(result.body);

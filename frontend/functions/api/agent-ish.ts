@@ -14,6 +14,7 @@ import { kasbQuvur, type JarvisEnv, type Qadam } from '../_shared/jarvis/chat';
 import { onRequestPost as warehousePost } from './ombor-buyruq';
 import { onRequestPost as f2Buyruq } from './f2-buyruq';
 import { onRequestPost as hujjatBuyruq } from './hujjat-buyruq';
+import { smetaMcpClient } from '../_shared/jarvis/mcp-client';
 import type { JarvisPreviewCall } from '../../src/lib/jarvis/write-tools';
 import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
@@ -574,7 +575,7 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
   if (amal === 'kasb_savol') {
     if (kid == null) return xato('Kompaniyani tanlang', 422);
     if (!matn(so.savol, 2000)) return xato('savol kerak');
-    const jarvisEnv: JarvisEnv = { ...env, jarvisWarehouse: async body => {
+    const jarvisEnv: JarvisEnv = { ...env, jarvisMcp: smetaMcpClient(env.SMETA_MCP, ctx.request, kid), jarvisWarehouse: async body => {
       const request = new Request(new URL('/api/ombor-buyruq', ctx.request.url), { method: 'POST',
         headers: ctx.request.headers, body: JSON.stringify(body) });
       const response = await warehousePost({ ...ctx, request } as Parameters<typeof warehousePost>[0]);

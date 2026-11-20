@@ -2,6 +2,8 @@
 export interface RateLimit { limit(o: { key: string }): Promise<{ success: boolean }> }
 
 export interface Env {
+  /** Optional existing frontend SSO cookie secret; unset disables /jarvis/mcp. */
+  SESSIYA_KALIT?: string;
   /** Hyperdrive → Supabase Postgres (to'g'ridan-to'g'ri ulanish satri Hyperdrive sozlamasida, repoda emas). */
   HYPERDRIVE: { connectionString: string };
   /** workers-oauth-provider: mijozlar, grantlar, tokenlar (xeshlangan) va login holati. */

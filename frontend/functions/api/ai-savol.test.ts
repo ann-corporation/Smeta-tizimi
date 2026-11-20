@@ -111,6 +111,38 @@ it.each(['Katalogdagi #50 narxi qancha?', 'Sinov Bino F2 ro‘yxati'])(
   },
 );
 
+it.each([true, false])('legacy/channel API uses the same authenticated MCP core, permission=%s', async allowed => {
+  categories = ['obyektlar', 'smeta_pul', 'f2_fakt_pul'];
+  men = () => Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: 17,
+    permissions: allowed ? ['smeta.read', 'f2.read', 'fakt.read', 'document.read', 'narx.read'] : [] }] });
+  const methods: string[] = [];
+  const service = { fetch: vi.fn(async (request: Request) => {
+    expect(request.headers.get('Cookie')).toBe('sess=synthetic');
+    expect(request.headers.get('X-Jarvis-Company')).toBe('17');
+    const { id, method, params } = await request.json() as { id: number; method: string; params: Record<string, unknown> };
+    methods.push(method);
+    if (method === 'notifications/initialized') return new Response(null, { status: 202 });
+    const result = method === 'initialize' ? { protocolVersion: '2025-06-18', capabilities: { tools: {} } }
+      : method === 'tools/list' ? { tools: [{ name: 'fakt_jurnal', annotations: { readOnlyHint: true },
+        inputSchema: { type: 'object', properties: { obyekt_id: { type: 'integer' } } } }] }
+      : method === 'resources/read' ? { contents: [{ uri: 'smeta://qoidalar', text: 'NULL != 0; no invented money.' }] }
+      : { content: [{ type: 'text', text: 'Synthetic source: −3 m³; narx noma’lum.' }] };
+    if (method === 'tools/call') expect(params).toEqual({ name: 'fakt_jurnal', arguments: { obyekt_id: 34 } });
+    return Response.json({ jsonrpc: '2.0', id, result });
+  }) };
+  ai.mockResolvedValueOnce({ text: JSON.stringify({ javob: '', harakatlar: [], tool_call: {
+    name: 'smeta__fakt_jurnal', arguments: { obyekt_id: 34 } } }), provider: 'synthetic', model: 'synthetic' })
+    .mockResolvedValue({ text: JSON.stringify({ javob: 'Invented 999999', harakatlar: [], tool_call: null }), provider: 'synthetic', model: 'synthetic' });
+  const response = await onRequestPost({ request: new Request('https://unit.test/api/ai-savol', {
+    method: 'POST', headers: { Cookie: 'sess=synthetic' }, body: JSON.stringify({ savol: 'Fakt tarixini tekshir', kompaniya_id: 17 }),
+  }), env: { SESSIYA_KALIT: 'test', SUPABASE_URL: 'https://unit.supabase.co', SUPABASE_KEY: 'test', SMETA_MCP: service } } as never);
+  const body = await response.json();
+  if (allowed) {
+    expect(body).toMatchObject({ javob: 'Synthetic source: −3 m³; narx noma’lum.', dalil: { tur: 'smeta-mcp', kompaniya_id: 17 } });
+    expect(methods).toEqual(['initialize', 'notifications/initialized', 'tools/list', 'resources/read', 'tools/call']);
+  } else { expect(service.fetch).not.toHaveBeenCalled(); }
+});
+
 it.each([
   'Sinov Bino smetada M200 beton qanchadan?', 'Sinov Bino сметада М200 бетон қанчадан?', 'Сколько стоит бетон М200 в смете Sinov Bino?',
 ])('reads matched source units and nullable prices from one estimate: %s', async question => {

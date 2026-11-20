@@ -3938,6 +3938,38 @@
         "frontend/functions/api/ai-savol.test.ts"
       ],
       "note": "L0 expanded LANE-1. Reuse visible/authority, no new permission policy. Foreign tenant and explicit denial must not reach RPC/R2. No main/prod writes."
+    },
+    {
+      "id": "JARVIS-MCP-DIRECT-20261121",
+      "title": "Connect unified Jarvis to the existing Smeta MCP worker using existing SSO",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/jarvis-mcp-unified-tools",
+      "base_sha": "1d9eb5acfb23e7a451369e69a636c475580c7d86",
+      "status": "ready_for_review",
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/mcp/REMOTE.md"
+      ],
+      "production_write_allowed": false,
+      "owns": [
+        "frontend/src/lib/jarvis/mcp-contract.ts",
+        "frontend/functions/_shared/jarvis/mcp-client.ts",
+        "frontend/functions/_shared/jarvis/mcp-client.test.ts",
+        "frontend/functions/_shared/jarvis/chat.ts",
+        "frontend/functions/api/agent-ish.ts",
+        "frontend/functions/api/ai-savol.ts",
+        "frontend/functions/api/ai-savol.test.ts",
+        "mcp/smeta-mcp-remote/src/env.ts",
+        "mcp/smeta-mcp-remote/src/mcp.ts",
+        "mcp/smeta-mcp-remote/src/worker.ts",
+        "mcp/smeta-mcp-remote/src/jarvis.ts",
+        "mcp/smeta-mcp-remote/test/jarvis.test.ts",
+        "docs/mcp/JARVIS_ULANISH.md"
+      ],
+      "note": "Owner requests existing MCP, all channels same core. Existing SDK/tools/auth only; no production config/secret writes. App MCP reads only, existing signed writers retained; remaining writes/M4 not declared complete."
     }
   ]
 }
