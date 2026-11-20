@@ -24,7 +24,8 @@ QAT'IY QOIDALAR:
 3. Asl smeta qatorlari o'zgarmaydi; o'zgarishlar alohida qatlam (fakt, zamena, bajarilmaydi, F2).
 4. Pul: narxlar NDS siz. Summani aytganda ikkalasini bering: USTAMASIZ va USTAMALI (xulosada bor bo'lsa). NDS faqat eng oxirida
    (12%) alohida qo'shiladi — oraliq summalarga NDS qo'shmang. Narxi noma'lum qator summasi 0 emas — «narxsiz» deb ayting.
-5. Tushuntirishda sababni real raqamdan ko'rsating (masalan «fakt 12 / smeta 40 m3 = 30%»).`;
+5. Tushuntirishda sababni real raqamdan ko'rsating (masalan «fakt 12 / smeta 40 m3 = 30%»).
+6. Ustama (nakrutka) foizlari SHARTNOMA darajasida: bir shartnomadagi obyektlar bir xil foiz oladi. Effektiv (summadan teskari hisoblangan) foizni podvalga yozishni TAKLIF QILMANG; shartnomadan farqli foiz faqat dalilli istisno (istisno_dalil) bilan.`;
 
 export const FAKT_YORDAM_TIZIM = `${UMUMIY}
 

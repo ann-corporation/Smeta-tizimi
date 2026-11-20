@@ -137,6 +137,25 @@ describe('podvalFoizQoy', () => {
     expect(podvalFoizQoy(p.qatorlar as never, { yoq_kod: 1 }).xato[0]).toMatch(/yoq_kod/);
     expect(podvalFoizQoy(p.qatorlar as never, { itogo1: 1 }).xato[0]).toMatch(/foiz qatori emas/);
   });
+  it('istisno_dalil: berilgan foizga yoziladi; foiz o\'zgarsa/null bo\'lsa eski dalil olinadi; tuzilma to\'g\'ri', () => {
+    const p = standartPodval({ 'НДС': 12 });
+    const a = podvalFoizQoy(p.qatorlar as never, { tr_mat: 6, strax: 1 }, { istisno: 'sintetik dalil' });
+    expect(a.qatorlar.find((q) => q.kod === 'tr_mat')).toMatchObject({ foiz: 6, manba: 'smeta', istisno_dalil: 'sintetik dalil' });
+    expect(a.qatorlar.find((q) => q.kod === 'prochie')?.istisno_dalil).toBeUndefined();
+    expect(podvalTekshir({ versiya: 1, qatorlar: a.qatorlar } as never)).toEqual([]);
+    // Foiz o'zgardi, yangi dalil berilmadi -> eski dalil qolmaydi (dalil o'sha foizga bog'liq).
+    const b = podvalFoizQoy(a.qatorlar as never, { tr_mat: 7 });
+    expect(b.qatorlar.find((q) => q.kod === 'tr_mat')?.istisno_dalil).toBeUndefined();
+    // Foiz o'zgarmadi -> dalil saqlanadi; null (meros) -> olinadi.
+    expect(podvalFoizQoy(a.qatorlar as never, { tr_mat: 6 }).qatorlar.find((q) => q.kod === 'tr_mat')?.istisno_dalil).toBe('sintetik dalil');
+    expect(podvalFoizQoy(a.qatorlar as never, { tr_mat: null }).qatorlar.find((q) => q.kod === 'tr_mat')).toMatchObject({ manba: 'meros' });
+    expect(podvalFoizQoy(a.qatorlar as never, { tr_mat: null }).qatorlar.find((q) => q.kod === 'tr_mat')?.istisno_dalil).toBeUndefined();
+  });
+  it('SHARTNOMA_FOIZIDAN_FARQ xatosi o\'qiladigan tushuntirish beradi', () => {
+    const m = xatoIzoh({ ok: false, code: 'SHARTNOMA_FOIZIDAN_FARQ', error: 'farq: tr_mat 6% (shartnoma 5%)', farq: [{ kod: 'tr_mat', obyekt_foiz: 6, shartnoma_foiz: 5 }] });
+    expect(m).toMatch(/^SHARTNOMA_FOIZIDAN_FARQ — .*istisno_dalil/);
+    expect(m).toMatch(/tr_mat 6%/);
+  });
 });
 
 describe('narx va fakt yordamchilari', () => {

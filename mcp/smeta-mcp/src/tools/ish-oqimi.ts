@@ -270,12 +270,16 @@ export const podvalTahrir = tool({
   nom: 'podval_tahrir',
   tavsif: 'Obyekt(lar) smeta podvali foizlarini o\'rnatish (t2_nakrutka_podval_saqla_v1; podval — t2_obyekt_nakrutka.nakrutka_podval_id yoki obyektning faol podvali, yo\'q bo\'lsa standartdan yangisi). '
     + `Kodlar: ${PODVAL_KODLAR.join(', ')} (foiz, masalan {"tr_mat":4.5,"nds":12}; null — noma'lum). O'rnatilgan foiz manba='smeta' (server shu foizni oladi). `
-    + 'Ixtiyoriy `baza` {kod:[kat…]}, `dalil` matni, `katak` {kod:"F120"}. Preview: kf_* va pryamye/ИТОГО-4/ВСЕГО oldin→keyin.',
+    + 'Ixtiyoriy `baza` {kod:[kat…]}, `dalil` matni, `katak` {kod:"F120"}. Preview: kf_* va pryamye/ИТОГО-4/ВСЕГО oldin→keyin, `shartnoma_farq`. '
+    + 'QOIDA: ustama foizlari SHARTNOMA darajasida qo\'llanadi - bir shartnomadagi obyektlar bir xil foiz oladi (shartnoma t2_nakrutka_koef). '
+    + 'Obyekt podvalida shartnomadan FARQLI foiz faqat dalilli ISTISNO sifatida saqlanadi: `istisno_dalil` (3..500 belgi) majburiy, aks holda SHARTNOMA_FOIZIDAN_FARQ xatosi. '
+    + 'Effektiv (teskari hisoblangan) foiz yozilmaydi - foiz manbasi smeta podvali yoki shartnoma. Preview shartnoma foizi bilan farqni (kod, obyekt_foiz, shartnoma_foiz, dalil) ko\'rsatadi.',
   kirish: {
     obyekt_idlar: obyektlarS,
     foizlar: z.record(z.string().regex(/^[A-Za-z0-9_]{1,40}$/), z.number().nullable()),
     baza: z.record(z.string(), z.array(z.enum(['ЧЕЛ', 'МАШ', 'МАТ', 'ОБ', 'КАБ', 'М/К', 'БЕЗ СКЛАД'])).min(1)).optional(),
     dalil: z.string().max(500).optional(), katak: z.record(z.string(), z.string().max(40)).optional(), nom: z.string().max(200).optional(),
+    istisno_dalil: z.string().min(3).max(500).optional().describe('shartnoma foizidan FARQLI foiz uchun majburiy dalil (istisno); berilgan foizlarga yoziladi'),
     operation_id: opS, dry_run: dryRunT,
   },
   yozadi: true,
@@ -292,17 +296,24 @@ export const podvalTahrir = tool({
         ? (await m.query<PRow>('select id, nom, qatorlar, versiya from public.t2_nakrutka_podval where id = $1 and kompaniya_id = $2 and faol', [oldin.nakrutka_podval_id, k])).rows[0]
         : (await m.query<PRow>('select id, nom, qatorlar, versiya from public.t2_nakrutka_podval where obyekt_id = $1 and kompaniya_id = $2 and faol order by id desc limit 1', [id, k])).rows[0];
       const asl: PodvalQatorX[] = pr ? pr.qatorlar : (standartPodval((oldin?.koeffitsientlar ?? null) as Parameters<typeof standartPodval>[0]).qatorlar.map((q) => ({ ...q, ...(q.tur === 'foiz' ? { manba: 'meros' as const } : {}) })) as PodvalQatorX[]);
-      const p = podvalFoizQoy(asl, a.foizlar, { baza: a.baza, dalil: a.dalil, katak: a.katak });
+      const p = podvalFoizQoy(asl, a.foizlar, { baza: a.baza, dalil: a.dalil, katak: a.katak, istisno: a.istisno_dalil });
       if (p.xato.length) throw new Error(p.xato.join('; '));
       const tek = podvalTekshir({ versiya: 1, qatorlar: p.qatorlar } as unknown as Podval);
       if (tek.length) throw new Error(`podval tuzilmasi: ${tek.map((x) => `${x.kod ?? ''} ${x.xabar}`).join('; ')}`);
+      // Shartnoma doirasi: taklif qilingan podval foizlari shartnoma foizidan qanchalik farq qiladi (migratsiya qo'llanmagan bo'lsa - o'tkaziladi).
+      let shartnomaFarq: Array<{ kod: string; koef_kod: string; obyekt_foiz: number; shartnoma_foiz: number; istisno_dalil: string | null; dalilsiz: boolean }> | null = null;
+      if ((await m.query<{ bor: boolean }>(`select to_regprocedure('public.t2_podval_shartnoma_farq_v1(bigint,jsonb)') is not null as bor`)).rows[0]?.bor) {
+        const fr = await m.query<{ kod: string; koef_kod: string; obyekt_foiz: string; shartnoma_foiz: string; istisno_dalil: string | null }>(
+          'select kod, koef_kod, obyekt_foiz, shartnoma_foiz, istisno_dalil from public.t2_podval_shartnoma_farq_v1($1::bigint, $2::jsonb)', [id, JSON.stringify(p.qatorlar)]);
+        shartnomaFarq = fr.rows.map((x) => ({ kod: x.kod, koef_kod: x.koef_kod, obyekt_foiz: Number(x.obyekt_foiz), shartnoma_foiz: Number(x.shartnoma_foiz), istisno_dalil: x.istisno_dalil, dalilsiz: x.istisno_dalil == null }));
+      }
       const res = await rpcOk(m, 't2_nakrutka_podval_saqla_v1', {
         p_kompaniya_id: k, p_obyekt_id: id, p_shartnoma_id: null, p_nom: a.nom ?? pr?.nom ?? 'Подвал', p_qatorlar: p.qatorlar,
         p_id: pr ? Number(pr.id) : null, p_kutilgan_versiya: pr ? Number(pr.versiya) : null, p_operation_id: uuidHosila(asos, `podval:${id}`), p_kim: `mcp:actor:${aktor}`,
       }, aktor);
       const keyin = await nkOl(m, id);
       const j = (x: NkRow | null) => x ? { pryamye: x.pryamye, itogo4: x.itogo4, vsego: x.vsego, nk_manba: x.nk_manba } : null;
-      return { nom: qisqa(ob.nom, 50), podval_id: res.id ?? pr?.id ?? null, versiya: res.versiya ?? null, yangi_podval: !pr, ozgardi: p.ozgardi, kf: { oldin: kfQism(oldin), keyin: kfQism(keyin) }, jami: { oldin: j(oldin), keyin: j(keyin) } };
+      return { nom: qisqa(ob.nom, 50), podval_id: res.id ?? pr?.id ?? null, versiya: res.versiya ?? null, yangi_podval: !pr, ozgardi: p.ozgardi, shartnoma_farq: shartnomaFarq, kf: { oldin: kfQism(oldin), keyin: kfQism(keyin) }, jami: { oldin: j(oldin), keyin: j(keyin) } };
     }));
     return javob(dry, natijalar);
   },
