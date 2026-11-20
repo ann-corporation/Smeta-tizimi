@@ -239,12 +239,38 @@ class JarvisRepositoryTest {
         assertFalse(last.containsKey("kompaniya_id")); assertFalse(last.containsKey("obyekt_id")); assertFalse(last.containsKey("tarix"))
     }
 
-    @Test fun historyIsLimitedToTheLastSixNonBlankTurns() {
+    @Test fun aShortHistoryKeepsAllNonBlankTurnsInOrder() {
         val h = (1..10).map { ChatMsg(it % 2 == 1, "m$it") } + ChatMsg(true, "   ")
         val j = JarvisRepository.historyJson(h)
-        assertEquals(6, j.size)
-        assertEquals("m5", j.first().jsonObject["matn"]!!.jsonPrimitive.content)
+        assertEquals(10, j.size)
+        assertEquals("m1", j.first().jsonObject["matn"]!!.jsonPrimitive.content)
         assertEquals("m10", j.last().jsonObject["matn"]!!.jsonPrimitive.content)
+    }
+
+    @Test fun aLongHistoryRetainsTheFullInitialGoalAndMostRecentTurns() {
+        val goal = "Synthetic goal: " + "x".repeat(1500) + " important final requirement"
+        val history = listOf(ChatMsg(true, goal)) + (1..40).map { ChatMsg(it % 2 == 0, "Turn $it") }
+        val result = JarvisRepository.historyJson(history)
+        assertEquals(16, result.size)
+        assertEquals(goal, result.first().jsonObject["matn"]!!.jsonPrimitive.content)
+        assertEquals("Turn 40", result.last().jsonObject["matn"]!!.jsonPrimitive.content)
+        assertEquals(goal, history.first().text)
+    }
+
+    @Test fun oversizedContextIsExplicitlyMarkedAndStaysWithinServerBudgets() {
+        val result = JarvisRepository.historyJson((0..40).map { ChatMsg(it % 2 == 0, "$it " + "x".repeat(10000)) })
+        val texts = result.map { it.jsonObject["matn"]!!.jsonPrimitive.content }
+        assertTrue(result.size <= 16)
+        assertTrue(texts.all { it.length <= 6000 && it.endsWith("[TRUNCATED BY LIMIT]") })
+        assertTrue(texts.sumOf { it.length } <= 24000)
+        assertTrue(texts.first().startsWith("0 ")); assertTrue(texts.last().startsWith("40 "))
+    }
+
+    @Test fun repeatedUserTextDoesNotEraseTheOriginalGoalOrTheLatestTurn() {
+        val history = listOf(ChatMsg(true, "Repeat")) + (1..25).map { ChatMsg(false, "Reply $it") } + ChatMsg(true, "Repeat")
+        val texts = JarvisRepository.historyJson(history).map { it.jsonObject["matn"]!!.jsonPrimitive.content }
+        assertEquals(2, texts.count { it == "Repeat" })
+        assertEquals("Repeat", texts.first()); assertEquals("Repeat", texts.last())
     }
 
     @Test fun localModelMarkerAndAgentIshErrorTextAreRecognised() {

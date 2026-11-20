@@ -218,7 +218,9 @@ class JarvisRepository(private val api: BffApi) {
         }
 
         const val MAX_QUESTION = 1000
-        const val MAX_HISTORY = 6
+        const val MAX_HISTORY = 16
+        const val MAX_HISTORY_TEXT = 6000
+        const val MAX_HISTORY_TOTAL = 24000
         const val MAX_SAVED = 12
         private const val MAX_TRANSCRIPT = 256
         private const val MAX_SAVED_TEXT = 16_000
@@ -227,10 +229,26 @@ class JarvisRepository(private val api: BffApi) {
         const val PATH = "/api/agent-ish"
         const val PAGE = "/android/jarvis"
 
-        /** Last [MAX_HISTORY] non-blank turns in the server's shape ({rol: user|assistant, matn}). Pure. */
+        /** Bounded transport excerpt, matching server/web suhbatKonteksti. Never truncates the canonical saved transcript. */
         fun historyJson(history: List<ChatMsg>): JsonArray = buildJsonArray {
-            history.filter { it.text.isNotBlank() }.takeLast(MAX_HISTORY).forEach {
-                add(buildJsonObject { put("rol", if (it.mine) "user" else "assistant"); put("matn", it.text.trim().take(500)) })
+            val indexes = ((0 until minOf(32, history.size)) + (maxOf(0, history.size - 128) until history.size)).distinct().sorted()
+            val valid = indexes.mapNotNull { index ->
+                val turn = history[index]
+                if (turn.text.isBlank()) null else index to if (turn.text.length > MAX_HISTORY_TEXT)
+                    turn.copy(text = turn.text.take(MAX_HISTORY_TEXT - 24) + "\n[TRUNCATED BY LIMIT]") else turn
+            }
+            val goal = valid.firstOrNull { it.second.mine }
+            val selected = mutableListOf<Pair<Int, ChatMsg>>()
+            if (goal != null) selected += goal
+            var size = goal?.second?.text?.length ?: 0
+            for (entry in valid.asReversed()) {
+                if (entry.first == goal?.first) continue
+                if (selected.size >= MAX_HISTORY) break
+                if (size + entry.second.text.length > MAX_HISTORY_TOTAL) continue
+                selected += entry; size += entry.second.text.length
+            }
+            selected.sortedBy { it.first }.forEach { (_, turn) ->
+                add(buildJsonObject { put("rol", if (turn.mine) "user" else "assistant"); put("matn", turn.text) })
             }
         }
 
