@@ -19,6 +19,7 @@ const cases: Array<[JarvisToolName, string[], unknown]> = [
   ['task_list', ['Mening ochiq topshiriqlarim', 'Менинг очиқ топшириқларим', 'Мои открытые задачи'], 'open'],
   ['approval_queue', ['Tasdiqlash navbati', 'Тасдиқлаш навбати', 'Моя очередь согласования'], true],
   ['estimate_total', ['Smeta qiymati ustama va QQS bilan', 'Смета қиймати устама ва ҚҚС билан', 'Стоимость сметы с НДС и накруткой'], null],
+  ['transport_tekshir', ['Transport tekshir', 'Транспорт текшир', 'Проверь транспорт'], true],
 ];
 const languages = ['uz-Latn', 'uz-Cyrl', 'ru'];
 it.each(cases.flatMap(([name, queries, expected]) => queries.map((query, index) => ({

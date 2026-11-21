@@ -40,6 +40,8 @@ export function previewMatni(j: F2Javob): string {
   const p = j.preview as F2Preview | undefined;
   const q: string[] = [];
   if (j.tavsif) q.push(`**${j.tavsif}**`);
+  /* Transport vositalari: summa paketi yo'q (qator tagiga t·km qo'shiladi) — tayyor matnli preview. */
+  if (typeof j.korinish === 'string') return [...q, j.korinish, ...(j.ogohlantirish ?? []).map((o) => `⚠ ${o}`)].join('\n');
   for (const r of (p?.qatorlar ?? []).slice(0, 12)) {
     const nom = `${r.kod ?? `#${r.qator_id}`} ${(r.nom ?? '').slice(0, 50)}`.trim();
     q.push(r.olib_tashlandi ? `- ${nom}: olib tashlanadi` : `- ${nom}: ${r.ozgarish.map((o) => `${o.maydon} ${son(o.oldin)} → ${son(o.keyin)}`).join('; ') || 'o\'zgarmaydi'}${r.yangi ? ' (yangi)' : ''}`);
@@ -74,6 +76,10 @@ export function oqishMatni(nom: string, j: F2Javob): string {
       return `${bosh}${royxat(j.qatorlar).slice(0, 15).map((x) => `- #${x.id} ${x.kod ?? ''} ${String(x.nom ?? '').slice(0, 50)} (${x.birlik ?? '—'}, ${x.tur})`).join('\n') || 'Topilmadi.'}`;
     case 'ostatka':
       return `${bosh}${royxat(j.qatorlar).slice(0, 15).map((x) => `- #${x.qator_id} ${String(x.nom ?? '').slice(0, 40)}: qoldiq ${son(x.qoldiq_hajm as number | null)} ${x.birlik ?? ''}`).join('\n') || 'Qoldiq qator yo\'q.'}`;
+    case 'transport_tekshir': {
+      const x = (j.xulosa ?? {}) as Record<string, number>;
+      return `${bosh}- foiz: ${x.foiz ?? '—'} · t·km: ${x.tkm ?? '—'} · narx ichida: ${x.narx_ichida ?? '—'} · t·km qatorlari: ${x.tkm_qator_soni ?? '—'}\n- **Xatolar: ${x.xato_soni ?? '—'}**${royxat(j.xatolar).slice(0, 8).map((e) => `\n  - ${e.kod} #${e.qator_id}: ${e.xabar}`).join('')}`;
+    }
     default:
       return `${bosh}${JSON.stringify(j.jami ?? j).slice(0, 1500)}`;
   }
@@ -87,7 +93,7 @@ export function f2ArgAjrat(xom: string, nom: string): Record<string, unknown> | 
   try { const o = JSON.parse(s) as unknown; return o && typeof o === 'object' && !Array.isArray(o) ? o as Record<string, unknown> : null; } catch { return null; }
 }
 
-const PUL_TASIRLI = new Set(['narx_tuzat', 'f2_qoralama_tahrir']);
+const PUL_TASIRLI = new Set(['narx_tuzat', 'f2_qoralama_tahrir', 'transport_taqsimla']);
 const OBYEKTSIZ = new Set(['f2', 'f2_qoralama_tahrir']);
 
 function vositaYasa(t: F2Vosita): Vosita {

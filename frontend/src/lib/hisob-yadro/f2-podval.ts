@@ -53,7 +53,10 @@ export function kesimQosh(a: Kesim, b: Kesim): Kesim {
     ? { qqssiz: (a.yaxlit?.qqssiz ?? 0) + (b.yaxlit?.qqssiz ?? 0), barglar: (a.yaxlit?.barglar ?? 0) + (b.yaxlit?.barglar ?? 0),
         ...(a.yaxlit?.svodQqsBilan != null || b.yaxlit?.svodQqsBilan != null ? { svodQqsBilan: (a.yaxlit?.svodQqsBilan ?? 0) + (b.yaxlit?.svodQqsBilan ?? 0), svodQqssiz: (a.yaxlit?.svodQqssiz ?? 0) + (b.yaxlit?.svodQqssiz ?? 0) } : {}) }
     : undefined;
+  const tr: Kesim['transportChiqar'] = { ...a.transportChiqar };
+  for (const [k, v] of Object.entries(b.transportChiqar ?? {})) tr[k as keyof typeof tr] = (tr[k as keyof typeof tr] ?? 0) + (v ?? 0);
   return {
+    ...(Object.keys(tr).length ? { transportChiqar: tr } : {}),
     summalar: s, nomalum: a.nomalum + b.nomalum, nomalumSoni: a.nomalumSoni + b.nomalumSoni, summasizSoni: a.summasizSoni + b.summasizSoni,
     ...(y ? { yaxlit: y } : {}),
     ...(a.yaxlitQator != null || b.yaxlitQator != null ? { yaxlitQator: (a.yaxlitQator ?? 0) + (b.yaxlitQator ?? 0) } : {}),

@@ -3,12 +3,12 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
-      "id": "JARVIS-M5-COMPACT-SIGNALS-20261121",
-      "title": "Jarvis feedback and read outcomes reuse existing bounded friction counters",
+      "id": "JARVIS-M5-WEEKLY-20261121",
+      "title": "Weekly compact Jarvis failures become existing human-review proposals",
       "owner": "codex",
       "machine": "Anvar",
-      "branch": "codex/jarvis-learning-counters",
-      "base_sha": "1d9eb5acfb23e7a451369e69a636c475580c7d86",
+      "branch": "codex/jarvis-weekly-proposals",
+      "base_sha": "3d88b93ec06b355f65ce6163a548d0d8a4fe7cd3",
       "status": "ready_for_review",
       "depends_on": [],
       "must_read": [
@@ -16,72 +16,23 @@
         "docs/governance/CONSTITUTION.md"
       ],
       "owns": [
-        "frontend/functions/_shared/jarvis/learning.ts",
-        "frontend/functions/_shared/jarvis/learning.test.ts",
-        "frontend/functions/_shared/jarvis/learning-integration.test.ts",
-        "frontend/functions/_shared/jarvis/read-tools.ts",
+        "supabase/migrations/20270121000100_t2_jarvis_haftalik_taklif_v1*.sql",
+        "supabase/tests/jarvis-weekly-pglite.mjs",
+        ".github/workflows/jarvis-sql.yml",
+        ".github/workflows/bilim-kuzatuv.yml",
+        "tools/ci/jarvis-weekly-workflow.test.mjs",
         "frontend/functions/api/agent-ish.ts",
-        "frontend/functions/_shared/jarvis/chat.ts",
-        "frontend/functions/api/ai-savol.ts",
-        "frontend/functions/api/agent-ish.test.ts",
-        "docs/architecture/JARVIS_SIGNALS.md"
+        "frontend/functions/api/agent-ish.weekly.test.ts",
+        "frontend/src/api/t2-agent-ish.ts",
+        "frontend/src/lib/jarvis/weekly-report.ts",
+        "frontend/src/admin/ai-markaz/AiOrganishBolimi.tsx",
+        "frontend/src/admin/ai-markaz/AiOrganishBolimi.weekly.test.tsx",
+        "frontend/src/admin/sahifalar/AgentTakliflar.tsx",
+        "frontend/src/i18n/lugat/qism/jarvis-weekly.json",
+        "docs/architecture/JARVIS_WEEKLY.md"
       ],
       "production_write_allowed": false,
-      "note": "M5 of owner goal; fixed counter codes only, existing osuvchi RPC and storage/idempotency/settings/cardinality, no raw transcript or automatic learning/promotion. Old negative feedback weekly-proposal signal preserved. Read tail only; #738 authority guard retained in rehearsal. Same Codex AI-lane narrow API edits; L0 review/merge/release. No schema/prod/config changes."
-    },
-    {
-      "id": "JARVIS-MCP-R2-NORMATIVES-20261121",
-      "title": "Existing MCP normative search uses the canonical published R2 reader",
-      "owner": "codex",
-      "machine": "Anvar",
-      "branch": "codex/jarvis-mcp-r2-normatives",
-      "base_sha": "1d9eb5acfb23e7a451369e69a636c475580c7d86",
-      "status": "ready_for_review",
-      "depends_on": [],
-      "must_read": [
-        "AGENTS.md",
-        "docs/governance/CONSTITUTION.md"
-      ],
-      "owns": [
-        "mcp/smeta-mcp/src/muhit.ts",
-        "mcp/smeta-mcp/src/tools/pto.ts",
-        "mcp/smeta-mcp-remote/src/env.ts",
-        "mcp/smeta-mcp-remote/src/mcp.ts",
-        "mcp/smeta-mcp-remote/src/normativ.ts",
-        "mcp/smeta-mcp-remote/test/normativ.test.ts",
-        "frontend/functions/_shared/normativ-evidence.ts",
-        "frontend/functions/_shared/normativ-r2-index.ts",
-        "frontend/functions/_shared/normativ-read.ts",
-        "docs/mcp/NORMATIV_R2.md"
-      ],
-      "production_write_allowed": false,
-      "note": "Owner requests existing MCP connection, not another server. Same readNormativ and canonical bucket, publishedOnly, verified actor/company. Shared reader changes are types only; no normative text, migrations, config or production writes. L0 merges and releases; after #740 bind this callback in the common authenticated handler for both routes."
-    },
-    {
-      "id": "JARVIS-EVIDENCE-SUMMARY-20261119",
-      "title": "Bind read conclusions to exact source paragraphs",
-      "owner": "codex",
-      "machine": "Anvar",
-      "branch": "codex/jarvis-m3-evidence-summary",
-      "base_sha": "6b733cbc",
-      "status": "active",
-      "depends_on": [],
-      "must_read": [
-        "AGENTS.md",
-        "docs/governance/CONSTITUTION.md"
-      ],
-      "production_write_allowed": false,
-      "owns": [
-        "frontend/src/lib/jarvis/tool-evidence.ts",
-        "frontend/src/lib/jarvis/tool-evidence.test.ts",
-        "frontend/src/lib/jarvis/write-tools.ts",
-        "frontend/src/lib/jarvis/write-tools.test.ts",
-        "frontend/functions/_shared/jarvis/chat.ts",
-        "frontend/functions/_shared/jarvis/jarvis-eval.test.ts",
-        "docs/architecture/JARVIS_YADRO.md",
-        ".github/workflows/android-native.yml"
-      ],
-      "note": "Proven 1e6/million bypass of old numeric token guard. Model selects exact source paragraphs. No business writer or permission changes."
+      "note": "Existing scheduler/proposal creator only, fixed UTC closed week, opt-in and >=5 distinct companies per fixed failure key, one immutable review proposal/week, caller operation UUID, no auto-change. SQL local rehearsal only; main/prod/migration apply L0. Existing Codex AI-lane narrow shared adapters/UI owned here; preserve older PRs during rehearsal."
     },
     {
       "id": "JARVIS-M3-F2-WRITE-20261119",
@@ -3708,6 +3659,87 @@
       ],
       "production_write_allowed": false,
       "note": "Egasi 2026-11-03: «tendr ... mukammal jarayon». P2/P3 (t2_birja_*, t2_buyurtma) ustiga additiv; migratsiya 20261122000200 prodga FAQAT L0 qo'llaydi. PR-T1 (claude/tender-v1): baza + shlyuz + api + lib; PR-T2 (claude/tender-v1-ui): UI. v1 RPC lar (elon/golib/yop/tafsilot) service_role dan yig'iladi (muhr va tasdiq aylanib o'tilmasin)."
+    },
+    {
+      "id": "JARVIS-M5-COMPACT-SIGNALS-20261121",
+      "title": "Jarvis feedback and read outcomes reuse existing bounded friction counters",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/jarvis-learning-counters",
+      "base_sha": "1d9eb5acfb23e7a451369e69a636c475580c7d86",
+      "status": "ready_for_review",
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md"
+      ],
+      "owns": [
+        "frontend/functions/_shared/jarvis/learning.ts",
+        "frontend/functions/_shared/jarvis/learning.test.ts",
+        "frontend/functions/_shared/jarvis/learning-integration.test.ts",
+        "frontend/functions/_shared/jarvis/read-tools.ts",
+        "frontend/functions/api/agent-ish.ts",
+        "frontend/functions/_shared/jarvis/chat.ts",
+        "frontend/functions/api/ai-savol.ts",
+        "frontend/functions/api/agent-ish.test.ts",
+        "docs/architecture/JARVIS_SIGNALS.md"
+      ],
+      "production_write_allowed": false,
+      "note": "M5 of owner goal; fixed counter codes only, existing osuvchi RPC and storage/idempotency/settings/cardinality, no raw transcript or automatic learning/promotion. Old negative feedback weekly-proposal signal preserved. Read tail only; #738 authority guard retained in rehearsal. Same Codex AI-lane narrow API edits; L0 review/merge/release. No schema/prod/config changes."
+    },
+    {
+      "id": "JARVIS-MCP-R2-NORMATIVES-20261121",
+      "title": "Existing MCP normative search uses the canonical published R2 reader",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/jarvis-mcp-r2-normatives",
+      "base_sha": "1d9eb5acfb23e7a451369e69a636c475580c7d86",
+      "status": "ready_for_review",
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md"
+      ],
+      "owns": [
+        "mcp/smeta-mcp/src/muhit.ts",
+        "mcp/smeta-mcp/src/tools/pto.ts",
+        "mcp/smeta-mcp-remote/src/env.ts",
+        "mcp/smeta-mcp-remote/src/mcp.ts",
+        "mcp/smeta-mcp-remote/src/normativ.ts",
+        "mcp/smeta-mcp-remote/test/normativ.test.ts",
+        "frontend/functions/_shared/normativ-evidence.ts",
+        "frontend/functions/_shared/normativ-r2-index.ts",
+        "frontend/functions/_shared/normativ-read.ts",
+        "docs/mcp/NORMATIV_R2.md"
+      ],
+      "production_write_allowed": false,
+      "note": "Owner requests existing MCP connection, not another server. Same readNormativ and canonical bucket, publishedOnly, verified actor/company. Shared reader changes are types only; no normative text, migrations, config or production writes. L0 merges and releases; after #740 bind this callback in the common authenticated handler for both routes."
+    },
+    {
+      "id": "JARVIS-EVIDENCE-SUMMARY-20261119",
+      "title": "Bind read conclusions to exact source paragraphs",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/jarvis-m3-evidence-summary",
+      "base_sha": "6b733cbc",
+      "status": "active",
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md"
+      ],
+      "production_write_allowed": false,
+      "owns": [
+        "frontend/src/lib/jarvis/tool-evidence.ts",
+        "frontend/src/lib/jarvis/tool-evidence.test.ts",
+        "frontend/src/lib/jarvis/write-tools.ts",
+        "frontend/src/lib/jarvis/write-tools.test.ts",
+        "frontend/functions/_shared/jarvis/chat.ts",
+        "frontend/functions/_shared/jarvis/jarvis-eval.test.ts",
+        "docs/architecture/JARVIS_YADRO.md",
+        ".github/workflows/android-native.yml"
+      ],
+      "note": "Proven 1e6/million bypass of old numeric token guard. Model selects exact source paragraphs. No business writer or permission changes."
     },
     {
       "id": "JARVIS-DOMAIN-READ-REGISTRY-20261119",

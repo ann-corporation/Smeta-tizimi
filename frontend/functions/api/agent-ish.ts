@@ -517,10 +517,15 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
   /* RIVOJLANTIRUVCHI AGENT (faqat tizim): tozalangan signallarni guruhlab, admin uchun ISH TAKLIFI tayyorlaydi. */
   if (amal === 'rivojlanish_tahlil') {
     if (kid != null) return xato('Faqat tizim doirasida', 403);
+    if (so.operation_id !== undefined && (typeof so.operation_id !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(so.operation_id))) return xato('operation_id noto‘g‘ri');
+    const operationId = so.operation_id ?? crypto.randomUUID();
     const y = await rpcData(env, 't2_agent_rivojlanish_yigish_v1', { p_actor_id: k.actor, p_kun: 30 });
     if (!y.ok) return chiqar(y);
+    const weekly = await rpcData(env, 't2_jarvis_haftalik_taklif_v1', { p_actor_id: k.actor, p_operation_id: operationId }, AbortSignal.timeout(6000)).catch(() => null);
+    if (weekly?.status === 403) return chiqar(weekly);
+    const jarvisHafta = weekly?.ok ? weekly.data : { ok: false, code: ['WEEKLY_BUSY', 'OPERATION_REQUIRED', 'OPERATION_REUSE'].includes(String(weekly?.data.code)) ? weekly?.data.code : 'WEEKLY_UNAVAILABLE' };
     const guruhlar = (Array.isArray(y.data.natija) ? y.data.natija : []) as Array<{ sahifa: string; tur: string; soni: number; kompaniya_soni: number; namunalar: string[]; signal_idlar: number[] }>;
-    if (!guruhlar.length) return Response.json({ ok: true, takliflar: [], xabar: 'Yangi signal yo‘q' }, JAVOB);
+    if (!guruhlar.length) return Response.json({ ok: true, takliflar: [], jarvis_hafta: jarvisHafta, xabar: 'Oldingi signal oqimida yangi yozuv yo‘q' }, JAVOB);
     const m = await rpcData(env, 't2_agent_muhit_v1', { p_actor_id: k.actor, p_kompaniya_id: null, p_profil: 'platform_orchestrator' });
     if (!m.ok) return chiqar(m);
     try {
@@ -544,9 +549,10 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
         });
         if (c.ok) yaratildi.push(c.data.id); else otkazildi += 1;
       }
-      return Response.json({ ok: true, takliflar: yaratildi, otkazildi, model: r.model }, JAVOB);
+      return Response.json({ ok: true, takliflar: yaratildi, otkazildi, model: r.model, jarvis_hafta: jarvisHafta }, JAVOB);
     } catch (e) {
-      return aiXatoJavobi(e);
+      const failed = aiXatoMalumoti(e);
+      return Response.json({ ...failed.body, jarvis_hafta: jarvisHafta }, { status: failed.status, ...JAVOB });
     }
   }
 

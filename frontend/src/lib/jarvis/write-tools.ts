@@ -5,10 +5,18 @@ import { qidiruvKaliti } from '../../i18n/lotin-kirill';
 /** Route F2/fact edits past the legacy client intent rewriter to the shared server. */
 export function jarvisF2WriteIntent(question: string): boolean {
   const text = question.toLowerCase() + ' ' + qidiruvKaliti(question);
+  if (jarvisTransportWriteIntent(text)) return true;
   if (/excel|xlsx|eksport|export|скача|выгруз|экспорт|ko.rsat|покаж|просмотр|(?:^|\s)och(?:ib|ish)?(?:\s|$)|откро/.test(text) &&
       !/o.zgartir|ozgartir|tuzat|kamaytir|oshir|almashtir|измени|исправ|уменьш|увелич|замени/.test(text)) return false;
   return /f-?2|ф-?2|кс-?2|fakt|факт/.test(text) &&
     /qil|ozgartir|o.zgartir|tuzat|yoz|kirit|qosh|qo.sh|kamaytir|oshir|almashtir|bekor|bajarilmadi|измени|установи|исправ|добав|запиши|уменьш|увелич|замени|отмени/.test(text);
+}
+
+/** Transport: usulni o'zgartir (foiz | t·km | narx ichida) yoki hisob aktidan taqsimla — yozuv; «tekshir» o'qish yo'lida qoladi. */
+function jarvisTransportWriteIntent(text: string): boolean {
+  return /transport|трансп|t.?km|т.?км|tonna.?km/.test(text) &&
+    /taqsimla|yoy|belgila|o.zgartir|qil\b|qo.y|tkm ga|narx ichida|narxda|taqsim|распредел|отметь|измени|установи|разнес/.test(text);
+
 }
 
 export type JarvisPreview = F2Javob & { token: string; holat: 'tasdiq_kerak' };
@@ -30,6 +38,10 @@ const parameters: Record<YozishNomi, Record<string, unknown>> = {
   bajarilmadi: { obyekt_id: id, amal: { type: 'string', enum: ['belgila', 'bekor'] }, qatorlar: rows({ qator_id: id, hajm: number }, ['qator_id'], 200),
     qator_idlar: { type: 'array', items: id }, sabab_kod: string, sabab_izoh: string, sana: string, bekor_idlar: { type: 'array', items: id } },
   narx_tuzat: { obyekt_id: id, narxlar: rows({ qator_id: id, narx: number }, ['qator_id', 'narx'], 100), sabab: string },
+  transport_taqsimla: { obyekt_id: id, rz_id: id, tkm_narx: number, majburiy: { type: 'boolean' },
+    qatorlar: rows({ material: string, birlik: string, miqdor: number, zichlik: number, km: number, hisob_tkm: number, kodlar: { type: 'array', items: string, maxItems: 100 }, nom_pattern: string },
+      ['material', 'zichlik', 'km'], 40) },
+  transport_belgila: { obyekt_id: id, qator_idlar: { type: 'array', minItems: 1, maxItems: 200, items: id }, usul: { type: 'string', enum: ['foiz', 'tkm', 'narx_ichida'] } },
 };
 export const jarvisWriteTools = F2_VOSITALAR.filter(tool => YOZISH_NOMLARI.includes(tool.nom as YozishNomi));
 export const jarvisWriteSchemas = jarvisWriteTools.map(tool => ({ type: 'object', additionalProperties: false, required: ['name', 'arguments'],

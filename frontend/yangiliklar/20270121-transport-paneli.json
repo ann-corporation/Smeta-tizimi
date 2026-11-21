@@ -1,0 +1,10 @@
+{
+  "sana": "2027-01-21",
+  "sarlavha": "Smetada «Transport» bo‘limi: usulni ko‘rish, o‘zgartirish va hisob aktidan taqsimlash",
+  "bandlar": [
+    "Obyekt smetasida yangi «Transport» bo‘limi: t·km transporti (qator va so‘m), foizdagi transportli materiallar soni va yuk tashish ishlari (Е310/Е311) bir qarashda ko‘rinadi. Xato bo‘lsa qizil ro‘yxatda chiqadi va bir bosishda o‘sha qatorga o‘tiladi.",
+    "Smeta XLSX dagi «Расчёт затрат транспорта» varag‘ini tanlasangiz, tizim t·km qatorlarini har materialning tagiga o‘zi taqsimlaydi. Avval jadvalda ko‘rasiz (smeta va hisob miqdori, t·km, so‘mdagi farq), keyin bitta «Tasdiqlash» bilan yoziladi. Farq bo‘lsa, uni ongli qabul qilganingizni belgilaysiz.",
+    "Smeta ro‘yxatida material qatorida «t·km» yoki «narx ichida» belgisi chiqadi; qator tafsilotida transport turini o‘zgartirish mumkin. Bitta material uchun faqat bitta usul — transport ikki marta hisoblanmaydi.",
+    "AI yordamchi (Jarvis, Ctrl+K) ham shu ishni qiladi: «transport tekshir», «transportni hisob aktidan taqsimla», «shu materialni narx ichida qil». Yozishdan oldin har doim ko‘rsatadi va faqat sizning tasdig‘ingiz bilan yozadi."
+  ]
+}

@@ -5,9 +5,9 @@ import { WRITE_COMMAND_POLICY } from './write-command-policy';
 
 // Faqat sintetik raqamlar: haqiqiy summa/nom yo'q.
 describe('F2 vositalar reyestri', () => {
-  it('MCP ning 7 ta o\'qish va 5 ta yozish vositasi bor, hammasi o\'zbekcha tavsif va kirish sxemasi bilan', () => {
-    expect([...OQISH_NOMLARI].sort()).toEqual(['f2', 'f2_royxat', 'fakt_jurnal', 'nakopitelniy', 'obyekt_holat', 'ostatka', 'qator_qidir']);
-    expect([...YOZISH_NOMLARI].sort()).toEqual(['bajarilmadi', 'f2_qoralama_tahrir', 'fakt_yoz', 'narx_tuzat', 'zamena_qosh']);
+  it('MCP ning 8 ta o\'qish va 7 ta yozish vositasi bor (transport bilan), hammasi o\'zbekcha tavsif va kirish sxemasi bilan', () => {
+    expect([...OQISH_NOMLARI].sort()).toEqual(['f2', 'f2_royxat', 'fakt_jurnal', 'nakopitelniy', 'obyekt_holat', 'ostatka', 'qator_qidir', 'transport_tekshir']);
+    expect([...YOZISH_NOMLARI].sort()).toEqual(['bajarilmadi', 'f2_qoralama_tahrir', 'fakt_yoz', 'narx_tuzat', 'transport_belgila', 'transport_taqsimla', 'zamena_qosh']);
     for (const v of F2_VOSITALAR) { expect(v.tavsif.length).toBeGreaterThan(30); expect(Object.keys(v.kirish).length).toBeGreaterThan(0); expect(v.versiya).toBe(1); }
     expect(new Set(F2_VOSITALAR.map((v) => v.nom)).size).toBe(F2_VOSITALAR.length);
   });

@@ -4,8 +4,8 @@
  * Bu yerda faqat sayt HujjatPaket.yuklabOl bilan bir xil qoida: takror/taxminiy tashlanadi, F-2 doim server dvigateli orqali (token shu yerda, bir marta),
  * boshqa turlar Diskdan (bepul).
  */
-import { paketReja, type Nomzod, type PaketReja } from '../../src/lib/hujjat-paket/nomzod';
-import { paketYigish, paketZipi, paketExcel, type Yetkazuvchi, type YigishNatija } from '../../src/lib/hujjat-paket/yigish';
+import { paketReja, rejaF2Disk, type Nomzod, type PaketReja } from '../../src/lib/hujjat-paket/nomzod';
+import { paketYigish, paketZipi, paketExcel, type Yetkazuvchi, type YigishNatija, type HujjatHolati } from '../../src/lib/hujjat-paket/yigish';
 import { tanlanganlar, yuklashBahosi, type RoyxatQator } from '../../src/lib/hujjat-paket/royxat';
 
 /** Bu hajmdan katta paket baytlar bilan emas, R2 havolasi bilan qaytariladi (hech qachon rad etilmaydi). */
@@ -18,7 +18,7 @@ export type PaketChiqish = 'zip' | 'excel';
 export function paketRejaServer(nomzodlar: readonly Nomzod[]): Pick<PaketReja, 'diskdan' | 'yasash'> {
   const toza = nomzodlar.filter((n) => !n.takror && !n.taxminiy);
   const r0 = paketReja(toza, new Set(toza.map((n) => n.kalit)));
-  return { diskdan: r0.diskdan.filter((n) => n.tur !== 'f2'), yasash: [...r0.yasash, ...r0.diskdan.filter((n) => n.tur === 'f2')] };
+  return rejaF2Disk(r0);
 }
 
 /** Token bahosi: sayt `yuklashBahosi` bilan bir xil (faqat to'lanmagan va yasaladiganlar). Hech narsa yozilmaydi. */
@@ -27,20 +27,20 @@ export function paketBaho(qatorlar: readonly RoyxatQator[], kalitlar: ReadonlySe
   return { tanlangan: t.length, ...yuklashBahosi(t, narx) };
 }
 
-export type PaketNatija = { bytes: Uint8Array; nom: string; mime: string; soni: number; xatolar: string[] };
+export type PaketNatija = { bytes: Uint8Array; nom: string; mime: string; soni: number; xatolar: string[]; /** Hujjat bo'yicha holat (tayyor/yangilandi/eskirgan/xato + sabab): hech narsa jim tashlanmaydi. */ holatlar: HujjatHolati[] };
 
 /** Rejadagi hujjatlarni yig'ib ZIP yoki bitta Excel qiladi. Bo'sh paket - null (hech narsa yasalmadi). */
 export async function paketYigServer(nomzodlar: readonly Nomzod[], sarlavha: string, chiqish: PaketChiqish, yet: Yetkazuvchi): Promise<PaketNatija | null> {
   const reja = paketRejaServer(nomzodlar);
   if (!reja.diskdan.length && !reja.yasash.length) return null;
   const y: YigishNatija = await paketYigish(reja, yet, {});
-  if (!y.fayllar.length) return { bytes: new Uint8Array(), nom: '', mime: '', soni: 0, xatolar: y.xatolar };
+  if (!y.fayllar.length) return { bytes: new Uint8Array(), nom: '', mime: '', soni: 0, xatolar: y.xatolar, holatlar: y.holatlar ?? [] };
   if (chiqish === 'excel') {
     const e = await paketExcel(y, { sarlavha });
-    return { bytes: e.bytes, nom: 'hujjatlar-paketi.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', soni: y.fayllar.length, xatolar: [...y.xatolar, ...e.otkazilgan] };
+    return { bytes: e.bytes, nom: 'hujjatlar-paketi.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', soni: y.fayllar.length, xatolar: [...y.xatolar, ...e.otkazilgan], holatlar: y.holatlar ?? [] };
   }
   const z = paketZipi(y, { sarlavha, reja: { rad: [], olinmaydi: [] } });
-  return { bytes: z.bytes, nom: 'hujjatlar-paketi.zip', mime: 'application/zip', soni: y.fayllar.length, xatolar: y.xatolar };
+  return { bytes: z.bytes, nom: 'hujjatlar-paketi.zip', mime: 'application/zip', soni: y.fayllar.length, xatolar: y.xatolar, holatlar: y.holatlar ?? [] };
 }
 
 /** R2 kaliti: aktorga bog'langan, taxmin qilib bo'lmaydigan. */

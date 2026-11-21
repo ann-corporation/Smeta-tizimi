@@ -10,8 +10,10 @@
  * YOZISH QOIDASI (egasi 2026-11-18): yozuvchi vosita HECH QACHON darhol yozmaydi. 1) vosita chaqiruvi serverda dry_run (preview + ROLLBACK)
  * qiladi va «Tasdiqlash» tokenini qaytaradi; 2) yozish faqat `f2_tasdiq` (token + aniq `tasdiqlayman: true`) bilan, o'sha operation_id bilan.
  */
-export type OqishNomi = 'f2_royxat' | 'f2' | 'fakt_jurnal' | 'obyekt_holat' | 'qator_qidir' | 'nakopitelniy' | 'ostatka';
-export type YozishNomi = 'fakt_yoz' | 'f2_qoralama_tahrir' | 'zamena_qosh' | 'bajarilmadi' | 'narx_tuzat';
+import { belgilaKirish, kirishXatomi, yoyKirish } from '../transport-yoy/kirish';
+
+export type OqishNomi = 'f2_royxat' | 'f2' | 'fakt_jurnal' | 'obyekt_holat' | 'qator_qidir' | 'nakopitelniy' | 'ostatka' | 'transport_tekshir';
+export type YozishNomi = 'fakt_yoz' | 'f2_qoralama_tahrir' | 'zamena_qosh' | 'bajarilmadi' | 'narx_tuzat' | 'transport_taqsimla' | 'transport_belgila';
 export type VositaNomi = OqishNomi | YozishNomi | 'f2_tasdiq';
 
 export type Vosita = {
@@ -60,14 +62,26 @@ export const F2_VOSITALAR: readonly Vosita[] = [
   { nom: 'narx_tuzat', versiya: 1, yozadi: false, tasdiqKerak: true, ruxsat: ['smeta.write', 'narx.write'],
     tavsif: 'Smeta qatori(lar)i narxini tuzatish (t2_qator_tahrir, versiya bilan; narx QQS siz). Faqat rs/mat/ob. Asl smeta qatori narxi o\'zgarishi ogohlantiriladi. Preview + token; yozmaydi.',
     kirish: { obyekt_id: 'majburiy', narxlar: '[{qator_id, narx≥0}] (1..100)', sabab: 'majburiy (≥3 belgi)' } },
+  { nom: 'transport_tekshir', versiya: 1, yozadi: false, tasdiqKerak: false, ruxsat: ['smeta.read'],
+    tavsif: 'Transport auditi (faqat o\'qish): har material qaysi usulda transport oladi (foiz | tkm | narx_ichida) va XATOLAR — t·km qatorisiz tkm material, materialsiz t·km qatori, ikki marta olinayotgan transport. xato_soni = 0 bo\'lmasa F-2 tasdiqlanmaydi.',
+    kirish: { obyekt_id: 'obyekt id (majburiy)' } },
+  { nom: 'transport_taqsimla', versiya: 1, yozadi: false, tasdiqKerak: true, ruxsat: ['smeta.write'],
+    tavsif: 'Hisob aktidan («Расчёт затрат транспорта» varag\'i) t·km transportini TAQSIMLASH QORALAMASI: har material tagiga bitta t·km qatori, materialga usul=tkm (podval transport-% bazasidan chiqadi — transport IKKI MARTA olinmaydi). Preview: guruhlar (topilgan qator, miqdor/t·km tizim vs hisob, so\'m farqi, holat). Bloklangan (farq/topilmadi/qisman) bo\'lsa `majburiy:true` faqat foydalanuvchi aniq qabul qilsa. Preview + token; yozmaydi.',
+    kirish: { obyekt_id: 'majburiy', rz_id: 'bo\'lim/uchastka qator id (majburiy)', tkm_narx: '1 t·km narxi, so\'m QQS siz (majburiy)', qatorlar: '[{material, zichlik>0, km≥0, miqdor?, hisob_tkm?, kodlar?|nom_pattern?}] (1..40)', majburiy: 'true — bloklangan guruhlarni ham yozish (foydalanuvchi qabul qilgandan keyin)' } },
+  { nom: 'transport_belgila', versiya: 1, yozadi: false, tasdiqKerak: true, ruxsat: ['smeta.write'],
+    tavsif: 'Material qatorlariga transport usulini belgilash QORALAMASI: foiz (podvaldagi transport %, sukut) | tkm (alohida t·km qatori) | narx_ichida (yetkazish narxda). Faqat faol material qatorlari; t·km qatori bor materialni foiz/narx_ichida ga o\'tkazib bo\'lmaydi. Preview + token; yozmaydi.',
+    kirish: { obyekt_id: 'majburiy', qator_idlar: '[material qator id] (1..200)', usul: 'foiz | tkm | narx_ichida' } },
   { nom: 'f2_tasdiq', versiya: 1, yozadi: true, tasdiqKerak: true, ruxsat: [],
     tavsif: 'Preview tokenini tasdiqlab YOZADI (har yozuv token yechadi). Faqat foydalanuvchi «Tasdiqlash» bosgandan keyin (tasdiqlayman: true). Ma\'lumot preview dan keyin o\'zgargan bo\'lsa — rad.',
     kirish: { token: 'preview tokeni (majburiy)', tasdiqlayman: 'true (majburiy)' } },
 ];
 
 export const vositaTop = (nom: unknown): Vosita | null => F2_VOSITALAR.find((v) => v.nom === nom) ?? null;
-export const OQISH_NOMLARI: readonly OqishNomi[] = ['f2_royxat', 'f2', 'fakt_jurnal', 'obyekt_holat', 'qator_qidir', 'nakopitelniy', 'ostatka'];
-export const YOZISH_NOMLARI: readonly YozishNomi[] = ['fakt_yoz', 'f2_qoralama_tahrir', 'zamena_qosh', 'bajarilmadi', 'narx_tuzat'];
+export const OQISH_NOMLARI: readonly OqishNomi[] = ['f2_royxat', 'f2', 'fakt_jurnal', 'obyekt_holat', 'qator_qidir', 'nakopitelniy', 'ostatka', 'transport_tekshir'];
+export const YOZISH_NOMLARI: readonly YozishNomi[] = ['fakt_yoz', 'f2_qoralama_tahrir', 'zamena_qosh', 'bajarilmadi', 'narx_tuzat', 'transport_taqsimla', 'transport_belgila'];
+/** Transport vositalari: token ichida argumentlar (≤ ~11 KB JSON) — shuning uchun Jarvis yo'lida guruh/qator soni cheklangan (UI `/api/transport` da to'liq). */
+export const TRANSPORT_JARVIS_GURUH = 40;
+export const TRANSPORT_JARVIS_QATOR = 200;
 export const SABAB_KODLAR = ['buyurtmachi_chiqardi', 'loyiha_ozgardi', 'boshqa_pudratchi', 'texnik_sabab', 'zamena', 'material_yoq', 'boshqa'] as const;
 export const KATEGORIYALAR = ['ЧЕЛ', 'МАШ', 'МАТ', 'ОБ', 'М/К', 'КАБ', 'БЕЗСКЛАД'] as const;
 
@@ -245,6 +259,19 @@ export function vositaSorov(nom: unknown, args: unknown): VositaSorov {
         seen.add(id); narxlar.push({ qator_id: id, narx: n });
       }
       return ok('taklif', { obyekt_id: obyektId, narxlar, sabab });
+    }
+    case 'transport_tekshir':
+      return obyektId ? ok('oqish', { obyekt_id: obyektId }) : xato('OBYEKT_KERAK');
+    case 'transport_taqsimla': {
+      const k = yoyKirish(x, { maxGuruh: TRANSPORT_JARVIS_GURUH, yoz: false });
+      if (kirishXatomi(k)) return xato(k.xato, k.tafsilot);
+      if (JSON.stringify(k.qatorlar).length > 11_000) return xato('ARGUMENT_KATTA', 'Guruhlar juda katta — bo\'lib yuboring yoki Transport panelidan foydalaning');
+      return ok('taklif', { obyekt_id: k.obyekt_id, rz_id: k.rz_id, tkm_narx: k.tkm_narx, qatorlar: k.qatorlar, majburiy: k.majburiy });
+    }
+    case 'transport_belgila': {
+      const k = belgilaKirish(x, TRANSPORT_JARVIS_QATOR);
+      if (kirishXatomi(k)) return xato(k.xato, k.tafsilot);
+      return ok('taklif', { obyekt_id: k.obyekt_id, qator_idlar: k.qator_idlar, usul: k.usul });
     }
     case 'f2_tasdiq':
       if (x.tasdiqlayman !== true) return xato('TASDIQ_KERAK');

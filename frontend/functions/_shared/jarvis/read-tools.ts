@@ -14,6 +14,7 @@ import { normAnswer, normReference } from './normative';
 import { resolveJarvisObject, type JarvisObjectScope, type JarvisReadRpc } from './object-scope';
 import { priceRowAnswer, priceRowIntent, priceSearchAnswer, priceSearchIntent } from './prices';
 import { jarvisText } from './reply-language';
+import { transportAnswer, transportIntent } from './transport';
 import { warehouseAnswer, warehouseIntent } from './warehouse';
 import { taskListAnswer, taskListIntent } from './tasks';
 import { approvalsAnswer, approvalsIntent, approvalsVisible } from './approvals';
@@ -34,6 +35,7 @@ const parsers = {
   warehouse_balance: warehouseIntent, document_search: documentIntent,
   task_list: taskListIntent, approval_queue: (q: string) => approvalsIntent(q) || null,
   estimate_total: (q: string, history?: unknown) => pulSorovi(q, history) ? q : null,
+  transport_tekshir: (q: string) => transportIntent(q) || null,
 } satisfies Record<JarvisToolName, (query: string) => unknown>;
 
 export function readToolCall(name: JarvisToolName, query: string, history?: unknown): LocalCall | null {
@@ -92,6 +94,7 @@ export function jarvisReadTools(env: JarvisEnv, scope: JarvisObjectScope, men: R
         case 'norm_reference': answer = await normAnswer(env, actor, company, args as string, men, text); break;
         case 'catalog_price': answer = typeof args === 'number' ? await priceRowAnswer(env.R2_CANONICAL, args, text)
           : await priceSearchAnswer(env.R2_CANONICAL, args as NonNullable<ReturnType<typeof priceSearchIntent>>, text); break;
+        case 'transport_tekshir': answer = await transportAnswer(rpc, scope, men); break;
         case 'document_search': answer = await documentAnswer(rpc, scope, args as NonNullable<ReturnType<typeof documentIntent>>, men); break;
         case 'task_list': answer = await taskListAnswer(rpc, scope, args as 'today' | 'open', men); break;
         case 'approval_queue': answer = await approvalsAnswer(rpc, scope, men); break;

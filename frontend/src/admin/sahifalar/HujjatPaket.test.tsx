@@ -4,7 +4,7 @@ import type { RoyxatQator } from '../../lib/hujjat-paket/royxat';
 
 const m = vi.hoisted(() => ({ royxat: vi.fn(), nomzodlar: vi.fn(), dl: vi.fn(), saqla: vi.fn(), filtrlar: vi.fn(), ochir: vi.fn() }));
 vi.mock('../../api/hujjat-paket', () => ({
-  paketRoyxatOl: m.royxat, tanlanganNomzodlar: m.nomzodlar, filtrSaqla: m.saqla, filtrlarOl: m.filtrlar, filtrOchir: m.ochir, SAHIFA_HAJMI: 50,
+  paketRoyxatOl: m.royxat, tanlanganNomzodlar: m.nomzodlar, filtrSaqla: m.saqla, filtrlarOl: m.filtrlar, filtrOchir: m.ochir, SAHIFA_HAJMI: 50, paketTayyorla: async () => ({ ok: true, kerak: 0, qolgan: 0, yangilandi: 0, xato: 0 }),
   saytYetkazuvchi: () => ({ diskdan: async () => ({ bytes: new Uint8Array([1]), faylNomi: 'a.xlsx' }), yasa: async () => ({ bytes: new Uint8Array([1]), faylNomi: 'b.xlsx' }) }),
 }));
 vi.mock('../../api/t2-token', () => ({ tokenHolatOl: async () => ({ ok: false, error: 'x' }), narxHisob: () => null }));

@@ -63,7 +63,9 @@ export const taklifQarori = (k: number | null, taklifId: number, qaror: 'tasdiql
   agentYoz('taklif_qaror', k, { taklif_id: taklifId, qaror, izoh, avto_birlashtirish: avtoBirlashtirish === true });
 export const buyruqlarOl = () => agentOqi<{ natija: AgentBuyruq[] }>('buyruqlar', null);
 export const buyruqYubor = (buyruqId: number) => agentYoz<{ issue: number | null; url: string | null }>('buyruq_yubor', null, { buyruq_id: buyruqId });
-export const rivojlanishTahlil = () => agentYoz<{ takliflar: number[]; otkazildi: number; xabar?: string }>('rivojlanish_tahlil', null);
+export type RivojlanishNatija = { takliflar: number[]; otkazildi?: number; xabar?: string;
+  jarvis_hafta?: { ok: boolean; yaratildi?: boolean; taklif_id?: string; sabab?: string; code?: string } };
+export const rivojlanishTahlil = (operationId = crypto.randomUUID()) => agentYoz<RivojlanishNatija>('rivojlanish_tahlil', null, { operation_id: operationId });
 export const fikrYubor = (k: number, p: { tur: string; matn: string; sahifa?: string; skrinIds?: number[]; skrinTahlil?: { mimeType: string; data: string } }) =>
   agentYoz<{ fikr_id: number; javob: string | null; ulashildi: boolean }>('fikr', k, { tur: p.tur, matn: p.matn, sahifa: p.sahifa, skrin_ids: p.skrinIds, skrin_tahlil: p.skrinTahlil });
 export const qadamTaklifOl = (k: number, sahifa: string, iz: HarakatIzi[]) => agentYoz<QadamTaklifi>('qadam_taklif', k, { sahifa, iz });

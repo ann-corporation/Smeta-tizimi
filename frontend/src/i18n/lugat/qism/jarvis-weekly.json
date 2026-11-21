@@ -1,0 +1,7 @@
+{
+  "Haftalik Jarvis hisobotini hozir tayyorlab bo‘lmadi": { "ru": "Не удалось подготовить недельный отчёт Jarvis", "en": "The weekly Jarvis report could not be prepared" },
+  "Haftalik Jarvis hisoboti ko‘rib chiqish uchun tayyorlandi": { "ru": "Недельный отчёт Jarvis подготовлен для рассмотрения", "en": "The weekly Jarvis report is ready for review" },
+  "Haftalik Jarvis hisoboti avval tayyorlangan": { "ru": "Недельный отчёт Jarvis уже подготовлен", "en": "The weekly Jarvis report was already prepared" },
+  "Haftalik hisobot uchun yetarli anonim signal yo‘q": { "ru": "Недостаточно анонимных сигналов для недельного отчёта", "en": "There are not enough anonymous signals for a weekly report" },
+  "Hozircha bu ro‘yxatda signal yo‘q. Haftalik Jarvis hisobotini tekshirishingiz mumkin.": { "ru": "В этом списке пока нет сигналов. Можно проверить недельный отчёт Jarvis.", "en": "There are no signals in this list yet. You can check the weekly Jarvis report." }
+}

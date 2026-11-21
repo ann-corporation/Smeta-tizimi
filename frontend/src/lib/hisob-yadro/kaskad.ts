@@ -3,7 +3,7 @@
  * Formulalar podvaldan (`podval.ts`), har qadam ROUND 2. Kategoriyasi noma'lum summa ИТОГО-4 ga USTAMASIZ qo'shiladi,
  * QQS undan keyin (server `_t2_summa_paket_hisob_v1`). Yaxlit svod — НДС dan KEYIN, QQS bilan, aynan (egasi 2026-10-30).
  */
-import { katJami, katSummalari, type Kat, type KatSummalar, type Kesim } from './kategoriya';
+import { katJami, katSummalari, type Kat, type KatSummalar, type Kesim, type TrKalit } from './kategoriya';
 import { podvalAniqla, podvalBahola, podvalKf, podvalNdsFoizi, type KoefKod, type Podval } from './podval';
 import { qqsSumma } from './nds';
 import { yaxlit2 } from './yaxlit';
@@ -71,10 +71,10 @@ export type KaskadOpsiya = {
 const raqam = (x: number | null | undefined): x is number => x != null && Number.isFinite(x);
 
 /** Kategoriya summalari + podval → kaskad. Hech qachon tashlamaydi: noma'lum — null va `nomalumQatorlar`. */
-export function kaskad(s0: Partial<KatSummalar>, podval: Podval, o: KaskadOpsiya = {}): KaskadNatija {
+export function kaskad(s0: Partial<KatSummalar> & Partial<Record<TrKalit, number>>, podval: Podval, o: KaskadOpsiya = {}): KaskadNatija {
   // Bosqichlar bo'yicha yig'ish.
   const kirish: YaxlitKirish[] = [...(o.yaxlit && raqam(o.yaxlit.qqsBilan) ? [o.yaxlit] : []), ...(o.yaxlitlar ?? [])];
-  const s: Partial<KatSummalar> = { ...s0 };
+  const s: Partial<KatSummalar> & Partial<Record<TrKalit, number>> = { ...s0 };
   let qqssizOldin = 0; let qqsBilanKeyin = 0; let qqssizKeyin: number | null = 0; let keyinBor = false; let togriNomalum = false;
   const qqsFoiz = podvalNdsFoizi(podval);
   for (const y of kirish) {
@@ -220,7 +220,7 @@ export function hisob(k: Kesim, kirish: HisobKirish): HisobNatija {
     if (svQ !== 0 || svS !== 0) yx = { qqsBilan: yaxlit2(svQ), qqssiz: yaxlit2(svS) };
     if (Math.abs(qolgan) >= 0.005) oldin = [{ bosqich: 'qqssiz_ustamadan_keyin', qqssiz: qolgan }];
   }
-  const r = kaskad(kategoriyalar, podval, { nomalumQism: k.nomalum, yaxlit: yx, yaxlitlar: oldin });
+  const r = kaskad({ ...kategoriyalar, ...k.transportChiqar }, podval, { nomalumQism: k.nomalum, yaxlit: yx, yaxlitlar: oldin });
   const itogo4 = r.itogo4;
   const natija: HisobNatija = { ...bosh, kaskad: r, ustama: r.qadamlar, qqsFoiz: r.qqsFoiz, itogo4, ustamali: itogo4, qqs: r.qqs, qqsBilan: r.qqsBilan };
   if (r.itogo4 == null) return { ...natija, sabab: 'PODVAL_TOLIQ_EMAS' };

@@ -15,7 +15,7 @@ export const QAMROV: Readonly<Record<string, Qamrov>> = {
   loyiha: q([], ['loyiha yaratish/tahrirlash']), participants: q([], ['ishtirokchi qo‘shish/olib tashlash']),
   mindmap: q([], ['chiziq tortib bog‘lash (2D tahrir)']), grafik: q(['niyat:oqish'], ['grafikni tahrirlash']),
   'smeta-studio': q(['niyat:oqish'], ['katalogdan ish qo‘shish va smetani tahrirlash (sahifa amallari orqali taklif)']),
-  holat: q(['niyat:oqish']), 'loyiha-smeta': q(['niyat:oqish'], ['loyiha qatorini smetaga bog‘lash']),
+  holat: q(['mcp_transport_tekshir', 'mcp_transport_taqsimla', 'mcp_transport_belgila', 'niyat:oqish']), 'loyiha-smeta': q(['niyat:oqish'], ['loyiha qatorini smetaga bog‘lash']),
   'smeta-narxlash': q(['niyat:oqish', 'niyat:yozuv'], ['ommaviy narxlash (RES)']), 'narx-dalil': q([], ['narx dalilini shakllantirish/eksport']),
   'narx-tekshiruv': q(['niyat:oqish']), nakrutka: q([], ['nakrutka foizini belgilash']), narxlar: q(['niyat:oqish']),
   'narx-manbalari': q([], ['katalog/faktura/КП yuklash']), oferta: q([], ['oferta tuzish']),
