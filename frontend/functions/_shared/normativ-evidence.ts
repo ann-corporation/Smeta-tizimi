@@ -1,5 +1,8 @@
 export const SHA256 = /^[0-9a-f]{64}$/;
 export const DOCUMENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Only the read operations used by the canonical normative reader (Pages, MCP and tests). */
+export type NormativBucket = { get(key: string, options?: { range: { offset: number; length: number } }):
+  Promise<{ arrayBuffer(): Promise<ArrayBuffer>; size?: number } | null> };
 const MAX_CHUNK_BYTES = 2 * 1024 * 1024;
 const MAX_UNPACKED_BYTES = 4 * 1024 * 1024;
 
@@ -41,7 +44,7 @@ export type NormativCandidate = {
   jadval_kod: string | null;
 };
 
-export async function normativEvidence(bucket: Pick<R2Bucket, 'get'>, row: NormativCandidate, company: number) {
+export async function normativEvidence(bucket: NormativBucket, row: NormativCandidate, company: number) {
   if (!DOCUMENT_ID.test(row.hujjat_id) || !SHA256.test(row.sha256) || !SHA256.test(row.source_sha) ||
       !SHA256.test(row.job_sha) || row.r2_key !== 'normativ/chunks/' + row.sha256 + '.json' ||
       !Number.isSafeInteger(row.bayt) || row.bayt < 1 || row.bayt > MAX_CHUNK_BYTES) {

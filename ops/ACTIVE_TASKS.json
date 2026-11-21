@@ -3,6 +3,27 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "JARVIS-MCP-R2-NORMATIVES-20261121",
+      "title": "Existing MCP normative search uses the canonical published R2 reader",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/jarvis-mcp-r2-normatives",
+      "base_sha": "1d9eb5acfb23e7a451369e69a636c475580c7d86",
+      "status": "ready_for_review",
+      "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md"],
+      "owns": [
+        "mcp/smeta-mcp/src/muhit.ts", "mcp/smeta-mcp/src/tools/pto.ts",
+        "mcp/smeta-mcp-remote/src/env.ts", "mcp/smeta-mcp-remote/src/mcp.ts",
+        "mcp/smeta-mcp-remote/src/normativ.ts", "mcp/smeta-mcp-remote/test/normativ.test.ts",
+        "frontend/functions/_shared/normativ-evidence.ts",
+        "frontend/functions/_shared/normativ-r2-index.ts", "frontend/functions/_shared/normativ-read.ts",
+        "docs/mcp/NORMATIV_R2.md"
+      ],
+      "production_write_allowed": false,
+      "note": "Owner requests existing MCP connection, not another server. Same readNormativ and canonical bucket, publishedOnly, verified actor/company. Shared reader changes are types only; no normative text, migrations, config or production writes. L0 merges and releases; after #740 bind this callback in the common authenticated handler for both routes."
+    },
+    {
       "id": "JARVIS-M3-F2-WRITE-20261119",
       "title": "Jarvis F2 and fact tools through existing preview and confirmation",
       "owner": "codex",
