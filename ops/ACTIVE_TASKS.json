@@ -4061,6 +4061,31 @@
         "docs/mcp/JARVIS_ULANISH.md"
       ],
       "note": "Owner requests existing MCP, all channels same core. Existing SDK/tools/auth only; no production config/secret writes. App MCP reads only, existing signed writers retained; remaining writes/M4 not declared complete."
+    },
+    {
+      "id": "JARVIS-M3-TASK-PREVIEW-20261121",
+      "title": "Task create signed preview and confirmation through existing task endpoint",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/jarvis-task-preview",
+      "base_sha": "cde74903c991abbba19d85d9f810bcaee3d30069",
+      "status": "ready_for_review",
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md"
+      ],
+      "production_write_allowed": false,
+      "owns": [
+        "frontend/functions/api/topshiriq.ts",
+        "frontend/functions/api/topshiriq.jarvis.test.ts",
+        "frontend/functions/_shared/jarvis/task-command.ts",
+        "frontend/functions/_shared/jarvis/task-command.test.ts",
+        "frontend/src/lib/jarvis/task-command.ts",
+        "frontend/src/lib/jarvis/task-command.test.ts",
+        "docs/architecture/JARVIS_TASK.md"
+      ],
+      "note": "L0 expanded LANE-1, existing named task writer only. Signed preview then explicit actor/company-bound confirmation, existing operation idempotency and audit; no DB/main/prod writes. Core/channel wiring next bounded PR."
     }
   ]
 }
