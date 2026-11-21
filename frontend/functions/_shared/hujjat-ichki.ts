@@ -66,6 +66,10 @@ const SOZ = { limit: 1, maksKutishMs: 60_000, orinMuddatMs: 150_000, qadamMs: 20
 /** Faqat testlar uchun: chegaralarni qisqartirish. */
 export function ichkiSozla(x: Partial<typeof SOZ>): void { Object.assign(SOZ, x); }
 const orinlar = new Map<symbol, number>();
+/** Shu izolyatda hujjat yasalyaptimi (fon ishi CPU chegarasini oshirmasligi uchun band bo'lsa kutadi). */
+export function ichkiBandmi(): boolean { return tirikOrinlar() > 0; }
+/** Hozirgi chaqiruv hujjat yasash ichidami (ichki `/api/sb` so'rovlari). */
+export function ichkidami(): boolean { return als.getStore() != null; }
 /** Faqat testlar uchun: band o'rinlarni tozalash. */
 export function ichkiOrinlarniTozala(): void { orinlar.clear(); }
 const tirikOrinlar = (): number => { const endi = Date.now(); let n = 0; for (const [k, t] of orinlar) { if (endi - t > SOZ.orinMuddatMs) orinlar.delete(k); else n++; } return n; };
