@@ -68,7 +68,10 @@ export const SCOPED_APIS = new Set(['object-financials','contract-scope','sb','s
   /* P6/P7 Grafik + cashflow: o'qish — hujjat o'qish (buyurtmachi ham grant bilan); yozish (override) — loyiha yozuvi, rol bazada ham tekshiriladi. */
   'grafik',
   /* SMETA CONST sovuq muhrni isitish (ADR_MUHR_R2 §4): obyekt_id -> t2_obyekt.kompaniya_id middleware'da; begona obyekt = 403, R2/bazaga tegilmaydi. */
-  'muhr-isit']);
+  'muhr-isit',
+  /* Transport turi (t·km / foiz / narx ichida): audit — smeta.read; yoy (hisob aktidan taqsimlash) va belgila — smeta.write.
+     Handler aktorni faqat sessiyadan oladi, begona obyekt 404; RPC lar a'zolik/ruxsatni bazada takror tekshiradi (transport.test.ts). */
+  'transport']);
 
 export function requestPermission(api: string, method: string, b: Record<string, unknown>, q: URLSearchParams): string | null {
   if (!SCOPED_APIS.has(api) || api === 'sessiya') return null;
@@ -97,6 +100,7 @@ export function requestPermission(api: string, method: string, b: Record<string,
   if (api === 'system-control') return (b.kompaniya_id || q.get('kompaniya_id')) ? (method === 'GET' ? 'control.company.read' : 'control.company.write') : (method === 'GET' ? 'control.global.read' : 'control.global.write');
   if (api === 'smeta-studio') return b.amal === 'saqla' ? 'smeta.write' : 'smeta.read';
   if (api === 'smeta-yukla') return 'smeta.write';
+  if (api === 'transport') return b.amal === 'yoy' || b.amal === 'belgila' ? 'smeta.write' : 'smeta.read';
   if (api === 'f2-moslash') return 'f2.import';
   if (api === 'smeta-narx-agent') return 'narx.read';
   if (api === 'smeta-ai') return 'smeta.read';

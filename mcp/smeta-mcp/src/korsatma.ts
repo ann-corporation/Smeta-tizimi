@@ -8,7 +8,7 @@ export const KORSATMA = 'QURAI (T2) bazasi bilan to\'g\'ridan-to\'g\'ri ishlash.
   + 'Yozuvchi toollar avtomatik snapshot oladi (snapshot sxemasi bo\'lsa), bazaga audit yozadi; dry_run:true — preview + ROLLBACK. '
   + 'RPC aktori: SMETA_AKTOR_ID yoki aktor_tanla. Sxema: `sxema` tooli. '
   + 'Rasmiy Ф-2 Excel: `f2_excel` (avval preview — token narxi; `tasdiq:true` token yechadi va faylni yozadi). '
-  + 'Transport (3 tur: ish / t·km / foiz; material uchun bitta usul): transport_tekshir, transport_belgila, transport_yoy (qoidalar — smeta://qoidalar «Transport»).';
+  + 'Transport (3 tur: ish / t·km / foiz; material uchun bitta usul): transport_tekshir, transport_belgila, transport_yoy (qoidalar — smeta://qoidalar «Transport»; transport ikki marta olinmaydi). Saytdagi Transport paneli va Jarvis ham shu RPC lardan foydalanadi.';
 
 /** Domen qoidalari (har LLM to'g'ri ishlatishi uchun; masofaviy serverda `smeta://qoidalar` resursi). */
 export const QOIDALAR = `# QURAI (T2) — domen qoidalari

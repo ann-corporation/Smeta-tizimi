@@ -51,6 +51,8 @@ import { yaxlitQatorIdlari } from '../../lib/svod-yaxlit';
 import { MuhrFarqXulosa, useMuhrFarq } from '../../umumiy/daraxt/MuhrFarqXulosa';
 import { IshVaraq } from './IshVaraq';
 import { useMobilEkran } from '../../lib/mobil/useMobilEkran';
+import { TransportPanel } from './TransportPanel';
+import { useTransport } from '../../lib/transport-yoy/useTransport';
 
 /**
  * Kundalik ISHCHI SMETA/LRV sahifasi. Bu komponentda Sheet nomi, Drive
@@ -69,7 +71,7 @@ export function HolatNative() {
   /* Sahifa ichida (yoki qayta) bosilganda ham: hash o'zgarsa yoki havola yana bosilsa (location.key) — bo'lim ochiladi. */
   const location = useLocation();
   useEffect(() => { if (location.hash === '#slichitelniy') setExportsOpen(true); }, [location.hash, location.key]);
-  const panelTab = requestedPanel === 'smeta' ? 'yuklash' : requestedPanel === 'versiya' ? 'versiya' : 'smeta';
+  const panelTab = requestedPanel === 'smeta' ? 'yuklash' : requestedPanel === 'versiya' ? 'versiya' : requestedPanel === 'transport' ? 'transport' : 'smeta';
   const [activeTab, setActiveTab] = useState(panelTab);
   /** Yuklash ustasidan «Yangi versiya sifatida saqlash» — fayl «Versiyalar va farq» formasiga oldindan qo'yiladi. */
   const [versiyaFayli, setVersiyaFayli] = useState<File | null>(null);
@@ -158,6 +160,10 @@ export function HolatNative() {
   /* Kompaniya chegarasi: ro'yxat (sahifa + PTO kontekst) yuklangan va obyekt unda YO'Q — daraxt ham ko'rsatilmaydi. */
   const obyektBegona = validId && !selected && !obyektYuklanmoqda && !obyektXato && !workspace.loading.hierarchy;
   const daraxtKorinadi = validId && !obyektBegona;
+  /* Transport turi: belgilar (t·km / narx ichida) smeta ro'yxatida; audit — faqat «Transport» bo'limi ochiq paytda. */
+  const transport = useTransport(joriy?.id ?? null, validId ? obyektId : null, daraxtXom, daraxtKorinadi && !loading && !daraxtXato && daraxtXom.length > 0, activeTab === 'transport');
+  const [otishQator, setOtishQator] = useState<number | null>(null);
+  const transportQatorgaOt = useCallback((qatorId: number) => { setActiveTab('smeta'); setOtishQator(null); setTimeout(() => setOtishQator(qatorId), 0); }, []);
   /* 2026-09-11 (egasi: "shu tepadagi belgilanadigan joy naxxuy kerak o'zi?"):
      eksport konteksti endi TEPADAGI PTO scope'ga emas, SAHIFA ochgan obyektga
      tayanadi. Obyekt URL bilan ochilgan va daraxti to'la yuklangan bo'lsa —
@@ -368,7 +374,7 @@ export function HolatNative() {
   const kutilayotgan = istisno.royxat.filter((o) => o.holat === 'qoralama').length;
 
   const TABLAR = [
-    ['smeta', 'Smeta va bajarilish'], ['resurs', 'Resurslar'], ['narx', 'Narxlar nazorati'], ['yuklash', 'Smeta yuklash'], ['versiya', 'Versiyalar va farq'], ['shartnoma', 'Shartnoma doirasi'],
+    ['smeta', 'Smeta va bajarilish'], ['resurs', 'Resurslar'], ['narx', 'Narxlar nazorati'], ['yuklash', 'Smeta yuklash'], ['versiya', 'Versiyalar va farq'], ['transport', 'Transport'], ['shartnoma', 'Shartnoma doirasi'],
   ] as const;
   const eksportQator = (nom: string, tavsif: string, tugma: string, korishNomi: string, onExcel: () => void, onKorish: () => void, sarlavhaTitle: string, qoshimcha?: ReactNode) => (
     <div className="grid items-center gap-x-4 gap-y-1 border-b border-border py-2.5 last:border-b-0" style={{ gridTemplateColumns: 'minmax(0,1fr) auto' }}>
@@ -542,7 +548,7 @@ export function HolatNative() {
           </details>
         )}
         {varaq && daraxtKorinadi && !loading && !error && daraxtXom.length > 0 && joriy?.id != null && <IshVaraq key={`varaq:${joriy.id}|${obyektId}`} kompaniyaId={joriy.id} obyektId={obyektId} rows={daraxtXom} states={holatXom} holatniYangila={holatniYangila} />}
-        {!varaq && daraxtKorinadi && tree.length > 0 && <div hidden={activeTab !== 'smeta'} className="h-[65vh] min-h-[420px] shrink-0"><SmetaTree data={tree} avvalgiVersiya={avvalgiTree} priceControlLines={priceControlLines} muhrFarq={muhr.xarita} onFaktOpen={() => navigate(`/admin/fakt?obyekt=${obyektId}`)} onQatorTahrirlandi={(qatorId) => void qatorniYangila(qatorId)} /></div>}
+        {!varaq && daraxtKorinadi && tree.length > 0 && <div hidden={activeTab !== 'smeta'} className="h-[65vh] min-h-[420px] shrink-0"><SmetaTree data={tree} avvalgiVersiya={avvalgiTree} priceControlLines={priceControlLines} muhrFarq={muhr.xarita} onFaktOpen={() => navigate(`/admin/fakt?obyekt=${obyektId}`)} onQatorTahrirlandi={(qatorId) => void qatorniYangila(qatorId)} transportBelgi={transport.belgilar} onTransportBelgila={transport.belgila} otishQatorId={otishQator} /></div>}
         {panellar && activeTab === 'shartnoma' && daraxtKorinadi && !loading && !error && <ContractScopePanel key={`${joriy?.id}:${obyektId}`} objectId={obyektId} lines={daraxtXom.map(q => ({ id: q.id, ota_id: q.ota_id, tur: q.tur, nom: q.nom ?? '', summa: q.summa, versiya: q.versiya }))} />}
         {panellar && activeTab === 'narx' && daraxtKorinadi && !loading && !error && <MarketPriceComparison lines={marketLines} objectId={obyektId} companyId={joriy?.id ?? null} />}
 
@@ -562,6 +568,12 @@ export function HolatNative() {
               <section className="fz-card">
                 <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}><h3 className="fz-card__title" style={{ fontSize: 14, lineHeight: '20px' }}>{t('Versiyalar va farq')}</h3></div>
                 <div className="p-4"><SmetaVersiyaFarq kompaniyaId={joriy.id} obyektId={obyektId} obyektNom={obyektNom} joriyQatorlar={daraxtXom} tomonlar={tomonlar} boshlangichFayl={versiyaFayli} /></div>
+              </section>
+            )}
+            {activeTab === 'transport' && !loading && joriy?.id != null && (
+              <section className="fz-card">
+                <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}><h3 className="fz-card__title" style={{ fontSize: 14, lineHeight: '20px' }}>{t('Transport turi')}</h3></div>
+                <div className="p-4"><TransportPanel kompaniyaId={joriy.id} obyektId={obyektId} qatorlar={transport.qatorlar} audit={transport.audit} auditXato={transport.xato} yuklanmoqda={transport.yuklanmoqda} yangila={transport.yangila} onQatorgaOt={transportQatorgaOt} /></div>
               </section>
             )}
             <section hidden={activeTab !== 'resurs'} className="fz-card">
