@@ -3,6 +3,7 @@ import { AlertTriangle, RefreshCw, Upload } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { faylTransportOqi, transportXatoMatni, transportYoyPreview, transportYoyYoz } from '../../api/transport-api';
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import {
   bolimlar, tasdiqHolati, transportKartalar, yoyJadval, yoyXulosa,
   type AuditJavob, type PanelQator, type YangilaFn, type YoyJavob, type YoyYuk,
@@ -40,6 +41,8 @@ export function TransportPanel({ kompaniyaId, obyektId, qatorlar, audit, auditXa
   const faylTanlandi = async (f: File | undefined) => {
     if (!f) return;
     setOqilmoqda(true); setXabar(null); setNatija(null); setQabul(false); setFayl(f.name);
+    // Asl smeta fayli (hisob akti varag'i bilan) — dalil sifatida R2 ga; o'qish uni kutmaydi.
+    void aslFaylSaqla(f, { kompaniyaId, obyektId, turi: 'asl_smeta' });
     const r = await faylTransportOqi(f);
     setOqilmoqda(false);
     if (!r.ok) { setYuk(null); setXabar({ ok: false, matn: transportXatoMatni(r.code, r.xabar) }); return; }

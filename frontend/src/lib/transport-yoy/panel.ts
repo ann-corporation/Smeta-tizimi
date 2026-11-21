@@ -3,6 +3,7 @@
  * Pul formulasi YO'Q: so'mlar faqat serverdagi qator summalaridan yig'iladi (t2_qator.summa; NULL ≠ 0 — noma'lum alohida sanaladi).
  */
 import type { TransportUsul } from './kirish';
+import { yaxlit2 } from '../hisob-yadro/yaxlit';
 
 export type AuditXulosa = { material_soni?: number; foiz?: number; tkm?: number; narx_ichida?: number; tkm_qator_soni?: number; xato_soni?: number };
 export type AuditXato = { kod: string; qator_id: number; xabar: string };
@@ -33,7 +34,7 @@ export type TransportKarta = { soni: number; som: number | null; somNomalum: num
 const yig = (qs: readonly PanelQator[]): TransportKarta => {
   let som = 0; let bor = false; let nomalum = 0;
   for (const q of qs) { if (q.summa == null || !Number.isFinite(Number(q.summa))) nomalum++; else { som += Number(q.summa); bor = true; } }
-  return { soni: qs.length, som: bor ? Math.round(som * 100) / 100 : null, somNomalum: nomalum };
+  return { soni: qs.length, som: bor ? yaxlit2(som) : null, somNomalum: nomalum };
 };
 
 export type TransportKartalar = { tkm: TransportKarta; foiz: { soni: number }; narxIchida: { soni: number }; yuk: TransportKarta; xatoSoni: number };
@@ -100,7 +101,7 @@ export function yoyXulosa(guruhlar: readonly YoyGuruhNatija[] | undefined): YoyX
   return {
     jami: g.length, tayyor: g.filter((x) => x.holat === 'tayyor').length, bloklovchi: g.filter((x) => BLOKLOVCHI.has(x.holat)).length,
     yozilishiMumkin: g.filter((x) => ['tayyor', 'chetlanish', 'qisman'].includes(x.holat)).reduce((s, x) => s + Number(x.topilgan_soni ?? 0), 0),
-    farqJami: bor ? Math.round(farq * 100) / 100 : null,
+    farqJami: bor ? yaxlit2(farq) : null,
   };
 }
 
