@@ -215,7 +215,7 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
                 onOpenObject = { nav.navigate("object/$it") }, onOpenFakt = { nav.navigate("fakt/$it") },
                 onOpenApproval = { nav.navigate("approval/$it") }, onOutbox = { nav.navigate(OUTBOX) },
                 onPickFakt = { nav.navigate(PICK_FAKT) }, onPickPhoto = { nav.navigate(PICK_PHOTO) },
-                onJarvis = { nav.navigate(JARVIS) }, onRahbar = { nav.navigate(RAHBAR) }, onZayavka = { nav.navigate(ZAYAVKA) },
+                onJarvis = { nav.navigate(JARVIS) }, onRahbar = { nav.navigate(RAHBAR) }, onZayavka = { nav.navigate(ZAYAVKA) }, onM29 = { nav.navigate(M29) },
                 onModule = { t ->
                     when (t) {
                         uz.anncorp.smeta.core.data.NativeTarget.M29 -> nav.navigate(M29)
