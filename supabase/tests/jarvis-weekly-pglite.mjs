@@ -8,6 +8,11 @@ const { PGlite } = await import(runtime);
 const db = new PGlite();
 const sql = file => readFile(new URL(file, import.meta.url), 'utf8');
 const migration = '../migrations/20270121000100_t2_jarvis_haftalik_taklif_v1';
+const registry = await sql('../../frontend/src/lib/jarvis/tool-registry.ts');
+const names = [...registry.matchAll(/^  ([a-z_]+): \{ mode: 'read'/gm)].map(match => match[1]);
+assert.ok(names.length >= 10);
+const actualMigration = await sql(migration + '.sql');
+for (const name of names) assert.ok(actualMigration.includes(`'read.${name}'`), `weekly vocabulary missing ${name}`);
 const extract = (source, start, end) => {
   const from = source.indexOf(start); const to = source.indexOf(end, from);
   assert.ok(from >= 0 && to > from); return source.slice(from, to + end.length);

@@ -43,7 +43,7 @@ begin
        (c.amal in ('feedback_bad','feedback_unclear') and c.hodisa = 'tashlandi' and c.kod = '') or
        (c.amal in ('read.object_search','read.estimate_row','read.estimate_price','read.norm_reference',
          'read.catalog_price','read.f2_register','read.cumulative','read.discrepancy','read.warehouse_balance',
-         'read.document_search','read.material_prices','read.estimate_total','read.task_list','read.approvals')
+         'read.document_search','read.material_prices','read.estimate_total','read.task_list','read.approval_queue','read.transport_tekshir')
         and c.hodisa = 'xato' and c.kod in ('SOURCE_UNAVAILABLE','NO_ANSWER')))
      group by c.amal, c.hodisa, c.kod having count(distinct c.kompaniya_id) >= 5
   ) select jsonb_agg(jsonb_build_object('amal', e.amal, 'hodisa', e.hodisa, 'kod', e.kod,
