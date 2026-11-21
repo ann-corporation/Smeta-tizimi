@@ -111,7 +111,7 @@ describe('/api/hujjat-yarat — yagona hujjat dvigateli', () => {
 
 describe('ichki rejim (yuklovchilar uchun nisbiy fetch)', () => {
   it('faqat ruxsat etilgan yo\'llar; mutloq URL asl fetch ga; tugagach fetch tiklanadi', async () => {
-    expect(ICHKI_YOLLAR).toEqual(['/api/sb', '/api/sb-yoz', '/api/kompaniya-sozlama']);
+    expect(ICHKI_YOLLAR).toEqual(['/api/sb', '/api/sb-yoz', '/api/kompaniya-sozlama', '/api/hujjat-nazorat']);
     const asl = globalThis.fetch;
     const ctx = so({});
     let ichkida: typeof fetch | null = null;

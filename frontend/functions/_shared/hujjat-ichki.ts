@@ -17,6 +17,7 @@ import { onRequest as middleware } from '../api/_middleware';
 import { onRequestPost as sbPost } from '../api/sb';
 import { onRequestPost as sbYozPost } from '../api/sb-yoz';
 import { onRequestGet as sozlamaGet } from '../api/kompaniya-sozlama';
+import { onRequestGet as nazoratGet } from '../api/hujjat-nazorat';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { dizaynKontekstiniUlash, type HujjatDizayn } from '../../src/lib/hujjat-yozuvchi/dizayn';
 import { ogirNavbatniOchir } from '../../src/api/ogir-sorov-navbat';
@@ -28,6 +29,8 @@ const HANDLERLAR: Record<string, Record<string, PagesFunction<never>>> = {
   '/api/sb': { POST: sbPost as never },
   '/api/sb-yoz': { POST: sbYozPost as never },
   '/api/kompaniya-sozlama': { GET: sozlamaGet as never },
+  // Ostatka/slichitelniy yuklovchisi (bekor qilingan ishlar ro'yxati) — faqat O'QISH (GET); 2026-11-21 gacha yo'q edi -> fonda hech yasalmasdi.
+  '/api/hujjat-nazorat': { GET: nazoratGet as never },
 };
 export const ICHKI_YOLLAR: readonly string[] = Object.keys(HANDLERLAR);
 const UZATILADIGAN = ['Cookie', 'Origin', 'Sec-Fetch-Site', 'X-Qulf-Kanal', 'X-Tasdiq'] as const;
