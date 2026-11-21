@@ -36,9 +36,13 @@ export async function hujjatYarat(p: { kompaniyaId: number; obyektId: number; tu
   } catch (e) { return { ok: false, status: 0, code: 'TARMOQ', xabar: e instanceof Error ? e.message : 'Tarmoq xatosi' }; }
   const tur = r.headers.get('Content-Type') ?? '';
   if (!r.ok || tur.startsWith('application/json')) {
-    const j = await r.json().catch(() => null) as { code?: string; xato?: string; error?: string } | null;
+    const xom = await r.text().catch(() => '');
+    type Xato = { code?: string; xato?: string; error?: string };
+    const j: Xato | null = (() => { try { const x = JSON.parse(xom) as unknown; return x && typeof x === 'object' ? x as Xato : null; } catch { return null; /* JSON emas (masalan Cloudflare xato sahifasi) */ } })();
     if (r.status === 401) return { ok: false, status: 401, code: 'SESSION_EXPIRED', xabar: 'Sessiya tugadi — qayta kiring.' };
-    return { ok: false, status: r.ok ? 502 : r.status, code: j?.code ?? null, xabar: j?.xato || j?.error || 'Hujjat yaratilmadi.' };
+    // Haqiqiy sabab ko'rinsin: server xabari bo'lmasa - HTTP holat va javob boshi (jim «yaratilmadi» emas).
+    const parcha = xom.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120);
+    return { ok: false, status: r.ok ? 502 : r.status, code: j?.code ?? null, xabar: j?.xato || j?.error || `Hujjat yaratilmadi (HTTP ${r.status}${j?.code ? ` ${j.code}` : ''}${parcha && !j ? `: ${parcha}` : ''})` };
   }
   const bytes = new Uint8Array(await r.arrayBuffer());
   return {

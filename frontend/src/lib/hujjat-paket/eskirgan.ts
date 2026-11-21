@@ -35,6 +35,34 @@ export function navbatSorovlari(nomzodlar: ReadonlyArray<Pick<Nomzod, 'tur' | 'o
   return new Map([...m].map(([t, s]) => [t, [...s]]));
 }
 
+type TayyorlaNomzod = Pick<Nomzod, 'kalit' | 'tur' | 'obyekt_id' | 'oy' | 'forma3_id' | 'fayl_id' | 'akt_id' | 'taxminiy' | 'takror'> & { yangilanmoqda?: boolean; navbat_holat?: string | null };
+
+/**
+ * Oldindan tayyorlash (egasi 2026-11-21): paketdan oldin qaysi hujjatlar Diskda eskirgan/yo'q. F-2: Diskda yo'q yoki fonda yangilanmoqda;
+ * boshqa turlar: faqat yangilanmoqda (yo'qlari yuklab olishda yasaladi). Takror/taxminiy qoida bilan tashlanadi. `navbat_holat='xato'` (6 urinishdan keyin)
+ * bu yerda sanalmaydi: ularni yuklab olish yo'li yasaydi.
+ */
+export function tayyorlashKerak<T extends TayyorlaNomzod>(nomzodlar: readonly T[], tanlov?: ReadonlySet<string> | null): T[] {
+  return nomzodlar.filter((n) => {
+    if (n.takror || n.taxminiy || (tanlov && !tanlov.has(n.kalit))) return false;
+    if (n.navbat_holat === 'xato') return false;
+    if (n.tur === 'f2') return n.fayl_id == null || n.yangilanmoqda === true;
+    return NAVBAT_TURLARI.includes(n.tur) && n.fayl_id != null && n.yangilanmoqda === true;
+  });
+}
+
+/** `t2_hujjat_yangila_tezlat_v1` so'rovlari: tur -> manba_id lar (F-2: akt id; boshqalar: navbat kodi). */
+export function tezlatSorovlari(kerak: readonly TayyorlaNomzod[]): Map<string, number[]> {
+  const m = new Map<string, Set<number>>();
+  for (const n of kerak) {
+    const id = n.tur === 'f2' ? n.akt_id : navbatManbaId(n);
+    if (id == null) continue;
+    let s = m.get(n.tur); if (!s) { s = new Set(); m.set(n.tur, s); }
+    if (s.size < 500) s.add(id);
+  }
+  return new Map([...m].map(([t, s]) => [t, [...s]]));
+}
+
 /** Navbatda kutayotgan/ishlanayotgan hujjatga `yangilanmoqda` qo'yadi (o'zgartirmaydi - yangi massiv). `holat`: tur -> (manba_id -> navbat holati). */
 export function eskirganBelgila<T extends Pick<Nomzod, 'tur' | 'obyekt_id' | 'oy' | 'forma3_id' | 'fayl_id'>>(nomzodlar: readonly T[], holat: ReadonlyMap<string, ReadonlyMap<number, string>>): Array<T & { yangilanmoqda?: boolean; navbat_holat?: string }> {
   return nomzodlar.map((n) => {

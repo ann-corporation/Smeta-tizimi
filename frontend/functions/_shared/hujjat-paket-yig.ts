@@ -4,7 +4,7 @@
  * Bu yerda faqat sayt HujjatPaket.yuklabOl bilan bir xil qoida: takror/taxminiy tashlanadi, F-2 doim server dvigateli orqali (token shu yerda, bir marta),
  * boshqa turlar Diskdan (bepul).
  */
-import { paketReja, type Nomzod, type PaketReja } from '../../src/lib/hujjat-paket/nomzod';
+import { paketReja, rejaF2Disk, type Nomzod, type PaketReja } from '../../src/lib/hujjat-paket/nomzod';
 import { paketYigish, paketZipi, paketExcel, type Yetkazuvchi, type YigishNatija, type HujjatHolati } from '../../src/lib/hujjat-paket/yigish';
 import { tanlanganlar, yuklashBahosi, type RoyxatQator } from '../../src/lib/hujjat-paket/royxat';
 
@@ -18,7 +18,7 @@ export type PaketChiqish = 'zip' | 'excel';
 export function paketRejaServer(nomzodlar: readonly Nomzod[]): Pick<PaketReja, 'diskdan' | 'yasash'> {
   const toza = nomzodlar.filter((n) => !n.takror && !n.taxminiy);
   const r0 = paketReja(toza, new Set(toza.map((n) => n.kalit)));
-  return { diskdan: r0.diskdan.filter((n) => n.tur !== 'f2'), yasash: [...r0.yasash, ...r0.diskdan.filter((n) => n.tur === 'f2')] };
+  return rejaF2Disk(r0);
 }
 
 /** Token bahosi: sayt `yuklashBahosi` bilan bir xil (faqat to'lanmagan va yasaladiganlar). Hech narsa yozilmaydi. */

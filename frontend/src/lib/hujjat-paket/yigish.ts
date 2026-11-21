@@ -5,9 +5,10 @@
 import { paketZip } from '../f2-oylik-paket/eksport';
 import type { PaketFayl, PaketFaylTuri } from '../f2-oylik-paket/oylik';
 import { parallelIsh } from '../f2-oylik-paket/parallel';
+import { kengaytmaBilan } from './fayl-nomi';
 import { tarkibMatni, zipYollari, TUR_NOMI, type Nomzod, type PaketReja } from './nomzod';
 
-export type Olingan = { bytes: Uint8Array; faylNomi: string; /** Server aytgan manba (X-Hujjat-Manba): Diskdan berildi yoki hozir yasaldi (va Diskka yozildi). */ manba?: 'disk' | 'yasaldi' };
+export type Olingan = { bytes: Uint8Array; faylNomi: string; /** Server aytgan manba (X-Hujjat-Manba): Diskdan berildi yoki hozir yasaldi (va Diskka yozildi). */ manba?: 'disk' | 'yasaldi'; /** Fayl mime (kengaytmasiz nom uchun). */ mime?: string | null };
 export type Yetkazuvchi = {
   /** Diskdagi joriy versiya baytlari (BEPUL). */
   diskdan: (n: Nomzod) => Promise<Olingan>;
@@ -66,7 +67,7 @@ export async function paketYigish(reja: Pick<PaketReja, 'diskdan' | 'yasash'>, d
   const ish = (manba: 'disk' | 'yasaldi', f: Yetkazuvchi['diskdan']) => async (n: Nomzod): Promise<Ish> => {
     if (manba === 'yasaldi' && toxtatildi) { bos(); return xatoIsh(n, toxtatildi); }
     for (let urinish = 0; ; urinish++) {
-      try { const r = await f(n); bos(); return { fayl: { n, bytes: r.bytes, faylNomi: r.faylNomi, manba: r.manba ?? manba } }; }
+      try { const r = await f(n); bos(); return { fayl: { n, bytes: r.bytes, faylNomi: kengaytmaBilan(r.faylNomi, r.bytes, r.mime, n.sarlavha), manba: r.manba ?? manba } }; }
       catch (e) {
         const x = e instanceof YetkazishXato ? e.o : {};
         if (x.vaqtinchalik && urinish < 1) { await kech(o.qaytaKutish ?? 500); continue; }
@@ -79,7 +80,7 @@ export async function paketYigish(reja: Pick<PaketReja, 'diskdan' | 'yasash'>, d
   const [diskNatija, yengilNatija, ogirNatija] = await Promise.all([
     parallelIsh(reja.diskdan, o.parallel ?? 6, (n) => ish('disk', d.diskdan)(n)),
     parallelIsh(yengil, o.yengilParallel ?? 4, (n) => ish('yasaldi', d.yasa)(n)),
-    parallelIsh(ogir, o.yasashParallel ?? 3, (n) => ish('yasaldi', d.yasa)(n)),
+    parallelIsh(ogir, o.yasashParallel ?? 2, (n) => ish('yasaldi', d.yasa)(n)),
   ]);
   // Tartib: Disk, keyin yasash - reja tartibida (yengil/og'ir hovuzlari qayta birlashtiriladi).
   const yasaNatija = new Map<string, Ish>();

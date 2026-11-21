@@ -3,5 +3,10 @@
   "{n} ta tayyor": { "ru": "готово: {n}", "en": "{n} ready" },
   "{n} ta hozir yangilandi": { "ru": "обновлено сейчас: {n}", "en": "{n} regenerated now" },
   "{n} ta eski versiya (fonda yangilanmoqda)": { "ru": "старая версия (обновляется в фоне): {n}", "en": "{n} older version (refreshing in background)" },
-  "{n} ta kirmadi": { "ru": "не вошло: {n}", "en": "{n} not included" }
+  "{n} ta kirmadi": { "ru": "не вошло: {n}", "en": "{n} not included" },
+  "Tayyorlanmoqda": { "ru": "Подготовка", "en": "Preparing" },
+  "Tayyorlash": { "ru": "Подготовить", "en": "Prepare" },
+  "Tayyorlab bo‘lmadi": { "ru": "Не удалось подготовить", "en": "Could not prepare" },
+  "{n} ta hujjat hali tayyor emas (yuklab olishda yasaladi)": { "ru": "Документов ещё не готово: {n} (будут созданы при скачивании)", "en": "{n} documents not ready yet (generated on download)" },
+  "Hujjatlar tayyor": { "ru": "Документы готовы", "en": "Documents are ready" }
 }

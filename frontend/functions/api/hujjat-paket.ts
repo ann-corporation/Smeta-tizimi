@@ -9,7 +9,9 @@
  *        -> >  25 MB: JSON { ok, havola, hajm, soni, xatolar } (R2, 15 daqiqa, faqat shu aktor ochadi; hech qachon rad etilmaydi)
  *   GET  ?amal=ol&k=<r2 kalit> -> R2 dagi tayyor paket (aktorniki va muddati tugamagan bo'lsa)
  */
-import { sessiyaAktor, type HmEnv } from '../_shared/hujjat-maydoni';
+import { hmRpc, sessiyaAktor, type HmEnv } from '../_shared/hujjat-maydoni';
+import { haqiqiyDeps, navbatniIshla } from '../_shared/hujjat-yangila';
+import { tayyorlashKerak, tezlatSorovlari } from '../../src/lib/hujjat-paket/eskirgan';
 import { r2Yoz } from '../_shared/r2-saqlash';
 import { PAKET_BAYT_CHEGARA, PAKET_HAVOLA_DAQIQA, paketBaho, paketKalitAktorniki, paketR2Kalit, paketYigServer, type PaketChiqish } from '../_shared/hujjat-paket-yig';
 import { onRequestGet as maydonGet } from './hujjat-maydoni';
@@ -18,6 +20,8 @@ import { onRequestPost as yaratPost } from './hujjat-yarat';
 import { onRequestPost as sbPost } from './sb';
 import type { Nomzod } from '../../src/lib/hujjat-paket/nomzod';
 import type { RoyxatQator } from '../../src/lib/hujjat-paket/royxat';
+import { kengaytmaBilan } from '../../src/lib/hujjat-paket/fayl-nomi';
+import { tizimImzosiniQoy } from '../../src/lib/hujjat-yozuvchi/tizim-imzo';
 import { YetkazishXato, type Yetkazuvchi } from '../../src/lib/hujjat-paket/yigish';
 import { yasashSorovi } from '../../src/lib/hujjat-paket/yasash-sorov';
 import { narxHisob, type TokenHolat } from '../../src/api/t2-token';
@@ -73,7 +77,9 @@ function yetkazuvchi(ctx: Ctx, kid: number): Yetkazuvchi {
       if (n.fayl_id == null) throw new Error('Diskda fayl yo\'q');
       const r = await ichki(ctx, maydonOlGet, 'hujjat-maydoni-ol', { query: { id: n.fayl_id } });
       if (!r.ok) throw new Error(`Diskdan o'qilmadi (HTTP ${r.status})`);
-      return { bytes: new Uint8Array(await r.arrayBuffer()), faylNomi: faylNomi(r.headers, `${n.sarlavha}.xlsx`) };
+      const bytes = new Uint8Array(await r.arrayBuffer()); const nom = faylNomi(r.headers, `${n.sarlavha}.xlsx`); const mime = r.headers.get('Content-Type');
+      // F-2 Diskda imzosiz: paketga /api/hujjat-yarat bergan fayldek QURAI imzosi qo'yiladi.
+      return { bytes: n.tur === 'f2' ? tizimImzosiniQoy(bytes, { hujjat: kengaytmaBilan(nom, bytes, mime) }) : bytes, faylNomi: nom, mime };
     },
     async yasa(n: Nomzod) {
       const s = yasashSorovi(n);
@@ -86,6 +92,23 @@ function yetkazuvchi(ctx: Ctx, kid: number): Yetkazuvchi {
       return { bytes: new Uint8Array(await r.arrayBuffer()), faylNomi: faylNomi(r.headers, `${n.sarlavha}.xlsx`), ...(manba === 'disk' || manba === 'yasaldi' ? { manba } : {}) };
     },
   };
+}
+
+/**
+ * Oldindan tayyorlash: tanlangan hujjatlardan Diskda eskirgan/yo'q F-2 va yangilanayotgan boshqa turlarni navbatda DARHOL muddatli qiladi
+ * (`t2_hujjat_yangila_tezlat_v1` - migratsiya qo'llanmagan bo'lsa jim o'tkazib yuboriladi) va cheklangan (3 ta, 20 s) sikl bilan serverda yasaydi (token yechilmaydi).
+ * Mijoz qolgan > 0 va yutuq bor ekan bir necha marta ketma-ket chaqiradi; yuklab olish vaqtida hammasi Diskda yangi turadi.
+ */
+async function tayyorla(ctx: Ctx, kid: number, filtr: Record<string, unknown>, kalitlar: ReadonlySet<string> | null): Promise<Response> {
+  const r0 = await nomzodlar(ctx, kid, filtr, kalitlar);
+  if (r0 instanceof Response) return r0;
+  const kerak = tayyorlashKerak(r0 as never[], kalitlar) as RoyxatQator[];
+  if (!kerak.length) return json({ ok: true, kerak: 0, qolgan: 0, korildi: 0, yangilandi: 0, xato: 0, xatolar: [] });
+  for (const [tur, idlar] of tezlatSorovlari(kerak as never[])) await hmRpc(ctx.env, 't2_hujjat_yangila_tezlat_v1', { p_kompaniya: kid, p_tur: tur, p_idlar: idlar }).catch(() => null);
+  const n = await navbatniIshla(haqiqiyDeps(ctx as never, { kompaniyaId: kid }), { limit: 3, byudjetMs: 20_000 }).catch((e) => ({ korildi: 0, yangilandi: 0, otkazildi: 0, xato: 1, xatolar: [e instanceof Error ? e.message.slice(0, 120) : 'xato'] }));
+  const r1 = await nomzodlar(ctx, kid, filtr, kalitlar);
+  const qolgan = r1 instanceof Response ? kerak.length : tayyorlashKerak(r1 as never[], kalitlar).length;
+  return json({ ok: true, kerak: kerak.length, qolgan, korildi: n.korildi, yangilandi: n.yangilandi, xato: n.xato, xatolar: n.xatolar.slice(0, 5) });
 }
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
@@ -108,11 +131,13 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const b = await ctx.request.json().catch(() => null) as { amal?: string; kompaniya_id?: unknown; filtr?: unknown; kalitlar?: unknown; chiqish?: unknown; sarlavha?: unknown; yetkazish?: unknown } | null;
   const kid = butun(b?.kompaniya_id);
   if (!b || !kid) return json({ ok: false, code: 'KOMPANIYA_KERAK' }, 400);
-  if (b.amal !== 'baho' && b.amal !== 'yig') return json({ ok: false, code: 'AMAL_NOMALUM' }, 400);
+  if (b.amal !== 'baho' && b.amal !== 'yig' && b.amal !== 'tayyorla') return json({ ok: false, code: 'AMAL_NOMALUM' }, 400);
   const kalitlar = Array.isArray(b.kalitlar) ? new Set(b.kalitlar.map(String).slice(0, 3000)) : null;
   const r = await nomzodlar(ctx, kid, filtrTozala(b.filtr), kalitlar);
   if (r instanceof Response) return r;
   const tanlov = kalitlar ?? new Set(r.map((n) => n.kalit));
+
+  if (b.amal === 'tayyorla') return tayyorla(ctx, kid, filtrTozala(b.filtr), kalitlar);
 
   if (b.amal === 'baho') {
     const x = paketBaho(r, tanlov, await narxFunksiya(ctx, kid));

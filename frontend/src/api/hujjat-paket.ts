@@ -5,6 +5,9 @@
  */
 import { vaqtliOqish } from './vaqtli-fetch';
 import { hujjatYarat } from './hujjat-yarat';
+import type { TayyorlaJavob } from '../lib/hujjat-paket/tayyorla';
+import { kengaytmaBilan } from '../lib/hujjat-paket/fayl-nomi';
+import { tizimImzosiniQoy } from '../lib/hujjat-yozuvchi/tizim-imzo';
 import { yasashSorovi } from '../lib/hujjat-paket/yasash-sorov';
 export { yasashSorovi };
 import { filtrServerga, type PaketFiltr } from '../lib/hujjat-paket/nomzod';
@@ -35,12 +38,13 @@ export async function diskdanOl(n: Pick<Nomzod, 'fayl_id' | 'sarlavha'>): Promis
   if (n.fayl_id == null) throw new Error('Diskda fayl yo\'q');
   const r = await vaqtliOqish(`/api/hujjat-maydoni-ol?id=${n.fayl_id}`, {}, 120_000);
   if (!r.ok) throw new Error(`Diskdan o'qilmadi (HTTP ${r.status})`);
-  return { bytes: new Uint8Array(await r.arrayBuffer()), faylNomi: fayloNomi(r.headers.get('Content-Disposition'), `${n.sarlavha}.xlsx`) };
+  return { bytes: new Uint8Array(await r.arrayBuffer()), faylNomi: fayloNomi(r.headers.get('Content-Disposition'), `${n.sarlavha}.xlsx`), mime: r.headers.get('Content-Type') };
 }
 
 export function saytYetkazuvchi(kompaniyaId: number): Yetkazuvchi {
   return {
-    diskdan: diskdanOl,
+    // F-2 Diskda imzosiz saqlanadi (fon yasash): paketga ham /api/hujjat-yarat bergan fayldek QURAI imzosi qo'yiladi.
+    diskdan: async (n) => { const o = await diskdanOl(n); return n.tur === 'f2' ? { ...o, bytes: tizimImzosiniQoy(o.bytes, { hujjat: kengaytmaBilan(o.faylNomi, o.bytes, o.mime) }) } : o; },
     async yasa(n) {
       const s = yasashSorovi(n);
       if (!s) throw new Error('Bu hujjat turini yasab bo\'lmaydi');
@@ -82,6 +86,16 @@ export async function tanlanganNomzodlar(kompaniyaId: number, filtr: PaketFiltr,
     if (offset + 500 >= r.jami) break;
   }
   return chiqish;
+}
+
+/** Oldindan tayyorlash: server eskirgan/yo'q hujjatlarni (bir chaqiruvda bir nechta) Diskda yangilaydi. Token yechilmaydi. */
+export async function paketTayyorla(kompaniyaId: number, filtr: PaketFiltr, kalitlar: ReadonlySet<string>): Promise<TayyorlaJavob> {
+  try {
+    const r = await vaqtliOqish('/api/hujjat-paket', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amal: 'tayyorla', kompaniya_id: kompaniyaId, filtr: filtrServerga(filtr), kalitlar: [...kalitlar].slice(0, 3000) }) }, 90_000);
+    const j = await r.json().catch(() => null) as { ok?: boolean; kerak?: number; qolgan?: number; yangilandi?: number; xato?: number; xato_matn?: string; code?: string } | null;
+    if (r.ok && j?.ok) return { ok: true, kerak: j.kerak ?? 0, qolgan: j.qolgan ?? 0, yangilandi: j.yangilandi ?? 0, xato: j.xato ?? 0 };
+    return { ok: false, xabar: j?.code ? `${j.code}` : `HTTP ${r.status}` };
+  } catch (e) { return { ok: false, xabar: e instanceof Error ? e.message : 'Tarmoq xatosi' }; }
 }
 
 export type SaqlanganFiltr = { id: number; nom: string; filtr: Record<string, unknown> };
