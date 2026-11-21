@@ -41,7 +41,8 @@ export function fondaYangila(ctx: FonCtx, api: string, status: number, ish: (c: 
 }
 
 async function standartIsh(ctx: FonCtx): Promise<unknown> {
-  const n = await navbatniIshla(haqiqiyDeps(ctx as never), { limit: 1, byudjetMs: 25_000 });
+  // Faqat F-2: javobdan keyingi fon vaqti qisqa (~30 s); og'ir ostatka/slichitelniy unga sig'maydi — ular cron/paket ishlovchisida.
+  const n = await navbatniIshla(haqiqiyDeps(ctx as never, { turlar: ['f2'] }), { limit: 1, byudjetMs: 25_000 });
   if (n.xato > 0) console.error(JSON.stringify({ hujjat_fon: 'xato', xatolar: n.xatolar.slice(0, 3) }));
   return n;
 }
