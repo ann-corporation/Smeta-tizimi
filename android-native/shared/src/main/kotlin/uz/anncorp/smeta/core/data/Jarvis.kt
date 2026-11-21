@@ -15,7 +15,7 @@ import kotlinx.serialization.Serializable
 /** Outcome of one Jarvis question. Charging (aiHisobli) happens on the server; the app only shows what came back. */
 sealed interface JarvisResult {
     /** [previewToken] = a write preview waiting for the user's manual confirmation (server 2_preview.token); nothing is saved until [JarvisRepository.confirm]. */
-    data class Answer(val text: String, val local: Boolean, val previewToken: String? = null) : JarvisResult
+    data class Answer(val text: String, val local: Boolean, val previewToken: String? = null, val warehouse: JarvisWarehouse? = null) : JarvisResult
     /** HTTP 402: the token balance / budget does not cover the question. [message] is the server's own text. */
     data class Budget(val message: String?) : JarvisResult
     /** HTTP 422/403 about the company context (pick a company, no access, context too large). */
@@ -72,9 +72,10 @@ class JarvisRepository(private val api: BffApi) {
             val h = historyJson(history)
             if (h.isNotEmpty()) put("tarix", h)
         })
-        return map(r)
+        return map(r, companyId)
     }
 
+    suspend fun warehouseRequest(request: JarvisWarehouseRequest): ApiResult = api.bff("/api/ombor-buyruq", "POST", request.body)
     /** The web card's confirm: POST /api/f2-buyruq { amal: tasdiq, token, tasdiqlayman } - the only call that writes. Returns null on success, else the error text. */
     suspend fun confirm(companyId: Long, token: String): String? =
         failText(api.bff("/api/f2-buyruq", "POST", buildJsonObject { put("amal", "tasdiq"); put("kompaniya_id", companyId); put("token", token); put("tasdiqlayman", true) }))
@@ -253,7 +254,7 @@ class JarvisRepository(private val api: BffApi) {
         }
 
         /** Pure, unit tested. The server's error text is `xabar` (ai-savol) or `error` (agent-ish). */
-        fun map(r: ApiResult): JarvisResult {
+        fun map(r: ApiResult, companyId: Long? = null): JarvisResult {
             val o = r.body as? JsonObject
             val msg = ((o?.get("xabar") ?: o?.get("error")) as? JsonPrimitive)?.takeIf { it.isString }?.content
             return when {
@@ -262,7 +263,7 @@ class JarvisRepository(private val api: BffApi) {
                 r.ok && (o?.get("ok") as? JsonPrimitive)?.content != "false" -> {
                     val text = (o?.get("javob") as? JsonPrimitive)?.takeIf { it.isString }?.content?.trim().orEmpty()
                     val local = (o?.get("provider") as? JsonPrimitive)?.content == "local" || (o?.get("model") as? JsonPrimitive)?.content == "local"
-                    if (text.isEmpty()) JarvisResult.Server(null) else JarvisResult.Answer(text, local, previewToken(o))
+                    if (text.isEmpty()) JarvisResult.Server(null) else JarvisResult.Answer(text, local, previewToken(o), parseJarvisWarehouse(o?.get("warehouse_reply"), companyId))
                 }
                 r.status == 422 || r.status == 403 -> JarvisResult.Context(msg)
                 else -> JarvisResult.Server(msg)
