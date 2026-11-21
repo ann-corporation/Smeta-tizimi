@@ -30,7 +30,7 @@ export async function f2DiskdanTayyor(d: TayyorOlDeps, p: { actorId: number; kom
   if (!y.httpOk || y.body?.ok !== true) return null;
   const bytes = await d.r2Bayt(String(y.body.kalit));
   if (!bytes || !bytes.byteLength) return null;
-  const xesh = f2HujjatKaliti(p.obyektId, akt.oy || '', akt.raqam) ?? `akt:${akt.id}:${await mazmunXeshi(bytes)}`;
+  const xesh = f2HujjatKaliti(p.obyektId, akt.oy || '', akt.raqam, akt.id) ?? `akt:${akt.id}:${await mazmunXeshi(bytes)}`;
   return {
     bytes, faylNomi: kengaytmaBilan(String(y.body.nom || `F-2_${akt.id}`), bytes, y.body.mime ? String(y.body.mime) : null), turi: 'f2_hujjat', obyektId: p.obyektId, davr: akt.oy || null, xesh, arxivla: false,
     manba: f2Manba({ aktId: akt.id, raqam: akt.raqam ?? null, obyekt: akt.obyekt || null, oy: akt.oy || null }),
