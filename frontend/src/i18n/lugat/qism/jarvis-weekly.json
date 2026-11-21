@@ -1,4 +1,5 @@
 {
+  "Haftalik hisobot mavjud, lekin umumiy tahlil tugamadi": { "ru": "Недельный отчёт готов, но общий анализ не завершён", "en": "The weekly report is available, but the overall analysis did not finish" },
   "Haftalik Jarvis hisobotini hozir tayyorlab bo‘lmadi": { "ru": "Не удалось подготовить недельный отчёт Jarvis", "en": "The weekly Jarvis report could not be prepared" },
   "Haftalik Jarvis hisoboti ko‘rib chiqish uchun tayyorlandi": { "ru": "Недельный отчёт Jarvis подготовлен для рассмотрения", "en": "The weekly Jarvis report is ready for review" },
   "Haftalik Jarvis hisoboti avval tayyorlangan": { "ru": "Недельный отчёт Jarvis уже подготовлен", "en": "The weekly Jarvis report was already prepared" },

@@ -3348,6 +3348,7 @@
 "Haftalik Jarvis hisoboti avval tayyorlangan":"The weekly Jarvis report was already prepared",
 "Haftalik Jarvis hisoboti ko‘rib chiqish uchun tayyorlandi":"The weekly Jarvis report is ready for review",
 "Haftalik Jarvis hisobotini hozir tayyorlab bo‘lmadi":"The weekly Jarvis report could not be prepared",
+"Haftalik hisobot mavjud, lekin umumiy tahlil tugamadi":"The weekly report is available, but the overall analysis did not finish",
 "Haftalik hisobot uchun yetarli anonim signal yo‘q":"There are not enough anonymous signals for a weekly report",
 "Hajm":"Volume",
 "Hajm (delta)":"Quantity (delta)",

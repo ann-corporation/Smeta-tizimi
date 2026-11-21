@@ -6,7 +6,7 @@ where tur = 'rivojlanish' and doira = 'global' and mazmun->>'manba' = 'jarvis_co
 create or replace function public.t2_jarvis_haftalik_taklif_v1(p_actor_id bigint, p_operation_id uuid)
 returns jsonb language plpgsql security definer set search_path = public, pg_temp set timezone = 'UTC' as $$
 declare
-  g jsonb; v_id bigint; v_result jsonb; v_rows jsonb; v_constraint text;
+  g jsonb; v_id bigint; v_result jsonb; v_rows jsonb; v_evidence jsonb; v_constraint text;
   v_to date := date_trunc('week', current_date)::date;
   v_from date := date_trunc('week', current_date)::date - 7;
 begin
@@ -51,6 +51,16 @@ begin
   if v_rows is null then
     return jsonb_build_object('ok', true, 'yaratildi', false, 'sabab', 'NO_ELIGIBLE_FAILURES', 'hafta', v_from, 'gacha', v_to);
   end if;
+  -- Existing review UI renders dalil.guruh: expose actual counts, not an empty evidence label.
+  select jsonb_agg(jsonb_build_object('guruh', coalesce(jsonb_build_object(
+    'read.object_search','Поиск объекта','read.estimate_row','Поиск работы','read.estimate_price','Цены сметы',
+    'read.norm_reference','Нормативы','read.catalog_price','Каталог цен','read.f2_register','Реестр Ф2',
+    'read.cumulative','Накопительная','read.discrepancy','Сличительная','read.warehouse_balance','Остатки склада',
+    'read.document_search','Поиск документов','read.material_prices','Сравнение цен','read.estimate_total','Стоимость сметы',
+    'read.task_list','Задачи','read.approval_queue','Согласования','read.transport_tekshir','Транспорт',
+    'feedback_bad','Отрицательная оценка','feedback_unclear','Неясный ответ')->>(r->>'amal'), r->>'amal') || ': ' ||
+    case r->>'kod' when 'NO_ANSWER' then 'нет ответа' when 'SOURCE_UNAVAILABLE' then 'источник недоступен' else 'оценка пользователя' end ||
+    ' · ' || (r->>'urinishlar') || ' попыток · ' || (r->>'kompaniya_soni') || ' компаний')) into v_evidence from jsonb_array_elements(v_rows) r;
   -- Одно immutable snapshot/week. Люди неизвестны: o=0 не превращается в число пользователей.
   begin
     v_result := public.t2_agent_taklif_yarat_v1(p_actor_id, null, 'rivojlanish', 'global', 'platform_orchestrator',
@@ -58,10 +68,10 @@ begin
     jsonb_build_object('manba', 'jarvis_compact_v1', 'operation_id', p_operation_id, 'jarvis_hafta', v_from, 'gacha', v_to,
       'vaqt_mintaqa', current_setting('TimeZone'), 'k_min', 5, 'odam_soni', null, 'signallar', v_rows,
       'maqsad', 'Проверить повторяющиеся отказы и случаи отсутствия ответа Jarvis.',
-      'tavsif', 'Только счётчики попыток. Не утверждает число людей или правильность ответов. Изменения требуют отдельного рассмотрения.',
+      'tavsif', 'Период UTC: ' || v_from::text || ' — ' || (v_to-1)::text || '. Только счётчики попыток. Число людей неизвестно. Изменения требуют рассмотрения.',
       'xavf', 'orta', 'qabul_mezonlari', jsonb_build_array('Сохранить tenant/permission и NULL != 0.',
         'До изменения поведения проверить источник и eval.', 'Никаких автоматических записей, merge или deploy.')),
-      v_rows, null);
+      v_evidence, null);
   exception when unique_violation then
     get stacked diagnostics v_constraint = CONSTRAINT_NAME;
     if v_constraint <> 't2_agent_jarvis_week_uq' then raise; end if;

@@ -53,9 +53,8 @@ export function AgentTakliflar({ kompaniyaId, tizim }: { kompaniyaId: number | n
     setBand(true);
     try {
       const r = await rivojlanishTahlil();
-      if (!r.ok) { toast(r.error, 'danger'); return; }
-      const notice = weeklyReportNotice(r.natija); toast(notice.message, notice.tone);
-      void yukla();
+      const notice = weeklyReportNotice(r); toast(notice.message, notice.tone);
+      if (notice.refresh) void yukla();
     } finally { setBand(false); }
   };
   const yubor = async (b: AgentBuyruq) => {
