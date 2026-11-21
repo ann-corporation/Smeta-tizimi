@@ -1,5 +1,7 @@
-name = "smeta-frontend"
+﻿name = "smeta-frontend"
 compatibility_date = "2024-04-05"
+# 2026-11-21: hujjat dvigateli so'rov kontekstini AsyncLocalStorage da saqlaydi (functions/_shared/hujjat-ichki.ts).
+compatibility_flags = ["nodejs_als"]
 pages_build_output_dir = "dist"
 
 # 2026-10-20 (tezlik): Supabase bazasi ap-southeast-2 (Sidney) da, foydalanuvchilar O'zbekistonda. Bitta `/api`

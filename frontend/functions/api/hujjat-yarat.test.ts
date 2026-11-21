@@ -18,7 +18,7 @@ vi.mock('../_shared/hujjat-sarf', async (orig) => ({ ...(await orig<object>()), 
 
 import { onRequestPost } from './hujjat-yarat';
 import { kolontitulsiz, tengKolontitulsiz } from '../_shared/test-golden-yordam';
-import { ichkiRejimda, ichkiSorov, ICHKI_YOLLAR } from '../_shared/hujjat-ichki';
+import { ichkiOrinlarniTozala, ichkiRejimda, ichkiSorov, ichkiSozla, ICHKI_YOLLAR } from '../_shared/hujjat-ichki';
 
 const b = f2Qur(AKT246_ROWS, AKT246_HOLAT);
 const q = f2Qatorlar(b, { ...bosKiritma(), hajm: AKT246_HAJM });
@@ -123,11 +123,32 @@ describe('ichki rejim (yuklovchilar uchun nisbiy fetch)', () => {
     expect(globalThis.fetch).toBe(asl);
   });
 
-  it('bir vaqtda ikki yasash ketma-ket bajariladi (fetch aralashmaydi)', async () => {
-    const tartib: string[] = [];
-    const ish = (nom: string) => ichkiRejimda(so({}), async () => { tartib.push(nom + '+'); await new Promise((o) => setTimeout(o, 5)); tartib.push(nom + '-'); });
-    await Promise.all([ish('a'), ish('b')]);
-    expect(tartib).toEqual(['a+', 'a-', 'b+', 'b-']);
+  it('parallel cheklovi: limit to\'lganda keyingisi navbat kutadi', async () => {
+    ichkiSozla({ limit: 1, maksKutishMs: 5_000, qadamMs: 2 });
+    try {
+      const tartib: string[] = [];
+      const ish = (nom: string) => ichkiRejimda(so({}), async () => { tartib.push(nom + '+'); await new Promise((o) => setTimeout(o, 10)); tartib.push(nom + '-'); });
+      await Promise.all([ish('a'), ish('b')]);
+      expect(tartib).toEqual(['a+', 'a-', 'b+', 'b-']);
+    } finally { ichkiSozla({ limit: 1, maksKutishMs: 60_000, qadamMs: 200 }); }
+  });
+
+  it('qotgan (hech tugamaydigan) yasash keyingi so\'rovlarni abadiy to\'xtatmaydi — prod 2026-11-21', async () => {
+    ichkiSozla({ limit: 1, maksKutishMs: 30, qadamMs: 2 });
+    try {
+      void ichkiRejimda(so({}), () => new Promise<never>(() => {})); // uzilgan so'rov: va'da hech qachon tugamaydi
+      const t = Date.now();
+      expect(await ichkiRejimda(so({}), async () => 'tayyor')).toBe('tayyor');
+      expect(Date.now() - t).toBeLessThan(2_000);
+    } finally { ichkiOrinlarniTozala(); ichkiSozla({ limit: 1, maksKutishMs: 60_000, qadamMs: 200 }); }
+  });
+
+  it('har so\'rov o\'z kontekstida: parallel yasashda nisbiy fetch o\'z Cookie si bilan ketadi', async () => {
+    const korilgan: string[] = [];
+    const ctxCookie = (c: string) => { const x = so({}) as unknown as { request: Request }; x.request = new Request(x.request.url, { method: 'POST', headers: { Cookie: c }, body: '{}' }); return x as never; };
+    const ish = (c: string) => ichkiRejimda(ctxCookie(c), async () => { await new Promise((o) => setTimeout(o, 5)); const r = await fetch('/api/yopiq-yol'); korilgan.push(c + ':' + r.status); });
+    await Promise.all([ish('a=1'), ish('b=2')]);
+    expect(korilgan.sort()).toEqual(['a=1:404', 'b=2:404']);
   });
 
   it('ichkiSorov chaqiruvchi sarlavhalarini uzatadi, begona yo\'lni rad etadi', async () => {
