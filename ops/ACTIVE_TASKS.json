@@ -18,7 +18,8 @@
         "frontend/functions/api/agent-ish.ts", "frontend/functions/api/agent-ish.weekly.test.ts", "frontend/src/api/t2-agent-ish.ts",
         "frontend/src/lib/jarvis/weekly-report.ts", "frontend/src/admin/ai-markaz/AiOrganishBolimi.tsx",
         "frontend/src/admin/ai-markaz/AiOrganishBolimi.weekly.test.tsx", "frontend/src/admin/sahifalar/AgentTakliflar.tsx",
-        "frontend/src/i18n/lugat/qism/jarvis-weekly.json", "docs/architecture/JARVIS_WEEKLY.md"
+        "frontend/src/i18n/lugat/qism/jarvis-weekly.json", "docs/architecture/JARVIS_WEEKLY.md",
+        "android-native/shared/src/main/resources/site-i18n/ru.json", "android-native/shared/src/main/resources/site-i18n/en.json"
       ],
       "production_write_allowed": false,
       "note": "Existing scheduler/proposal creator only, fixed UTC closed week, opt-in and >=5 distinct companies per fixed failure key, one immutable review proposal/week, caller operation UUID, no auto-change. SQL local rehearsal only; main/prod/migration apply L0. Existing Codex AI-lane narrow shared adapters/UI owned here; preserve older PRs during rehearsal."
