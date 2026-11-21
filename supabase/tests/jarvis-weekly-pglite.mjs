@@ -12,7 +12,9 @@ const registry = await sql('../../frontend/src/lib/jarvis/tool-registry.ts');
 const names = [...registry.matchAll(/^  ([a-z_]+): \{ mode: 'read'/gm)].map(match => match[1]);
 assert.ok(names.length >= 10);
 const actualMigration = await sql(migration + '.sql');
-for (const name of names) assert.ok(actualMigration.includes(`'read.${name}'`), `weekly vocabulary missing ${name}`);
+const vocabulary = actualMigration.match(/c\.amal in \(([^)]*'read\.[^)]*)\)\s*and c\.hodisa = 'xato'/)?.[1];
+assert.ok(vocabulary);
+for (const name of names) assert.ok(vocabulary.includes(`'read.${name}'`), `weekly vocabulary missing ${name}`);
 const extract = (source, start, end) => {
   const from = source.indexOf(start); const to = source.indexOf(end, from);
   assert.ok(from >= 0 && to > from); return source.slice(from, to + end.length);
@@ -72,6 +74,7 @@ try {
   assert.equal(proposal.holat, 'kutilmoqda'); assert.equal(proposal.doira, 'global');
   assert.equal(proposal.mazmun.odam_soni, null); assert.equal(proposal.mazmun.k_min, 5);
   assert.equal(proposal.mazmun.operation_id, operation);
+  assert.match(proposal.dalil[0].guruh, /Поиск объекта: нет ответа · 4008 попыток · 5 компаний/);
   assert.deepEqual(proposal.mazmun.signallar, [{ amal: 'read.object_search', hodisa: 'xato', kod: 'NO_ANSWER', urinishlar: '4008', kompaniya_soni: '5' }]);
   assert.ok(!JSON.stringify(proposal.mazmun).includes('private_alias'));
   assert.equal(proposal.mazmun.jarvis_hafta, first.hafta); assert.equal(proposal.mazmun.gacha, first.gacha);
@@ -89,6 +92,16 @@ try {
   await db.exec(`savepoint old_week; update public.t2_agent_taklif set mazmun=jsonb_set(mazmun,'{jarvis_hafta}',to_jsonb((date_trunc('week',current_date)::date-14)::text));`);
   assert.equal((await run(7, operation)).code, 'OPERATION_REUSE');
   await db.exec('rollback to savepoint old_week');
+  await db.exec('savepoint payload_bound; delete from public.t2_agent_taklif; delete from public.t2_friksiya; delete from public.t2_friksiya_hafta;');
+  const allReads = [...vocabulary.matchAll(/'read\.([a-z_]+)'/g)].map(m => 'read.' + m[1]);
+  await db.query(`insert into public.t2_friksiya select date_trunc('week',current_date)::date-7,i,'jarvis',a,'xato',k,9007199254740993
+    from unnest($1::text[]) a cross join (values ('NO_ANSWER'),('SOURCE_UNAVAILABLE')) codes(k) cross join generate_series(1,5) i`, [allReads]);
+  await db.exec(`insert into public.t2_friksiya select date_trunc('week',current_date)::date-7,i,'jarvis',a,'tashlandi','',1 from unnest(array['feedback_bad','feedback_unclear']) a cross join generate_series(1,5) i;`);
+  assert.equal((await run()).yaratildi, true);
+  const bound = (await db.query("select length(mazmun::text) as m,length(dalil::text) as d,jsonb_array_length(dalil) as n,mazmun->'signallar' as signals from public.t2_agent_taklif")).rows[0];
+  assert.ok(bound.m <= 8000 && bound.d <= 6000); assert.equal(bound.n, allReads.length * 2 + 2);
+  assert.ok(bound.signals.filter(r => r.amal.startsWith('read.')).every(r => r.urinishlar === String(9007199254740993n * 5n)));
+  await db.exec('rollback to savepoint payload_bound');
   // Rollback only disables this wrapper; it must not delete existing counters or review decisions.
   await db.exec(await sql(migration + '.rollback.sql'));
   assert.equal((await db.query('select count(*)::int as n from public.t2_agent_taklif')).rows[0].n, 1);

@@ -110,6 +110,15 @@ const taklif = (o: Record<string, unknown> = {}) => ({ id: 3, tur: 'rivojlanish'
 const buyruq = (o: Record<string, unknown> = {}) => ({ id: 9, taklif_id: 3, sarlavha: 'Qidiruv', spec: {}, xavf: 'past', avto_birlashtirish: false, holat: 'navbat', ijrochi: null, pr_url: null, github_issue: null, jurnal: [], yaratildi: '', yangilandi: '', ...o });
 
 describe('AgentTakliflar', () => {
+  it('shows weekly counts in existing evidence before human approval', async () => {
+    m.takliflarOl.mockResolvedValue({ ok: true, natija: { natija: [{ id: 91, tur: 'rivojlanish', doira: 'global', sarlavha: 'Jarvis synthetic week',
+      mazmun: { maqsad: 'Synthetic review', tavsif: 'UTC synthetic period', xavf: 'orta' },
+      dalil: [{ guruh: 'Поиск объекта: нет ответа · 4008 попыток · 5 компаний' }] }] } });
+    m.buyruqlarOl.mockResolvedValue({ ok: true, natija: { natija: [] } });
+    render(<AgentTakliflar kompaniyaId={null} tizim />);
+    expect(await screen.findByText(/4008 попыток · 5 компаний/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Tasdiqlash' })).toBeTruthy(); expect(m.taklifQarori).not.toHaveBeenCalled();
+  });
   it('rad etish sababsiz ketmaydi; tasdiqlashda avto-birlashtirish faqat past xavfda taklif qilinadi', async () => {
     m.takliflarOl.mockResolvedValue({ ok: true, natija: { natija: [taklif()] } }); m.buyruqlarOl.mockResolvedValue({ ok: true, natija: { natija: [] } });
     m.taklifQarori.mockResolvedValue({ ok: true, natija: {} });

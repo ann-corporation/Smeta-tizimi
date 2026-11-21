@@ -16,8 +16,10 @@
         "supabase/migrations/20270121000100_t2_jarvis_haftalik_taklif_v1*.sql", "supabase/tests/jarvis-weekly-pglite.mjs",
         ".github/workflows/jarvis-sql.yml", ".github/workflows/bilim-kuzatuv.yml", "tools/ci/jarvis-weekly-workflow.test.mjs",
         "frontend/functions/api/agent-ish.ts", "frontend/functions/api/agent-ish.weekly.test.ts", "frontend/src/api/t2-agent-ish.ts",
+        "frontend/src/api/t2-agent-ish-weekly.test.ts",
         "frontend/src/lib/jarvis/weekly-report.ts", "frontend/src/admin/ai-markaz/AiOrganishBolimi.tsx",
         "frontend/src/admin/ai-markaz/AiOrganishBolimi.weekly.test.tsx", "frontend/src/admin/sahifalar/AgentTakliflar.tsx",
+        "frontend/src/admin/sahifalar/agent-ish-ui.test.tsx",
         "frontend/src/i18n/lugat/qism/jarvis-weekly.json", "docs/architecture/JARVIS_WEEKLY.md",
         "android-native/shared/src/main/resources/site-i18n/ru.json", "android-native/shared/src/main/resources/site-i18n/en.json"
       ],

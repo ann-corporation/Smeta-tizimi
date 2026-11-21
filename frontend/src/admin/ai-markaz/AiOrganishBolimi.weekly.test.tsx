@@ -19,3 +19,18 @@ it.each([
   await waitFor(() => expect(mocks.toast).toHaveBeenCalledWith(message, tone));
   expect(open).toHaveBeenCalledTimes(shouldOpen ? 1 : 0);
 });
+it('shows the completed report and opens review even if legacy analysis later fails', async () => {
+  mocks.report.mockResolvedValue({ ok: false, error: 'Synthetic legacy failure',
+    jarvis_hafta: { ok: true, yaratildi: true, taklif_id: '9007199254740993' } });
+  const open = vi.fn(); render(<AiOrganishBolimi taklifgaOt={open} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Signallardan taklif tayyorlash' }));
+  await waitFor(() => expect(mocks.toast).toHaveBeenCalledWith('Haftalik hisobot mavjud, lekin umumiy tahlil tugamadi', 'warn'));
+  expect(open).toHaveBeenCalledTimes(1);
+});
+it('keeps a failure without a report receipt as a failure', async () => {
+  mocks.report.mockResolvedValue({ ok: false, error: 'Synthetic failure' });
+  const open = vi.fn(); render(<AiOrganishBolimi taklifgaOt={open} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Signallardan taklif tayyorlash' }));
+  await waitFor(() => expect(mocks.toast).toHaveBeenCalledWith('Synthetic failure', 'danger'));
+  expect(open).not.toHaveBeenCalled(); expect(mocks.signals).toHaveBeenCalledTimes(1);
+});
