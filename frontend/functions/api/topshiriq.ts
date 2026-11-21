@@ -9,6 +9,10 @@ import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { fonda, telegramYubor } from '../_shared/telegram';
+import { rpcData } from '../_shared/agent-rpc';
+import { jarvisHasPermission } from '../_shared/jarvis/authority';
+import { taskCommand, type TaskCheck } from '../_shared/jarvis/task-command';
+import { onRequestPost as memberRead } from './sb';
 
 type Env = { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; TELEGRAM_BOT_TOKEN?: string; TELEGRAM_SAYT_URL?: string };
 type Yuk = Record<string, unknown>;
@@ -94,13 +98,53 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const a = await actor(ctx); if (a instanceof Response) return a;
   let so: Yuk = {};
   try { so = await ctx.request.json(); } catch { return Response.json({ ok: false, error: 'Noto‘g‘ri so‘rov' }, { status: 400 }); }
+  if (!so || typeof so !== 'object' || Array.isArray(so)) return Response.json({ ok: false, code: 'TASK_DRAFT_INVALID' }, { status: 400, ...JAVOB });
+  if (so.amal === 'jarvis_preview' || so.amal === 'jarvis_confirm') {
+    const company = butun(so.kompaniya_id);
+    if (!company) return Response.json({ ok: false, code: 'KOMPANIYA_KERAK' }, { status: 400, ...JAVOB });
+    const check: TaskCheck = async args => {
+      const men = await rpcData(ctx.env, 't2_men_v1', { p_actor_id: a }, AbortSignal.timeout(6000));
+      if (!men.ok) return { code: 'TASK_SOURCE_UNAVAILABLE', status: 503 };
+      const account = men.data.foydalanuvchi as { holat?: unknown } | undefined;
+      if (account?.holat !== 'faol') return { code: 'TASK_ACCOUNT_UNAVAILABLE', status: account?.holat ? 401 : 503 };
+      if (!jarvisHasPermission(men, company, 'fakt.write')) return { code: 'RUXSAT_YOQ', status: 403 };
+      let objectName: string | null = null, assigneeName: string | null = null;
+      if (args.obyekt_id !== null) {
+        const result = await rpcData(ctx.env, 't2_agent_fakt_v1', { p_actor_id: a, p_kompaniya_id: company,
+          p_kategoriyalar: ['obyektlar'], p_obyekt_id: args.obyekt_id }, AbortSignal.timeout(6000));
+        if (!result.ok) return { code: 'TASK_OBJECT_UNAVAILABLE', status: result.status === 403 ? 403 : 503 };
+        const rows = (result.data.fakt as { obyektlar?: Array<{ id?: unknown; nom?: unknown }> } | undefined)?.obyektlar;
+        const matches = Array.isArray(rows) ? rows.filter(row => row?.id === args.obyekt_id) : [];
+        if (matches.length !== 1 || typeof matches[0].nom !== 'string' || !matches[0].nom.trim()) return { code: 'TASK_OBJECT_UNAVAILABLE', status: 403 };
+        objectName = matches[0].nom;
+      }
+      if (args.ijrochi_foydalanuvchi_id !== null) {
+        const request = new Request(new URL('/api/sb', ctx.request.url), { method: 'POST', headers: ctx.request.headers,
+          body: JSON.stringify({ jadval: 't2_azolik_royxat', filtr: `kompaniya_id=eq.${company}&foydalanuvchi_id=eq.${args.ijrochi_foydalanuvchi_id}`,
+            ustunlar: 'kompaniya_id,foydalanuvchi_id,holat,ism,login', limit: 2 }) });
+        const response = await memberRead({ ...ctx, request } as Parameters<typeof memberRead>[0]);
+        const body = await response.json() as { ok?: boolean; qatorlar?: Array<Record<string, unknown>> };
+        if (!response.ok || body.ok !== true || !Array.isArray(body.qatorlar)) return { code: 'TASK_ASSIGNEE_UNAVAILABLE', status: response.status === 403 ? 403 : 503 };
+        const rows = body.qatorlar;
+        if (rows.length !== 1 || rows[0].kompaniya_id !== company || rows[0].foydalanuvchi_id !== args.ijrochi_foydalanuvchi_id || rows[0].holat !== 'faol') return { code: 'TASK_ASSIGNEE_UNAVAILABLE', status: 403 };
+        const name = rows[0].ism || rows[0].login;
+        if (typeof name !== 'string' || !name.trim()) return { code: 'TASK_ASSIGNEE_UNAVAILABLE', status: 503 };
+        assigneeName = name;
+      }
+      return { obyekt_nom: objectName, ijrochi_nom: assigneeName };
+    };
+    const prepared = await taskCommand(ctx.env.SESSIYA_KALIT, a, company, so, check);
+    if (prepared.kind === 'error') return Response.json({ ok: false, code: prepared.code }, { status: prepared.status, ...JAVOB });
+    if (prepared.kind === 'preview') return Response.json(prepared.value, JAVOB);
+    so = prepared.body;
+  }
   const t = yozishYuki(so);
   if (typeof t === 'string') return Response.json({ ok: false, error: t }, { status: 400 });
   const r = await rpc(ctx.env, t.rpc, { p_actor_id: a, ...t.yuk });
   /* Telegram (egasi 2026-10-28): topshiriq BAZADA muvaffaqiyatli berilgandan keyingina ijrochiga xabar (opt-in, fonda).
    * Ruxsat RPC ichida tekshirilgan; xabar javobni kechiktirmaydi va xatosi javobni buzmaydi. */
   const ijrochi = butun(t.yuk.p_ijrochi_foydalanuvchi_id);
-  if (t.rpc === 't2_topshiriq_ber_v1' && r.status === 200 && r.body.ok !== false && ijrochi && ijrochi !== a) {
+  if (t.rpc === 't2_topshiriq_ber_v1' && r.status === 200 && r.body.ok !== false && r.body.takror !== true && ijrochi && ijrochi !== a) {
     fonda(ctx, telegramYubor(ctx.env, ijrochi, 'Sizga yangi topshiriq: {sarlavha}', { sarlavha: String(t.yuk.p_sarlavha ?? '') }, 'topshiriq'));
   }
   return Response.json(r.body, { status: r.status, ...JAVOB });
