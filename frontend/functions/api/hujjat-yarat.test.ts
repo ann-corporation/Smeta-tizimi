@@ -1,4 +1,4 @@
-﻿import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { unzipSync, strFromU8 } from 'fflate';
 import { NAKRUTKA_STANDART } from '../../src/lib/nakrutka-kaskad';
 import { bosKiritma, f2Qatorlar, f2Qur, f2Yuk } from '../../src/lib/f2-tayyor';
@@ -18,7 +18,7 @@ vi.mock('../_shared/hujjat-sarf', async (orig) => ({ ...(await orig<object>()), 
 
 import { onRequestPost } from './hujjat-yarat';
 import { kolontitulsiz, tengKolontitulsiz } from '../_shared/test-golden-yordam';
-import { ichkiRejimda, ichkiSorov, ichkiSozla, ICHKI_YOLLAR } from '../_shared/hujjat-ichki';
+import { ichkiOrinlarniTozala, ichkiRejimda, ichkiSorov, ichkiSozla, ICHKI_YOLLAR } from '../_shared/hujjat-ichki';
 
 const b = f2Qur(AKT246_ROWS, AKT246_HOLAT);
 const q = f2Qatorlar(b, { ...bosKiritma(), hajm: AKT246_HAJM });
@@ -130,7 +130,7 @@ describe('ichki rejim (yuklovchilar uchun nisbiy fetch)', () => {
       const ish = (nom: string) => ichkiRejimda(so({}), async () => { tartib.push(nom + '+'); await new Promise((o) => setTimeout(o, 10)); tartib.push(nom + '-'); });
       await Promise.all([ish('a'), ish('b')]);
       expect(tartib).toEqual(['a+', 'a-', 'b+', 'b-']);
-    } finally { ichkiSozla({ limit: 3, maksKutishMs: 30_000, qadamMs: 200 }); }
+    } finally { ichkiSozla({ limit: 1, maksKutishMs: 60_000, qadamMs: 200 }); }
   });
 
   it('qotgan (hech tugamaydigan) yasash keyingi so\'rovlarni abadiy to\'xtatmaydi — prod 2026-11-21', async () => {
@@ -140,7 +140,7 @@ describe('ichki rejim (yuklovchilar uchun nisbiy fetch)', () => {
       const t = Date.now();
       expect(await ichkiRejimda(so({}), async () => 'tayyor')).toBe('tayyor');
       expect(Date.now() - t).toBeLessThan(2_000);
-    } finally { ichkiSozla({ limit: 3, maksKutishMs: 30_000, qadamMs: 200 }); }
+    } finally { ichkiOrinlarniTozala(); ichkiSozla({ limit: 1, maksKutishMs: 60_000, qadamMs: 200 }); }
   });
 
   it('har so\'rov o\'z kontekstida: parallel yasashda nisbiy fetch o\'z Cookie si bilan ketadi', async () => {
