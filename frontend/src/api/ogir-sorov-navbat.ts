@@ -6,9 +6,14 @@
  */
 let faol = 0;
 let kutuvchilar: Array<() => void> = [];
+let ochiq = false;
+
+/** Server (Worker) da navbat o'chiriladi: uzilgan so'rov hisoblagichni kamaytirmay ketsa, keyingi har o'qish 60 s kutardi. */
+export function ogirNavbatniOchir(): void { ochiq = true; faol = 0; const k = kutuvchilar; kutuvchilar = []; for (const f of k) f(); }
 
 /** Og'ir yuklash boshlandi; qaytgan funksiya — tugadi (takror chaqirish xavfsiz). */
 export function ogirYuklashBoshla(): () => void {
+  if (ochiq) return () => {};
   faol++;
   let tugadi = false;
   return () => {
@@ -25,7 +30,7 @@ export function ogirYuklashBoshla(): () => void {
 
 /** Faol og'ir yuklash bo'lsa — tugashini (yoki `maksMs`) kutadi. */
 export function ogirYuklashKut(maksMs = 60_000): Promise<void> {
-  if (faol === 0) return Promise.resolve();
+  if (ochiq || faol === 0) return Promise.resolve();
   return new Promise((res) => {
     let taymer: ReturnType<typeof setTimeout> | undefined;
     const f = () => { if (taymer) clearTimeout(taymer); res(); };

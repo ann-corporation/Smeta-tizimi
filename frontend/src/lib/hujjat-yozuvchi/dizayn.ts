@@ -186,8 +186,18 @@ export const DIZAYN_SAQLASH_KALITI = 'hujjat-dizayn-uslub';
 let joriy: HujjatDizayn = SUKUT_DIZAYN;
 let keshSatr: string | null = null;
 let keshDizayn: HujjatDizayn | null = null;
-export function hujjatDizayniniOrnat(x: unknown | null | undefined): void { joriy = x == null ? SUKUT_DIZAYN : dizaynTozala(x); }
+/** Server (Worker) har so'rov uchun alohida dizayn konteksti beradi (parallel yasashda aralashmasin). Brauzerda ulanmaydi. */
+type DizaynKonteksti = { ol: () => HujjatDizayn | undefined; qoy: (d: HujjatDizayn) => boolean };
+let kontekst: DizaynKonteksti | null = null;
+export function dizaynKontekstiniUlash(k: DizaynKonteksti | null): void { kontekst = k; }
+export function hujjatDizayniniOrnat(x: unknown | null | undefined): void {
+  const d = x == null ? SUKUT_DIZAYN : dizaynTozala(x);
+  if (kontekst?.qoy(d)) return;
+  joriy = d;
+}
 export function joriyHujjatDizayni(): HujjatDizayn {
+  const k = kontekst?.ol();
+  if (k) return k;
   try {
     const s = globalThis.localStorage?.getItem(DIZAYN_SAQLASH_KALITI);
     if (s) {
