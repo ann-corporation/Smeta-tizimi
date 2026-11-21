@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { rivojlanishTahlil, signallarOl, type SignalGuruhi } from '../../api/t2-agent-ish';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
+import { weeklyReportNotice } from '../../lib/jarvis/weekly-report';
 
 /** O'rganish: foydalanuvchi fikri va agent signallari (tozalangan, kompaniyasiz) guruhlangan ko'rinishda; shundan taklif tayyorlanadi. */
 export function AiOrganishBolimi({ taklifgaOt }: { taklifgaOt: () => void }) {
@@ -15,9 +16,8 @@ export function AiOrganishBolimi({ taklifgaOt }: { taklifgaOt: () => void }) {
     setBand(true);
     try {
       const r = await rivojlanishTahlil();
-      if (!r.ok) { toast(r.error, 'danger'); return; }
-      toast(r.natija.xabar || `${t('Yangi takliflar')}: ${r.natija.takliflar.length}`, 'ok');
-      void yukla(); if (r.natija.takliflar.length) taklifgaOt();
+      const notice = weeklyReportNotice(r); toast(notice.message, notice.tone);
+      if (notice.refresh) void yukla(); if (notice.open) taklifgaOt();
     } finally { setBand(false); }
   };
 
@@ -31,10 +31,10 @@ export function AiOrganishBolimi({ taklifgaOt }: { taklifgaOt: () => void }) {
             <h2 className="text-[14px] font-semibold text-text">{t('Tizim nimadan o‘rganyapti')}</h2>
             <p className="text-[12px] text-text-mute">{t('Quyida — oxirgi 30 kunda foydalanuvchilar va agentlardan kelgan muammo signallari. Kompaniya nomi, raqam, havola va shaxsiy ma’lumot tozalangan; qaysi kompaniyadan kelgani ko‘rinmaydi, faqat nechta kompaniyada takrorlangani.')}</p>
           </div>
-          <button type="button" disabled={band || g.length === 0} onClick={() => void tahlil()} className="fz-btn fz-btn--primary h-8 px-3 text-[12px] disabled:opacity-40">{band ? t('Tahlil qilinmoqda…') : t('Signallardan taklif tayyorlash')}</button>
+          <button type="button" disabled={band} onClick={() => void tahlil()} className="fz-btn fz-btn--primary h-8 px-3 text-[12px] disabled:opacity-40">{band ? t('Tahlil qilinmoqda…') : t('Signallardan taklif tayyorlash')}</button>
         </div>
       </section>
-      {g.length === 0 ? <p className="karta p-4 text-[13px] text-text-mute">{t('Yangi signal yo‘q — tizim hozircha o‘rganadigan muammo ko‘rmayapti.')}</p> : (
+      {g.length === 0 ? <p className="karta p-4 text-[13px] text-text-mute">{t('Hozircha bu ro‘yxatda signal yo‘q. Haftalik Jarvis hisobotini tekshirishingiz mumkin.')}</p> : (
         <ul className="space-y-2">{g.map((x, i) => (
           <li key={i} className="karta p-3">
             <div className="flex flex-wrap items-center gap-2 text-[12px]">

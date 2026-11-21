@@ -5,7 +5,8 @@
  */
 import type { KatalogKontekst } from '../lib/jarvis/katalog-kontekst';
 import type { StudioKontekst } from '../lib/jarvis/studio-kontekst';
-export type AgentJavob<T> = { ok: true; natija: T } | { ok: false; error: string; code?: string };
+export type JarvisHafta = { ok: boolean; yaratildi?: boolean; taklif_id?: string; sabab?: string; code?: string };
+export type AgentJavob<T> = { ok: true; natija: T } | { ok: false; error: string; code?: string; jarvis_hafta?: JarvisHafta };
 type Xom = { ok?: boolean; natija?: unknown; error?: string; code?: string } & Record<string, unknown>;
 
 export type AgentModelQatori = {
@@ -50,7 +51,13 @@ export async function agentOqi<T>(bolim: string, kompaniyaId: number | null, par
 
 export async function agentYoz<T = Record<string, unknown>>(amal: string, kompaniyaId: number | null, yuk: Record<string, unknown> = {}): Promise<AgentJavob<T>> {
   const d = await chaqir('/api/agent-ish', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amal, ...(kompaniyaId != null ? { kompaniya_id: kompaniyaId } : {}), ...yuk }) });
-  if (d.ok === false) return { ok: false, error: d.error || 'Xato', code: d.code };
+  if (d.ok === false) {
+    const w = d.jarvis_hafta as Partial<JarvisHafta> | null;
+    const receipt = amal === 'rivojlanish_tahlil' && w && !Array.isArray(w) && w.ok === true &&
+      typeof w.taklif_id === 'string' && /^[1-9][0-9]*$/.test(w.taklif_id) && typeof w.yaratildi === 'boolean'
+      ? { ok: true, taklif_id: w.taklif_id, yaratildi: w.yaratildi } : undefined;
+    return { ok: false, error: d.error || 'Xato', code: d.code, ...(receipt ? { jarvis_hafta: receipt } : {}) };
+  }
   return { ok: true, natija: d as unknown as T };
 }
 
@@ -63,7 +70,9 @@ export const taklifQarori = (k: number | null, taklifId: number, qaror: 'tasdiql
   agentYoz('taklif_qaror', k, { taklif_id: taklifId, qaror, izoh, avto_birlashtirish: avtoBirlashtirish === true });
 export const buyruqlarOl = () => agentOqi<{ natija: AgentBuyruq[] }>('buyruqlar', null);
 export const buyruqYubor = (buyruqId: number) => agentYoz<{ issue: number | null; url: string | null }>('buyruq_yubor', null, { buyruq_id: buyruqId });
-export const rivojlanishTahlil = () => agentYoz<{ takliflar: number[]; otkazildi: number; xabar?: string }>('rivojlanish_tahlil', null);
+export type RivojlanishNatija = { takliflar: number[]; otkazildi?: number; xabar?: string;
+  jarvis_hafta?: JarvisHafta };
+export const rivojlanishTahlil = (operationId = crypto.randomUUID()) => agentYoz<RivojlanishNatija>('rivojlanish_tahlil', null, { operation_id: operationId });
 export const fikrYubor = (k: number, p: { tur: string; matn: string; sahifa?: string; skrinIds?: number[]; skrinTahlil?: { mimeType: string; data: string } }) =>
   agentYoz<{ fikr_id: number; javob: string | null; ulashildi: boolean }>('fikr', k, { tur: p.tur, matn: p.matn, sahifa: p.sahifa, skrin_ids: p.skrinIds, skrin_tahlil: p.skrinTahlil });
 export const qadamTaklifOl = (k: number, sahifa: string, iz: HarakatIzi[]) => agentYoz<QadamTaklifi>('qadam_taklif', k, { sahifa, iz });
