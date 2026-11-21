@@ -72,7 +72,10 @@ export async function f2HujjatKonteksti(kompaniyaId: number, obyektId: number): 
 }
 
 /** F2 hujjati "kimligi" — bir xil F2 (obyekt + oy + raqam) uchun token bir marta olinadi, qayta chiqarish bepul. */
-export function f2HujjatKaliti(obyektId: number, oy: string, raqam: string | null | undefined): string | null {
+export function f2HujjatKaliti(obyektId: number, oy: string, raqam: string | null | undefined, aktId?: number | null): string | null {
   const r = (raqam ?? '').trim();
-  return r ? `f2:${obyektId}:${oy.slice(0, 7)}:${r}`.slice(0, 200) : null;
+  if (r) return `f2:${obyektId}:${oy.slice(0, 7)}:${r}`.slice(0, 200);
+  /* Raqamsiz (qoralama) saqlangan F-2: akt bo'yicha barqaror kalit (2026-11-21: avval bayt xeshi edi — fon har yangilaganda (QR/versiya)
+     token QAYTA yechilardi). Bitta F-2 = obyekt + oy. Saqlanmagan ko'rinish (akt yo'q) - null (chaqiruvchi mazmun xeshini oladi). */
+  return aktId ? `f2:${obyektId}:${oy.slice(0, 7)}:akt${aktId}` : null;
 }
