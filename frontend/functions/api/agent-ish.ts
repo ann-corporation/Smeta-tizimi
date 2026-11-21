@@ -524,7 +524,8 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
     const weekly = await rpcData(env, 't2_jarvis_haftalik_taklif_v1', { p_actor_id: k.actor, p_operation_id: operationId }, AbortSignal.timeout(6000)).catch(() => null);
     if (weekly?.status === 403) return chiqar(weekly);
     const jarvisHafta = weekly?.ok ? weekly.data : { ok: false, code: ['WEEKLY_BUSY', 'OPERATION_REQUIRED', 'OPERATION_REUSE'].includes(String(weekly?.data.code)) ? weekly?.data.code : 'WEEKLY_UNAVAILABLE' };
-    const guruhlar = (Array.isArray(y.data.natija) ? y.data.natija : []) as Array<{ sahifa: string; tur: string; soni: number; kompaniya_soni: number; namunalar: string[]; signal_idlar: number[] }>;
+    const guruhlar = ((Array.isArray(y.data.natija) ? y.data.natija : []) as Array<{ sahifa: string; tur: string; soni: number; kompaniya_soni: number; namunalar: string[]; signal_idlar: number[] }>)
+      .filter(group => Number.isSafeInteger(group.kompaniya_soni) && group.kompaniya_soni >= 5);
     if (!guruhlar.length) return Response.json({ ok: true, takliflar: [], jarvis_hafta: jarvisHafta, xabar: 'Oldingi signal oqimida yangi yozuv yo‘q' }, JAVOB);
     const m = await rpcData(env, 't2_agent_muhit_v1', { p_actor_id: k.actor, p_kompaniya_id: null, p_profil: 'platform_orchestrator' });
     if (!m.ok) return chiqar(m);

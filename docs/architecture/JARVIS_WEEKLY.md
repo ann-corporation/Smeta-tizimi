@@ -24,7 +24,8 @@ snapshot не перезаписывается. Повтор с новым UUID 
 UI различает новый отчёт, ранее созданный, отсутствие eligible signals и ошибку
 источника. Пустой legacy список не блокирует проверку. Weekly unavailable не
 выдаётся за success: workflow проверяет вложенный `jarvis_hafta.ok` и завершается
-ошибкой даже при legacy HTTP200. Legacy analysis при этом сохраняет свой контракт.
+ошибкой даже при legacy HTTP200. Legacy global analysis также фильтрует группы
+до ≥5 компаний ПЕРЕД моделью; параметры клиента этот порог не понижают.
 
 Release L0: сначала миграция `20270121000100`/schema smoke, затем API+workflow/UI.
 Index additivный на tiny existing proposal table (read-only metadata:8KiB на
@@ -34,4 +35,4 @@ Rollback удаляет только wrapper/index, оставляя counters/pr
 Synthetic PGlite запускает реальную migration и existing creator/schema внутри
 BEGIN…ROLLBACK; authority boundary — fixture. Bash workflow test — mocked curl,
 без сети. Эти тесты не доказывают live owner acceptance или реальный scheduled run.
-Generic priors k=2 и другие M5 consumers этим не изменены; полный M0–M5 открыт.
+Generic Studio prior engines k=2 и другие M5 consumers этим не изменены; полный M0–M5 открыт.
