@@ -4,6 +4,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { buyruqYubor, buyruqlarOl, rivojlanishTahlil, takliflarOl, taklifQarori, type AgentBuyruq, type AgentTaklif } from '../../api/t2-agent-ish';
+import { weeklyReportNotice } from '../../lib/jarvis/weekly-report';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
 
@@ -53,7 +54,7 @@ export function AgentTakliflar({ kompaniyaId, tizim }: { kompaniyaId: number | n
     try {
       const r = await rivojlanishTahlil();
       if (!r.ok) { toast(r.error, 'danger'); return; }
-      toast(r.natija.xabar || `${t('Yangi takliflar')}: ${r.natija.takliflar.length}`, 'ok');
+      const notice = weeklyReportNotice(r.natija); toast(notice.message, notice.tone);
       void yukla();
     } finally { setBand(false); }
   };

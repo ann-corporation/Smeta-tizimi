@@ -20,17 +20,29 @@ jobs:
       KUZATUV_KALIT: ${{ secrets.KUZATUV_KALIT }}
       PROD_URL: ${{ vars.PROD_URL }}
     steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
       - name: Me'yor sahifalarini tekshirish
         run: |
           if [ -z "$KUZATUV_KALIT" ] || [ -z "$PROD_URL" ]; then
             echo "KUZATUV_KALIT yoki PROD_URL sozlanmagan — o'tkazib yuborildi."; exit 0
           fi
           chaqir() {
+            data="{\"amal\":\"$1\"}"
+            if [ "$1" = "rivojlanish_tahlil" ]; then
+              op=$(node -e 'const {createHash}=require("node:crypto"); const d=new Date(); d.setUTCDate(d.getUTCDate()-(d.getUTCDay()+6)%7-7); const h=createHash("sha256").update("qurai:jarvis-weekly:"+d.toISOString().slice(0,10)).digest("hex"); console.log([h.slice(0,8),h.slice(8,12),"8"+h.slice(13,16),"8"+h.slice(17,20),h.slice(20,32)].join("-"))')
+              data="{\"amal\":\"$1\",\"operation_id\":\"$op\"}"
+            fi
             code=$(curl -sS -o resp.json -w '%{http_code}' -X POST "$PROD_URL/api/agent-ish" \
               -H 'Content-Type: application/json' -H "X-Kuzatuv-Kalit: $KUZATUV_KALIT" \
-              --data "{\"amal\":\"$1\"}" --max-time 120 || echo 000)
+              --data "$data" --max-time 120 || echo 000)
             echo "$1 -> HTTP $code"; head -c 600 resp.json; echo
             if [ "$code" != "200" ]; then echo "::warning::$1 muvaffaqiyatsiz (HTTP $code)"; fi
+            if [ "$1" = "rivojlanish_tahlil" ]; then
+              if [ "$code" != "200" ]; then return 1; fi
+              node -e 'const r=JSON.parse(require("node:fs").readFileSync("resp.json","utf8")); if(r.jarvis_hafta?.ok!==true){console.error("Jarvis weekly source unavailable; legacy success is insufficient"); process.exit(1)}'
+            fi
           }
           chaqir bilim_yigish                                    # har kuni: me'yor sahifalari
           if [ "$(date -u +%u)" = "1" ]; then chaqir rivojlanish_tahlil; fi   # dushanba: signallardan tizim yaxshilash takliflari

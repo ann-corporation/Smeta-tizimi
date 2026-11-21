@@ -1,0 +1,27 @@
+name: Jarvis SQL acceptance
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/jarvis-sql.yml'
+      - 'supabase/migrations/*jarvis_haftalik_taklif*'
+      - 'supabase/tests/jarvis-weekly-pglite.mjs'
+      - 'tools/ci/jarvis-weekly-workflow.test.mjs'
+      - '.github/workflows/bilim-kuzatuv.yml'
+permissions:
+  contents: read
+jobs:
+  jarvis-weekly-sql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Synthetic PostgreSQL acceptance only
+        run: |
+          npm install --prefix "$RUNNER_TEMP/jarvis-db" --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.3.14
+          PGLITE_DIR="$RUNNER_TEMP/jarvis-db/node_modules/@electric-sql/pglite" node supabase/tests/jarvis-weekly-pglite.mjs
+          node tools/ci/jarvis-weekly-workflow.test.mjs
