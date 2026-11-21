@@ -8,7 +8,7 @@
  * Har qadam ROUND 2 (Excel bilan aynan). Foiz FAQAT podvaldan: kiritilmagan foiz — null («noma'lum»),
  * hech qachon jim 0 yoki shartnoma qiymati bilan almashtirilmaydi.
  */
-import { KATLAR, type Kat } from './kategoriya';
+import { KATLAR, type Kat, type TrKalit } from './kategoriya';
 import { yaxlit2 } from './yaxlit';
 
 export const KOEF_KODLAR = [
@@ -128,6 +128,21 @@ export function podvalTekshir(p: Podval): PodvalXato[] {
   return x;
 }
 
+/**
+ * Transport foizi qatori (`koefKod` ТРАНСПОРТ_*) bazasidan chiqariladigan kalit (tkm / narx_ichida materiallar; server
+ * `_t2_nakrutka_kaskad_v1` tr_ex_*). Baza mos kategoriyani o'z ichiga olmasa (maxsus podval) — chiqarilmaydi.
+ */
+export function trChiqarKaliti(q: Pick<PodvalQator, 'tur' | 'koefKod' | 'baza'>): TrKalit | null {
+  if (q.tur !== 'foiz') return null;
+  const m: Partial<Record<KoefKod, { kalit: TrKalit; kat: readonly Kat[] }>> = {
+    'ТРАНСПОРТ_МАТЕРИАЛ': { kalit: 'ТР_МАТ', kat: ['МАТ', 'М/К', 'БЕЗ СКЛАД'] },
+    'ТРАНСПОРТ_КАБЕЛЬ': { kalit: 'ТР_КАБ', kat: ['КАБ'] },
+    'ТРАНСПОРТ_ОБОРУД': { kalit: 'ТР_ОБ', kat: ['ОБ'] },
+  };
+  const x = q.koefKod ? m[q.koefKod] : undefined;
+  return x && (q.baza ?? []).some((h) => 'kat' in h && x.kat.includes(h.kat)) ? x.kalit : null;
+}
+
 export type PodvalNatija = {
   /** Har qator qiymati (null — noma'lum: foiz/summa kiritilmagan yoki noma'lumga tayangan). */
   qiymat: Record<string, number | null>;
@@ -158,7 +173,7 @@ export type PodvalRejim = {
 };
 
 /** Podval baholovchisi — YAGONA kaskad hisobi. Kategoriya summasi yo'q — 0 so'm (foiz emas). */
-export function podvalBahola(p: Podval, s: Partial<Record<Kat, number>>, r: PodvalRejim = {}): PodvalNatija {
+export function podvalBahola(p: Podval, s: Partial<Record<Kat | TrKalit, number>>, r: PodvalRejim = {}): PodvalNatija {
   const yax = r.yaxlit !== false ? yaxlit2 : (v: number) => v;
   const summaQosh = r.summaQosh !== false;
   const qiymat: Record<string, number | null> = {};
@@ -178,7 +193,9 @@ export function podvalBahola(p: Podval, s: Partial<Record<Kat, number>>, r: Podv
     else if (q.tur === 'jami') { const b = yig(q.baza); v = b == null ? null : yax(b); }
     else {
       // Baza aynan 0 bo'lsa natija 0 — foiz noma'lum bo'lsa ham (matematik aniq, taxmin emas).
-      const b = yig(q.baza);
+      const b0 = yig(q.baza);
+      const tk = trChiqarKaliti(q);
+      const b = b0 != null && tk ? b0 - Number(s[tk] ?? 0) : b0;
       const f = q.foiz == null || !Number.isFinite(Number(q.foiz)) ? null : Number(q.foiz);
       v = b == null ? null : b === 0 ? 0 : f == null ? null : yax((b * f) / 100);
     }

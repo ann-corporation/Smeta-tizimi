@@ -45,6 +45,7 @@ import type { AktNode, F2MatchOptions, LrvNode } from '../../src/lib/f2-match-en
 import { f2FaylOqiCore, readXlsx } from '../../src/lib/f2-import-parse';
 import type { F2ColumnConfig } from '../../src/lib/f2-import-parse';
 import { tekshir } from '../_shared/auth';
+import { daraxtResurslari, transportVaraqOqi, transportVaraqmi, transportYoyYuki, type VaraqGrid } from '../../src/lib/transport-yoy/varaq';
 
 type Env = { SESSIYA_KALIT: string };
 
@@ -110,7 +111,16 @@ export async function handleFaylOqi(body: FaylOqiBody) {
   if (!sheet) return Response.json({ ok: false, code: 'SHEET_NOT_FOUND' }, { status: 404 });
 
   const result = f2FaylOqiCore(sheet.rows, body.colConfig);
-  return Response.json({ sheetName: sheet.name, sheetNames: workbook.sheets.map((s) => s.name), ...result });
+  /* Smeta importi: «Расчёт затрат транспорта» varag'i bo'lsa — `transport_yoy` yuki (preview uchun) javobga qo'shiladi (mavjud maydonlar o'zgarmaydi). */
+  let transport_yoy: ({ varaq: string } & ReturnType<typeof transportYoyYuki>) | undefined;
+  try {
+    for (const sh of workbook.sheets) {
+      if (sh.name === sheet.name || !transportVaraqmi(sh.name, sh.rows as VaraqGrid)) continue;
+      const v = transportVaraqOqi(sh.rows as VaraqGrid);
+      if (v) { transport_yoy = { varaq: sh.name, ...transportYoyYuki(v, daraxtResurslari((result as { tree?: unknown }).tree)) }; break; }
+    }
+  } catch { /* transport varag'i yordamchi: o'qilmasa import buzilmaydi */ }
+  return Response.json({ sheetName: sheet.name, sheetNames: workbook.sheets.map((s) => s.name), ...result, ...(transport_yoy ? { transport_yoy } : {}) });
 }
 
 export function handleMoslash(body: MoslashBody) {

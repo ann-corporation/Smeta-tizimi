@@ -12,6 +12,7 @@ import { aktor, aktorTanla, sqlOqish, sxema } from './tools/oqish';
 import { aktBekor, f2QoralamaYangila, f2Yarat, faktJurnal, forma3, ishOchir, nakopitelniy, normativQidir, ostatka, shartnomaMoslash, slichitelniy, zamenaQosh } from './tools/pto';
 import { faktQamrov } from './tools/qamrov';
 import { snapshotFarq, snapshotOl, snapshotQaytar, snapshotRoyxat } from './tools/snapshot';
+import { TRANSPORT_TOOLLAR } from './tools/transport';
 import { qatorOchir, qatorQosh, qatorTahrir, rpc, sqlYozish } from './tools/yozish';
 
 export const VERSIYA = '0.2.0';
@@ -30,6 +31,8 @@ export const TOOLLAR: ToolTarif[] = [
   // Rasmiy hujjat (f2_excel: sayt dvigateli, token, Disk)
   ...HUJJAT_TOOLLAR,
   ...HUJJAT_PAKET_TOOLLAR,
+  // Transport auditi (transport_tekshir: material boshiga bitta usul; faqat o'qish)
+  ...TRANSPORT_TOOLLAR,
 ];
 
 export function serverYasa(mu: Muhit): McpServer {
