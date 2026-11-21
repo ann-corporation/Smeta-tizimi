@@ -26,11 +26,11 @@ class JarvisOutboxTest {
         val directory = folder.newFolder("outbox")
         fun outbox() = JarvisOutbox(directory, TestCipher(), Json) { device }
         assertTrue(outbox().store(device, 17, write))
-        assertFalse(directory.listFiles()!!.single().readBytes().decodeToString().contains(turns[0].text))
+        assertFalse(directory.listFiles()!!.single { it.extension == "bin" }.readBytes().decodeToString().contains(turns[0].text))
         assertEquals(write, outbox().read(device, 17).getOrThrow())
         assertNull(outbox().read(device, 18).getOrThrow())
         val swapped = File(directory, "$device-18.bin")
-        directory.listFiles()!!.single().copyTo(swapped)
+        directory.listFiles()!!.single { it.extension == "bin" }.copyTo(swapped)
         assertTrue(outbox().read(device, 18).isFailure)
         assertTrue(swapped.delete())
         device = "00000000-0000-4000-8000-000000000002"
@@ -43,6 +43,20 @@ class JarvisOutboxTest {
         assertFalse(outbox().remove(device, 17, write))
         assertTrue(outbox().remove(device, 17, write.copy(stale = true)))
         assertNull(outbox().read(device, 17).getOrThrow())
+    }
+
+    @Test fun replacesOnlyTheExactEncryptedConflictDraft() = runBlocking {
+        val device = "00000000-0000-4000-8000-000000000001"
+        val outbox = JarvisOutbox(folder.newFolder("replace"), TestCipher(), Json) { device }
+        val turns = listOf(ChatMsg(true, "Synthetic pending"), ChatMsg(false, "Answer"))
+        val old = PendingJarvisWrite(ChatCursor("old", "a".repeat(32)), null, turns, "op", turns, stale = true)
+        val fresh = old.copy(cursor = ChatCursor("new"), title = "Synthetic pending", operationId = null, stale = false)
+        assertTrue(outbox.store(device, 17, old))
+        assertFalse(outbox.replace(device, 17, old.copy(operationId = "different"), fresh))
+        assertEquals(old, outbox.read(device, 17).getOrThrow())
+        assertTrue(outbox.replace(device, 17, old, fresh))
+        assertEquals(fresh, outbox.read(device, 17).getOrThrow())
+        assertFalse(outbox.replace(device, 17, old, old))
     }
 
     private class TestCipher : SecretCipher {

@@ -1,0 +1,10 @@
+<resources>
+    <string name="jarvis_sync_loading">Загружается история чата…</string>
+    <string name="jarvis_sync_stale">Чат изменён на другом устройстве. Несохранённые сообщения можно скопировать в новый чат.</string>
+    <string name="jarvis_sync_unreadable">Не удалось прочитать зашифрованные сообщения. Очередь сохранена; отправка новых сообщений остановлена.</string>
+    <string name="jarvis_sync_device">Сессия устройства изменилась. Войдите снова.</string>
+    <string name="jarvis_sync_failed">Сообщения не сохранены. Не закрывайте приложение до повторной попытки.</string>
+    <string name="jarvis_sync_retry">Повторить сохранение</string>
+    <string name="jarvis_sync_fork">Сохранить несохранённые сообщения в новом чате</string>
+    <string name="jarvis_sync_wait">Сначала завершите сохранение</string>
+</resources>
