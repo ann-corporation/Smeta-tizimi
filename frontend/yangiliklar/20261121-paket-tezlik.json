@@ -1,0 +1,9 @@
+{
+  "sana": "2026-11-21",
+  "sarlavha": "Hujjatlar paketi tezroq va aniqroq: har obyekt uchun holat ko'rinadi",
+  "bandlar": [
+    "Paket yig'ilayotganda Disk, tayyor hujjatlar va qayta yasalayotganlar bir vaqtda olinadi - avvalgidan ancha tez.",
+    "Paketdan keyin har obyekt bo'yicha: nechta hujjat tayyor edi, nechtasi hozir yangilandi, nechtasi eski versiya va qaysilari nima uchun kirmadi - ko'rinadi.",
+    "Token yetmay qolsa yoki tarmoq uzilsa hujjat jim tashlanmaydi: sababi yoziladi, vaqtinchalik xato bir marta qayta uriladi."
+  ]
+}

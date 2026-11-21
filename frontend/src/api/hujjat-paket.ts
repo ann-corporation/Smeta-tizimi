@@ -10,7 +10,7 @@ export { yasashSorovi };
 import { filtrServerga, type PaketFiltr } from '../lib/hujjat-paket/nomzod';
 import type { RoyxatQator } from '../lib/hujjat-paket/royxat';
 import type { Nomzod } from '../lib/hujjat-paket/nomzod';
-import type { Olingan, Yetkazuvchi } from '../lib/hujjat-paket/yigish';
+import { YetkazishXato, type Olingan, type Yetkazuvchi } from '../lib/hujjat-paket/yigish';
 
 export type NomzodNatija = { ok: true; nomzodlar: Nomzod[]; jami: number; kesilgan: boolean } | { ok: false; xabar: string };
 
@@ -47,8 +47,11 @@ export function saytYetkazuvchi(kompaniyaId: number): Yetkazuvchi {
       if (n.obyekt_id == null) throw new Error('Obyekt aniqlanmadi (Diskda ham yo\'q)');
       // F-2: Diskdagi yangi versiya bo'lsa server shuni beradi (zudlik bilan); token yuklab olishda, mazmun kaliti bo'yicha bir marta.
       const r = await hujjatYarat({ kompaniyaId, obyektId: n.obyekt_id, tur: s.tur, format: 'xlsx', parametrlar: s.tur === 'f2' ? { ...s.parametrlar, disk_afzal: 1 } : s.parametrlar });
-      if (!r.ok) throw new Error(r.xabar);
-      return { bytes: r.bytes, faylNomi: r.faylNomi };
+      if (!r.ok) {
+        // Token yetmasa qolgan yasash behuda urinmaydi (to'xtatiladi); tarmoq/502/503/504 - bir marta qayta uriladi; boshqasi - sabab bilan «xato».
+        throw new YetkazishXato(r.xabar, { toxtat: r.status === 402 || r.code === 'TOKEN_YETMAYDI', vaqtinchalik: [0, 408, 429, 502, 503, 504].includes(r.status) });
+      }
+      return { bytes: r.bytes, faylNomi: r.faylNomi, ...(r.manba ? { manba: r.manba } : {}) };
     },
   };
 }

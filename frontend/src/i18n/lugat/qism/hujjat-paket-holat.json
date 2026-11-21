@@ -1,0 +1,7 @@
+{
+  "Paket holati (obyektlar bo‘yicha)": { "ru": "Состояние пакета (по объектам)", "en": "Package status (by object)" },
+  "{n} ta tayyor": { "ru": "готово: {n}", "en": "{n} ready" },
+  "{n} ta hozir yangilandi": { "ru": "обновлено сейчас: {n}", "en": "{n} regenerated now" },
+  "{n} ta eski versiya (fonda yangilanmoqda)": { "ru": "старая версия (обновляется в фоне): {n}", "en": "{n} older version (refreshing in background)" },
+  "{n} ta kirmadi": { "ru": "не вошло: {n}", "en": "{n} not included" }
+}

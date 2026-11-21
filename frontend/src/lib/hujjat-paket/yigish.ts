@@ -7,7 +7,7 @@ import type { PaketFayl, PaketFaylTuri } from '../f2-oylik-paket/oylik';
 import { parallelIsh } from '../f2-oylik-paket/parallel';
 import { tarkibMatni, zipYollari, TUR_NOMI, type Nomzod, type PaketReja } from './nomzod';
 
-export type Olingan = { bytes: Uint8Array; faylNomi: string };
+export type Olingan = { bytes: Uint8Array; faylNomi: string; /** Server aytgan manba (X-Hujjat-Manba): Diskdan berildi yoki hozir yasaldi (va Diskka yozildi). */ manba?: 'disk' | 'yasaldi' };
 export type Yetkazuvchi = {
   /** Diskdagi joriy versiya baytlari (BEPUL). */
   diskdan: (n: Nomzod) => Promise<Olingan>;
@@ -15,23 +15,85 @@ export type Yetkazuvchi = {
   yasa: (n: Nomzod) => Promise<Olingan>;
 };
 export type YigilganFayl = { n: Nomzod; bytes: Uint8Array; faylNomi: string; manba: 'disk' | 'yasaldi' };
-export type YigishNatija = { fayllar: YigilganFayl[]; xatolar: string[] };
+
+/**
+ * Hujjat bo'yicha natija (paket hech qachon jim tashlamaydi): `tayyor` - Diskdan berildi; `yangilandi` - hozir serverda yasalib Diskka qaytarib yozildi
+ * (keyingi safar tayyor turadi); `eskirgan` - Diskdagi versiya berildi, lekin manba o'zgargan va fonda yangilanmoqda; `xato` - kirmadi (sabab bilan).
+ */
+export type HujjatNatijasi = 'tayyor' | 'yangilandi' | 'eskirgan' | 'xato';
+export type HujjatHolati = { kalit: string; tur: string; sarlavha: string; obyekt_id: number | null; obyekt_nom: string | null; oy: string | null; natija: HujjatNatijasi; sabab?: string };
+export type YigishNatija = { fayllar: YigilganFayl[]; xatolar: string[]; holatlar?: HujjatHolati[] };
+
+/** Yetkazuvchi xatosi: `vaqtinchalik` - bir marta qayta uriniladi (tarmoq/502/503/504); `toxtat` - qolgan YASASH to'xtatiladi (masalan token yetmaydi). */
+export class YetkazishXato extends Error {
+  readonly o: { vaqtinchalik?: boolean; toxtat?: boolean };
+  constructor(msg: string, o: { vaqtinchalik?: boolean; toxtat?: boolean } = {}) { super(msg); this.name = 'YetkazishXato'; this.o = o; }
+}
 
 const xabar = (e: unknown): string => (e instanceof Error ? e.message : String(e)).slice(0, 200);
+const kech = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-/** Rejadagi hujjatlarni oladi: avval Disk (parallel, bepul), keyin yasash (kamroq parallel: token va server yuki). Bitta xato butun paketni to'xtatmaydi. */
-export async function paketYigish(reja: Pick<PaketReja, 'diskdan' | 'yasash'>, d: Yetkazuvchi, o: { parallel?: number; yasashParallel?: number; tayyor?: (bajarildi: number, jami: number) => void } = {}): Promise<YigishNatija> {
+/** Yasash yengilmi: Diskda tayyor fayl bor va fonda yangilanmayapti - server uni to'g'ridan beradi (og'ir hisob yo'q), shuning uchun ko'proq parallel. */
+export const yasashYengilmi = (n: Nomzod): boolean => n.fayl_id != null && (n as { yangilanmoqda?: boolean }).yangilanmoqda !== true;
+
+/** Obyekt bo'yicha qisqa holat (UI: «Obyekt 1: 5 tayyor, 1 yangilandi, 2 xato»). Hujjat tartibi saqlanadi, xatolari bilan. */
+export type ObyektHolati = { obyekt_id: number | null; obyekt_nom: string; jami: number; tayyor: number; yangilandi: number; eskirgan: number; xato: number; xatolar: string[] };
+export function obyektHolatlari(h: readonly HujjatHolati[]): ObyektHolati[] {
+  const m = new Map<string, ObyektHolati>();
+  for (const x of h) {
+    const k = String(x.obyekt_id ?? 0);
+    let o = m.get(k);
+    if (!o) { o = { obyekt_id: x.obyekt_id, obyekt_nom: x.obyekt_nom ?? 'Obyektsiz', jami: 0, tayyor: 0, yangilandi: 0, eskirgan: 0, xato: 0, xatolar: [] }; m.set(k, o); }
+    o.jami++; o[x.natija]++;
+    if (x.natija === 'xato') o.xatolar.push(`${x.sarlavha}${x.oy ? ` ${x.oy}` : ''}: ${x.sabab ?? ''}`.trim());
+  }
+  return [...m.values()].sort((a, b) => a.obyekt_nom.localeCompare(b.obyekt_nom, 'ru'));
+}
+
+/**
+ * Rejadagi hujjatlarni oladi. Uchta hovuz BIR VAQTDA ishlaydi (avval ketma-ket edi - Disk tugamaguncha yasash boshlanmasdi):
+ *   Disk (bepul, `parallel`=6) | yasash-yengil (Diskda tayyor, `yengilParallel`=4) | yasash-og'ir (Diskda yo'q/eskirgan, `yasashParallel`=3: server/token yuki).
+ * Bitta xato butun paketni to'xtatmaydi; vaqtinchalik xato (tarmoq/502/503/504) bir marta qayta uriladi; `toxtat` xatosi (token yetmaydi) qolgan yasashni
+ * to'xtatadi, lekin ularning har biri sabab bilan `holatlar` va `xatolar` ga yoziladi - hech narsa jim tashlanmaydi.
+ */
+export async function paketYigish(reja: Pick<PaketReja, 'diskdan' | 'yasash'>, d: Yetkazuvchi, o: { parallel?: number; yasashParallel?: number; yengilParallel?: number; qaytaKutish?: number; tayyor?: (bajarildi: number, jami: number) => void } = {}): Promise<YigishNatija> {
   const jami = reja.diskdan.length + reja.yasash.length; let bajarildi = 0;
   const bos = () => o.tayyor?.(++bajarildi, jami);
-  const ish = (manba: 'disk' | 'yasaldi', f: Yetkazuvchi['diskdan']) => async (n: Nomzod): Promise<YigilganFayl | string> => {
-    try { const r = await f(n); bos(); return { n, bytes: r.bytes, faylNomi: r.faylNomi, manba }; }
-    catch (e) { bos(); return `${n.sarlavha}${n.obyekt_nom ? ` - ${n.obyekt_nom}` : ''}${n.oy ? ` ${n.oy}` : ''}: ${xabar(e)}`; }
+  let toxtatildi: string | null = null;
+  type Ish = { fayl: YigilganFayl } | { xato: string; holat: HujjatHolati };
+  const belgi = (n: Nomzod) => `${n.sarlavha}${n.obyekt_nom ? ` - ${n.obyekt_nom}` : ''}${n.oy ? ` ${n.oy}` : ''}`;
+  const xatoIsh = (n: Nomzod, sabab: string): Ish => ({ xato: `${belgi(n)}: ${sabab}`, holat: { kalit: n.kalit, tur: n.tur, sarlavha: n.sarlavha, obyekt_id: n.obyekt_id, obyekt_nom: n.obyekt_nom, oy: n.oy, natija: 'xato', sabab } });
+  const ish = (manba: 'disk' | 'yasaldi', f: Yetkazuvchi['diskdan']) => async (n: Nomzod): Promise<Ish> => {
+    if (manba === 'yasaldi' && toxtatildi) { bos(); return xatoIsh(n, toxtatildi); }
+    for (let urinish = 0; ; urinish++) {
+      try { const r = await f(n); bos(); return { fayl: { n, bytes: r.bytes, faylNomi: r.faylNomi, manba: r.manba ?? manba } }; }
+      catch (e) {
+        const x = e instanceof YetkazishXato ? e.o : {};
+        if (x.vaqtinchalik && urinish < 1) { await kech(o.qaytaKutish ?? 500); continue; }
+        if (x.toxtat && manba === 'yasaldi') toxtatildi = `${xabar(e)} (qolgan hujjatlar yasalmadi)`;
+        bos(); return xatoIsh(n, xabar(e));
+      }
+    }
   };
-  const diskNatija = await parallelIsh(reja.diskdan, o.parallel ?? 4, (n) => ish('disk', d.diskdan)(n));
-  const yasaNatija = await parallelIsh(reja.yasash, o.yasashParallel ?? 2, (n) => ish('yasaldi', d.yasa)(n));
-  const fayllar: YigilganFayl[] = []; const xatolar: string[] = [];
-  for (const r of [...diskNatija, ...yasaNatija]) { if (typeof r === 'string') xatolar.push(r); else fayllar.push(r); }
-  return { fayllar, xatolar };
+  const yengil = reja.yasash.filter(yasashYengilmi); const ogir = reja.yasash.filter((n) => !yasashYengilmi(n));
+  const [diskNatija, yengilNatija, ogirNatija] = await Promise.all([
+    parallelIsh(reja.diskdan, o.parallel ?? 6, (n) => ish('disk', d.diskdan)(n)),
+    parallelIsh(yengil, o.yengilParallel ?? 4, (n) => ish('yasaldi', d.yasa)(n)),
+    parallelIsh(ogir, o.yasashParallel ?? 3, (n) => ish('yasaldi', d.yasa)(n)),
+  ]);
+  // Tartib: Disk, keyin yasash - reja tartibida (yengil/og'ir hovuzlari qayta birlashtiriladi).
+  const yasaNatija = new Map<string, Ish>();
+  yengil.forEach((n, i) => yasaNatija.set(n.kalit, yengilNatija[i])); ogir.forEach((n, i) => yasaNatija.set(n.kalit, ogirNatija[i]));
+  const fayllar: YigilganFayl[] = []; const xatolar: string[] = []; const holatlar: HujjatHolati[] = [];
+  const yigish = (n: Nomzod, r: Ish) => {
+    if ('xato' in r) { xatolar.push(r.xato); holatlar.push(r.holat); return; }
+    fayllar.push(r.fayl);
+    const eski = (n as { yangilanmoqda?: boolean }).yangilanmoqda === true && r.fayl.manba === 'disk';
+    holatlar.push({ kalit: n.kalit, tur: n.tur, sarlavha: n.sarlavha, obyekt_id: n.obyekt_id, obyekt_nom: n.obyekt_nom, oy: n.oy, natija: eski ? 'eskirgan' : r.fayl.manba === 'yasaldi' ? 'yangilandi' : 'tayyor' });
+  };
+  reja.diskdan.forEach((n, i) => yigish(n, diskNatija[i]));
+  for (const n of reja.yasash) yigish(n, yasaNatija.get(n.kalit)!);
+  return { fayllar, xatolar, holatlar };
 }
 
 /** ZIP: papkalar Disk ierarxiyasi (Loyiha/Shartnoma/Obyekt/Oy/Tur), ildizda «Tarkib» txt. */

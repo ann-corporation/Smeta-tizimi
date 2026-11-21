@@ -9,7 +9,7 @@ export type HujjatTur = 'f2' | 'forma3' | 'nakopitelniy' | 'm29' | 'slichitelniy
 export type HujjatFormat = 'xlsx' | 'pdf';
 
 export type HujjatYaratNatija =
-  | { ok: true; bytes: Uint8Array; faylNomi: string; mime: string; sarflandi: number; bepulTakror: boolean; /** X-Disk-Holat: 'ok' | 'otkazildi' | 'xato:<kod>' (Diskka yozish natijasi). */ diskHolat: string | null }
+  | { ok: true; bytes: Uint8Array; faylNomi: string; mime: string; sarflandi: number; bepulTakror: boolean; /** X-Disk-Holat: 'ok' | 'otkazildi' | 'xato:<kod>' (Diskka yozish natijasi). */ diskHolat: string | null; /** X-Hujjat-Manba: Diskdagi tayyor fayl berildi ('disk') yoki hozir yasaldi ('yasaldi'). */ manba?: 'disk' | 'yasaldi' }
   | { ok: false; status: number; code: string | null; xabar: string };
 
 export type HujjatRoyxatQator = {
@@ -44,6 +44,7 @@ export async function hujjatYarat(p: { kompaniyaId: number; obyektId: number; tu
   return {
     ok: true, bytes, faylNomi: faylNomi(r.headers.get('Content-Disposition'), `hujjat.${format}`), mime: tur,
     sarflandi: Number(r.headers.get('X-Hujjat-Sarf')) || 0, bepulTakror: r.headers.get('X-Hujjat-Bepul-Takror') === '1', diskHolat: r.headers.get('X-Disk-Holat'),
+    ...(r.headers.get('X-Hujjat-Manba') === 'disk' ? { manba: 'disk' as const } : r.headers.get('X-Hujjat-Manba') === 'yasaldi' ? { manba: 'yasaldi' as const } : {}),
   };
 }
 

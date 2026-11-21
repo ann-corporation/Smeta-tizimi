@@ -18,7 +18,7 @@ import { onRequestPost as yaratPost } from './hujjat-yarat';
 import { onRequestPost as sbPost } from './sb';
 import type { Nomzod } from '../../src/lib/hujjat-paket/nomzod';
 import type { RoyxatQator } from '../../src/lib/hujjat-paket/royxat';
-import type { Yetkazuvchi } from '../../src/lib/hujjat-paket/yigish';
+import { YetkazishXato, type Yetkazuvchi } from '../../src/lib/hujjat-paket/yigish';
 import { yasashSorovi } from '../../src/lib/hujjat-paket/yasash-sorov';
 import { narxHisob, type TokenHolat } from '../../src/api/t2-token';
 
@@ -79,8 +79,11 @@ function yetkazuvchi(ctx: Ctx, kid: number): Yetkazuvchi {
       const s = yasashSorovi(n);
       if (!s || n.obyekt_id == null) throw new Error('Bu hujjatni yasab bo\'lmaydi');
       const r = await ichki(ctx, yaratPost, 'hujjat-yarat', { json: { ...s.parametrlar, ...(s.tur === 'f2' ? { disk_afzal: 1 } : {}), amal: 'yarat', tur: s.tur, format: 'xlsx', kompaniya_id: kid, obyekt_id: n.obyekt_id } });
-      if (!r.ok || /json/i.test(r.headers.get('Content-Type') ?? '')) throw new Error(r.status === 402 ? 'Tokenlar yetarli emas' : `Yasalmadi (HTTP ${r.status})`);
-      return { bytes: new Uint8Array(await r.arrayBuffer()), faylNomi: faylNomi(r.headers, `${n.sarlavha}.xlsx`) };
+      if (!r.ok || /json/i.test(r.headers.get('Content-Type') ?? '')) {
+        throw new YetkazishXato(r.status === 402 ? 'Tokenlar yetarli emas' : `Yasalmadi (HTTP ${r.status})`, { toxtat: r.status === 402, vaqtinchalik: [408, 429, 502, 503, 504].includes(r.status) });
+      }
+      const manba = r.headers.get('X-Hujjat-Manba');
+      return { bytes: new Uint8Array(await r.arrayBuffer()), faylNomi: faylNomi(r.headers, `${n.sarlavha}.xlsx`), ...(manba === 'disk' || manba === 'yasaldi' ? { manba } : {}) };
     },
   };
 }
@@ -121,9 +124,10 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   let natija;
   try { natija = await paketYigServer(r.filter((n) => tanlov.has(n.kalit)), sarlavha, chiqish, yetkazuvchi(ctx, kid)); }
   catch (e) { return json({ ok: false, code: 'YIGISH_XATO', xato: e instanceof Error ? e.message.slice(0, 200) : 'xato' }, 502); }
-  if (!natija || !natija.soni) return json({ ok: false, code: 'HUJJAT_YOQ', xatolar: natija?.xatolar ?? [] }, 422);
+  if (!natija || !natija.soni) return json({ ok: false, code: 'HUJJAT_YOQ', xatolar: natija?.xatolar ?? [], holatlar: natija?.holatlar?.slice(0, 300) ?? [] }, 422);
 
   const xatolar = natija.xatolar.slice(0, 50);
+  const holatlar = natija.holatlar.slice(0, 300);
   if (b.yetkazish !== 'havola' && natija.bytes.byteLength <= PAKET_BAYT_CHEGARA) {
     return new Response(natija.bytes as unknown as BodyInit, { headers: {
       'Content-Type': natija.mime, 'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(natija.nom)}`,
@@ -133,5 +137,5 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (!ctx.env.R2_CANONICAL) return json({ ok: false, code: 'R2_YOQ', xato: 'Katta paketni saqlab bo\'lmadi' }, 503);
   const kalit = paketR2Kalit(a.actorId, crypto.randomUUID(), natija.nom);
   await r2Yoz(ctx.env.R2_CANONICAL, kalit, natija.bytes, { httpMetadata: { contentType: natija.mime }, customMetadata: { muddat: String(Date.now() + PAKET_HAVOLA_DAQIQA * 60_000) } });
-  return json({ ok: true, havola: `/api/hujjat-paket?amal=ol&k=${encodeURIComponent(kalit)}`, hajm: natija.bytes.byteLength, soni: natija.soni, xatolar });
+  return json({ ok: true, havola: `/api/hujjat-paket?amal=ol&k=${encodeURIComponent(kalit)}`, hajm: natija.bytes.byteLength, soni: natija.soni, xatolar, holatlar });
 };

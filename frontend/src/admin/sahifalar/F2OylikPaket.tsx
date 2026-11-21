@@ -425,7 +425,7 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot, yangila }: { kompaniyaId: 
   /** Bitta F2 Excel i — YAGONA hujjat dvigateli (`POST /api/hujjat-yarat`, F2 tarixi va mobil ilova bilan bir xil shablon va dizayn);
    *  token ham serverda (obyekt + oy + raqam kaliti: bir F2 — bir marta to'lov, qayta chiqarish bepul). Mijozda Ф-2 quruvchisi chaqirilmaydi. */
   async function f2Fayl(r: PaketAkt): Promise<{ fayl: { nom: string; bytes: Uint8Array } } | { xato: string }> {
-    const h = await hujjatYaratYuklab({ kompaniyaId, obyektId: r.akt.obyekt_id, tur: 'f2', parametrlar: { akt_id: r.akt.id } });
+    const h = await hujjatYaratYuklab({ kompaniyaId, obyektId: r.akt.obyekt_id, tur: 'f2', parametrlar: { akt_id: r.akt.id, disk_afzal: 1 } });
     if (!h.ok) return { xato: h.code === 'QATOR_YOQ' ? t('chiqariladigan qator yo‘q') : h.xabar };
     const shRaqam = (malumot.shartnomalar.get(r.akt.obyekt_id) ?? []).find((s) => s.id === shartnomaId)?.raqam ?? (malumot.shartnomalar.get(r.akt.obyekt_id) ?? [])[0]?.raqam ?? null;
     const nom = paketF2FaylNomi({ oy: r.akt.oy, shartnoma: shRaqam, obyekt: r.obyektNom, raqam: r.akt.raqam, aktId: r.akt.id, qoralama: r.bosqich !== 'tasdiqlangan' });
