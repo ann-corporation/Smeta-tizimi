@@ -49,6 +49,52 @@ it('shows all preview evidence separately and keeps the signed token out of call
 
 beforeEach(() => { request.mockReset(); limitTozala(); });
 
+it('delivers an entire long read with its source link while keeping the original answer in shared history', async () => {
+  const body = 'Sinov | M200 | 0 so‘m | narxsiz: —\n'.repeat(300) + 'OXIRGI DALIL';
+  request.mockResolvedValueOnce(success({ royxat: list, suhbat: changed }))
+    .mockResolvedValueOnce(success({ royxat: list, suhbat: changed }))
+    .mockResolvedValueOnce(success({ javob: body, sahifalar: [{ yol: '/admin/obyektlar' }] }))
+    .mockResolvedValueOnce(success({ id: 'chat-1', etag: 'b'.repeat(32) }));
+  const opened = await telegramJarvisSelect(env, 7, 11, 'uz', 'j:o:17:chat-1');
+  const result = await telegramJarvisReply(env, 7, 11, 'uz', replyTo(opened), 'Obyektlar bo‘yicha beton narxlari');
+  expect(result?.transcript?.join('')).toBe(body + '\n\nhttps://studio.test/admin/obyektlar');
+  expect(result?.transcript?.every(part => part.length <= 3500)).toBe(true);
+  expect(result?.options?.reply_markup).toEqual({ force_reply: true });
+  const entities = result?.options?.entities as Array<{ offset: number; length: number; url: string }> | undefined;
+  expect(entities?.[0]).toMatchObject({ offset: 0 });
+  expect(payloads()[3].xabarlar[1]).toEqual({ r: 'ai', m: body });
+});
+
+it('keeps the initial goal and bounded recent context instead of only six turns', async () => {
+  const turns = [{ r: 'user', m: 'Initial construction goal: ' + 'G'.repeat(800) },
+    ...Array.from({ length: 40 }, (_, i) => ({ r: i % 2 ? 'user' : 'ai', m: 'Turn ' + i }))];
+  const snapshot = { ...changed, xabarlar: turns };
+  request.mockResolvedValueOnce(success({ royxat: list, suhbat: snapshot }))
+    .mockResolvedValueOnce(success({ royxat: list, suhbat: snapshot }))
+    .mockResolvedValueOnce(success({ javob: 'Synthetic answer' }))
+    .mockResolvedValueOnce(success({ id: 'chat-1', etag: 'b'.repeat(32) }));
+  const opened = await telegramJarvisSelect(env, 7, 11, 'uz', 'j:o:17:chat-1');
+  await telegramJarvisReply(env, 7, 11, 'uz', replyTo(opened), 'Davom et');
+  const context = payloads()[2].tarix;
+  expect(context).toHaveLength(16);
+  expect(context[0]).toEqual({ rol: 'user', matn: turns[0].m });
+  expect(context.at(-1).matn).toBe('Turn 39');
+  expect(turns).toHaveLength(41);
+});
+
+it('reports a save failure without losing the long unsaved answer or blindly retrying mutation', async () => {
+  const body = 'Sinov M200 -7,25 so‘m\n'.repeat(300) + 'UNSAVED END';
+  request.mockResolvedValueOnce(success({ royxat: list, suhbat: changed }))
+    .mockResolvedValueOnce(success({ royxat: list, suhbat: changed }))
+    .mockResolvedValueOnce(success({ javob: body }))
+    .mockResolvedValueOnce({ status: 409, body: { ok: false } });
+  const opened = await telegramJarvisSelect(env, 7, 11, 'en', 'j:o:17:chat-1');
+  const result = await telegramJarvisReply(env, 7, 11, 'en', replyTo(opened), 'Synthetic read');
+  expect(result?.matn).toContain('The message was not saved');
+  expect(result?.transcript?.join('')).toBe(body);
+  expect(request).toHaveBeenCalledTimes(4);
+});
+
 it('reads a shared transcript and appends the question and answer using the current version', async () => {
   request.mockResolvedValueOnce(success({ royxat: list, suhbat: changed }))
     .mockResolvedValueOnce(success({ royxat: list, suhbat: changed }))
