@@ -108,6 +108,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const account = men.data.foydalanuvchi as { holat?: unknown } | undefined;
       if (account?.holat !== 'faol') return { code: 'TASK_ACCOUNT_UNAVAILABLE', status: account?.holat ? 401 : 503 };
       if (!jarvisHasPermission(men, company, 'fakt.write')) return { code: 'RUXSAT_YOQ', status: 403 };
+      if ((args.obyekt_id !== null || args.ijrochi_foydalanuvchi_id !== null) && !jarvisHasPermission(men, company, 'company.read'))
+        return { code: 'TASK_DIRECTORY_PERMISSION', status: 403 };
       let objectName: string | null = null, assigneeName: string | null = null;
       if (args.obyekt_id !== null) {
         const result = await rpcData(ctx.env, 't2_agent_fakt_v1', { p_actor_id: a, p_kompaniya_id: company,

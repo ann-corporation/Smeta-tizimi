@@ -14,6 +14,10 @@
    Объект проверяется scoped `t2_agent_fakt_v1`; активный получатель — существующим
    authenticated `/api/sb`, `t2_azolik_royxat`, exact company/user filter.
    Возвращаются только имена, без email/телефона. Неизвестное не угадывается.
+   Для выбранного объекта/получателя нужен existing `company.read`; его отказ
+   возвращает явный `TASK_DIRECTORY_PERMISSION` до чтения. Скрытый каталог не
+   обходится ради preview. Legacy `ber` с одним `fakt.write` не меняется; полная
+   parity для custom roles без company.read требует решения L0/domain preview RPC.
 3. Preview содержит очищенные args, verified names и HMAC token на15 минут.
    Token domain отделён от сессии/F2/склада; включает actor/company/payload/names/expiry.
    Стабильный UUID выведен существующим `uuidHosila` из caller UUID и actor/company/payload.
