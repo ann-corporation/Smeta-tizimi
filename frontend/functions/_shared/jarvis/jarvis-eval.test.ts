@@ -93,14 +93,16 @@ it('model/tools: limits the billed loop to six verified, scoped read calls', asy
         tool_call: { name: 'warehouse_balance', arguments: { query: 'Ombor #7 qoldig‘i: ' + material } } }) });
   }
   boundary.model.mockResolvedValueOnce({ provider: 'openrouter', model: 'synthetic-eval', usage: billingUsage,
-    text: JSON.stringify({ javob: 'Qoldiqlar manbadan olindi.', harakatlar: [] }) });
+    text: JSON.stringify({ javob: 'Summa 1e6 som', summary_refs: ['r0p1', 'r5p1'], harakatlar: [] }) });
   const { body } = await query('Materiallar bo‘yicha mavjud ma’lumotlarni tekshir');
   expect(boundary.model).toHaveBeenCalledTimes(7); // Six tools followed by one conclusion without tools.
   expect(rpc('t2_sklad_markaziy_qoldiq_v1').map(args => args.p_qidir)).toEqual(evalProjects.map(row => row.material));
   expect(rpc('t2_ai_telemetriya_yoz_v1').filter(args => args.p_manba === 'tool')).toHaveLength(6);
   expect(rpc('t2_agent_harakat_taklif_v1')).toEqual([]);
   expect(body.javob).toContain(evalProjects[0].material);
-  expect(body.javob).toContain('Qoldiqlar manbadan olindi.');
+  expect(body.javob).toMatch(new RegExp('^- ' + evalProjects[0].material));
+  expect(body.javob).not.toContain('1e6');
+  expect(boundary.model.mock.calls[1][5].text).toContain('javob_parts');
 });
 
 it('model/tools: never executes a fabricated name or tenant override', async () => {
