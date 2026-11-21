@@ -7,6 +7,7 @@
 import { sbT2AktReestrOl } from '../../src/api/supabase';
 import { f2HujjatKaliti } from '../../src/api/f2-hujjat-kontekst';
 import { mazmunXeshi } from '../../src/api/mazmun-xesh';
+import { kengaytmaBilan } from '../../src/lib/hujjat-paket/fayl-nomi';
 import { f2Manba } from '../../src/lib/disk-hujjat';
 import { f2DiskkaArxivlansinmi, type Tayyor } from './hujjat-f2';
 
@@ -31,7 +32,7 @@ export async function f2DiskdanTayyor(d: TayyorOlDeps, p: { actorId: number; kom
   if (!bytes || !bytes.byteLength) return null;
   const xesh = f2HujjatKaliti(p.obyektId, akt.oy || '', akt.raqam) ?? `akt:${akt.id}:${await mazmunXeshi(bytes)}`;
   return {
-    bytes, faylNomi: String(y.body.nom || `F-2_${akt.id}.xlsx`), turi: 'f2_hujjat', obyektId: p.obyektId, davr: akt.oy || null, xesh, arxivla: false,
+    bytes, faylNomi: kengaytmaBilan(String(y.body.nom || `F-2_${akt.id}`), bytes, y.body.mime ? String(y.body.mime) : null), turi: 'f2_hujjat', obyektId: p.obyektId, davr: akt.oy || null, xesh, arxivla: false,
     manba: f2Manba({ aktId: akt.id, raqam: akt.raqam ?? null, obyekt: akt.obyekt || null, oy: akt.oy || null }),
     diskVersiya: h.body.versiya != null ? Number(h.body.versiya) : null, yangilandi: h.body.yangilandi ?? null,
   };
