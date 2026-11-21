@@ -15,7 +15,7 @@ export const QOIDALAR = `# QURAI (T2) — domen qoidalari
 
 ## Pul
 - Barcha narx va summalar **NDS (QQS) siz**. QQS faqat alohida yorliq bilan ko'rsatiladi («QQS bilan»).
-- Har summa ikki ko'rinishda: **ustamasiz** (to'g'ridan-to'g'ri xarajat) va **ustamali** (nakrutka kaskadi, ИТОГО-4). Ustama foizlari smeta podvalidan olinadi.
+- Har summa ikki ko'rinishda: **ustamasiz** (to'g'ridan-to'g'ri xarajat) va **ustamali** (nakrutka kaskadi, ИТОГО-4). Ustama foizlari smeta podvalidan olinadi. **Ustama foizlari SHARTNOMA darajasida qo'llanadi**: bir shartnomadagi obyektlar bir xil foiz oladi (shartnoma t2_nakrutka_koef); effektiv (teskari hisoblangan) foiz yozilmaydi; obyekt podvalida farqli foiz faqat dalilli istisno (podval_tahrir istisno_dalil) bilan.
 - \`null\` — **noma'lum** (narx yo'q), **0 emas**. Narx 0 — ongli nol. Kategoriya noma'lum qism ustamasiz qo'shiladi va izohda aytiladi.
 - Minus qator normal (normaga keltirish) — ishorasi bilan saqlanadi, tashlanmaydi.
 

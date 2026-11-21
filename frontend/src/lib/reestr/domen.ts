@@ -37,7 +37,7 @@ export const PREFIKS: Readonly<Record<Domen, readonly string[]>> = {
     't2_obyekt_yangila', 't2_hodisa_obyekt',
   ],
   smeta: [
-    't2_qator', 't2_smeta', 't2_nakrutka', 't2_narx', 't2_narxla', 't2_price', 't2_platforma_narx', 't2_normativ', 't2_norma',
+    't2_qator', 't2_smeta', 't2_nakrutka', 't2_podval', 't2_narx', 't2_narxla', 't2_price', 't2_platforma_narx', 't2_normativ', 't2_norma',
     't2_norm', 't2_lrv', 't2_svod', 't2_shaxsiy_smeta', 't2_xom', 't2_resurs', 't2_material_alias', 't2_zamena',
     't2_almashtirilgan', 't2_qoshimcha_ish', 't2_resource_observation', 't2_work', 't2_ish_turi', 't2_ish_abc',
     't2_ish_kartasi', 't2_ish_resurslar', 't2_ish_tajriba', 't2_catalog', 't2_katalog', 't2_bosqich_katalog', 't2_birlik',

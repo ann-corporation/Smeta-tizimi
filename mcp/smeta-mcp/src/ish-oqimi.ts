@@ -175,6 +175,7 @@ export function lifecycleYol(joriy: string | null | undefined, maqsad: Lifecycle
 }
 
 const XATO_IZOH: Record<string, string> = {
+  SHARTNOMA_FOIZIDAN_FARQ: 'ustama foizlari SHARTNOMA darajasida qo\'llanadi (bir shartnomadagi obyektlar bir xil foiz); farqli foiz faqat dalilli istisno bilan - istisno_dalil bering yoki foizni shartnomadagidek qoldiring. Effektiv (teskari hisoblangan) foiz yozilmaydi',
   NARXSIZ_QATOR_BOR: 'qoralamada avtomatik narxsiz qatorlar bor — `f2_qoralama_tahrir` bilan narx kiriting yoki ongli `narxsiz:true` qiling, so\'ng qayta urining',
   DEPENDENTS_EXIST: 'bu aktga bog\'liq hujjatlar (tuzatish/storno/keyingi akt) bor — avval ularni hal qiling',
   STALE_VERSION: 'akt versiyasi o\'zgargan (boshqa joyda tahrirlangan) — `f2` bilan qayta o\'qib, yangi versiya bilan urining',
@@ -347,7 +348,7 @@ export type PodvalQatorX = { kod: string; nom: string; tur: 'foiz' | 'summa' | '
  * Podval qatorlarida foizlarni o'rnatish. O'rnatilgan qator `manba='smeta'` (server faqat shularni koeffitsient deb oladi —
  * «foizlar smeta podvalidan»). `foiz: null` — noma'lum (meros). Baza kats berilsa — qator bazasi shu kategoriyalar.
  */
-export function podvalFoizQoy(qatorlar: readonly PodvalQatorX[], foizlar: Partial<Record<string, number | null>>, o: { baza?: Partial<Record<string, string[]>>; dalil?: string; katak?: Partial<Record<string, string>> } = {}) {
+export function podvalFoizQoy(qatorlar: readonly PodvalQatorX[], foizlar: Partial<Record<string, number | null>>, o: { baza?: Partial<Record<string, string[]>>; dalil?: string; katak?: Partial<Record<string, string>>; istisno?: string } = {}) {
   const xato: string[] = [];
   const yangi = qatorlar.map((q) => ({ ...q }));
   const ozgardi: Array<{ kod: string; oldin: number | null; keyin: number | null }> = [];
@@ -357,8 +358,12 @@ export function podvalFoizQoy(qatorlar: readonly PodvalQatorX[], foizlar: Partia
     if (q.tur !== 'foiz') { xato.push(`${kod}: foiz qatori emas (${q.tur})`); continue; }
     if (f != null && (!Number.isFinite(f) || f < 0 || f > 100)) { xato.push(`${kod}: foiz 0…100 oralig'ida bo'lsin`); continue; }
     ozgardi.push({ kod, oldin: q.foiz ?? null, keyin: f ?? null });
+    const oldingi = q.foiz ?? null;
     q.foiz = f ?? null;
     if (f == null) { q.manba = 'meros'; } else { q.manba = 'smeta'; delete q.merosIzoh; }
+    // Istisno dalili (shartnoma foizidan farq) o'sha foizga bog'liq: foiz o'zgarsa eski dalil olinadi, yangisi berilsa yoziladi.
+    if (f == null || f !== oldingi) delete q.istisno_dalil;
+    if (f != null && o.istisno) q.istisno_dalil = o.istisno;
     if (o.dalil) q.dalil = o.dalil;
     if (o.katak?.[kod]) q.katak = o.katak[kod];
   }
