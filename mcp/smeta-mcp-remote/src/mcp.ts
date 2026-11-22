@@ -12,15 +12,17 @@ import type { Env, Props } from './env';
 import { hyperdriveHovuz } from './hovuz';
 import { MASOFAVIY_TOOLLAR, masofaviyChaqir, masofaviyKirish, masofaviyTavsif } from './siyosat';
 import { vakolatOl, type Vakolat } from './vakolat';
+import { f2Fayl } from './fayl';
 
 export const VERSIYA = '0.1.0';
 /** So'rov tanasi chegarasi (f2_yarat 5000 qator ≈ 0,5 MB). */
 export const SOROV_MAX = 1_000_000;
 
 export const KORSATMA_MASOFAVIY = `${KORSATMA.replace(/ RPC aktori:.*$/, '')} Aktor — OAuth bilan kirgan foydalanuvchi; faqat uning kompaniyalari ko'rinadi. `
-  + 'Yozuvchi toollar standart dry_run:true; haqiqiy yozish — dry_run:false + tasdiq:true (foydalanuvchi roziligidan keyin). Domen qoidalari: `smeta://qoidalar` resursi.';
+  + 'Yozuvchi toollar standart dry_run:true; haqiqiy yozish — dry_run:false + tasdiq:true (foydalanuvchi roziligidan keyin). Domen qoidalari (`smeta://qoidalar` resursi bilan bir xil):\n\n'
+  + QOIDALAR;
 
-export function masofaviyServer(mu: Muhit, v: Vakolat, sayt?: string): McpServer {
+export function masofaviyServer(mu: Muhit, v: Vakolat, sayt?: string, fayl?: { env: Env; origin: string }): McpServer {
   const s = new McpServer({ name: 'smeta-remote', version: VERSIYA }, { instructions: KORSATMA_MASOFAVIY });
   s.registerResource('qoidalar', 'smeta://qoidalar', { title: 'QURAI domen qoidalari', description: 'NDS siz narx, ustamasiz/ustamali, asl smeta const, F2 narxi = max(smeta, xarid), dry_run/tasdiq.', mimeType: 'text/markdown' },
     async (uri) => ({ contents: [{ uri: uri.href, mimeType: 'text/markdown', text: QOIDALAR }] }));
@@ -46,6 +48,17 @@ export function masofaviyServer(mu: Muhit, v: Vakolat, sayt?: string): McpServer
     outputSchema: { id: z.string(), title: z.string(), text: z.string(), url: z.string(), metadata: z.record(z.string(), z.string()).optional() },
     annotations: ro, _meta: SECURITY_META,
   }, async ({ id }) => olish(id, mu, v, sayt));
+  if (fayl) {
+    s.registerTool('f2_fayl', {
+      title: 'F-2 Excel fayli',
+      description: 'Rasmiy F-2 Excel fayli (sayt fonda tayyorlagan, Diskdagi eng yangi versiya) uchun 15 daqiqalik yuklab olish havolasi. '
+        + 'Token sayt bilan bir xil yechiladi (shu F-2 ni qayta yuklash bepul). Fayl yangilanish navbatida bo\'lsa — «tayyor emas, 2–5 daqiqadan so\'ng» deydi. '
+        + 'akt_id — f2_royxat yoki f2_jami natijasidan. Havolani foydalanuvchiga to\'liq bering. [faqat o\'qish + token]',
+      inputSchema: { akt_id: z.number().int().positive().describe('F-2 akt id') },
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+      _meta: SECURITY_META,
+    }, async ({ akt_id }) => f2Fayl(akt_id, mu, v, fayl.env, fayl.origin));
+  }
   return s;
 }
 
@@ -85,7 +98,7 @@ export async function mcpFetch(request: Request, env: Env, ctx: McpCtx): Promise
   const t = Number(env.SMETA_MCP_TIMEOUT_MS);
   const mu = new Muhit({ dbUrl: null, aktorId: v.foydalanuvchiId, auditFayl: null, dbRol: null, timeoutMs: Number.isFinite(t) && t > 0 ? t : 25_000, sslVerify: false },
     () => hyperdriveHovuz(env.HYPERDRIVE.connectionString));
-  const server = masofaviyServer(mu, v, env.SAYT_URL);
+  const server = masofaviyServer(mu, v, env.SAYT_URL, { env, origin: new URL(request.url).origin });
   const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   try {
     await server.connect(transport);

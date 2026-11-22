@@ -6,6 +6,7 @@ import { f2Import } from './tools/f2-import';
 import { HUJJAT_TOOLLAR } from './tools/hujjat';
 import { HUJJAT_PAKET_TOOLLAR } from './tools/hujjat-paket';
 import { bajarilmadi, f2Holat, f2QoralamaTahrir, f2QoralamaYarat, faktYoz, narxTuzat, podvalTahrir, qoshimchaIsh, yoyilma } from './tools/ish-oqimi';
+import { f2Jami } from './tools/jami';
 import { minusFakt } from './tools/minus-fakt';
 import { f2, f2Royxat, obyektHolat, obyektlar, pereraschet, qator, qatorQidir } from './tools/obyekt';
 import { aktor, aktorTanla, sqlOqish, sxema } from './tools/oqish';
@@ -19,7 +20,7 @@ export const VERSIYA = '0.2.0';
 
 export const TOOLLAR: ToolTarif[] = [
   // o'qish
-  sqlOqish, sxema, aktor, aktorTanla, obyektlar, obyektHolat, qator, qatorQidir, f2Royxat, f2, pereraschet,
+  sqlOqish, sxema, aktor, aktorTanla, obyektlar, obyektHolat, qator, qatorQidir, f2Royxat, f2, f2Jami, pereraschet,
   snapshotRoyxat, snapshotFarq, yoyilma,
   // yozish (snapshot + audit + dry_run)
   rpc, faktQamrov, f2Import, qatorTahrir, qatorQosh, qatorOchir, sqlYozish, snapshotOl, snapshotQaytar,
