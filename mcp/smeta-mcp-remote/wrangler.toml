@@ -13,7 +13,7 @@ watch_dir = ["src", "../smeta-mcp/src"]
 
 # Supabase bazasi Sidneyda — Worker bazaga yaqin joyda ishlasin.
 [placement]
-mode = "smart"
+region = "aws:ap-southeast-2"
 
 [observability]
 enabled = true
