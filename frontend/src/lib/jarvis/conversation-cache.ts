@@ -71,7 +71,7 @@ export async function openConversationCache(actor: number, company: number, onEr
         });
         if (await jarvisCacheRead(item.disk) !== migrated || typeof migrated !== 'string') throw Error('JARVIS_CACHE_VERIFY');
         values.set(key, safe(item.kind, migrated));
-        if (item.source?.getItem(key) === old) item.source.removeItem(key);
+        if (item.source?.getItem(key) === old) item.source.removeItem(key); else onError();
       }
     } catch {
       disabled.add(key); onError(); // preserve legacy/corrupt ciphertext; never overwrite unreadable history

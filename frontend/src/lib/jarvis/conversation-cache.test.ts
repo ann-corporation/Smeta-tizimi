@@ -140,3 +140,12 @@ it('retains plaintext when verification fails AFTER a ciphertext commit, then re
  expect(recovered.getItem('jarvis-chat:7:17')).toContain('Synthetic cache secret');
  expect(session.getItem('jarvis-chat:7:17')).toBeNull();
 });
+
+it('keeps and reports a legacy value changed by another writer during migration', async () => {
+ const tab='66666666-6666-4666-8666-666666666666',disk=key(7,17,'active',tab),sourceKey='jarvis-chat:7:17';
+ const changed=JSON.stringify([{id:'later',rol:'user',matn:'Concurrent legacy turn'}]);
+ const session=storage({'jarvis-cache-tab:v1':tab,[sourceKey]:JSON.stringify(active)}),original=session.getItem;
+ session.getItem=(name:string)=>{if(name===sourceKey&&db.has(disk))session.setItem(name,changed);return original(name);};
+ const warn=vi.fn();await openConversationCache(7,17,warn,{session,local:null});
+ expect(session.getItem(sourceKey)).toBe(changed);expect(warn).toHaveBeenCalled();
+});
