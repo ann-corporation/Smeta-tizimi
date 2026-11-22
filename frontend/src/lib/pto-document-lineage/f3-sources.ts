@@ -17,14 +17,24 @@ function sourceMonth(row: F2Tafsilot, companyId: number, objectId: number): stri
 }
 
 /** Certified snapshots, never legacy generated summa or current estimate price. */
-export function f3CertifiedSources(rows: readonly F2Tafsilot[], companyId: number, objectId: number, period: string): Forma3Manba['f2Oylik'] {
+/**
+ * `ruxsat` — foydalanuvchi F-3 ga ONGLI tanlagan aktlar (egasi 2026-11-22: tasdiqlanmagan F-2 F-3 zanjirini uzmaydi,
+ * faqat ogohlantiriladi). Ular tasdiqlanmagan bo'lsa ham kiradi; summa `certified_amount ?? summa` (ikkalasi yo'q — noma'lum, tashlanadi).
+ */
+export function f3CertifiedSources(rows: readonly F2Tafsilot[], companyId: number, objectId: number, period: string, ruxsat?: ReadonlySet<number> | null): Forma3Manba['f2Oylik'] {
   requirePeriod(period);
   const result: Array<Forma3Manba['f2Oylik'][number]> = [];
   for (const row of rows) {
     if (row.kompaniya_id !== companyId || row.obyekt_id !== objectId) throw new Error('F3_SOURCE_SCOPE_MISMATCH');
-    if (row.akt_holat !== 'tasdiqlangan') continue;
+    const tasdiq = row.akt_holat === 'tasdiqlangan';
+    if (!tasdiq && !ruxsat?.has(row.akt_id)) continue;
     const month = sourceMonth(row, companyId, objectId);
     if (month > period) continue;
+    if (!tasdiq) {
+      const s = row.certified_amount ?? row.summa;
+      if (s != null && Number.isFinite(Number(s))) result.push({ obyekt_id: objectId, qator_id: row.qator_id, oy: month, summa: Number(s), akt_id: row.akt_id });
+      continue;
+    }
     // Quantity-only BL/resource records are not money facts. Keep NULL distinct
     // from zero; never synthesize an amount from their quantity or estimate.
     if (row.certified_amount == null && row.certified_unit_price == null && row.narx == null && row.summa == null) continue;
@@ -39,12 +49,12 @@ export function f3CertifiedSources(rows: readonly F2Tafsilot[], companyId: numbe
  * podvaldagi chel.-ch / mash.-ch soatlari uchun (egasi 2026-09-29). Pul emas: faqat
  * hujjatning o'z miqdori (certified_quantity, bo'lmasa hajm); ish (bl) qatorlari ham.
  */
-export function f3CertifiedHajm(rows: readonly F2Tafsilot[], companyId: number, objectId: number, period: string): NonNullable<Forma3Manba['f2Hajm']> {
+export function f3CertifiedHajm(rows: readonly F2Tafsilot[], companyId: number, objectId: number, period: string, ruxsat?: ReadonlySet<number> | null): NonNullable<Forma3Manba['f2Hajm']> {
   requirePeriod(period);
   const result: Array<NonNullable<Forma3Manba['f2Hajm']>[number]> = [];
   for (const row of rows) {
     if (row.kompaniya_id !== companyId || row.obyekt_id !== objectId) throw new Error('F3_SOURCE_SCOPE_MISMATCH');
-    if (row.akt_holat !== 'tasdiqlangan') continue;
+    if (row.akt_holat !== 'tasdiqlangan' && !ruxsat?.has(row.akt_id)) continue;
     const month = sourceMonth(row, companyId, objectId);
     if (month > period) continue;
     const h = row.certified_quantity ?? row.hajm;

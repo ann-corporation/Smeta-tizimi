@@ -12,7 +12,7 @@ import { yangiOperationId, type T2Kompaniya } from '../../api/supabase';
 import { forma3ShartnomaAktlarOl, forma3ShartnomaRoyxatOl, forma3Yarat, type Forma3ShartnomaAktlar, type Forma3ShartnomaRoyxatQator } from '../../api/t2-document-control';
 import { forma3ShartnomaHujjat, type Forma3Rekvizit, type F3ShartnomaYigindi } from '../../lib/forma3-export';
 import { Forma3EsfBolim } from './Forma3EsfBolim';
-import { f3AktTanlov, f3OldingiSana, f3OyChegarasi, f3YuboriladiganAktlar } from '../../lib/forma3-shartnoma';
+import { f3AktTanlov, f3OldingiSana, f3OyChegarasi, f3TasdiqlanmaganOgoh, f3YuboriladiganAktlar } from '../../lib/forma3-shartnoma';
 import { bugungiOy, f3BoshOy, oyOldin } from '../../lib/pto-markazi/oy';
 import { forma3ShartnomaManbalari } from '../../lib/oylik-hujjat/forma3-shartnoma';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
@@ -168,6 +168,8 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
         // Real hujjat: «Отчетный период: с» = shartnomaning oldingi Forma 3 sanasi (oy boshi emas).
         oldingiF3Sana: f3OldingiSana(f3lar, chegara.boshi), varaqRejim: alohidaVaraq ? 'alohida' : 'bitta',
         imzo, pudratchi, zakazchik, raqam: tay.raqam,
+        // Egasi 2026-11-22: tasdiqlanmagan F-2 zanjirni uzmaydi — F-3 tuziladi, xizmat varag'ida alohida ogohlantiriladi.
+        ogohlantirishlar: f3TasdiqlanmaganOgoh(royxat.aktlar, new Set(yuboriladi)),
       });
       setDiqqat(h.diqqat);
       esfManba.current = { yigindi: h.yigindi, zakazchik };

@@ -43,8 +43,8 @@ export async function forma3ShartnomaManbalari(p: {
     if (!taf.ok || taf.toliq === false || !taf.qatorlar) return { ok: false, xato: `${ob.nom}: F2 qatorlari to‘liq o‘qilmadi — chala ma’lumot ustida F3 tuzilmaydi` };
     let f2Oylik; let f2Hajm;
     try {
-      f2Oylik = f3CertifiedSources(taf.qatorlar, p.kompaniyaId, ob.id, p.oy);
-      f2Hajm = f3CertifiedHajm(taf.qatorlar, p.kompaniyaId, ob.id, p.oy);
+      f2Oylik = f3CertifiedSources(taf.qatorlar, p.kompaniyaId, ob.id, p.oy, p.tanlangan);
+      f2Hajm = f3CertifiedHajm(taf.qatorlar, p.kompaniyaId, ob.id, p.oy, p.tanlangan);
     } catch (e) {
       return { ok: false, xato: `${ob.nom}: ${e instanceof Error && e.message === 'MISSING_CERTIFIED_AMOUNT' ? 'tasdiqlangan F2 manba summasi yetishmaydi' : 'F2 manbasi tekshiruvdan o‘tmadi'}` };
     }
