@@ -152,7 +152,7 @@ fun formatMovement(iso: String?): String? {
 
 // ---------- reads ----------
 
-const val OMBOR_STOCK_COLUMNS = "obyekt_id,turi,nomi,birligi,qoldiq,oxirgi_harakat"
+const val OMBOR_STOCK_COLUMNS = "id,obyekt_id,turi,nomi,birligi,qoldiq,oxirgi_harakat"
 
 fun objectStockRequest(companyId: Long): JsonObject = buildJsonObject {
     put("jadval", "t2_sklad_qoldiq")

@@ -187,12 +187,17 @@ private class DemoBff(private val context: Context, private val json: Json, priv
             path.startsWith("/api/ombor-buyruq") -> {
                 val o = body as? JsonObject
                 when ((o?.get("amal") as? JsonPrimitive)?.content) {
+                    "taklif" -> ok("""{"ok":true,"tur":"prixod","qqs_foiz":12,"takliflar":[{"nomi":"Sement M400 (qop 50 kg)","birligi":"qop","soni":4,"oxirgi_sana":"2026-11-10","miqdor_oxirgi":40,"miqdor_median":40,"narx_oxirgi":50000,"narx_ortacha":50000,"narx_oxirgi_qqs":56000,"narx_ortacha_qqs":56000,"kontragent":"Demo MChJ","kontragent_oxirgi":"Demo MChJ","kontragentlar":[],"ball":3,"qoldiq":120}],"kontragentlar":[{"nomi":"Demo MChJ","soni":4,"oxirgi_sana":"2026-11-10","materiallar":[]}]}""")
+                    "yoz" -> ok("""{"ok":true,"takror":false,"harakat_id":77}""")
                     "lugat_royxat" -> ok("""{"ok":true,"qatorlar":[{"id":5,"tur":"material","ibora":"mix","kanonik":"Mix 20 kg","birlik":"qop","soni":3},{"id":6,"tur":"material","ibora":"sement","kanonik":"Sement M400 (qop 50 kg)","birlik":"qop","soni":9}]}""")
                     "lugat_tahrir" -> ok("""{"ok":true,"amal":"nomla","id":5,"son":1}""")
                     "eslatma" -> ok("""{"ok":true,"takliflar":[{"nomi":"Sement M400 (qop 50 kg)","birligi":"qop","soni":4,"oxirgi_sana":"2026-11-10","postavshik":"Demo MChJ","qabul_qiluvchi":null,"narx":null}]}""")
                     "tasdiq" -> ok("""{"ok":true,"takror":false,"harakat_id":1}""")
                     "hisobot" -> ok(asset("ombor_hisobot.json"))
                     "qoldiq" -> ok(asset("ombor_qoldiq_sana.json"))
+                    "tarix" -> ok(asset("ombor_tarix.json"))
+                    "narx_qoy" -> ok("""{"ok":true,"harakat_id":1,"narx":62000}""")
+                    "tuzat" -> ok("""{"ok":true,"takror":false,"teskari_id":91,"yangi_id":92}""")
                     else -> {
                         val said = (o?.get("matn") as? JsonPrimitive)?.content ?: "sement qirq qop kirim"
                         val low = said.lowercase()
@@ -244,6 +249,8 @@ private class DemoBff(private val context: Context, private val json: Json, priv
  {"id":12,"qator_id":1003,"nom":"Armatura o\u0027rnatish","birlik":"t","hajm":2.5,"usta_narx":null}]}}}""")
                     jadval == "t2_sklad_qoldiq" -> ok(asset("ombor_stock.json"))
                     jadval == "t2_sklad_royxat" -> ok(asset("ombor_warehouses.json"))
+                    jadval == "t2_sklad_konsolidatsiya" -> ok(asset("ombor_kons.json"))
+                    s("soro") == "sklad_kirim_royxat_v1" -> ok(asset("ombor_kirim.json"))
                     s("soro") == "sklad_markaziy_qoldiq_v1" -> ok(asset("ombor_central.json"))
                     jadval == "t2_akt" && filtr.contains("lifecycle_status=eq.draft") -> {
                         val n = if (filtr.contains("tur=eq.f2")) 3 else 5
