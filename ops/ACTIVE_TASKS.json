@@ -3592,7 +3592,7 @@
       "machine": "Anvar",
       "branch": "codex/jarvis-offline-tail",
       "base_sha": "b0c53115922761f6bdf86bd99f97d270867e2ed2",
-      "status": "in_progress",
+      "status": "ready_for_review",
       "depends_on": [],
       "must_read": [
         "AGENTS.md",
@@ -3602,8 +3602,6 @@
       "owns": [
         "frontend/src/lib/jarvis/conversation-outbox.ts",
         "frontend/src/lib/jarvis/conversation-outbox.test.ts",
-        "frontend/src/lib/jarvis/conversation-recovery.ts",
-        "frontend/src/lib/jarvis/conversation-recovery.test.ts",
         "frontend/src/umumiy/ui/AiChat.tsx",
         "frontend/src/umumiy/ui/AiChat.offline-tail.test.tsx",
         "frontend/src/umumiy/ui/AiChat.conversations.test.tsx",
