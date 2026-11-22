@@ -1,0 +1,249 @@
+{
+  "schema": "smeta-ustasi-shablon-v1",
+  "id": "xususiy-uy",
+  "nom": "Xususiy turar uy (1-2 qavat) - qoralama shablon",
+  "versiya": "0.1.0",
+  "holat": "EGASI_TEKSHIRISHI_KERAK",
+  "izoh": "Qoralama: egasi (smetachi) tekshirmaguncha ishlab chiqarishda qo'llanmaydi. Qoidalarda norma KODI yo'q - faqat rus tilidagi qidiruv iboralari va to'plam ishoralari; norma tanlovi mavjud katalog qidiruvi + tanlov oqimida bajariladi.",
+  "elementlar": [
+    { "id": "yer_ishlari", "yorliq": "Yer ishlari" },
+    { "id": "poydevor", "yorliq": "Poydevor" },
+    { "id": "devor", "yorliq": "Devorlar" },
+    { "id": "orayopma", "yorliq": "Oraliq yopma" },
+    { "id": "tom", "yorliq": "Tom" },
+    { "id": "deraza_eshik", "yorliq": "Deraza va eshiklar" },
+    { "id": "suvoq", "yorliq": "Suvoq" },
+    { "id": "pol", "yorliq": "Pollar" },
+    { "id": "muhandislik", "yorliq": "Muhandislik tarmoqlari (joy-egasi)" }
+  ],
+  "parametrlar": {
+    "qavatlar": { "tur": "son", "olchov": "dona", "min": 1, "max": 3, "tavsif": "Qavatlar soni", "savol": "Uy necha qavatli?", "tavsiya": ["1", "2"] },
+    "maydon": { "tur": "son", "olchov": "m2", "min": 20, "max": 600, "tavsif": "Bitta qavatning (zastroyka) maydoni, tashqi o'lchamlar bo'yicha", "savol": "Bitta qavatning maydoni (tashqi o'lcham bo'yicha) necha kv.m?" },
+    "perimetr": { "tur": "son", "olchov": "m", "min": 18, "max": 200, "tavsif": "Tashqi devorlar perimetri", "savol": "Tashqi devorlar perimetri necha metr?" },
+    "devor_balandligi": { "tur": "son", "olchov": "m", "min": 2.2, "max": 4.5, "tavsif": "Bitta qavat devor balandligi (pol-shift)", "savol": "Bitta qavatning devor balandligi necha metr?", "tavsiya": ["2.7", "3"] },
+    "devor_qalinligi": { "tur": "son", "olchov": "m", "min": 0.1, "max": 0.64, "tavsif": "Tashqi devor qalinligi", "savol": "Tashqi devor qalinligi necha metr?", "tavsiya": ["0.25", "0.38", "0.51"] },
+    "devor_turi": {
+      "tur": "tanlov", "olchov": "matn", "tavsif": "Tashqi devor materiali", "savol": "Tashqi devor qaysi materialdan?",
+      "variantlar": [
+        { "qiymat": "gisht", "yorliq": "g'isht", "sinonimlar": ["gisht", "кирпич", "kirpich", "brick"] },
+        { "qiymat": "gazoblok", "yorliq": "gazoblok", "sinonimlar": ["газоблок", "gazobeton", "пеноблок", "penoblok", "блок"] }
+      ]
+    },
+    "poydevor_turi": {
+      "tur": "tanlov", "olchov": "matn", "tavsif": "Poydevor turi", "savol": "Poydevor turi qanday?",
+      "variantlar": [
+        { "qiymat": "lenta", "yorliq": "lenta", "sinonimlar": ["lentali", "ленточный", "lentasimon"] },
+        { "qiymat": "plita", "yorliq": "plita", "sinonimlar": ["plitali", "плитный", "monolit plita"] }
+      ]
+    },
+    "poydevor_kengligi": { "tur": "son", "olchov": "m", "min": 0.3, "max": 1.2, "tavsif": "Lenta poydevor kengligi", "savol": "Lenta poydevor kengligi necha metr?", "tavsiya": ["0.5", "0.6"] },
+    "poydevor_chuqurligi": { "tur": "son", "olchov": "m", "min": 0.4, "max": 2.5, "tavsif": "Lenta: transheya chuqurligi (yer sathidan podbetonka tagigacha); podbetonka + lenta balandligi shu chuqurlikka sig'adi", "savol": "Lenta poydevor transheyasi yer sathidan necha metr chuqur?" },
+    "plita_qalinligi": { "tur": "son", "olchov": "m", "min": 0.15, "max": 0.8, "tavsif": "Plita poydevor qalinligi", "savol": "Plita poydevor qalinligi necha metr?", "tavsiya": ["0.3"] },
+    "kotlovan_chuqurligi": { "tur": "son", "olchov": "m", "min": 0.3, "max": 3, "tavsif": "Plita ostidagi kotlovan chuqurligi", "savol": "Plita ostidagi kotlovan chuqurligi necha metr?" },
+    "podbetonka_qalinligi": { "tur": "son", "olchov": "m", "min": 0.05, "max": 0.2, "tavsif": "Beton tayyorlov (podbetonka) qalinligi", "savol": "Podbetonka qalinligi necha metr?", "tavsiya": ["0.1"] },
+    "armopoyas_balandligi": { "tur": "son", "olchov": "m", "min": 0.15, "max": 0.5, "tavsif": "Devor temirbeton kamari (armopoyas) balandligi", "savol": "Armopoyas balandligi necha metr?", "tavsiya": ["0.2", "0.3"] },
+    "orayopma_soni": { "tur": "son", "olchov": "dona", "min": 1, "max": 3, "tavsif": "Monolit temirbeton yopmalar soni (oraliq + shift)", "savol": "Nechta monolit temirbeton yopma bor (oraliq va yuqori shift)?" },
+    "orayopma_qalinligi": { "tur": "son", "olchov": "m", "min": 0.1, "max": 0.35, "tavsif": "Monolit yopma qalinligi", "savol": "Monolit yopma qalinligi necha metr?", "tavsiya": ["0.15", "0.2"] },
+    "tom_turi": {
+      "tur": "tanlov", "olchov": "matn", "tavsif": "Tom qoplamasi", "savol": "Tom qoplamasi qaysi turda?",
+      "variantlar": [
+        { "qiymat": "profnastil", "yorliq": "profnastil", "sinonimlar": ["профнастил", "profnastil list", "профлист"] },
+        { "qiymat": "shifer", "yorliq": "shifer", "sinonimlar": ["шифер", "asbest-sement"] },
+        { "qiymat": "metallocherepitsa", "yorliq": "metallocherepitsa", "sinonimlar": ["металлочерепица", "metall cherepitsa", "metalcherepitsa"] }
+      ]
+    },
+    "tom_maydoni": { "tur": "son", "olchov": "m2", "min": 20, "max": 1200, "tavsif": "Tom yuzasi (qiyalik hisobga olingan, qiya o'lcham)", "savol": "Tom yuzasi (qiyalik hisobga olingan) necha kv.m?" },
+    "deraza_maydoni": { "tur": "son", "olchov": "m2", "min": 1, "max": 200, "tavsif": "Barcha derazalar umumiy maydoni", "savol": "Barcha derazalarning umumiy maydoni necha kv.m?" },
+    "tashqi_eshik_maydoni": { "tur": "son", "olchov": "m2", "min": 1, "max": 60, "tavsif": "Tashqi (kirish) eshiklar umumiy maydoni", "savol": "Tashqi (kirish) eshiklarning umumiy maydoni necha kv.m?" },
+    "ichki_eshik_maydoni": { "tur": "son", "olchov": "m2", "min": 1, "max": 100, "tavsif": "Ichki eshiklar umumiy maydoni", "savol": "Ichki eshiklarning umumiy maydoni necha kv.m?" },
+    "pol_qoplama": {
+      "tur": "tanlov", "olchov": "matn", "tavsif": "Pol qoplamasi", "savol": "Pol qoplamasi qaysi turda?",
+      "variantlar": [
+        { "qiymat": "plitka", "yorliq": "plitka", "sinonimlar": ["керамическая плитка", "kafel", "keramik plitka", "плитка"] },
+        { "qiymat": "linoleum", "yorliq": "linoleum", "sinonimlar": ["линолеум"] }
+      ]
+    },
+    "region": { "tur": "matn", "olchov": "matn", "tavsif": "Hudud (narxlash uchun, hajmga ta'sir qilmaydi)", "savol": "Obyekt qaysi hududda?" }
+  },
+  "qoidalar": [
+    {
+      "id": "yer-transheya", "element": "yer_ishlari", "bolim": "Yer ishlari", "agar": { "poydevor_turi": ["lenta"] },
+      "tavsif": "Lenta poydevor transheyasini qazish",
+      "qidiruv": ["Разработка грунта в траншеях экскаватором", "Разработка грунта вручную в траншеях"],
+      "birlik": "м3", "ifoda": "perimetr*poydevor_kengligi*poydevor_chuqurligi", "toplam": ["E01"],
+      "izoh": "Ish maydoni (otkos/zapas) hisobga olinmagan; qo'lda va mexanik ulushni egasi belgilaydi."
+    },
+    {
+      "id": "yer-kotlovan", "element": "yer_ishlari", "bolim": "Yer ishlari", "agar": { "poydevor_turi": ["plita"] },
+      "tavsif": "Plita poydevor kotlovanini qazish",
+      "qidiruv": ["Разработка грунта в котлованах экскаватором", "Разработка грунта вручную в котлованах"],
+      "birlik": "м3", "ifoda": "maydon*kotlovan_chuqurligi", "toplam": ["E01"],
+      "izoh": "Plita konturi bo'yicha, ish maydoni hisobga olinmagan."
+    },
+    {
+      "id": "pdv-podbetonka-lenta", "element": "poydevor", "bolim": "Poydevor", "agar": { "poydevor_turi": ["lenta"] },
+      "tavsif": "Beton tayyorlov (podbetonka) - lenta ostida",
+      "qidiruv": ["Устройство бетонной подготовки", "Устройство подготовки под фундаменты бетонной"],
+      "birlik": "м3", "ifoda": "perimetr*poydevor_kengligi*podbetonka_qalinligi", "toplam": ["E06"]
+    },
+    {
+      "id": "pdv-lenta-beton", "element": "poydevor", "bolim": "Poydevor", "agar": { "poydevor_turi": ["lenta"] },
+      "tavsif": "Temirbeton lenta poydevor",
+      "qidiruv": ["Устройство ленточных фундаментов железобетонных", "Устройство фундаментов ленточных монолитных"],
+      "birlik": "м3", "ifoda": "perimetr*poydevor_kengligi*(poydevor_chuqurligi-podbetonka_qalinligi)", "toplam": ["E06"],
+      "izoh": "Lenta balandligi = transheya chuqurligi - podbetonka. Norma tarkibida armatura/qolip bo'lishi mumkin: ikki marta hisoblamang (norma jadvalini tekshiring). Yer ustidagi sokol alohida."
+    },
+    {
+      "id": "pdv-gidroizol-lenta", "element": "poydevor", "bolim": "Poydevor", "agar": { "poydevor_turi": ["lenta"] },
+      "tavsif": "Lenta poydevor gorizontal gidroizolyatsiyasi",
+      "qidiruv": ["Устройство горизонтальной гидроизоляции фундаментов", "Оклеечная гидроизоляция горизонтальная"],
+      "birlik": "м2", "ifoda": "perimetr*poydevor_kengligi",
+      "izoh": "Faqat lenta usti yuzasi; vertikal gidroizolyatsiya kiritilmagan. To'plam ishorasi yo'q (tekshirilmagan)."
+    },
+    {
+      "id": "pdv-podbetonka-plita", "element": "poydevor", "bolim": "Poydevor", "agar": { "poydevor_turi": ["plita"] },
+      "tavsif": "Beton tayyorlov (podbetonka) - plita ostida",
+      "qidiruv": ["Устройство бетонной подготовки", "Устройство подготовки под фундаментные плиты"],
+      "birlik": "м3", "ifoda": "maydon*podbetonka_qalinligi", "toplam": ["E06"]
+    },
+    {
+      "id": "pdv-plita-beton", "element": "poydevor", "bolim": "Poydevor", "agar": { "poydevor_turi": ["plita"] },
+      "tavsif": "Monolit temirbeton plita poydevor",
+      "qidiruv": ["Устройство фундаментных плит железобетонных", "Устройство плитных фундаментов монолитных"],
+      "birlik": "м3", "ifoda": "maydon*plita_qalinligi", "toplam": ["E06"],
+      "izoh": "Plita konturi = qavat maydoni deb olingan (chiqib turgan qismlar yo'q). Armatura/qolip norma tarkibiga kirishini tekshiring."
+    },
+    {
+      "id": "dv-gisht", "element": "devor", "bolim": "Devorlar", "agar": { "devor_turi": ["gisht"] },
+      "tavsif": "G'isht tashqi devorlar terish (deraza/eshik ayirib)",
+      "qidiruv": ["Кладка наружных стен из кирпича", "Кладка стен кирпичных наружных простых"],
+      "birlik": "м3", "ifoda": "(perimetr*devor_balandligi*qavatlar-deraza_maydoni-tashqi_eshik_maydoni)*devor_qalinligi", "toplam": ["E08"],
+      "izoh": "Sof hajm: ochiqliklar ayirilgan; peremichka/ichki devor (peregorodka) alohida."
+    },
+    {
+      "id": "dv-gazoblok", "element": "devor", "bolim": "Devorlar", "agar": { "devor_turi": ["gazoblok"] },
+      "tavsif": "Gazoblok tashqi devorlar terish (deraza/eshik ayirib)",
+      "qidiruv": ["Кладка наружных стен из блоков ячеистого бетона", "Кладка стен из газобетонных блоков"],
+      "birlik": "м3", "ifoda": "(perimetr*devor_balandligi*qavatlar-deraza_maydoni-tashqi_eshik_maydoni)*devor_qalinligi", "toplam": ["E08"],
+      "izoh": "Sof hajm: ochiqliklar ayirilgan; peremichka/ichki devor (peregorodka) alohida."
+    },
+    {
+      "id": "dv-armopoyas", "element": "devor", "bolim": "Devorlar",
+      "tavsif": "Temirbeton kamar (armopoyas) - har qavat",
+      "qidiruv": ["Устройство железобетонных поясов", "Устройство монолитных железобетонных поясов в стенах"],
+      "birlik": "м3", "ifoda": "perimetr*devor_qalinligi*armopoyas_balandligi*qavatlar", "toplam": ["E06"],
+      "izoh": "Seysmik hudud talabi loyihadan tekshiriladi; norma tarkibida armatura/qolip bo'lishi mumkin."
+    },
+    {
+      "id": "oy-monolit", "element": "orayopma", "bolim": "Oraliq yopma",
+      "tavsif": "Monolit temirbeton yopma plitalari",
+      "qidiruv": ["Устройство монолитных плит перекрытий", "Устройство перекрытий монолитных железобетонных"],
+      "birlik": "м3", "ifoda": "maydon*orayopma_soni*orayopma_qalinligi", "toplam": ["E06"],
+      "izoh": "Zina katagi va boshqa ochiqliklar ayirilmagan."
+    },
+    {
+      "id": "tom-stropila", "element": "tom", "bolim": "Tom",
+      "tavsif": "Tom stropila tizimi (yog'och)",
+      "qidiruv": ["Устройство стропильной системы деревянной", "Устройство стропил из брусьев"],
+      "birlik": "м2", "ifoda": "tom_maydoni", "toplam": ["E10"],
+      "izoh": "Norma birligi m3 bo'lsa nomzod birlik tekshiruvidan o'tmaydi: hajmni yog'och spetsifikatsiyasidan qo'lda kiriting."
+    },
+    {
+      "id": "tom-obreshetka", "element": "tom", "bolim": "Tom",
+      "tavsif": "Tom obreshetkasi",
+      "qidiruv": ["Устройство обрешетки под кровлю", "Устройство обрешетки сплошной и разреженной"],
+      "birlik": "м2", "ifoda": "tom_maydoni", "toplam": ["E12"]
+    },
+    {
+      "id": "tom-profnastil", "element": "tom", "bolim": "Tom", "agar": { "tom_turi": ["profnastil"] },
+      "tavsif": "Tom yopish - profnastil",
+      "qidiruv": ["Устройство кровель из профилированного стального листа", "Устройство кровель из профнастила"],
+      "birlik": "м2", "ifoda": "tom_maydoni", "toplam": ["E12"]
+    },
+    {
+      "id": "tom-shifer", "element": "tom", "bolim": "Tom", "agar": { "tom_turi": ["shifer"] },
+      "tavsif": "Tom yopish - shifer (asbest-sement)",
+      "qidiruv": ["Устройство кровель из асбестоцементных волнистых листов", "Устройство кровель из волнистых листов"],
+      "birlik": "м2", "ifoda": "tom_maydoni", "toplam": ["E12"]
+    },
+    {
+      "id": "tom-metallocherepitsa", "element": "tom", "bolim": "Tom", "agar": { "tom_turi": ["metallocherepitsa"] },
+      "tavsif": "Tom yopish - metallocherepitsa",
+      "qidiruv": ["Устройство кровель из металлочерепицы", "Устройство кровель из металлических профилированных листов"],
+      "birlik": "м2", "ifoda": "tom_maydoni", "toplam": ["E12"]
+    },
+    {
+      "id": "de-deraza", "element": "deraza_eshik", "bolim": "Deraza va eshiklar",
+      "tavsif": "Deraza bloklarini o'rnatish (PVX)",
+      "qidiruv": ["Установка оконных блоков из ПВХ профилей", "Установка в жилых и общественных зданиях оконных блоков"],
+      "birlik": "м2", "ifoda": "deraza_maydoni", "toplam": ["E10"],
+      "izoh": "PVX deb olingan; boshqa material bo'lsa qidiruv iborasini o'zgartiring."
+    },
+    {
+      "id": "de-eshik-tashqi", "element": "deraza_eshik", "bolim": "Deraza va eshiklar",
+      "tavsif": "Tashqi eshik bloklarini o'rnatish",
+      "qidiruv": ["Установка дверных блоков в наружных дверных проемах", "Установка блоков входных дверей"],
+      "birlik": "м2", "ifoda": "tashqi_eshik_maydoni", "toplam": ["E10"]
+    },
+    {
+      "id": "de-eshik-ichki", "element": "deraza_eshik", "bolim": "Deraza va eshiklar",
+      "tavsif": "Ichki eshik bloklarini o'rnatish",
+      "qidiruv": ["Установка дверных блоков во внутренних дверных проемах", "Установка блоков внутренних дверей"],
+      "birlik": "м2", "ifoda": "ichki_eshik_maydoni", "toplam": ["E10"]
+    },
+    {
+      "id": "sv-tashqi", "element": "suvoq", "bolim": "Suvoq",
+      "tavsif": "Tashqi devorlar suvog'i (fasad)",
+      "qidiruv": ["Штукатурка фасадов по камню цементно-известковым раствором", "Улучшенная штукатурка наружных стен"],
+      "birlik": "м2", "ifoda": "perimetr*devor_balandligi*qavatlar-deraza_maydoni-tashqi_eshik_maydoni", "toplam": ["E15"],
+      "izoh": "Peshtoq/otkos yuzalari kiritilmagan."
+    },
+    {
+      "id": "sv-ichki", "element": "suvoq", "bolim": "Suvoq",
+      "tavsif": "Tashqi devorlarning ichki yuzasi suvog'i",
+      "qidiruv": ["Улучшенная штукатурка стен внутри здания", "Штукатурка поверхностей стен внутри здания цементно-известковым раствором"],
+      "birlik": "м2", "ifoda": "perimetr*devor_balandligi*qavatlar-deraza_maydoni-tashqi_eshik_maydoni", "toplam": ["E15"],
+      "izoh": "Ichki devorlar (peregorodka) suvog'i va shift kiritilmagan: keyingi bosqich parametrlari kerak."
+    },
+    {
+      "id": "pl-styajka", "element": "pol", "bolim": "Pollar",
+      "tavsif": "Sement-qum styajka",
+      "qidiruv": ["Устройство цементно-песчаных стяжек", "Устройство стяжек цементных"],
+      "birlik": "м2", "ifoda": "maydon*qavatlar", "toplam": ["E11"],
+      "izoh": "Yalpi pol maydoni (devor qalinligi ayirilmagan); styajka qalinligi uchun alohida norma qo'shimchasi."
+    },
+    {
+      "id": "pl-plitka", "element": "pol", "bolim": "Pollar", "agar": { "pol_qoplama": ["plitka"] },
+      "tavsif": "Pol qoplamasi - keramik plitka",
+      "qidiruv": ["Устройство покрытий из керамических плиток", "Устройство покрытий полов из плиток"],
+      "birlik": "м2", "ifoda": "maydon*qavatlar", "toplam": ["E11"]
+    },
+    {
+      "id": "pl-linoleum", "element": "pol", "bolim": "Pollar", "agar": { "pol_qoplama": ["linoleum"] },
+      "tavsif": "Pol qoplamasi - linoleum",
+      "qidiruv": ["Устройство покрытий из линолеума", "Устройство покрытий из рулонных материалов"],
+      "birlik": "м2", "ifoda": "maydon*qavatlar", "toplam": ["E11"]
+    },
+    {
+      "id": "mh-elektr", "element": "muhandislik", "bolim": "Muhandislik tarmoqlari",
+      "tavsif": "Elektr montaj (joy-egasi, loyihadan)",
+      "qidiruv": ["Прокладка проводов и кабелей скрыто", "Установка электромонтажных изделий внутри здания"],
+      "birlik": "компл", "ifoda": null, "toplam": ["E16", "E20"],
+      "izoh": "Hajm loyiha (spetsifikatsiya) asosida aniqlanadi - avtomatik hisoblanmaydi."
+    },
+    {
+      "id": "mh-suv", "element": "muhandislik", "bolim": "Muhandislik tarmoqlari",
+      "tavsif": "Suv ta'minoti va kanalizatsiya (joy-egasi, loyihadan)",
+      "qidiruv": ["Прокладка внутренних трубопроводов водоснабжения", "Прокладка внутренних трубопроводов канализации"],
+      "birlik": "компл", "ifoda": null, "toplam": ["E16"],
+      "izoh": "Hajm loyiha asosida aniqlanadi - avtomatik hisoblanmaydi."
+    },
+    {
+      "id": "mh-isitish", "element": "muhandislik", "bolim": "Muhandislik tarmoqlari",
+      "tavsif": "Isitish tizimi (joy-egasi, loyihadan)",
+      "qidiruv": ["Монтаж системы отопления внутренней", "Прокладка трубопроводов отопления"],
+      "birlik": "компл", "ifoda": null, "toplam": ["E16"],
+      "izoh": "Hajm loyiha asosida aniqlanadi - avtomatik hisoblanmaydi."
+    }
+  ]
+}
