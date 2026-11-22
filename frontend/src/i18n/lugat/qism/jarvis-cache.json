@@ -1,0 +1,6 @@
+{
+  "Suhbatning mahalliy nusxasi shifrlanib saqlanmadi. Eski nusxa o‘chirilmadi.": {
+    "ru": "Не удалось сохранить зашифрованную локальную копию чата. Старая копия не удалена.",
+    "en": "The encrypted local chat copy could not be saved. The old copy was not deleted."
+  }
+}

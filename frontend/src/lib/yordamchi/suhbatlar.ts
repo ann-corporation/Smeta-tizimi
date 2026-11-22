@@ -28,12 +28,12 @@ export function suhbatArxivla(royxat: readonly Suhbat[], id: string, xabarlar: R
   return list;
 }
 
-export function suhbatOqi(kalit: string, st: Pick<Storage, 'getItem'> | null = typeof localStorage === 'undefined' ? null : localStorage, hozir = Date.now()): Suhbat[] {
+export function suhbatOqi(kalit: string, st: Pick<Storage, 'getItem'> | null = null, hozir = Date.now()): Suhbat[] {
   try {
     const v = JSON.parse(st?.getItem(kalit) ?? '[]');
     return Array.isArray(v) ? suhbatTozala(v.filter((s): s is Suhbat => s && typeof s.id === 'string' && Array.isArray(s.xabarlar) && typeof s.yangilandi === 'number'), hozir) : [];
   } catch { return []; }
 }
-export function suhbatYoz(kalit: string, royxat: readonly Suhbat[], st: Pick<Storage, 'setItem'> | null = typeof localStorage === 'undefined' ? null : localStorage) {
+export function suhbatYoz(kalit: string, royxat: readonly Suhbat[], st: Pick<Storage, 'setItem'> | null = null) {
   try { st?.setItem(kalit, JSON.stringify(royxat)); } catch { /* xotira yopiq */ }
 }

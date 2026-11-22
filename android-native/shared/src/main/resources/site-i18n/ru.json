@@ -9718,6 +9718,7 @@
 "Suhbatni o‘chirish":"Удалить беседу",
 "Suhbatni tanlash":"Выбрать разговор",
 "Suhbatni yuklab bo‘lmadi":"Не удалось загрузить диалог",
+"Suhbatning mahalliy nusxasi shifrlanib saqlanmadi. Eski nusxa o‘chirilmadi.":"Не удалось сохранить зашифрованную локальную копию чата. Старая копия не удалена.",
 "Sukut (kulrang) mavzu qo‘llanmoqda.":"Используется стандартная (серая) тема.",
 "Sukut: o‘chiq (yuborishni to‘smaydi). Yoqilsa ichki tasdiqsiz hujjat buyurtmachi/texnadzorga ketmaydi.":"По умолчанию выключено (отправку не блокирует). Если включено, без внутреннего одобрения документ не уйдёт заказчику/технадзору.",
 "Sukutga qaytarish":"Вернуть по умолчанию",

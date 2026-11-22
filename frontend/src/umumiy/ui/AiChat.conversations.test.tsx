@@ -3,10 +3,11 @@ import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-libra
 import { MemoryRouter } from 'react-router-dom';
 import type { YordamchiUlanish } from './yordamchi/ishlov';
 import type { KasbIshchi } from '../../api/t2-agent-ish';
-const m=vi.hoisted(()=>({ask:vi.fn(),load:vi.fn(),list:vi.fn(),intent:vi.fn(),save:vi.fn(),sync:vi.fn(),append:vi.fn(),mutate:vi.fn(),diskRead:vi.fn(),diskSave:vi.fn(),diskRemove:vi.fn(),page:vi.fn()}));
+const m=vi.hoisted(()=>({ask:vi.fn(),load:vi.fn(),list:vi.fn(),intent:vi.fn(),save:vi.fn(),sync:vi.fn(),append:vi.fn(),mutate:vi.fn(),diskRead:vi.fn(),diskSave:vi.fn(),diskRemove:vi.fn(),page:vi.fn(),cacheOpen:vi.fn(),cache:new Map<string,string>()}));
 vi.mock('../../api/t2-agent-ish',()=>({niyatLlmOl:m.intent,suhbatRoyxatOl:m.list,suhbatServerga:m.save,suhbatServerdanOl:m.load,kasbSavolOqim:m.ask,tizimYordamSavol:vi.fn()}));
 vi.mock('../../api/jarvis-suhbat-sync',()=>({syncJarvisConversation:m.sync,appendJarvisMessages:m.append,mutateJarvisConversation:m.mutate,jarvisConversationPage:m.page}));
 vi.mock('../../lib/jarvis/conversation-outbox',()=>({jarvisOutboxRead:m.diskRead,jarvisOutboxStore:m.diskSave,jarvisOutboxRemove:m.diskRemove}));
+vi.mock('../../lib/jarvis/conversation-cache',()=>({openConversationCache:m.cacheOpen}));
 vi.mock('./AiBaho',()=>({AiBaho:()=>null}));vi.mock('./AiHarakatKarta',()=>({AiHarakatKarta:()=>null}));
 vi.mock('../../lib/yordamchi/niyat',()=>({niyatAniqla:()=>({tur:'nomalum',yaqin:[]})}));
 vi.mock('../../lib/yordamchi/niyat-llm',()=>({niyatLlmGaMosmi:()=>true}));
@@ -15,7 +16,11 @@ const helper={sahifalar:[],obyektlar:[],joriyObyekt:null,motor:{holat:'tayyor'}}
 const role={rol:'pto',profil:'pto',nom:'PTO',vazifa:'Smeta',kategoriyalar:[],namuna_savollar:[],taqiq_izoh:'',boshqalar:[]} as KasbIshchi;
 const view=(uid=7,k=17)=><MemoryRouter><AiChat kompaniyaId={k} foydalanuvchiId={uid} kasb={role} sahifa="/admin" generatsiya={0} yordamchi={helper}/></MemoryRouter>;
 const choose=(id:string)=>fireEvent.change(screen.getByLabelText('Suhbatni tanlash'),{target:{value:id}});
-beforeEach(()=>{localStorage.clear();sessionStorage.clear();m.ask.mockReset();m.intent.mockReset();m.load.mockReset();m.list.mockReset().mockResolvedValue([]);m.save.mockReset().mockResolvedValue(null);
+beforeEach(()=>{localStorage.clear();sessionStorage.clear();m.cache.clear();m.cacheOpen.mockReset().mockImplementation(async(actor:number,company:number)=>{
+ const active=`jarvis-chat:${actor}:${company}`,archive=`jarvis-suhbatlar:${actor}:${company}`;
+ for(const [key,store] of [[active,sessionStorage],[active+':id',sessionStorage],[archive,localStorage]] as const){const value=store.getItem(key);if(value!==null){m.cache.set(key,value);store.removeItem(key);}}
+ return {getItem:(key:string)=>m.cache.get(key)??null,setItem:(key:string,value:string)=>m.cache.set(key,value),removeItem:(key:string)=>m.cache.delete(key),flush:async()=>{}};
+ });m.ask.mockReset();m.intent.mockReset();m.load.mockReset();m.list.mockReset().mockResolvedValue([]);m.save.mockReset().mockResolvedValue(null);
  m.sync.mockReset().mockResolvedValue(null);
  m.append.mockReset().mockResolvedValue(null);
  m.mutate.mockReset().mockResolvedValue({status:'failed'});
@@ -325,7 +330,8 @@ it('retries creation with the same id and first messages then appends new turns 
  expect(m.append.mock.calls[0].slice(0,4)).toEqual([17,id,tag,[{r:'user',m:'Second synthetic request'},{r:'ai',m:'Verified answer'}]]);
  expect(m.save).not.toHaveBeenCalled();
  expect(sessionStorage.getItem('jarvis-chat:7:17')).toBeNull();
- expect(localStorage.getItem('jarvis-suhbatlar:7:17')).not.toContain('First synthetic request');
+ expect(m.cache.get('jarvis-suhbatlar:7:17') ?? '').not.toContain('First synthetic request');
+ expect(localStorage.getItem('jarvis-suhbatlar:7:17')).toBeNull();
 });
 
 it('keeps a second turn queued while the first create request is in flight',async()=>{
@@ -371,7 +377,7 @@ it('saving status does not stay stale while a streaming answer is in progress',a
 it('merely opening a local conversation neither re-sends it nor bumps its timestamp',async()=>{
  vi.useFakeTimers();const arch=JSON.parse(localStorage.getItem('jarvis-suhbatlar:7:17')!);const old=Date.now()-86_400_000;arch[0].yangilandi=old;localStorage.setItem('jarvis-suhbatlar:7:17',JSON.stringify(arch));
  render(view());await tick(0);choose('a');await tick(3000);expect(m.save).not.toHaveBeenCalled();
- expect(JSON.parse(localStorage.getItem('jarvis-suhbatlar:7:17')!).find((q:{id:string})=>q.id==='a').yangilandi).toBe(old);
+ expect(JSON.parse(m.cache.get('jarvis-suhbatlar:7:17')!).find((q:{id:string})=>q.id==='a').yangilandi).toBe(old);
  m.ask.mockResolvedValue({ok:true,javob:'OK'});send('Yana');await tick(0);await tick(1500);expect(m.save).toHaveBeenCalledTimes(1);expect(m.save.mock.calls[0][1]).toBe('a');
 });
 
@@ -404,7 +410,7 @@ it('changing the company cannot copy the previous company history into the new a
  const v=render(view());await act(async()=>{});choose('a');expect(screen.getByText('Message a',{selector:'p'})).toBeTruthy();v.rerender(view(7,18));await waitFor(()=>expect(screen.queryByText('Message a',{selector:'p'})).toBeNull());
  expect(localStorage.getItem('jarvis-suhbatlar:7:18')).toBeNull();expect(sessionStorage.getItem('jarvis-chat:7:18')??'').not.toContain('Message a');
 });
-it('reopening preserves the selected conversation identity without duplicate archives',async()=>{const v=render(view());await act(async()=>{});choose('a');v.unmount();render(view());await act(async()=>{});const archive=JSON.parse(localStorage.getItem('jarvis-suhbatlar:7:17')!);expect(archive.map((q:{id:string})=>q.id).sort()).toEqual(['a','b']);expect(screen.getByText('Message a',{selector:'p'})).toBeTruthy();});
+it('reopening preserves the selected conversation identity without duplicate archives',async()=>{const v=render(view());await act(async()=>{});choose('a');v.unmount();render(view());await act(async()=>{});const archive=JSON.parse(m.cache.get('jarvis-suhbatlar:7:17')!);expect(archive.map((q:{id:string})=>q.id).sort()).toEqual(['a','b']);expect(screen.getByText('Message a',{selector:'p'})).toBeTruthy();});
 
 it('remote loading is visible and cancellation preserves the current conversation',async()=>{
  let done!:(v:unknown)=>void;m.list.mockResolvedValue([{id:'remote',sarlavha:'Remote',yangilandi:new Date().toISOString()}]);m.load.mockReturnValue(new Promise(r=>done=r));
@@ -437,4 +443,32 @@ it('a repeated question does not erase an earlier identical user message',async(
  sessionStorage.setItem('jarvis-chat:7:17',JSON.stringify([{id:'old',rol:'user',matn:'Takror tekshir'},{id:'reply',rol:'ai',matn:'Old result'}]));
  m.ask.mockResolvedValue({ok:true,javob:'OK'});render(view());await act(async()=>{});send('Takror tekshir');await waitFor(()=>expect(m.ask).toHaveBeenCalledTimes(1));
  expect(m.ask.mock.calls[0][2].tarix).toEqual([{rol:'user',matn:'Takror tekshir'},{rol:'assistant',matn:'Old result'}]);
+});
+
+const cachePort=(data:Record<string,string>)=>({getItem:(key:string)=>data[key]??null,setItem:(key:string,value:string)=>{data[key]=value;},removeItem:(key:string)=>{delete data[key];},flush:async()=>{}});
+it('late encrypted hydration cannot paint the previous actor into a new company',async()=>{
+ let done!:(p:ReturnType<typeof cachePort>)=>void;
+ m.cacheOpen.mockImplementationOnce(()=>new Promise(r=>{done=r;})).mockResolvedValueOnce(cachePort({'jarvis-chat:8:18':JSON.stringify([{id:'new',rol:'user',matn:'New actor cache'}]),'jarvis-chat:8:18:id':'new'}));
+ const v=render(view());expect((screen.getByRole('textbox') as HTMLTextAreaElement).readOnly).toBe(true);expect(m.diskRead).not.toHaveBeenCalled();
+ v.rerender(view(8,18));await screen.findByText('New actor cache',{selector:'p'});
+ await act(async()=>done(cachePort({'jarvis-chat:7:17':JSON.stringify([{id:'old',rol:'user',matn:'Wrong actor cache'}])})));
+ expect(screen.queryByText('Wrong actor cache')).toBeNull();expect(screen.getByText('New actor cache',{selector:'p'})).toBeTruthy();
+});
+it('hydrates the encrypted cache before restoring the durable pending head',async()=>{
+ let done!:(p:ReturnType<typeof cachePort>)=>void;m.cacheOpen.mockImplementationOnce(()=>new Promise(r=>{done=r;}));
+ m.diskRead.mockResolvedValueOnce({kind:'create',id:'pending',operation:'pending',title:'Synthetic',turns:[{r:'user',m:'Durable pending text'}],preview:[{r:'user',m:'Durable pending text'}]});
+ render(view());expect(m.diskRead).not.toHaveBeenCalled();
+ await act(async()=>done(cachePort({'jarvis-chat:7:17':JSON.stringify([{id:'old',rol:'user',matn:'Old completed cache'}]),'jarvis-chat:7:17:id':'old'})));
+ await screen.findByText('Durable pending text',{selector:'p'});expect(screen.queryByText('Old completed cache')).toBeNull();
+ expect(m.diskRemove).not.toHaveBeenCalled();
+});
+
+it('shows encrypted-cache failure while allowing the online chat after hydration',async()=>{
+ let warn!:()=>void;
+ m.cacheOpen.mockImplementationOnce(async(_actor:number,_company:number,failed:()=>void)=>{warn=failed;return cachePort({});});
+ render(view());await waitFor(()=>expect((screen.getByRole('textbox') as HTMLTextAreaElement).readOnly).toBe(false));
+ fireEvent.click(screen.getByRole('button',{name:'Yangi suhbat'}));await act(async()=>warn());
+ await screen.findByText('Suhbatning mahalliy nusxasi shifrlanib saqlanmadi. Eski nusxa o‘chirilmadi.');
+ await waitFor(()=>expect((screen.getByRole('textbox') as HTMLTextAreaElement).readOnly).toBe(false));
+ expect(sessionStorage.getItem('jarvis-chat:7:17')).toBeNull();
 });
