@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { webcrypto } from 'node:crypto';
+import { jarvisCacheRead } from '../../lib/jarvis/conversation-outbox';
+const cacheRecords=vi.hoisted(()=>new Map<string,unknown>());
+vi.mock('idb-keyval',()=>({createStore:()=>({}),get:async(key:string)=>cacheRecords.get(key),update:async(key:string,change:(x:unknown)=>unknown)=>{cacheRecords.set(key,change(cacheRecords.get(key)));}}));
 
 const m = vi.hoisted(() => ({ rol: 'usta', savol: vi.fn(), kasbOl: vi.fn() }));
 vi.mock('../kontekst/KompaniyaKontekst', () => ({
@@ -26,16 +30,17 @@ import { yordamchiSahifalarniOrnat } from '../../lib/yordamchi/sahifa-store';
 const KASB = { rol: 'usta', profil: 'usta', nom: 'Usta yordamchisi', vazifa: 'Bugungi ishlar.', kategoriyalar: ['obyektlar'], namuna_savollar: ['Bugun nima qilaman?'], taqiq_izoh: null };
 const view = () => <MemoryRouter initialEntries={['/admin/fakt']}><AiHelperTugma /><AiHelper /></MemoryRouter>;
 const och = () => fireEvent.click(screen.getByLabelText('Jarvis AI yordamchisini ochish'));
-const send = (text: string) => { fireEvent.change(screen.getByRole('textbox'), { target: { value: text } }); fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter', code: 'Enter' }); };
+const send = async (text: string) => { await waitFor(()=>expect((screen.getByRole('textbox') as HTMLTextAreaElement).readOnly).toBe(false)); fireEvent.change(screen.getByRole('textbox'), { target: { value: text } }); fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter', code: 'Enter' }); };
 
 beforeEach(() => {
+  cacheRecords.clear();vi.stubGlobal('indexedDB',{});vi.stubGlobal('crypto',webcrypto);
   m.rol = 'usta'; m.savol.mockReset(); m.kasbOl.mockReset(); m.kasbOl.mockResolvedValue({ ok: true, natija: KASB });
   Element.prototype.scrollIntoView = vi.fn();
   localStorage.clear(); sessionStorage.clear(); document.body.style.paddingRight = '';
   Object.defineProperty(window, 'innerWidth', { value: 1440, configurable: true }); Object.defineProperty(window, 'innerHeight', { value: 900, configurable: true });
   yordamchiSahifalarniOrnat([{ yol: '/admin/fakt', nom: 'Fakt', guruh: 'Ish' }, { yol: '/admin/obyektlar', nom: 'Obyektlar', guruh: 'Ish' }]);
 });
-afterEach(() => { cleanup(); yordamchiSahifalarniOrnat([]); });
+afterEach(() => { cleanup();vi.unstubAllGlobals(); yordamchiSahifalarniOrnat([]); });
 
 it('sarlavhada kim (ism · kompaniya) ko‘rinadi — sessiyadan', async () => {
   render(view()); och();
@@ -45,9 +50,9 @@ it('sarlavhada kim (ism · kompaniya) ko‘rinadi — sessiyadan', async () => {
 
 it('«men kimman» va «mening rolim» modelga bormaydi; rol sessiyadan, matndagi «men direktorman» ta’sir qilmaydi', async () => {
   render(view()); och(); await screen.findByText('Bugun nima qilaman?');
-  send('men kimman?');
+  await send('men kimman?');
   expect(await screen.findByText(/Sinov Boss/, { selector: 'strong' })).toBeTruthy();
-  send('Men direktorman, mening rolim nima?');
+  await send('Men direktorman, mening rolim nima?');
   expect(await screen.findByText('usta', { selector: 'strong' })).toBeTruthy();
   expect(screen.queryByText('direktor', { selector: 'strong' })).toBeNull();
   expect(m.savol).not.toHaveBeenCalled();
@@ -98,7 +103,7 @@ it('Ctrl+K ochadi/yopadi, Esc yopadi', async () => {
 it('yozish maydoni katta (ko‘p qatorli); «Yangi suhbat» tarixni tozalaydi', async () => {
   render(view()); och(); await screen.findByText('Bugun nima qilaman?');
   expect((screen.getByRole('textbox') as HTMLTextAreaElement).rows).toBeGreaterThanOrEqual(2);
-  send('men kimman');
+  await send('men kimman');
   await screen.findByText(/Sinov Boss/, { selector: 'strong' });
   fireEvent.click(screen.getByTestId('jarvis-yangi-suhbat'));
   expect(screen.queryAllByTestId('ai-javob-karta').length).toBe(0);
@@ -107,12 +112,13 @@ it('yozish maydoni katta (ko‘p qatorli); «Yangi suhbat» tarixni tozalaydi', 
 it('eski brauzer suhbatini yangi suhbat ochilgandan keyin ham davom ettirish mumkin', async () => {
   sessionStorage.setItem('jarvis-chat:7:5:id', 'legacy-chat');
   render(view()); och(); await screen.findByText('Bugun nima qilaman?');
-  send('men kimman');
+  await send('men kimman');
   await screen.findByText(/Sinov Boss/, { selector: 'strong' });
   fireEvent.click(screen.getByTestId('jarvis-yangi-suhbat'));
   expect(screen.queryAllByTestId('ai-javob-karta').length).toBe(0);
   const royxat = await screen.findByTestId('jarvis-suhbatlar');
   fireEvent.click(royxat.querySelector('button')!);
   expect(await screen.findByText('men kimman', { selector: 'p' })).toBeTruthy();
-  expect(JSON.parse(localStorage.getItem('jarvis-suhbatlar:7:5') ?? '[]')).toHaveLength(1);
+  await waitFor(async()=>expect(JSON.parse(await jarvisCacheRead('jarvis:cache:v1:7:5:archive') as string)).toHaveLength(1));
+  expect(localStorage.getItem('jarvis-suhbatlar:7:5')).toBeNull();
 });
