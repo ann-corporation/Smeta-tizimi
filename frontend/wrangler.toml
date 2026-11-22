@@ -9,8 +9,8 @@ pages_build_output_dir = "dist"
 # bazaga yaqin joyda ishga tushiradi: ichki murojaatlar millisekundlarda, uzoq yo'l esa bir marta. Middleware faqat
 # functions/api/ da — statik fayllar odatdagidek foydalanuvchiga yaqin joydan beriladi. Qaytarish: shu blokni o'chirish.
 [placement]
-# 2026-11-22: Smart Placement «local» qoldirardi (Cf-Placement: local-AMS) — baza AWS Sidney; aniq hint.
-region = "aws:ap-southeast-2"
+# 2026-11-22: Pages Functions placement.region ni qo'llamaydi (build xatosi) — faqat smart; MCP Worker esa region bilan.
+mode = "smart"
 
 # Jarvis Pages Function uchun Cloudflare'ning ichki AI xizmati.
 # API key ishlatilmaydi: ruxsat Pages project binding orqali beriladi.
