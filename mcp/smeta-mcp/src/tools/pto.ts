@@ -551,8 +551,8 @@ export const slichitelniy = tool({
 
 export const forma3 = tool({
   nom: 'forma3',
-  tavsif: 'Форма № 3 (счёт-фактура): `amal:"royxat"` — mavjud F3 lar (t2_forma3_royxat_v1, obyekt yoki loyiha bo\'yicha); `amal:"yarat"` — tasdiqlangan F2 aktlardan F3 qoralama (t2_forma3_yarat_v1): '
-    + '`davr_boshi`/`davr_oxiri` (YYYY-MM-DD), `akt_idlar` (berilmasa — davr ichidagi obyekt/loyihaning barcha tasdiqlangan F2 lari), `raqam`, `shartnoma_id`. Rol: boss/rahbar/bugalter. yarat — dry_run standart true.',
+  tavsif: 'Форма № 3 (счёт-фактура): `amal:"royxat"` — mavjud F3 lar (t2_forma3_royxat_v1, obyekt yoki loyiha bo\'yicha); `amal:"yarat"` — F2 aktlardan F3 qoralama (t2_forma3_yarat_v1; tasdiqlanmagan F2 BLOKLAMAYDI — javobda `ogohlantirishlar`): '
+    + '`davr_boshi`/`davr_oxiri` (YYYY-MM-DD), `akt_idlar` (berilmasa — davr ichidagi obyekt/loyihaning F3 ga bog‘lanmagan barcha F2 lari, qoralama ham), `raqam`, `shartnoma_id`. Rol: boss/rahbar/bugalter. yarat — dry_run standart true.',
   kirish: {
     amal: z.enum(['royxat', 'yarat']), obyekt_id: obyektIdS.optional(), loyiha_id: z.number().int().positive().optional(), shartnoma_id: z.number().int().positive().optional(),
     davr_boshi: sanaS.optional(), davr_oxiri: sanaS.optional(), akt_idlar: z.array(z.number().int().positive()).max(500).optional(), raqam: z.string().max(100).optional(),
@@ -575,9 +575,9 @@ export const forma3 = tool({
       let akt = a.akt_idlar ?? [];
       if (!akt.length) {
         akt = (await m.query<{ id: number }>(`select a.id from public.t2_akt a left join public.t2_obyekt o on o.id = a.obyekt_id
-            where a.tur = 'f2' and a.holat = 'tasdiqlangan' and a.forma3_id is null and ($1::bigint is null or a.obyekt_id = $1) and ($2::bigint is null or o.loyiha_id = $2)
+            where a.tur = 'f2' and a.holat <> 'bekor' and a.forma3_id is null and ($1::bigint is null or a.obyekt_id = $1) and ($2::bigint is null or o.loyiha_id = $2)
               and a.oy between date_trunc('month', $3::date) and date_trunc('month', $4::date) order by a.oy, a.id`, [a.obyekt_id ?? null, a.loyiha_id ?? null, a.davr_boshi, a.davr_oxiri])).rows.map((r) => Number(r.id));
-        if (!akt.length) throw new Error('davr ichida F3 ga bog\'lanmagan tasdiqlangan F2 yo\'q.');
+        if (!akt.length) throw new Error('davr ichida F3 ga bog\'lanmagan F2 yo\'q.');
       }
       const res = await rpcOk(m, 't2_forma3_yarat_v1', {
         p_actor_id: aktor, p_loyiha_id: a.loyiha_id ?? null, p_obyekt_id: a.obyekt_id ?? null, p_shartnoma_id: a.shartnoma_id ?? null, p_davr_boshi: a.davr_boshi, p_davr_oxiri: a.davr_oxiri,

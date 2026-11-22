@@ -206,7 +206,7 @@ export const forma3Yarat = (p: { obyektId?: number | null; shartnomaId?: number 
   post({ amal: 'forma3-yarat', obyekt_id: p.obyektId ?? null, shartnoma_id: p.shartnomaId ?? null, loyiha_id: p.loyihaId ?? null, akt_ids: p.aktIds, davr_boshi: p.davrBoshi, davr_oxiri: p.davrOxiri, raqam: p.raqam, operation_id: p.operationId });
 
 /** Shartnoma rejimi uchun ro'yxat: shartnomaning faol obyektlaridagi tasdiqlangan F2 aktlar (davr ichida) + `band` belgisi. */
-export type Forma3ShartnomaAkt = { akt_id: number; raqam: string | null; oy: string; obyekt_id: number; obyekt_nom: string | null; hujjat_jami: number | null; forma3_id: number | null; band: boolean };
+export type Forma3ShartnomaAkt = { akt_id: number; raqam: string | null; oy: string; obyekt_id: number; obyekt_nom: string | null; hujjat_jami: number | null; forma3_id: number | null; band: boolean; holat?: string | null; lifecycle_status?: string | null };
 export type Forma3ShartnomaAktlar = { ok: true; shartnoma_id: number; obyektlar: Array<{ obyekt_id: number; nom: string | null }>; aktlar: Forma3ShartnomaAkt[] };
 export const forma3ShartnomaAktlarOl = (p: { shartnomaId: number; davrBoshi: string; davrOxiri: string }): Promise<Forma3ShartnomaAktlar> =>
   get({ amal: 'forma3-shartnoma-aktlar', shartnoma_id: p.shartnomaId, davr_boshi: p.davrBoshi, davr_oxiri: p.davrOxiri });

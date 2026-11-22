@@ -17,7 +17,8 @@ export async function aktlarBahosiOl(p: {
   const aktlar = new Map<number, { id: number; oy: string; raqam: string | null }>();
   for (const l of p.qatorlar) {
     const lOy = String(l.oy).slice(0, 7);
-    if (l.akt_holat !== 'tasdiqlangan' || lOy > oy) continue;
+    // Tanlangan (ongli) akt tasdiqlanmagan bo'lsa ham kiradi — zanjir uzilmaydi, F-3 xizmat varag'ida ogohlantiriladi.
+    if ((l.akt_holat !== 'tasdiqlangan' && !p.tanlangan?.has(l.akt_id)) || lOy > oy) continue;
     if (lOy === oy && p.tanlangan && !p.tanlangan.has(l.akt_id)) continue;
     aktlar.set(l.akt_id, { id: l.akt_id, oy: l.oy, raqam: l.raqam ?? null });
   }

@@ -55,3 +55,13 @@ export function f3AktTanlov(aktlar: ReadonlyArray<Forma3ShartnomaAkt>): F3AktTan
 export function f3YuboriladiganAktlar(aktlar: ReadonlyArray<Forma3ShartnomaAkt>, belgilangan: ReadonlySet<number>): number[] {
   return aktlar.filter((a) => !a.band && belgilangan.has(a.akt_id)).map((a) => a.akt_id);
 }
+
+/**
+ * Egasi 2026-11-22: F-3 tasdiqlanmagan F-2 tufayli BLOKLANMAYDI (zanjir uzilmaydi) — faqat ogohlantiriladi.
+ * Tanlangan aktlardan holati «tasdiqlangan» bo'lmaganlari — F-3 xizmat varag'i («Замечания») uchun qatorlar.
+ */
+export function f3TasdiqlanmaganOgoh(aktlar: ReadonlyArray<Forma3ShartnomaAkt>, tanlangan: ReadonlySet<number>): Array<{ nom: string; sabab: string }> {
+  return aktlar
+    .filter((a) => tanlangan.has(a.akt_id) && a.holat != null && a.holat !== 'tasdiqlangan')
+    .map((a) => ({ nom: `Акт Ф-2 № ${a.raqam ?? a.akt_id} (${a.obyekt_nom ?? '#' + a.obyekt_id})`, sabab: 'акт Ф-2 ещё не утверждён (статус: ' + String(a.holat) + ') — включён в Ф-3 по выбору пользователя; суммы могут измениться после утверждения' }));
+}

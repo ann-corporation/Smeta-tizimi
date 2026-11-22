@@ -36,7 +36,7 @@ export const QOIDALAR = `# QURAI (T2) — domen qoidalari
 - **F2 narxi = max(smeta narxi, xarid/shartnoma narxi QQS siz)** (f2_qoralama_yangila \`narx_qoida:"max"\` standart).
 - F2 hajmi fakt qoldig'idan (f2_mumkin) oshsa — bloklanmaydi, ogohlantiriladi. Narxsiz qoralama bloklanmaydi; tasdiqda narx kerak.
 - Tasdiqlangan F2 muzlaydi: bekor qilinmaydi, faqat tuzatish/storno. F2 = Nakopitelniy = F3 (bir manba).
-- F3 (forma3) — tasdiqlangan F2 lardan.
+- F3 (forma3) — F2 lardan; tasdiqlanmagan F2, narxsiz qator va h.k. zanjirni UZMAYDI — javobdagi «ogohlantirishlar» ro‘yxatini foydalanuvchiga ayt (egasi 2026-11-22).
 
 ## Egasining amaliy qoidalari (PTO ish tartibi — majburiy)
 - Javob o'zbek tilida, sodda: avval natija (raqam), keyin qisqa izoh. Joyni qator raqami bilan emas, nomi/bo'limi bilan ayting.

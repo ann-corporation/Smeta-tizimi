@@ -183,10 +183,12 @@ export const f2Holat = tool({
           const joriy = akt.lifecycle_status ?? 'draft';
           if (joriy === 'approved' && a.holat !== 'approved') throw new Error(`Akt #${aktId} tasdiqlangan — o'zgarmaydi (tuzatish/storno tartibida).`);
           const yol = lifecycleYol(joriy, a.holat, a.toliq_tasdiq);
+          // Egasi 2026-11-22: narxsiz qator zanjirni uzmaydi — faqat ogohlantirish (javobdagi `ogohlantirishlar`).
+          const ogoh: string[] = [];
           if (yol.some((s) => s === 'submitted' || s === 'approved')) {
             const nx = (await m.query<{ n: number; idlar: number[] | null }>(`select count(*)::int as n, (array_agg(qator_id order by id))[1:10] as idlar from public.t2_akt_qator
                  where akt_id = $1 and raw_snapshot->>'narxsizSabab' = 'avto_qoralama' and (provenance_status = 'price_intentionally_absent' or certified_unit_price is null)`, [aktId])).rows[0];
-            if (nx && nx.n > 0) throw new Error(`NARXSIZ_QATOR_BOR — ${nx.n} ta avto narxsiz qator (masalan ${(nx.idlar ?? []).join(', ')}); f2_qoralama_tahrir bilan narx kiriting yoki narxsiz:true.`);
+            if (nx && nx.n > 0) ogoh.push(`NARXSIZ_QATOR_BOR — ${nx.n} ta avto narxsiz qator (masalan ${(nx.idlar ?? []).join(', ')}); keyin f2_qoralama_tahrir bilan narx kiriting yoki narxsiz:true.`);
           }
           let versiya = a.akt_idlar.length === 1 && a.kutilgan_versiya != null ? a.kutilgan_versiya : akt.versiya;
           const qadamlar: Array<{ dan: string; ga: string; versiya: number }> = [];
@@ -197,10 +199,11 @@ export const f2Holat = tool({
               p_operation_id: uuidHosila(asos, `${aktId}:${i}:${s}`), p_reason: a.sabab?.trim() || null,
             }, aktor);
             versiya = Number(res.version ?? versiya);
+            for (const o of (Array.isArray(res.ogohlantirishlar) ? res.ogohlantirishlar : []) as Array<{ code?: string; xabar?: string }>) ogoh.push(`${o.code ?? 'OGOH'} — ${o.xabar ?? ''}`);
             qadamlar.push({ dan: holat, ga: s, versiya });
             holat = s;
           }
-          return { akt_id: aktId, raqam: akt.raqam, oy: akt.oy, oldin: joriy, keyin: holat, versiya, qadamlar: qadamlar.length };
+          return { akt_id: aktId, raqam: akt.raqam, oy: akt.oy, oldin: joriy, keyin: holat, versiya, qadamlar: qadamlar.length, ...(ogoh.length ? { ogohlantirishlar: [...new Set(ogoh)] } : {}) };
         });
         out.push({ ...(r.snapshot_id != null ? { snapshot_id: r.snapshot_id } : {}), ...(r.ogohlantirishlar.length ? { ogoh: r.ogohlantirishlar } : {}), ...r.natija });
       } catch (e) { out.push({ akt_id: aktId, xato: xatoIzoh(xatoMatni(e)) }); }

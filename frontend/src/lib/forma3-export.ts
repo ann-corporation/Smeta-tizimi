@@ -1351,6 +1351,8 @@ export interface Forma3ShartnomaOptions {
   imzo?: ImzoNomlar;
   pudratchi?: Forma3Rekvizit | null;
   zakazchik?: Forma3Rekvizit | null;
+  /** Bloklamaydigan ogohlantirishlar (masalan tasdiqlanmagan F-2) — xizmat varag'iga («Замечания») yoziladi. */
+  ogohlantirishlar?: ReadonlyArray<{ nom: string; sabab: string }>;
 }
 
 /** Bitta pul ustuni, bitta obyekt: ustamasiz (прямые), ustamali (ИТОГО-4, NDS siz), NDS, NDS bilan. null — noma'lum. */
@@ -1486,7 +1488,7 @@ export function forma3ShartnomaHujjat(obyektlar: ReadonlyArray<Forma3ShartnomaOb
   const r2 = (x: number) => yaxlit2(x);
   const pud = o.pudratchi ?? {};
   const zak = o.zakazchik ?? {};
-  const diqqat = [...y.diqqat];
+  const diqqat = [...y.diqqat, ...(o.ogohlantirishlar ?? [])];
   if (!zak.toliqNom && !o.imzo?.zakazchik) diqqat.push({ nom: 'Заказчик', sabab: 'реквизиты заказчика не заданы — строки заказчика оставлены для заполнения' });
   // Smeta qiymati (гр. 6, QQS bilan) shartnoma summasidan farq qilsa — jim qolmaydi (qo'shimcha kelishuv / smeta o'zgarishi tekshirilsin).
   const smetaJami = y.jami.G.vsego;

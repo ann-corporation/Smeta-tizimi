@@ -229,12 +229,14 @@ describe('f2_holat (mock)', () => {
     expect(c.map((x) => [x.params[2], x.params[4]])).toEqual([['submitted', 3], ['checked', 4], ['approved', 5]]);
     expect(h.sorovlar.at(-1)!.sql).toBe('COMMIT');
   });
-  it('server kodi o\'qiladigan xato; tranzaksiya ROLLBACK', async () => {
-    const { mu, h } = mockMuhit((sql) => umumiy(sql)
+  it('narxsiz qator zanjirni uzmaydi — o\'tish davom etadi, ogohlantirish alohida (egasi 2026-11-22)', async () => {
+    const { mu } = mockMuhit((sql) => umumiy(sql)
       ?? (sql.includes('from public.t2_akt where id') ? [{ id: 10, obyekt_id: 900, kompaniya_id: 1, tur: 'f2', holat: 'qoralama', lifecycle_status: 'draft', versiya: 3 }]
-        : sql.includes('narxsizSabab') ? [{ n: 2, idlar: [5, 6] }] : []));
-    const r = JSON.parse((await toolChaqir(f2Holat, mu, { akt_idlar: [10], holat: 'submitted' })).content[0].text);
-    expect(r.aktlar[0].xato).toMatch(/NARXSIZ_QATOR_BOR/);
-    expect(h.sorovlar.at(-1)!.sql).toBe('ROLLBACK');
+        : sql.includes('narxsizSabab') ? [{ n: 2, idlar: [5, 6] }]
+          : sql.includes('proargnames') ? [LC]
+            : sql.includes('"t2_akt_lifecycle_transition_v1"(') ? [{ x: { ok: true, version: 4, ogohlantirishlar: [{ code: 'F2_RESURS_TUSHGAN', xabar: 'resurs' }] } }] : []));
+    const r = JSON.parse((await toolChaqir(f2Holat, mu, { akt_idlar: [10], holat: 'submitted', dry_run: false })).content[0].text);
+    expect(r.aktlar[0].xato).toBeUndefined();
+    expect(r.aktlar[0].ogohlantirishlar.join(' ')).toMatch(/NARXSIZ_QATOR_BOR/);
   });
 });
