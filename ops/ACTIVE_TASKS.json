@@ -3608,6 +3608,7 @@
         "frontend/src/umumiy/ui/AiChat.tsx",
         "frontend/src/umumiy/ui/AiChat.conversations.test.tsx",
         "frontend/src/umumiy/ui/AiHelper.oyna.test.tsx",
+        "frontend/src/umumiy/ui/AiHelper.vosita.test.tsx",
         "frontend/src/umumiy/ui/AiChat.cache.test.tsx",
         "frontend/src/i18n/lugat/qism/jarvis-cache.json",
         "android-native/shared/src/main/resources/site-i18n/ru.json",

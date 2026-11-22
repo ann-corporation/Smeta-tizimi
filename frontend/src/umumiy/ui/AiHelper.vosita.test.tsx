@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 const m = vi.hoisted(() => ({ savol: vi.fn(), kasbOl: vi.fn(), llm: vi.fn(), api: {} as Record<string, unknown> }));
@@ -23,7 +23,7 @@ import { yordamchiSahifalarniOrnat } from '../../lib/yordamchi/sahifa-store';
 const KASB = { rol: 'boss', profil: 'direktor', nom: 'Direktor yordamchisi', vazifa: 'Holat.', kategoriyalar: ['obyektlar'], namuna_savollar: ['Holat?'], taqiq_izoh: null };
 const view = () => <MemoryRouter initialEntries={['/admin/fakt']}><AiHelperTugma /><AiHelper /></MemoryRouter>;
 const och = () => fireEvent.click(screen.getByLabelText('Jarvis AI yordamchisini ochish'));
-const send = (text: string) => { fireEvent.change(screen.getByRole('textbox'), { target: { value: text } }); fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter', code: 'Enter' }); };
+const send = async (text: string) => { await waitFor(()=>expect((screen.getByRole('textbox') as HTMLTextAreaElement).readOnly).toBe(false)); fireEvent.change(screen.getByRole('textbox'), { target: { value: text } }); fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter', code: 'Enter' }); };
 
 beforeEach(() => {
   m.savol.mockReset(); m.kasbOl.mockReset(); m.llm.mockReset(); m.kasbOl.mockResolvedValue({ ok: true, natija: KASB });
@@ -39,7 +39,7 @@ afterEach(() => { cleanup(); yordamchiSahifalarniOrnat([]); });
 it('mahalliy qatlam tushunmagan gap -> LLM kanonik buyruqqa yozadi -> vosita ishlaydi (suhbat modeliga bormaydi)', async () => {
   m.llm.mockResolvedValue({ tur: 'buyruq', qayta: 'bugun menga nima kutyapti', savol: null, variantlar: [] });
   render(view()); och(); await screen.findByText('Holat?');
-  send('ziyoda yolkon barakat');
+  await send('ziyoda yolkon barakat');
   expect((await screen.findAllByText(/Menga ochiq murojaatlar/)).length).toBeGreaterThan(0);
   expect(m.llm).toHaveBeenCalledTimes(1); expect(m.savol).not.toHaveBeenCalled();
 });
@@ -47,7 +47,7 @@ it('mahalliy qatlam tushunmagan gap -> LLM kanonik buyruqqa yozadi -> vosita ish
 it('LLM «noaniq» -> BITTA aniqlashtiruvchi savol, variantlar tugma; bosilsa ishlaydi', async () => {
   m.llm.mockResolvedValue({ tur: 'noaniq', qayta: null, savol: 'Qaysi birini nazarda tutdingiz?', variantlar: ['bugun menga nima kutyapti', 'solishtiruvni ko‘rsat'] });
   render(view()); och(); await screen.findByText('Holat?');
-  send('menga o‘sha narsani ko‘rsat');
+  await send('menga o‘sha narsani ko‘rsat');
   expect(await screen.findByText('Qaysi birini nazarda tutdingiz?')).toBeTruthy();
   fireEvent.click(await screen.findByRole('button', { name: 'bugun menga nima kutyapti' }));
   expect((await screen.findAllByText(/Menga ochiq murojaatlar/)).length).toBeGreaterThan(0);
@@ -58,7 +58,7 @@ it('LLM «suhbat» yoki xato -> mavjud suhbat oqimi davom etadi; so‘rov takror
   m.llm.mockResolvedValue(null);
   m.savol.mockResolvedValue({ ok: true, javob: 'Mana javob.', kasb: { nom: 'Direktor yordamchisi' }, model: 'x/y', ms: 10, qadamlar: [] });
   render(view()); och(); await screen.findByText('Holat?');
-  send('qxzv plmk');
+  await send('qxzv plmk');
   expect(await screen.findByText('Mana javob.')).toBeTruthy();
   expect(screen.getAllByText('qxzv plmk', { selector: 'p' }).length).toBe(1);
   expect(m.savol).toHaveBeenCalledTimes(1);
@@ -67,7 +67,7 @@ it('LLM «suhbat» yoki xato -> mavjud suhbat oqimi davom etadi; so‘rov takror
 it('savol (?) bilan tugagan gap LLM niyat qatlamiga bormaydi (ortiqcha hisob yo‘q)', async () => {
   m.savol.mockResolvedValue({ ok: true, javob: 'Javob.', kasb: { nom: 'D' }, model: 'x/y', ms: 10, qadamlar: [] });
   render(view()); och(); await screen.findByText('Holat?');
-  send('ertaga ob-havo qanday bo‘ladi?');
+  await send('ertaga ob-havo qanday bo‘ladi?');
   expect(await screen.findByText('Javob.')).toBeTruthy();
   expect(m.llm).not.toHaveBeenCalled();
 });
@@ -75,9 +75,9 @@ it('savol (?) bilan tugagan gap LLM niyat qatlamiga bormaydi (ortiqcha hisob yo�
 it('aniqlashtiruvchi savol zanjiri (vosita): murojaat — tomon va matn so‘raladi; «yo‘q» bekor qiladi', async () => {
   Object.assign(m.api, { aloqalar: vi.fn(async () => [{ id: 1, nom: 'Texnadzor Markaz', rol: 'texnadzor', faol: true }]), murojaatTurlari: vi.fn(async () => [{ kalit: 'remark', nom: 'Remark' }]), murojaatYarat: vi.fn() });
   render(view()); och(); await screen.findByText('Holat?');
-  send('texnadzorga murojaat yubor');
+  await send('texnadzorga murojaat yubor');
   expect(await screen.findByText(/murojaat matnini yozing/)).toBeTruthy();
-  send('yo‘q');
+  await send('yo‘q');
   expect(await screen.findByText(/Bekor qildim/)).toBeTruthy();
   expect(m.api.murojaatYarat).not.toHaveBeenCalled();
 });

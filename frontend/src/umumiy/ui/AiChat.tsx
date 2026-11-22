@@ -799,6 +799,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     <>
       {foydalanuvchiId && kompaniyaId && yordamchi?.joriyObyekt && yordamchi.vosita && <JarvisVazifa key={foydalanuvchiId+':'+kompaniyaId+':'+yordamchi.joriyObyekt.id} scope={{actorId:foydalanuvchiId,companyId:kompaniyaId,objectId:yordamchi.joriyObyekt.id}} api={yordamchi.vosita.api} />}
       {yordamchi && <div className={`border-b border-border bg-surface-2 px-4 ${ixcham ? 'py-1' : 'py-2'}`} data-testid="jarvis-conversation-bar" aria-busy={outboxLoading}>
+        {outboxLoading && <span role="status" className="text-xs text-text-dim">{t('yuklanmoqda…')}</span>}
         <div className="flex items-center gap-2">
           <select aria-label={t('Suhbatni tanlash')} value="" disabled={outboxLoading || !!pendingWrite} onChange={(e) => { const selected = korinadigan.find((q) => q.id === e.target.value); if (selected) suhbatDavom(selected); }} className="min-w-0 flex-1 rounded border border-border bg-surface px-2 py-1 text-sm">
             <option value="">{korinadigan.find((q) => q.id === suhbatId.current)?.sarlavha ?? t('Suhbatni tanlash')}</option>
@@ -854,7 +855,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
             <p className="mt-1 text-xs text-text-dim">{t('Kompaniya tanlanmagan: men tizim haqida (atamalar, sahifalar, hisob mantig‘i) javob beraman. Kompaniyani tanlasangiz — lavozimingizga mos AI ishchi sizning ma‘lumotlaringiz bo‘yicha ishlaydi.')}</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {['F2 nima?', 'Nakopitelniy qayerda?', 'Narxsiz qator jamiga qanday kiradi?', ...UMUMIY_SAVOLLAR].map((x) => (
-                <button key={x} type="button" onClick={() => void yubor(t(x))} className="rounded-full border border-accent/40 px-2.5 py-1 text-xs text-accent hover:bg-accent/10">{t(x)}</button>
+                <button key={x} type="button" disabled={outboxLoading} onClick={() => void yubor(t(x))} className="rounded-full border border-accent/40 px-2.5 py-1 text-xs text-accent hover:bg-accent/10">{t(x)}</button>
               ))}
             </div>
           </div>
@@ -865,10 +866,10 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
             <p className="mt-1 text-xs text-text-dim">{kasb.vazifa}</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {kasb.namuna_savollar.map((x) => (
-                <button key={x} type="button" onClick={() => void yubor(x)} className="rounded-full border border-accent/40 px-2.5 py-1 text-xs text-accent hover:bg-accent/10">{x}</button>
+                <button key={x} type="button" disabled={outboxLoading} onClick={() => void yubor(x)} className="rounded-full border border-accent/40 px-2.5 py-1 text-xs text-accent hover:bg-accent/10">{x}</button>
               ))}
               {UMUMIY_SAVOLLAR.map((x) => (
-                <button key={x} type="button" onClick={() => void yubor(t(x))} className="rounded-full border border-border px-2.5 py-1 text-xs text-text-dim hover:bg-surface-3">{t(x)}</button>
+                <button key={x} type="button" disabled={outboxLoading} onClick={() => void yubor(t(x))} className="rounded-full border border-border px-2.5 py-1 text-xs text-text-dim hover:bg-surface-3">{t(x)}</button>
               ))}
             </div>
             {yordamchi && <div className="mt-2 flex flex-wrap gap-1.5" data-testid="jarvis-namunalar">
@@ -931,7 +932,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
           {ovozBor && <>
             <button type="button" data-testid="ai-ovoz-til" onClick={() => setOvozTil((x) => { const y = OVOZ_TILLAR[(OVOZ_TILLAR.indexOf(x) + 1) % OVOZ_TILLAR.length]; try { localStorage.setItem('jarvis-ovoz-til', y); } catch { /* xotira yopiq */ } return y; })} disabled={tinglayapti}
               aria-label={t('Ovoz tili')} title={t('Ovoz tili')} className="absolute bottom-2.5 right-[5.25rem] rounded border border-border px-1.5 py-0.5 text-[11px] text-text-dim hover:text-text">{ovozTil === 'uz-UZ' ? 'UZ' : 'RU'}</button>
-            <button type="button" data-testid="ai-ovoz-tugma" onClick={mikrofon} aria-pressed={tinglayapti} aria-label={tinglayapti ? t('Tinglashni to‘xtatish') : t('Ovoz bilan buyruq')}
+            <button type="button" data-testid="ai-ovoz-tugma" disabled={outboxLoading && !tinglayapti} onClick={mikrofon} aria-pressed={tinglayapti} aria-label={tinglayapti ? t('Tinglashni to‘xtatish') : t('Ovoz bilan buyruq')}
               title={t('Ovoz faqat matnni to‘ldiradi — yuborish va tasdiqlash o‘zingizda')}
               className={`fz-btn fz-btn--icon absolute bottom-2 right-11 ${tinglayapti ? 'text-danger' : ''}`}>{tinglayapti ? <MicOff size={16} /> : <Mic size={16} />}</button>
           </>}
