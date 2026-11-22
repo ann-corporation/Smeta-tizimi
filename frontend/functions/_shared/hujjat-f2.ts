@@ -56,7 +56,7 @@ export async function f2Yasa(kompaniyaId: number, obyektId: number, aktId: numbe
   if (!h) throw new Rad(409, 'QATOR_YOQ', 'Bu hujjatda chiqariladigan qator yo‘q');
   if (h.topilmagan) throw new Rad(409, 'F2_QATOR_TOPILMADI', `${h.topilmagan} ta qator smetada topilmadi`);
   const moliya = opsiya.moliya ? portfelAktMoliya(m, { ...akt, hujjat_jami: akt.hujjat_jami ?? null }, akt.obyekt || '', raqamlar) : null;
-  const xesh = f2HujjatKaliti(obyektId, akt.oy || '', akt.raqam) ?? `akt:${akt.id}:${await mazmunXeshi(h.bytes)}`;
+  const xesh = f2HujjatKaliti(obyektId, akt.oy || '', akt.raqam, akt.id) ?? `akt:${akt.id}:${await mazmunXeshi(h.bytes)}`;
   return { akt: akt as F2YasaAkt, moliya, bytes: h.bytes, faylNomi: h.faylNomi, turi: 'f2_hujjat', obyektId, davr: akt.oy || null, xesh,
     /* Disk (egasi 2026-11-19: qoralama ham, tasdiqlangan ham Diskda turadi); kalit f2:<akt_id> - qayta yasalsa/tasdiqlansa o'sha fayl yangi versiya oladi. */
     arxivla: f2DiskkaArxivlansinmi(akt), manba: f2Manba({ aktId: akt.id, raqam: akt.raqam ?? null, obyekt: akt.obyekt || null, oy: akt.oy || null }) };

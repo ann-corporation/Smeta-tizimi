@@ -14,6 +14,7 @@ const cases: Array<[JarvisToolName, string[], unknown]> = [
   ['warehouse_balance', ['Ombor #7 qoldig‘i: sement', 'Омбор #7 қолдиғи: цемент', 'Остатки склада №7: цемент'],
     expect.objectContaining({ warehouse: 7 })],
   ['document_search', ['Hujjat №50 ni och', 'Ҳужжат №50 ни кўрсат', 'Открой документ №50'], { id: 50 }],
+  ['transport_tekshir', ['Transport tekshir', 'Транспорт текшир', 'Проверь транспорт'], true],
 ];
 const languages = ['uz-Latn', 'uz-Cyrl', 'ru'];
 it.each(cases.flatMap(([name, queries, expected]) => queries.map((query, index) => ({

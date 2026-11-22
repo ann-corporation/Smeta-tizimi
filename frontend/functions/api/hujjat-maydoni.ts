@@ -11,6 +11,7 @@ import { hmQidirYuqori, hmRpc, rpcOk, rpcXato, sessiyaAktor, type HmEnv } from '
 import { r2Ochir, sha256Hex } from '../_shared/r2-saqlash';
 import { yetimAi, yetimKochir, yetimRoyxat } from '../_shared/disk-yetim';
 import { haqiqiyDeps, navbatniIshla } from '../_shared/hujjat-yangila';
+import { eskirganBelgila, navbatSorovlari } from '../../src/lib/hujjat-paket/eskirgan';
 
 const num = (v: unknown): number | null => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : null; };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -38,6 +39,21 @@ function saqlanadiganFiltr(xom: unknown): Record<string, unknown> {
   const f = paketFiltri(JSON.stringify(xom ?? {}));
   delete f.offset; delete f.sahifa_limit; delete f.variantlar;
   return f;
+}
+
+/** Boshqa tur hujjatlar uchun navbat holati (bitta RPC tur boshiga, parallel); xatoda nomzodlar o'zgarishsiz qaytadi. */
+async function eskirganQosh(env: HmEnv, kompaniyaId: number, nomzodlar: Array<Record<string, any>>): Promise<Array<Record<string, any>>> {
+  try {
+    const sorovlar = navbatSorovlari(nomzodlar as never);
+    if (!sorovlar.size) return nomzodlar;
+    const holat = new Map<string, Map<number, string>>();
+    await Promise.all([...sorovlar].map(async ([tur, idlar]) => {
+      const r = await hmRpc(env, 't2_hujjat_yangila_holat_v1', { p_kompaniya: kompaniyaId, p_tur: tur, p_idlar: idlar });
+      if (!rpcOk(r) || !Array.isArray(r.body.qatorlar)) return;
+      holat.set(tur, new Map((r.body.qatorlar as Array<{ manba_id: number; holat: string }>).map((x) => [Number(x.manba_id), String(x.holat)] as const)));
+    }));
+    return eskirganBelgila(nomzodlar as never, holat) as unknown as Array<Record<string, any>>;
+  } catch { return nomzodlar; }
 }
 
 async function javob(p: Promise<{ httpOk: boolean; body: any; raw: string }>) {
@@ -74,7 +90,12 @@ export const onRequestGet: PagesFunction<HmEnv> = async (ctx) => {
         if (!komp) return Response.json({ ok: false, code: 'KOMPANIYA_KERAK' }, { status: 400 });
         // Fon yangilash: GitHub cron kechiksa ham, ro'yxat ochilganda muddati kelgan F-2 lar yangilanadi (token yechilmaydi).
         ctx.waitUntil(navbatniIshla(haqiqiyDeps(ctx, { kompaniyaId: komp }), { limit: 2, byudjetMs: 15_000 }).catch(() => undefined));
-        return R('t2_hujjat_paket_royxat_v1', { p_actor: id, p_kompaniya: komp, p_filtr: paketFiltri(q.get('filtr')) });
+        const res = await hmRpc(ctx.env, 't2_hujjat_paket_royxat_v1', { p_actor: id, p_kompaniya: komp, p_filtr: paketFiltri(q.get('filtr')) });
+        if (!rpcOk(res)) return rpcXato(res);
+        // F-2 dan boshqa turlar: navbat holati (eskirgan Disk versiyasi paketda jim berilmasin). RPC yo'q/xato bo'lsa - ro'yxat o'zgarmaydi.
+        const body = res.body as { nomzodlar?: Array<Record<string, any>> };
+        if (Array.isArray(body.nomzodlar)) body.nomzodlar = await eskirganQosh(ctx.env, komp, body.nomzodlar);
+        return Response.json(body);
       }
       case 'filtr_royxat': return komp ? R('t2_hujjat_filtr_royxat_v1', { p_actor: id, p_kompaniya: komp }) : Response.json({ ok: false, code: 'KOMPANIYA_KERAK' }, { status: 400 });
       case 'tayyor': return komp ? R('t2_hujjat_tayyor_ol_v1', { p_actor: id, p_kompaniya: komp, p_akt_id: num(q.get('akt_id')) }) : Response.json({ ok: false, code: 'KOMPANIYA_KERAK' }, { status: 400 });

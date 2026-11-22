@@ -13,6 +13,8 @@ import { ChevronRight, ChevronDown, RefreshCcw, Plus, Search, X, Layers, Package
 import { PRICE_STATE_BADGE, type PriceControlLine } from '../../api/t2-price-control';
 import { NARX_MUHR } from './narx-muhr';
 import { QatorTahrirModal } from '../ui/QatorTahrirModal';
+import { TransportQatorBlok } from './TransportQatorBlok';
+import { BELGI_MATN, materialQatormi, type TransportBelgi, type TransportBelgilaFn } from '../../lib/transport-yoy/panel';
 import { muhrBelgisi, muhrJuftlar, muhrManbaMatn, MUHR_MAYDON_NOMI, jurnalsiz, type QatorMuhrFarq } from '../../lib/qator-muhr/farq';
 
 interface SmetaTreeProps {
@@ -38,6 +40,12 @@ interface SmetaTreeProps {
   muhrFarq?: ReadonlyMap<number, QatorMuhrFarq>;
   /** Avvalgi (almashtirilgan) smeta versiyasi daraxti — alohida filtr «Avvalgi versiya», kulrang; asosiy ro'yxatga kirmaydi. */
   avvalgiVersiya?: TreeNode[];
+  /** Transport turi belgisi (`qator_id` bo'yicha): t·km / narx ichida; foiz — belgi yo'q. Berilmasa belgi ko'rinmaydi. */
+  transportBelgi?: ReadonlyMap<number, TransportBelgi>;
+  /** Material qatori transport turini o'zgartirish (qator tafsiloti). Berilmasa tanlov ko'rinmaydi. */
+  onTransportBelgila?: TransportBelgilaFn;
+  /** Tashqaridan «shu qatorga o't» (Transport panelidagi xato ro'yxati). */
+  otishQatorId?: number | null;
   onFaktSave?: (node: TreeNode, mode: 'qoshish' | 'jami', value: number) => Promise<{
     ok: boolean;
     message?: string;
@@ -82,7 +90,7 @@ function Olchov({ sm, fk, f2, katta = false }: { sm: number | null | undefined; 
   );
 }
 
-export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, setEdits, onNodeDrop, priceControlLines, onQatorTahrirlandi, onFaktSave, onFaktOpen, moslashuvchan = false, muhrFarq, avvalgiVersiya }: SmetaTreeProps) {
+export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, setEdits, onNodeDrop, priceControlLines, onQatorTahrirlandi, onFaktSave, onFaktOpen, moslashuvchan = false, muhrFarq, avvalgiVersiya, transportBelgi, onTransportBelgila, otishQatorId }: SmetaTreeProps) {
   const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>({});
   const [expandedDetailId, setExpandedDetailId] = useState<string | null>(null);
   const [draggedNode, setDraggedNode] = useState<TreeNode | null>(null);
@@ -261,8 +269,8 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
       }
     };
     yur(data, []);
-    return bor ? m : null;
-  }, [data]);
+    return bor || otishQatorId != null ? m : null;
+  }, [data, otishQatorId]);
   const [otishKalit, setOtishKalit] = useState<string | null>(null);
   const qatorgaOt = (id: number) => {
     const yol = otaYollari?.get(id);
@@ -273,6 +281,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
     setSelectedKey(`t2:${id}`);
     setOtishKalit(`t2:${id}`);
   };
+  useEffect(() => { if (otishQatorId != null) qatorgaOt(otishQatorId); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [otishQatorId, otaYollari]);
   useEffect(() => {
     if (!otishKalit) return;
     const i = flatNodes.findIndex((r) => r.key === otishKalit);
@@ -537,6 +546,16 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
                         onClick={(e) => { e.stopPropagation(); setSelectedKey(key); setDrawerTab('umumiy'); setDrawerOpen(true); }}>{t(b.soz)}</button>;
                     })()}
 
+                    {/* Transport turi (faqat t·km / narx ichida; foiz — belgisiz). */}
+                    {(() => {
+                      const tb = node.id != null ? transportBelgi?.get(node.id) : undefined;
+                      if (!tb) return null;
+                      const kalit = tb.tkmQator ? 'tkmQator' : tb.usul!;
+                      return <button type="button" className={`fz-stamp ${tb.tkmQator ? 'fz-stamp--info' : 'fz-stamp--ok'} flex-shrink-0`} style={{ height: 18, padding: '0 5px', fontSize: 9.5, cursor: 'pointer' }}
+                        title={tb.tkmQator ? t('t·km transport qatori — materialning tagida; materialga bog‘langan') : t('Transport turi: shu material uchun transport podvaldagi foizdan chiqarilgan')} aria-label={t(BELGI_MATN[kalit])}
+                        onClick={(e) => { e.stopPropagation(); setSelectedKey(key); setDrawerTab('umumiy'); setDrawerOpen(true); }}>{t(BELGI_MATN[kalit])}</button>;
+                    })()}
+
                     {/* Birlik */}
                     <span className="text-text-dim w-12 text-center flex-shrink-0">{node.birlik}</span>
 
@@ -774,6 +793,8 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
                 </p>}
               </div>;
             })()}
+            {onTransportBelgila && selected.node.id != null && materialQatormi({ id: selected.node.id, tur: selected.node.type, kat: selected.node.kat }) && !transportBelgi?.get(selected.node.id)?.tkmQator && selected.node.avvalgiVersiya == null
+              && <TransportQatorBlok key={`${selected.node.id}:${transportBelgi?.get(selected.node.id)?.usul ?? 'foiz'}`} qatorId={selected.node.id} belgi={transportBelgi?.get(selected.node.id)} onBelgila={onTransportBelgila} />}
           </div>}
           {drawerTabEff === 'fakt' && <div className="space-y-4">
             {onFaktSave ? <>

@@ -74,24 +74,32 @@ export async function diskArxivla(env: DiskEnv, p: {
     const documentType = DISK_HUJJAT_TURI[p.turi] ?? (Object.values(DISK_HUJJAT_TURI).includes(p.turi) ? p.turi : null);
     if (!documentType || !p.bytes.byteLength) { diskXatoJurnal('arxivla', { kompaniyaId: p.kompaniyaId, kalit: p.manba.kalit, code: 'TUR_NOMALUM' }); return { ok: false, code: 'TUR_NOMALUM' }; }
     const sha = await sha256Hex(p.bytes);
-    const op = await diskOperationId(p.kompaniyaId, p.obyektId, documentType, p.manba.kalit, p.xesh);
     // eslint-disable-next-line no-control-regex
     const nom = p.faylNomi.replace(/[\\/\u0000-\u001f]+/g, '_').replace(/\s+/g, '_').slice(0, 180) || 'hujjat.xlsx';
-    const res = await rpc(env, 't2_document_canonical_reserve_v1', {
-      p_kompaniya_id: p.kompaniyaId, p_actor_id: p.actorId, p_loyiha_id: null, p_obyekt_id: p.obyektId, p_document_type: documentType,
-      p_original_filename: nom, p_mime_type: XLSX, p_expected_size: p.bytes.byteLength, p_client_sha256: sha, p_operation_id: op, p_revision: p.davr,
-    });
-    if (!res.ok) { const code = String(res.body?.code || 'RESERVE_XATO'); diskXatoJurnal('arxivla', { kompaniyaId: p.kompaniyaId, kalit: p.manba.kalit, code }); return { ok: false, code }; }
-    const documentId = Number(res.body.document_id);
-    if (res.body.canonical_storage_status !== 'stored') {
-      try { await r2Yoz(env.R2_CANONICAL, String(res.body.r2_key), p.bytes, { httpMetadata: { contentType: XLSX }, customMetadata: { sha256: sha, document_id: String(documentId), operation_id: op, kompaniya_id: String(p.kompaniyaId) } }); }
-      catch { diskXatoJurnal('arxivla', { kompaniyaId: p.kompaniyaId, registryId: documentId, kalit: p.manba.kalit, code: 'R2_XATO' }); return { ok: false, code: 'R2_XATO' }; }
-      const fin = await rpc(env, 't2_document_canonical_finalize_v1', {
-        p_kompaniya_id: p.kompaniyaId, p_actor_id: p.actorId, p_document_id: documentId, p_operation_id: op, p_r2_key: String(res.body.r2_key),
-        p_sha256: sha, p_size_bytes: p.bytes.byteLength, p_sha256_verified: true, p_hash_source: 'server',
+    const saqla = async (op: string): Promise<{ ok: true; documentId: number } | { ok: false; code: string; registryId?: number }> => {
+      const res = await rpc(env, 't2_document_canonical_reserve_v1', {
+        p_kompaniya_id: p.kompaniyaId, p_actor_id: p.actorId, p_loyiha_id: null, p_obyekt_id: p.obyektId, p_document_type: documentType,
+        p_original_filename: nom, p_mime_type: XLSX, p_expected_size: p.bytes.byteLength, p_client_sha256: sha, p_operation_id: op, p_revision: p.davr,
       });
-      if (!fin.ok) { const code = String(fin.body?.code || 'FINALIZE_XATO'); diskXatoJurnal('arxivla', { kompaniyaId: p.kompaniyaId, registryId: documentId, kalit: p.manba.kalit, code }); return { ok: false, code }; }
-    }
+      if (!res.ok) return { ok: false, code: String(res.body?.code || 'RESERVE_XATO') };
+      const documentId = Number(res.body.document_id);
+      if (res.body.canonical_storage_status !== 'stored') {
+        try { await r2Yoz(env.R2_CANONICAL as R2Bucket, String(res.body.r2_key), p.bytes, { httpMetadata: { contentType: XLSX }, customMetadata: { sha256: sha, document_id: String(documentId), operation_id: op, kompaniya_id: String(p.kompaniyaId) } }); }
+        catch { return { ok: false, code: 'R2_XATO', registryId: documentId }; }
+        const fin = await rpc(env, 't2_document_canonical_finalize_v1', {
+          p_kompaniya_id: p.kompaniyaId, p_actor_id: p.actorId, p_document_id: documentId, p_operation_id: op, p_r2_key: String(res.body.r2_key),
+          p_sha256: sha, p_size_bytes: p.bytes.byteLength, p_sha256_verified: true, p_hash_source: 'server',
+        });
+        if (!fin.ok) return { ok: false, code: String(fin.body?.code || 'FINALIZE_XATO'), registryId: documentId };
+      }
+      return { ok: true, documentId };
+    };
+    let s = await saqla(await diskOperationId(p.kompaniyaId, p.obyektId, documentType, p.manba.kalit, p.xesh));
+    /* Oldingi urinish shu operatsiyani band qilib, yozishni tugatmay o'lgan bo'lsa (Worker vaqti/CPU) va baytlar endi biroz boshqa (QR/vaqt) —
+       baza «CANONICAL_HASH_MISMATCH» bilan HAR urinishda rad etardi (prod 2026-11-21: F-2 abadiy qotgan). Bir marta baytlar xeshi bilan yangi operatsiya. */
+    if (!s.ok && s.code === 'CANONICAL_HASH_MISMATCH') s = await saqla(await diskOperationId(p.kompaniyaId, p.obyektId, documentType, p.manba.kalit, `${p.xesh}|${sha}`));
+    if (!s.ok) { diskXatoJurnal('arxivla', { kompaniyaId: p.kompaniyaId, ...(s.registryId ? { registryId: s.registryId } : {}), kalit: p.manba.kalit, code: s.code }); return { ok: false, code: s.code }; }
+    const documentId = s.documentId;
     return { ok: true, documentId, disk: await diskYoz(env, { actorId: p.actorId, kompaniyaId: p.kompaniyaId, registryId: documentId, manba: p.manba, joy: 'arxivla' }) };
   } catch (e) {
     diskXatoJurnal('arxivla', { kompaniyaId: p.kompaniyaId, kalit: p.manba.kalit, code: e instanceof Error ? e.name : 'ISTISNO' });

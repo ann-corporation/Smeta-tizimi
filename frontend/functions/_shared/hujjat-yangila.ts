@@ -80,11 +80,12 @@ export type YangilaEnv = HmEnv & DiskEnv & { SESSIYA_KALIT: string };
 type Ctx = { request: Request; env: YangilaEnv };
 
 /** Worker: SQL RPC lari + ichki yuklovchilar (aktor sessiyasi serverda yasaladi; ruxsat DB dan yangidan olinadi - desktop/bff bilan bir xil usul). */
-export function haqiqiyDeps(ctx: Ctx, o: { kompaniyaId?: number | null } = {}): YangilaDeps {
+export function haqiqiyDeps(ctx: Ctx, o: { kompaniyaId?: number | null; turlar?: readonly string[] | null } = {}): YangilaDeps {
   const env = ctx.env;
   return {
     async ol(limit) {
-      const r = await hmRpc(env, 't2_hujjat_yangila_ol_v1', { p_limit: limit, p_kompaniya: o.kompaniyaId ?? null });
+      // v2: F-2 birinchi (og'ir ostatka/slichitelniy tez F-2 ni to'smaydi) + ixtiyoriy tur filtri (migratsiya 20270121000101).
+      const r = await hmRpc(env, 't2_hujjat_yangila_ol_v2', { p_limit: limit, p_kompaniya: o.kompaniyaId ?? null, p_turlar: o.turlar?.length ? [...o.turlar] : null });
       return r.httpOk && r.body?.ok ? (r.body.qatorlar as NavbatQator[]) : [];
     },
     async tugat(id, natija, xato, versiya) { await hmRpc(env, 't2_hujjat_yangila_tugat_v1', { p_id: id, p_natija: natija, p_xato: xato ?? null, p_versiya: versiya ?? null }); },

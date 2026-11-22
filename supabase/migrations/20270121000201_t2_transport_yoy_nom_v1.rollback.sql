@@ -1,0 +1,1 @@
+-- rollback 20270121000201: oldingi ta'rif 20270120230000_t2_transport_yoy_v1.sql da (qayta qo'llang)
