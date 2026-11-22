@@ -64,9 +64,10 @@ export function smetaMcpClient(service: McpService | undefined, request: Request
           !record(t.annotations) || t.annotations.readOnlyHint !== true) throw new Error('MCP_TOOL_SCHEMA');
       const properties = record(t.inputSchema.properties) ? Object.fromEntries(Object.entries(t.inputSchema.properties)
         .filter(([key]) => !forbidden.has(key))) : {};
-      if (Array.isArray(t.inputSchema.required) && t.inputSchema.required.some(key => typeof key === 'string' && forbidden.has(key))) throw new Error('MCP_TOOL_SCHEMA');
+      const required = Array.isArray(t.inputSchema.required) ? t.inputSchema.required.filter(key => !(t.name === 'f2_jami' && key === 'kompaniya_id')) : [];
+      if (required.some(key => typeof key === 'string' && forbidden.has(key))) throw new Error('MCP_TOOL_SCHEMA');
       tools.push({ name: t.name, description: typeof t.description === 'string' ? t.description.slice(0, 1800) : t.name,
-        inputSchema: { ...t.inputSchema, properties } });
+        inputSchema: { ...t.inputSchema, required, properties } });
     }
     const rules = resource.contents.filter(record).filter(r => r.uri === 'smeta://qoidalar' && typeof r.text === 'string')
       .map(r => r.text as string).join('\n');
@@ -77,7 +78,7 @@ export function smetaMcpClient(service: McpService | undefined, request: Request
     const { tools } = await open();
     if (!names.includes(name) || !tools.some(t => t.name === name) || !record(args) ||
         Object.keys(args).some(key => forbidden.has(key))) throw new Error('MCP_CALL_DENIED');
-    const result = await rpc('tools/call', { name, arguments: args });
+    const result = await rpc('tools/call', { name, arguments: name === 'f2_jami' ? { ...args, kompaniya_id: company } : args });
     if (result.isError === true || !Array.isArray(result.content)) throw new Error('MCP_TOOL_ERROR');
     const content = result.content;
     if (content.some(item => !record(item) || item.type !== 'text' || typeof item.text !== 'string')) throw new Error('MCP_CONTENT_ERROR');

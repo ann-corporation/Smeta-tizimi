@@ -122,3 +122,11 @@ it('disposes a response that arrives after an ignored cancellation', async () =>
     await vi.advanceTimersByTimeAsync(0); expect(cancel).toHaveBeenCalledOnce();
   } finally { vi.useRealTimers(); }
 });
+
+it('binds current company for existing f2_jami while keeping model company arguments forbidden', async () => {
+ change=(method,value)=>method==='tools/list'?{tools:[{name:'f2_jami',annotations:{readOnlyHint:true},inputSchema:{type:'object',required:['kompaniya_id'],properties:{kompaniya_id:{type:'integer'},oy:{type:'string'}}}}]}:value;
+ const client=smetaMcpClient(service,request(),902)!;const discovery=await client.open();
+ expect(discovery.tools[0].inputSchema.properties).not.toHaveProperty('kompaniya_id');expect(discovery.tools[0].inputSchema.required).toEqual([]);
+ await client.call('f2_jami',{oy:'2026-11-01'});expect(calls.at(-1)?.params).toMatchObject({arguments:{kompaniya_id:902,oy:'2026-11-01'}});
+ await expect(client.call('f2_jami',{kompaniya_id:999})).rejects.toThrow('MCP_CALL_DENIED');
+});

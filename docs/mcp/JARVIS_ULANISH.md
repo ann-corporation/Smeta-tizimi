@@ -13,3 +13,5 @@ L0 при выпуске связывает Pages с существующим Wo
 SSO-вход регистрирует только read tools. Существующий OAuth `/mcp` остаётся прежним, включая его write tools. В Jarvis записи пока идут через существующий signed preview/подтверждение; эта поставка не объявляет остальные writers, PIN/биометрию, Studio workflow, полную историю/offline queue или live acceptance завершёнными.
 
 Приёмка: реальные SDK/Streamable HTTP + подменённые SQL/roleAuthority; API→core→MCP transport, отрицательные права/tenant/session, неизменённые source NULL/0/минус. Production проверяется отдельно после выпуска L0, на текущем actor/company без реальных записей.
+
+Адаптация к main b419aa7f: transport_tekshir и f2_jami доступны через тот же MCP. Обязательный kompaniya_id у f2_jami подставляется из проверенного current company; поле скрыто от модели, её попытка подставить компанию отклоняется. OAuth SQL/schema, F2 file/package и Telegram login сохранены; SSO Jarvis их не регистрирует. Нормативный R2 reader подключается отдельно через #741.

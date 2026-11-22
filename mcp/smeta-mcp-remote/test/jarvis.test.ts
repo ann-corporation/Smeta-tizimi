@@ -43,7 +43,7 @@ describe('existing worker SSO read-only MCP (real SDK, mocked SQL/roleAuthority)
       waitUntil: (p: Promise<unknown>) => pending.push(p),
     } as never) };
     const client = smetaMcpClient(service, new Request('https://app.test/api/agent-ish', { headers: { Cookie: cookie } }), 17)!;
-    expect((await client.open()).tools).toHaveLength(18);
+    expect((await client.open()).tools).toHaveLength(SMETA_MCP_READS.length);
     const answer = await client.call('obyektlar', {});
     expect(answer.javob.length).toBeGreaterThan(0);
     expect(answer.dalil).toEqual({ tur: 'smeta-mcp', vosita: 'obyektlar', kompaniya_id: 17 });
@@ -107,4 +107,15 @@ describe('existing worker SSO read-only MCP (real SDK, mocked SQL/roleAuthority)
     expect((await rpc('tools/list', { padding: 'x'.repeat(SOROV_MAX) })).status).toBe(413);
     expect(roleAuthority).not.toHaveBeenCalled(); expect(pool.get).not.toHaveBeenCalled();
   });
+});
+
+it('current-main OAuth admin/file tools stay absent from Jarvis SSO even for a live superadmin', async () => {
+ live = { ...live, rol: 'superadmin' };
+ const list = (await (await rpc('tools/list')).json()).result.tools.map((t: { name: string }) => t.name);
+ expect(list).toHaveLength(SMETA_MCP_READS.length);expect(list).toContain('transport_tekshir');expect(list).toContain('f2_jami');
+ for(const name of ['sql_oqish','sxema','f2_fayl','hujjat_paket']) {
+  expect(list).not.toContain(name);const result=await (await rpc('tools/call',{name,arguments:{}})).json();
+  expect(Boolean(result.error || result.result?.isError)).toBe(true);
+ }
+ expect(pool.get).not.toHaveBeenCalled();await Promise.all(pending);
 });
