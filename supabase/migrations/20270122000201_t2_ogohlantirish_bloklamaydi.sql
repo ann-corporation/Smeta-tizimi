@@ -334,3 +334,6 @@ begin
 
   return jsonb_build_object('ok',true,'shartnoma_id',p_shartnoma_id,'obyektlar',v_obyektlar,'aktlar',v_rows);
 end $function$;
+
+comment on function public.t2_forma3_yarat_v1(bigint, bigint, bigint, bigint, date, date, bigint[], text, uuid) is 'Forma 3 yaratish; biznes tekshiruvlari ogohlantirish (egasi 2026-11-22). versiya: tarix — F2 akt qatorlari (tarixiy hujjat) bo''yicha t2_qator turi o''qiladi.';
+comment on function public.t2_forma3_shartnoma_aktlar_v1(bigint, bigint, date, date) is 'Shartnoma F-3 uchun F2 aktlar ro''yxati (qoralama ham, holat bilan). versiya: tarix — F2 aktlari tarixiy hujjat.';
