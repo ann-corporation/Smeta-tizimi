@@ -9,6 +9,7 @@ import type { Env } from './env';
 import { GOOGLE_QAYTISH_YO_L, GOOGLE_YO_L, googleBoshlash, googleQaytish } from './google';
 import { authorizeGet, authorizePost, googleSozlangan } from './kirish';
 import { YUKLA_YO_L, yuklaGet } from './fayl';
+import { TG_HOLAT_YO_L, TG_YO_L, telegramBoshla, telegramHolat } from './telegram';
 import { mcpFetch, VERSIYA, type McpCtx } from './mcp';
 import { healthDbMb, sovutishCron } from './sovutish';
 import { resursUrl } from './url';
@@ -24,6 +25,10 @@ const defaultHandler = {
     if (u.pathname === GOOGLE_YO_L || u.pathname === GOOGLE_QAYTISH_YO_L) {
       if (request.method !== 'GET') return new Response('Method Not Allowed', { status: 405 });
       return u.pathname === GOOGLE_YO_L ? googleBoshlash(request, env) : googleQaytish(request, env);
+    }
+    if (u.pathname === TG_YO_L || u.pathname === TG_HOLAT_YO_L) {
+      if (request.method !== 'GET') return new Response('Method Not Allowed', { status: 405 });
+      return u.pathname === TG_YO_L ? telegramBoshla(request, env) : telegramHolat(request, env);
     }
     if (u.pathname.startsWith(YUKLA_YO_L)) {
       if (request.method !== 'GET') return new Response('Method Not Allowed', { status: 405 });
