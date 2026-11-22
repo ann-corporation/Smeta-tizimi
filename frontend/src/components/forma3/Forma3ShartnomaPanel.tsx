@@ -62,7 +62,7 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
   const [royxat, setRoyxat] = useState<Forma3ShartnomaAktlar | null>(null);
   const [belgilangan, setBelgilangan] = useState<Set<number>>(new Set());
   /** Etalon shakli: har obyekt alohida varaqda + oxirida jamlama (sukut); o'chiq — hamma obyekt bitta varaqda. */
-  const [alohidaVaraq, setAlohidaVaraq] = useState(true);
+  const [alohidaVaraq, setAlohidaVaraq] = useState(false);
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [ishlayapti, setIshlayapti] = useState('');
   const [xato, setXato] = useState('');
@@ -166,7 +166,7 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
       const h = forma3ShartnomaHujjat(m.obyektlar, {
         davr: oy, shartnomaRaqam: sh.raqam, shartnomaNom: sh.nom, shartnomaSana: sh.sana, shartnomaSumma: sh.jami_nds_bilan ?? sh.summa_bez_nds,
         // Real hujjat: «Отчетный период: с» = shartnomaning oldingi Forma 3 sanasi (oy boshi emas).
-        oldingiF3Sana: f3OldingiSana(f3lar, chegara.boshi), varaqRejim: alohidaVaraq ? 'alohida' : 'bitta',
+        oldingiF3Sana: f3OldingiSana(f3lar, chegara.boshi), varaqRejim: alohidaVaraq ? 'alohida' : 'jami',
         imzo, pudratchi, zakazchik, raqam: tay.raqam,
         // Egasi 2026-11-22: tasdiqlanmagan F-2 zanjirni uzmaydi — F-3 tuziladi, xizmat varag'ida alohida ogohlantiriladi.
         ogohlantirishlar: f3TasdiqlanmaganOgoh(royxat.aktlar, new Set(yuboriladi)),
@@ -252,7 +252,7 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
           ))}
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
             <input type="checkbox" checked={alohidaVaraq} disabled={!!ishlayapti} onChange={(e) => setAlohidaVaraq(e.target.checked)} />
-            {t('Har obyekt alohida varaqda (oxirida jamlama varaq)')}
+            {t('Qo‘shimcha: har obyekt alohida varaqda (sukut — real F-3 kabi bitta varaq, shartnoma jami)')}
           </label>
           <div>
             <button type="button" className="fz-btn fz-btn--primary" disabled={!yuboriladi.length || !!ishlayapti || sh == null} onClick={() => void yarat()}>

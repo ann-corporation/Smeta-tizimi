@@ -753,6 +753,8 @@ interface F3RealSozlama {
   /** Shartnoma summasi — etalondagidek ALOHIDA katakda (yorliq | son | «сўм»); berilmasa dogovorMatn ichida. */
   dogovorSumma?: number | null;
   dizayn?: HujjatDizayn;
+  /** Bitta blokli hujjatda ham raqamlash («1. ИТОГО ПО ОБЪЕКТУ», 1.1/1.2/1.3) — real shartnoma F-3 dagidek. */
+  yagonaRaqam?: string | null;
 }
 
 /** F-3 etalon dizayni: pul #,##0 (tiyinsiz KO'RINISH — qiymat to'liq saqlanadi), foiz 0.0% (qiymat o'zgarmaydi). */
@@ -825,8 +827,9 @@ function f3RealVaraq(s: F3RealSozlama): { v: RasmiyVaraq; vsegoQator: number } {
   };
   const obQatorlar: Qatorlar[] = [];
   s.bloklar.forEach((b, i) => {
-    v.bolim(kop ? `${i + 1}. ${b.nom}` : b.nom, { daraja: 0 });
-    obQatorlar.push(uchQator(kop ? String(i + 1) : null, b.ustun, b.ndsFoiz, kop ? 'ВСЕГО ПО ПОДОБЪЕКТУ' : 'ВСЕГО ПО ОБЪЕКТУ', !kop));
+    const yr = !kop && s.yagonaRaqam ? s.yagonaRaqam : null;
+    v.bolim(kop ? `${i + 1}. ${b.nom}` : yr ? `${yr}. ${b.nom}` : b.nom, { daraja: 0 });
+    obQatorlar.push(uchQator(kop ? String(i + 1) : yr, b.ustun, b.ndsFoiz, kop ? 'ВСЕГО ПО ПОДОБЪЕКТУ' : 'ВСЕГО ПО ОБЪЕКТУ', !kop));
   });
   let vsegoQator = obQatorlar[obQatorlar.length - 1]?.vsego ?? v.r;
   if (s.jami) {
@@ -1344,8 +1347,12 @@ export interface Forma3ShartnomaOptions {
   hujjatSana?: string | null;
   /** Shu shartnomaning OLDINGI F-3 sanasi («YYYY-MM-DD») — «Отчетный период: с». Yo'q (birinchi F-3) — shartnoma sanasi. */
   oldingiF3Sana?: string | null;
-  /** `alohida` (sukut, ko'p obyektda) — etalondagidek har obyekt alohida varaqda + oxirida jamlama varaq; `bitta` — hamma obyekt bitta varaqda. */
-  varaqRejim?: 'alohida' | 'bitta';
+  /**
+   * `jami` (SUKUT, egasi 2026-11-23 — real shartnoma F-3 lari: «СЕНТЯБРЬ Ф3», «Ф3 АВГУСТ 1-лот»): BITTA varaq, bitta blok
+   * «1. ИТОГО ПО ОБЪЕКТУ» (1.1 затраты / 1.2 НДС / 1.3 ВСЕГО); гр.6 «Всего» = shartnoma summasi, foizlar shartnomaga nisbatan.
+   * `bitta` — hamma obyekt bloki bitta varaqda; `alohida` — har obyekt alohida varaqda + jamlama varaq.
+   */
+  varaqRejim?: 'jami' | 'alohida' | 'bitta';
   /** «Наименование объекта и его адрес» matni; berilmasa — shartnoma nomi, u ham yo'q bo'lsa obyektlar ro'yxati. */
   obyektMatn?: string | null;
   imzo?: ImzoNomlar;
@@ -1511,7 +1518,9 @@ export function forma3ShartnomaHujjat(obyektlar: ReadonlyArray<Forma3ShartnomaOb
   const kop = y.obyektlar.length > 1;
 
   // Etalon shakli: har obyekt ALOHIDA varaqda (o'z nomi, bloki, imzosi), oxirida jamlama varaq «ИТОГО ПО ДОГОVORУ». `bitta` — hamma obyekt bitta varaqda.
-  const alohida = kop && (o.varaqRejim ?? 'alohida') === 'alohida';
+  const rejim = o.varaqRejim ?? 'jami';
+  const alohida = kop && rejim === 'alohida';
+  const jamiRejim = kop && rejim === 'jami';
   const dizayn = f3EtalonDizayn();
   const baza = {
     oyMatni: f3OyMatni(o.davr),
@@ -1533,12 +1542,23 @@ export function forma3ShartnomaHujjat(obyektlar: ReadonlyArray<Forma3ShartnomaOb
     f3RealImzo(ov, zak, pud);
     return ov;
   }) : [];
+  // `jami` rejimi (real shartnoma F-3): bitta blok; гр.6 «Всего» = shartnoma umumiy summasi (QQS bilan), QQS siz/QQS — stavka bo'yicha.
+  const foizlarSet = new Set(y.obyektlar.map((ob) => ob.ndsFoiz));
+  const yagonaFoiz = foizlarSet.size === 1 ? [...foizlarSet][0] : null;
+  const jamiUstun = (): Record<F3PulUstun, F3RealSumma> => {
+    const u = realUstun(y.jami);
+    const S = o.shartnomaSumma;
+    if (S == null || yagonaFoiz == null) return u;
+    const bez = yaxlit2(S / (1 + yagonaFoiz / 100));
+    return { ...u, G: { bezNds: bez, nds: yaxlit2(S - bez), vsego: yaxlit2(S) } };
+  };
   const { v, vsegoQator } = f3RealVaraq({
     ...baza,
     ...(alohida ? { nom: 'ИТОГО ПО ДОГОВОРУ' } : {}),
     obyektMatn,
-    bloklar: y.obyektlar.map((ob) => ({ nom: ob.nom, ndsFoiz: ob.ndsFoiz, ustun: realUstun(ob.ustun) })),
-    jami: kop ? realUstun(y.jami) : null,
+    ...(jamiRejim
+      ? { bloklar: [{ nom: 'ИТОГО ПО ОБЪЕКТУ', ndsFoiz: yagonaFoiz, ustun: jamiUstun() }], jami: null, yagonaRaqam: '1' }
+      : { bloklar: y.obyektlar.map((ob) => ({ nom: ob.nom, ndsFoiz: ob.ndsFoiz, ustun: realUstun(ob.ustun) })), jami: kop ? realUstun(y.jami) : null }),
   });
   const oyTolov = y.jami.J.vsego;
   const propis = oyTolov == null ? null : `${summaSozBilan(oyTolov)} с НДС`;
