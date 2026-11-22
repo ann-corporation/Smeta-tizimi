@@ -9,7 +9,7 @@ import type { Muhit } from '../../smeta-mcp/src/muhit';
 import type { ToolJavob } from '../../smeta-mcp/src/tool';
 import { paketReja, qoidaBilanAjrat, TUR_NOMI, type Nomzod } from '../../smeta-mcp/src/frontend';
 import type { Env } from './env';
-import { HAVOLA_TTL, YUKLA_YO_L } from './fayl';
+import { HAVOLA_TTL, kengaytmali, YUKLA_YO_L } from './fayl';
 import { oqishMumkin, type Vakolat } from './vakolat';
 
 const OY = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -58,13 +58,13 @@ export async function hujjatPaketMasofaviy(a: Kirish, mu: Muhit, v: Vakolat, env
   if (!tanlov.length) return matn({ rejim: 'havola', ...natija, xato: 'Diskda tayyor fayl yo\'q — paket bo\'sh. Saytdagi «Hujjatlar paketi»dan foydalaning yoki birozdan so\'ng qayta so\'rang.' });
   const fayllar: Array<{ kalit: string; nom: string }> = [];
   const nomlar = new Set<string>();
-  await mu.oqish(async (m) => {
+  await mu.yozish({ tool: 'hujjat_paket', args: { kompaniya_id: a.kompaniya_id, soni: tanlov.length }, dryRun: false, snapshot: false }, async (m) => {
     for (const n of tanlov) {
       if (n.fayl_id == null) continue;
       const y = (await m.query<{ j: Record<string, unknown> }>('select public.t2_hm_yuklab_v1($1, $2, $3) as j', [v.foydalanuvchiId, n.fayl_id, null])).rows[0]?.j;
       if (!y || y.ok !== true || !y.kalit) continue;
       const papka = faylNomi(TUR_NOMI[n.tur] ?? String(n.tur));
-      let nom = `${papka}/${faylNomi(String(y.nom || n.sarlavha))}`;
+      let nom = `${papka}/${kengaytmali(faylNomi(String(y.nom || n.sarlavha)), y.mime)}`;
       for (let i = 2; nomlar.has(nom); i++) nom = nom.replace(/(\.[^./]+)?$/, (e) => ` (${i})${e}`);
       nomlar.add(nom); fayllar.push({ kalit: String(y.kalit), nom });
     }

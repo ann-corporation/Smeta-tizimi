@@ -18,6 +18,21 @@ export const YUKLA_YO_L = '/yukla/';
 
 const matn = (o: unknown, isError = false): ToolJavob => ({ content: [{ type: 'text', text: typeof o === 'string' ? o : JSON.stringify(o, null, 2) }], ...(isError ? { isError: true } : {}) });
 
+/** Disk nomida kengaytma bo'lmasa — mime bo'yicha qo'shadi (F-2 — .xlsx). */
+export function kengaytmali(nom: string, mime?: unknown): string {
+  if (/\.[A-Za-z0-9]{2,5}$/.test(nom)) return nom;
+  const m = String(mime ?? '');
+  const ext = /pdf/.test(m) ? '.pdf' : /zip/.test(m) ? '.zip' : /word/.test(m) ? '.docx' : '.xlsx';
+  return nom + ext;
+}
+
+/** Disk faylini yuklash ruxsati (trafik hisobi yoziladi). */
+export async function hmYuklab(mu: Muhit, aktor: number, faylId: number): Promise<Record<string, unknown> | null> {
+  const r = await mu.yozish({ tool: 'hm_yuklab', args: { fayl_id: faylId }, dryRun: false, snapshot: false }, async (m) =>
+    (await m.query<{ j: Record<string, unknown> }>('select public.t2_hm_yuklab_v1($1, $2, $3) as j', [aktor, faylId, null])).rows[0]?.j ?? null);
+  return r.natija;
+}
+
 function tasodifiy(): string {
   const b = new Uint8Array(32); crypto.getRandomValues(b);
   return [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
@@ -39,14 +54,12 @@ export async function f2Fayl(aktId: number, mu: Muhit, v: Vakolat, env: Env, ori
                                         from public.t2_akt a left join public.t2_obyekt o on o.id = a.obyekt_id where a.id = $1`, [aktId])).rows[0];
     if (!akt) return null;
     const t = (await m.query<{ j: Record<string, unknown> }>('select public.t2_hujjat_tayyor_ol_v1($1, $2, $3) as j', [v.foydalanuvchiId, akt.kompaniya_id, aktId])).rows[0]?.j ?? null;
-    let y: Record<string, unknown> | null = null;
-    if (t?.ok === true && t.eskirgan !== true && t.fayl_id != null) {
-      y = (await m.query<{ j: Record<string, unknown> }>('select public.t2_hm_yuklab_v1($1, $2, $3) as j', [v.foydalanuvchiId, Number(t.fayl_id), null])).rows[0]?.j ?? null;
-    }
-    return { akt, t, y };
+    return { akt, t };
   });
   if (!info) return matn(`Akt ${aktId} topilmadi.`, true);
-  const { akt, t, y } = info;
+  const { akt, t } = info;
+  // t2_hm_yuklab_v1 trafik hisobini yozadi — o'qish tranzaksiyasida emas (snapshotsiz, audit bilan).
+  const y = t?.ok === true && t.eskirgan !== true && t.fayl_id != null ? await hmYuklab(mu, v.foydalanuvchiId, Number(t.fayl_id)) : null;
   if (akt.tur !== 'f2') return matn(`Akt ${aktId} — F-2 emas (tur: ${akt.tur}).`, true);
   if (!t || t.ok !== true || t.fayl_id == null) {
     return matn({ tayyor: false, akt_id: aktId, obyekt: akt.obyekt, sabab: 'Bu F-2 ning Diskdagi fayli hali yo\'q (sayt uni fonda tayyorlaydi).',
@@ -67,7 +80,7 @@ export async function f2Fayl(aktId: number, mu: Muhit, v: Vakolat, env: Env, ori
   if (!s.ok) return matn({ tayyor: false, akt_id: aktId, sabab: s.xato, kod: s.code }, true);
 
   const kod = tasodifiy();
-  const nom = String(y.nom || `F-2_${aktId}.xlsx`);
+  const nom = kengaytmali(String(y.nom || `F-2_${aktId}`), y.mime);
   await env.OAUTH_KV.put(`yukla:${kod}`, JSON.stringify({ kalit: String(y.kalit), nom, mime: y.mime ?? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', akt: aktId, aktor: v.foydalanuvchiId }), { expirationTtl: HAVOLA_TTL });
   console.log(JSON.stringify({ tur: 'mcp_remote', tool: 'f2_fayl', aktor: v.foydalanuvchiId, akt: aktId, token_sarf: s.sarflandi, bepul_takror: s.bepulTakror }));
   return matn({
