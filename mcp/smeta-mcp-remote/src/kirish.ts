@@ -28,6 +28,7 @@ ${o.xato ? `<p class="x">${esc(o.xato)}</p>` : ''}
 <label for="l">Login</label><input id="l" name="login" autocomplete="username" required value="${esc(o.login ?? '')}">
 <label for="p">Parol</label><input id="p" name="parol" type="password" autocomplete="current-password" required>
 <button type="submit">Kirish va ruxsat berish</button></form>
+<p class="y">yoki</p><a class="g" href="/authorize/telegram?holat=${esc(o.holat)}">✈️ Telegram orqali kirish (parolsiz)</a>
 ${o.google ? `<p class="y">yoki</p><a class="g" href="/authorize/google?holat=${esc(o.holat)}">Google bilan kirish</a>
 <p class="k">Google orqali faqat administrator emailingizni hisobingizga ulagan bo'lsa kirasiz; yangi hisob ochilmaydi.</p>` : ''}
 <p class="k">Ruxsatni bekor qilish: saytda parolni almashtiring yoki «boshqa qurilmalardan chiqish» — barcha AI ulanishlari ham to'xtaydi.</p></main></body></html>`;
