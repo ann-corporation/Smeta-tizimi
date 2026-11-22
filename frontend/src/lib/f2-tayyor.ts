@@ -248,7 +248,9 @@ export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarx
         const ish: F2Ish = { id: r.id, kod: r.kod, nom: r.nom || 'Nomsiz', birlik: r.birlik, mumkin: mumkin(r.id), smeta: son(hh?.smeta_hajm) ?? son(r.hajm), olingan: olinganF2(r.id), resurslar: res, ...(erkin ? { erkin: true } : {}), ...(sq(r.id) !== 0 ? { storno: sq(r.id) } : {}), ...(qor(r.id) > 0 ? { qoralama: qor(r.id) } : {}), ...ortiqchaBelgi(r.id) };
         // Fakt rejimida qoralama qoldiqni 0 ga tushirsa ham ish ro'yxatda qoladi (tasdiqlangan va qoralama alohida ko'rinsin).
         if (erkin ? (smetaHajm(r.id) ?? 0) !== 0 : (nol(baza(r.id)) || res.some((x) => !x.avto && !x.chiqarilgan && nol(baza(x.id))))) b.ishlar.push(ish);
-      } else if (r.tur === 'mat' || r.tur === 'ob') {
+      } else if (r.tur === 'mat' || r.tur === 'ob' || r.tur === 'rs') {
+        // 2026-11-23: bo'lim (RZ) ostidagi resurs ham (masalan ТРАНСПОРТ Т·КМ) — avval tashlanardi: summa jamiga kirardi,
+        // hujjatda ko'rinmasdi (qatorlar yig'indisi ≠ ВСЕГО). Endi bo'limning mustaqil qatori sifatida chiqadi.
         const x = resurs(r, false); if (!x.chiqarilgan && (erkin ? (smetaHajm(r.id) ?? 0) !== 0 : nol(baza(r.id)))) b.alohida.push(x);
       }
     }
