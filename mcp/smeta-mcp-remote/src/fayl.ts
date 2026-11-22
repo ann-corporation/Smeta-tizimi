@@ -4,6 +4,7 @@
  * Token sayt bilan bir xil qoidada yechiladi (serverSarfla, kalit f2HujjatKaliti — shu F-2 ni qayta yuklash bepul).
  * Havola: /yukla/<tasodifiy 32 bayt> — KV da 15 daqiqa; ichida faqat R2 kalit/nom (sir yo'q). Begona kompaniya akti — RUXSAT_YOQ.
  */
+import { zipSync } from 'fflate';
 import type { Muhit } from '../../smeta-mcp/src/muhit';
 import type { ToolJavob } from '../../smeta-mcp/src/tool';
 import { f2HujjatKaliti } from '../../../frontend/src/api/f2-hujjat-kontekst';
@@ -84,12 +85,25 @@ export async function yuklaGet(req: Request, env: Env): Promise<Response> {
   if (!/^[0-9a-f]{64}$/.test(kod)) return new Response('Havola noto\'g\'ri.', { status: 404 });
   const raw = await env.OAUTH_KV.get(`yukla:${kod}`);
   if (!raw) return new Response('Havola muddati o\'tgan yoki noto\'g\'ri. ChatGPT dan qayta so\'rang.', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
-  const y = JSON.parse(raw) as { kalit: string; nom: string; mime: string };
-  const obj = env.SNAPSHOT_R2 ? await env.SNAPSHOT_R2.get(y.kalit) : null;
-  if (!obj) return new Response('Fayl topilmadi.', { status: 404 });
+  const y = JSON.parse(raw) as { kalit?: string; nom: string; mime?: string; zip?: boolean; fayllar?: Array<{ kalit: string; nom: string }> };
+  if (!env.SNAPSHOT_R2) return new Response('Fayl ombori ulanmagan.', { status: 503 });
+  let tana: Uint8Array; let mime: string;
+  if (y.zip && y.fayllar?.length) {
+    const ich: Record<string, Uint8Array> = {};
+    for (const f of y.fayllar) {
+      const o = await env.SNAPSHOT_R2.get(f.kalit);
+      if (o) ich[f.nom] = new Uint8Array(await o.arrayBuffer());
+    }
+    if (!Object.keys(ich).length) return new Response('Fayllar topilmadi.', { status: 404 });
+    tana = zipSync(ich, { level: 0 }); mime = 'application/zip';
+  } else {
+    const obj = y.kalit ? await env.SNAPSHOT_R2.get(y.kalit) : null;
+    if (!obj) return new Response('Fayl topilmadi.', { status: 404 });
+    tana = new Uint8Array(await obj.arrayBuffer()); mime = y.mime ?? 'application/octet-stream';
+  }
   const nomAscii = y.nom.replace(/[^\x20-\x7E]/g, '_').replace(/"/g, '');
-  return new Response(await obj.arrayBuffer(), { headers: {
-    'Content-Type': y.mime, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
+  return new Response(tana as unknown as BodyInit, { headers: {
+    'Content-Type': mime, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
     'Content-Disposition': `attachment; filename="${nomAscii}"; filename*=UTF-8''${encodeURIComponent(y.nom)}`,
   } });
 }

@@ -71,6 +71,23 @@ export function yozishArgs(t: ToolTarif, a: Record<string, unknown>): { args: Re
 
 const xato = (text: string): ToolJavob => ({ content: [{ type: 'text', text }], isError: true });
 
+/** Xavfsizlik (egasi 2026-11-22): bitta HAQIQIY yozuvda o'zgaradigan/o'chiriladigan qatorlar chegarasi — AI xatosi butun obyektni buzmasin. */
+export const XAVF_CHEGARA: Record<string, { kalitlar: string[]; max: number }> = {
+  fakt_yoz: { kalitlar: ['qatorlar'], max: 150 },
+  f2_qoralama_tahrir: { kalitlar: ['ozgartir', 'olib_tashla', 'qosh_mumkindan'], max: 150 },
+  transport_belgila: { kalitlar: ['qator_idlar'], max: 150 },
+  bajarilmadi: { kalitlar: ['qator_idlar', 'bekor_idlar'], max: 100 },
+};
+/** O'chirish/bekor/qaytarish turidagi toollar — har biri bitta ob'ekt bilan (ro'yxat emas). */
+export function kattaOzgarish(tool: string, args: Record<string, unknown>): string | null {
+  const c = XAVF_CHEGARA[tool];
+  if (!c) return null;
+  let n = 0;
+  for (const k of c.kalitlar) { const v = args[k]; if (Array.isArray(v)) n += v.length; }
+  if (n <= c.max) return null;
+  return `${tool}: bitta yozuvda ${n} ta qator — xavfsizlik chegarasi ${c.max}. Foydalanuvchiga ro'yxatni ko'rsating va bo'laklab (har biri ≤ ${c.max}) bajaring; har bo'lakdan oldin preview.`;
+}
+
 export type ChaqiruvLog = (y: Record<string, unknown>) => void;
 
 /** Masofaviy chaqiruv: sxema → doira (kompaniya) → vakolat → umumiy toolChaqir → hajm chegarasi → audit logi. */
@@ -85,6 +102,10 @@ export async function masofaviyChaqir(t: ToolTarif, mu: Muhit, v: Vakolat, xom: 
     const y = yozishArgs(t, args);
     if ('xato' in y) { yoz(false, 'tasdiq'); return xato(y.xato); }
     args = y.args; haqiqiy = y.haqiqiy;
+  }
+  if (haqiqiy) {
+    const kop = kattaOzgarish(t.nom, args);
+    if (kop) { yoz(false, 'katta_ozgarish'); return xato(kop); }
   }
   const h = havolalarYig(t.nom, args);
   if (havolaSoni(h) === 0 && !(DOIRASIZ.has(t.nom) && !t.yozadi)) { yoz(false, 'doira_yoq'); return xato(`${t.nom}: obyekt/akt/qator id si berilmagan — doira aniqlanmadi.`); }

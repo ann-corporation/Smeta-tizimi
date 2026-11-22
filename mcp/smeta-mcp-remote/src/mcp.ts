@@ -13,6 +13,10 @@ import { hyperdriveHovuz } from './hovuz';
 import { MASOFAVIY_TOOLLAR, masofaviyChaqir, masofaviyKirish, masofaviyTavsif } from './siyosat';
 import { vakolatOl, type Vakolat } from './vakolat';
 import { f2Fayl } from './fayl';
+import { hujjatPaketMasofaviy, paketKirish } from './paket';
+import { sqlOqish, sxema } from '../../smeta-mcp/src/tools/oqish';
+import { toolChaqir } from '../../smeta-mcp/src/tool';
+import { JAVOB_MAX } from './siyosat';
 
 export const VERSIYA = '0.1.0';
 /** So'rov tanasi chegarasi (f2_yarat 5000 qator ≈ 0,5 MB). */
@@ -58,6 +62,33 @@ export function masofaviyServer(mu: Muhit, v: Vakolat, sayt?: string, fayl?: { e
       annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       _meta: SECURITY_META,
     }, async ({ akt_id }) => f2Fayl(akt_id, mu, v, fayl.env, fayl.origin));
+    s.registerTool('hujjat_paket', {
+      title: 'Hujjatlar paketi',
+      description: 'Hujjatlar paketi (sayt «Hujjatlar paketi» bilan bir xil nomzod va qoidalar): filtr — kompaniya_id (majburiy), loyiha/shartnoma/obyekt, oy_dan/oy_gacha (YYYY-MM), '
+        + 'turlar (f2, forma3, nakopitelniy, m29, slichitelniy, ostatka, aosr), holatlar. Standart — ro\'yxat (preview). havola:true — Diskdagi tayyor fayllardan bitta ZIP, '
+        + '15 daqiqalik havola (bepul). Diskda yo\'q/eskirganlarini sayt fonda yangilaydi. [faqat o\'qish]',
+      inputSchema: paketKirish,
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+      _meta: SECURITY_META,
+    }, async (a) => hujjatPaketMasofaviy(a, mu, v, fayl.env, fayl.origin));
+  }
+  if (v.superadmin) {
+    // Superadmin: tizimning ichki tuzilishi va holatini ko'rish uchun xom o'qish (READ ONLY tranzaksiya, Postgres o'zi yozishni rad etadi).
+    for (const t of [sqlOqish, sxema]) {
+      s.registerTool(t.nom, {
+        description: `${t.tavsif} [FAQAT SUPERADMIN, faqat o'qish — READ ONLY tranzaksiya]`,
+        inputSchema: t.kirish,
+        annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+        _meta: SECURITY_META,
+      }, async (args: unknown) => {
+        const t0 = Date.now();
+        mu.kompaniyaDoira = v.kompaniyalar.map((k) => k.kompaniya_id);
+        const j = await toolChaqir(t, mu, args);
+        console.log(JSON.stringify({ tur: 'mcp_remote', tool: t.nom, aktor: v.foydalanuvchiId, superadmin: true, ok: !j.isError, ms: Date.now() - t0 }));
+        const text = j.content[0]?.text ?? '';
+        return text.length > JAVOB_MAX ? { ...j, content: [{ type: 'text' as const, text: `${text.slice(0, JAVOB_MAX)}\n…[qisqartirildi — limit/offset bilan toraytiring]` }] } : j;
+      });
+    }
   }
   return s;
 }
