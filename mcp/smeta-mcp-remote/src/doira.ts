@@ -11,7 +11,7 @@ export type Havolalar = Record<Tur, Set<number>>;
 const KALIT: Record<string, Tur> = {
   obyekt_id: 'obyekt', obyekt_idlar: 'obyekt', manba_obyekt_id: 'obyekt',
   qator_id: 'qator', qator_idlar: 'qator', almashtirilayotgan_qator_id: 'qator', ota_id: 'qator', ota_qator_id: 'qator', bolim_id: 'qator',
-  zamena_qator_id: 'qator', olib_tashla: 'qator', qosh_mumkindan: 'qator',
+  zamena_qator_id: 'qator', olib_tashla: 'qator', qosh_mumkindan: 'qator', rz_id: 'qator', qamrov_id: 'qator',
   akt_id: 'akt', akt_idlar: 'akt',
   snapshot_id: 'snapshot', shartnoma_id: 'shartnoma', loyiha_id: 'loyiha', kompaniya_id: 'kompaniya', bekor_idlar: 'bajarilmadi',
 };
