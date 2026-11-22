@@ -8259,7 +8259,7 @@
 "Qo‘shimcha/zamena yozilmoqda: {i}/{n}":"Writing additions/replacements: {i}/{n}",
 "Qo‘shimcha/zamena yo‘q":"No additions/replacements",
 "Qo‘shimcha/zamena: {buyruq} ta amal ({qator} qator: {qosh} qo‘shimcha, {zam} zamena, {bolim} bo‘lim); smetada allaqachon bor: {oldin}.":"Additions/replacements: {buyruq} actions ({qator} rows: {qosh} additions, {zam} replacements, {bolim} sections); already in the estimate: {oldin}.",
-"Qo‘shimcha: har obyekt alohida varaqda (sukut — real F-3 kabi bitta varaq, shartnoma jami)":"Optional: each object on its own sheet (default — one sheet with the contract total, as in the real F-3)",
+"Qo‘shimcha: har obyekt alohida varaqda (sukut — bitta varaqda hamma obyekt va jamlanma)":"Optional: each object on its own sheet (default — all objects and the total on one sheet)",
 "Qo‘shimcha: {plus} ta; kamayish: {minus} ta; aniqlanmagan: {unknown} ta; sig‘magan: {unmatched} ta.":"Additions: {plus}; reductions: {minus}; unknown: {unknown}; unmatched: {unmatched}.",
 "Qo‘shish":"Add",
 "Qo‘shish taklifi":"Proposal to add a row",

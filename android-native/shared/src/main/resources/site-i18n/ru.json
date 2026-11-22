@@ -8259,7 +8259,7 @@
 "Qo‘shimcha/zamena yozilmoqda: {i}/{n}":"Запись дополнений/замен: {i}/{n}",
 "Qo‘shimcha/zamena yo‘q":"Доп. работ/замен нет",
 "Qo‘shimcha/zamena: {buyruq} ta amal ({qator} qator: {qosh} qo‘shimcha, {zam} zamena, {bolim} bo‘lim); smetada allaqachon bor: {oldin}.":"Дополнения/замены: {buyruq} действий ({qator} строк: {qosh} дополнений, {zam} замен, {bolim} разделов); уже есть в смете: {oldin}.",
-"Qo‘shimcha: har obyekt alohida varaqda (sukut — real F-3 kabi bitta varaq, shartnoma jami)":"Дополнительно: каждый объект на отдельном листе (по умолчанию — один лист, итог по договору, как в реальной Ф-3)",
+"Qo‘shimcha: har obyekt alohida varaqda (sukut — bitta varaqda hamma obyekt va jamlanma)":"Дополнительно: каждый объект на отдельном листе (по умолчанию — все объекты и итог на одном листе)",
 "Qo‘shimcha: {plus} ta; kamayish: {minus} ta; aniqlanmagan: {unknown} ta; sig‘magan: {unmatched} ta.":"Дополнения: {plus}; уменьшения: {minus}; неизвестно: {unknown}; не сопоставлено: {unmatched}.",
 "Qo‘shish":"Добавить",
 "Qo‘shish taklifi":"Предложение добавить строку",
