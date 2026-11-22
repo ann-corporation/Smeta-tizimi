@@ -14,7 +14,7 @@ vi.mock('../../lib/yordamchi/niyat-llm',()=>({niyatLlmGaMosmi:()=>true}));
 import {AiChat} from './AiChat';
 const helper={sahifalar:[],obyektlar:[],joriyObyekt:null,motor:{holat:'tayyor'}} as unknown as YordamchiUlanish;
 const role={rol:'pto',profil:'pto',nom:'PTO',vazifa:'Smeta',kategoriyalar:[],namuna_savollar:[],taqiq_izoh:'',boshqalar:[]} as KasbIshchi;
-const view=(uid=7,k=17)=><MemoryRouter><AiChat kompaniyaId={k} foydalanuvchiId={uid} kasb={role} sahifa="/admin" generatsiya={0} yordamchi={helper}/></MemoryRouter>;
+const view=(uid=7,k=17,customRole=role)=><MemoryRouter><AiChat kompaniyaId={k} foydalanuvchiId={uid} kasb={customRole} sahifa="/admin" generatsiya={0} yordamchi={helper}/></MemoryRouter>;
 const choose=(id:string)=>fireEvent.change(screen.getByLabelText('Suhbatni tanlash'),{target:{value:id}});
 beforeEach(()=>{localStorage.clear();sessionStorage.clear();m.cache.clear();m.cacheOpen.mockReset().mockImplementation(async(actor:number,company:number)=>{
  const active=`jarvis-chat:${actor}:${company}`,archive=`jarvis-suhbatlar:${actor}:${company}`;
@@ -471,7 +471,8 @@ const cachePort=(data:Record<string,string>)=>({getItem:(key:string)=>data[key]?
 it('late encrypted hydration cannot paint the previous actor into a new company',async()=>{
  let done!:(p:ReturnType<typeof cachePort>)=>void;
  m.cacheOpen.mockImplementationOnce(()=>new Promise(r=>{done=r;})).mockResolvedValueOnce(cachePort({'jarvis-chat:8:18':JSON.stringify([{id:'new',rol:'user',matn:'New actor cache'}]),'jarvis-chat:8:18:id':'new'}));
- const v=render(view());expect((screen.getByRole('textbox') as HTMLTextAreaElement).readOnly).toBe(true);expect(m.diskRead).not.toHaveBeenCalled();
+ const v=render(view(7,17,{...role,namuna_savollar:['Synthetic prompt']}));expect((screen.getByRole('textbox') as HTMLTextAreaElement).readOnly).toBe(true);expect(m.diskRead).not.toHaveBeenCalled();
+ expect((screen.getByRole('button',{name:'Synthetic prompt'}) as HTMLButtonElement).disabled).toBe(true);fireEvent.click(screen.getByRole('button',{name:'Synthetic prompt'}));expect(m.ask).not.toHaveBeenCalled();
  v.rerender(view(8,18));await screen.findByText('New actor cache',{selector:'p'});
  await act(async()=>done(cachePort({'jarvis-chat:7:17':JSON.stringify([{id:'old',rol:'user',matn:'Wrong actor cache'}])})));
  expect(screen.queryByText('Wrong actor cache')).toBeNull();expect(screen.getByText('New actor cache',{selector:'p'})).toBeTruthy();
