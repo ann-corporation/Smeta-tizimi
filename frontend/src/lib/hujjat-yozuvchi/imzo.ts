@@ -20,6 +20,9 @@ export const IMZO_IZOH = '(наименование организации, до
 export const IMZO_IZOH_SHAXS = '(должность, Ф.И.О.)';
 export const IMZO_PODPIS = '(подпись)';
 export const IMZO_MP = 'М.П.';
+/** Imzo sanasi (egasi 2026-11-22: har imzochi sanasini qo'yadi). */
+export const IMZO_SANA = '«____» ____________ 20__ г.';
+export const IMZO_SANA_IZOH = '(дата)';
 
 /** "ЗАКАЗЧИК:  <nom yoki chiziq>" — Oferta V3 bilan aynan bir xil matn. */
 export function imzoMatni(rol: ImzoRol, nom?: string | null): string {

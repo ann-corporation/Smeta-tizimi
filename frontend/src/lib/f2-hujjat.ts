@@ -104,6 +104,21 @@ const f2ImzoTomonlari = (n?: ImzoNomlar): ImzoTomon[] => [
 
 const OY_NOM = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
 /** «За сентябрь месяц 2025 года» (imzolangan Ф-2); davr noma'lum shaklda bo'lsa — umumiy davrMatni. */
+/** «Tashkilot, lavozim, F.I.O.» → faqat tashkilot (qo'shtirnoq/«» ichidagi vergul hisobga olinmaydi). Bo'sh — o'zgarmaydi. */
+export function tashkilotQismi(s: string | null | undefined): string | undefined {
+  const t = (s ?? '').trim();
+  if (!t) return undefined;
+  let ich = 0;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (c === '«' || c === '(') ich++;
+    else if ((c === '»' || c === ')') && ich > 0) ich--;
+    else if (c === '"') ich = ich ? ich - 1 : ich + 1;
+    else if (c === ',' && ich === 0) return t.slice(0, i).trim();
+  }
+  return t;
+}
+
 export function davrSozBilan(davr: string): string {
   const m = /^(\d{4})-(\d{2})/.exec(davr || '');
   const oy = m ? OY_NOM[Number(m[2]) - 1] : undefined;
@@ -145,7 +160,8 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     nom: o.varaqNomi || 'Ф-2',
     sarlavha: `${F2_SARLAVHA}${raqam ? ` № ${raqam}` : ''} (ФОРМА № 02)`,
     // Imzolangan Ф-2 tartibi: Подрядчик → Заказчик → «АКТ …» → «О выполненных работах по объекту …» → «За … месяц … года»; Договор — pastda.
-    yuqoriTitul: [['Подрядчик:', o.imzo?.pudratchi], ['Заказчик:', o.imzo?.zakazchik], ...(o.imzo?.subpudratchi ? [['Субподрядчик:', o.imzo.subpudratchi] as const] : [])],
+    // Egasi 2026-11-22: tepada faqat TASHKILOT (shaxslar faqat pastdagi imzo blokida — ikkala texnadzor bilan).
+    yuqoriTitul: [['Подрядчик:', tashkilotQismi(o.imzo?.pudratchi)], ['Заказчик:', tashkilotQismi(o.imzo?.zakazchik)], ...(o.imzo?.subpudratchi ? [['Субподрядчик:', tashkilotQismi(o.imzo.subpudratchi)] as const] : [])],
     ostSarlavha: [`О выполненных работах по объекту «${o.obyektNom}»`, davrSozBilan(o.davr)],
     titul: [['Договор:', o.shartnoma]],
     ustunlar: trBor ? [...USTUNLAR, TR_USTUN] : USTUNLAR,
