@@ -29,7 +29,7 @@ import { BARQAROR_VAQT } from './kitob';
 import { num, sheetRef, ustunHarfi, xmlEsc } from './ooxml';
 import { sumRefs } from './formula';
 import { yaxlit2 as yadroYaxlit2 } from '../hisob-yadro/yaxlit';
-import { IMZO_IMZO_CHIZIQ, IMZO_IZOH, IMZO_IZOH_SHAXS, IMZO_MP, IMZO_PODPIS, imzoMatni, imzoMuhrli, type ImzoTomon } from './imzo';
+import { IMZO_IMZO_CHIZIQ, IMZO_IZOH, IMZO_IZOH_SHAXS, IMZO_MP, IMZO_PODPIS, IMZO_SANA, IMZO_SANA_IZOH, imzoMatni, imzoMuhrli, type ImzoTomon } from './imzo';
 import { narxsizItogMatni } from '../narx-bildirishnoma';
 import { balandlik, qatorBalandligi } from './qator-balandlik';
 import { DARAJALAR, darajaAniqla, joriyHujjatDizayni, sonUzunligi, type DarajaKalit, type HujjatDizayn } from './dizayn';
@@ -793,6 +793,8 @@ export class RasmiyVaraq {
         ...(imzoMuhrli(t.rol) && oxir > imzoC ? [katakXml(oxir, RS.imzoIzoh, IMZO_MP)] : []),
       ]);
       this.merge(0, r2, Math.max(mc, imzoC - 1));
+      // Egasi 2026-11-22: har imzochi sanasini o'zi qo'yadi — imzo tagida.
+      this.put([katakXml(imzoC, RS.imzoIzoh, `${IMZO_SANA_IZOH.replace(/[()]/g, '').replace(/^д/, 'Д')}: ${IMZO_SANA}`)]);
     });
   }
 
