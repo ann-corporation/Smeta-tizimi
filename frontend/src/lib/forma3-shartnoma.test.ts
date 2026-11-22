@@ -309,8 +309,25 @@ describe('Forma 3 shartnoma — etalon shakli: har obyekt alohida varaq, summa a
   }
   const obs = () => { const o = ikkiObyekt(); const a = akt(12, '2026-03', 2_000_000, 2_300_000, 276_000); o[0] = { ...o[0], davrAktlari: [a], aktlarJami: [a] }; return o; };
 
-  it('sukut: har obyekt alohida varaq + oxirida «ИТОГО ПО ДОГОВОРУ» jamlama varag‘i; bitta rejimda hammasi bitta varaqda', async () => {
-    const h = forma3ShartnomaHujjat(obs(), { davr: '2026-03', shartnomaRaqam: 'T-1', shartnomaSumma: 30_000_000 });
+  it('sukut (egasi 2026-11-23, real F-3): BITTA varaq, bitta «1. ИТОГО ПО ОБЪЕКТУ» bloki, гр.6 = shartnoma summasi', async () => {
+    const j = forma3ShartnomaHujjat(obs(), { davr: '2026-03', shartnomaRaqam: 'T-1', shartnomaSumma: 30_000_000 });
+    const kitob = await yukla(j.bytes);
+    expect(kitob.worksheets[0].name).toBe('СЧЁТ-ФАКТ.');
+    expect(kitob.worksheets.filter((w) => w.name.startsWith('СЧЁТ-ФАКТ.')).length).toBe(1);
+    const matn: string[] = []; const sonlar: number[] = [];
+    kitob.worksheets[0].eachRow((row) => row.eachCell((c) => {
+      if (typeof c.value === 'string') matn.push(c.value);
+      const x = typeof c.value === 'number' ? c.value : c.value && typeof c.value === 'object' && 'result' in c.value ? Number((c.value as { result?: unknown }).result) : NaN;
+      if (Number.isFinite(x)) sonlar.push(x);
+    }));
+    expect(matn).toContain('1. ИТОГО ПО ОБЪЕКТУ');
+    expect(matn).toContain('1.1');
+    expect(matn.some((m) => m.startsWith('2.'))).toBe(false);
+    expect(sonlar).toContain(30_000_000);
+  });
+
+  it('alohida rejim: har obyekt alohida varaq + oxirida «ИТОГО ПО ДОГОВОРУ»; bitta rejimda hammasi bitta varaqda', async () => {
+    const h = forma3ShartnomaHujjat(obs(), { varaqRejim: 'alohida', davr: '2026-03', shartnomaRaqam: 'T-1', shartnomaSumma: 30_000_000 });
     const nomlar = (await yukla(h.bytes)).worksheets.map((w) => w.name);
     expect(nomlar.slice(0, 2).every((n) => n.startsWith('СЧЁТ-ФАКТ. ('))).toBe(true);
     expect(nomlar[2]).toBe('ИТОГО ПО ДОГОВОРУ');

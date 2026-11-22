@@ -1,3 +1,3 @@
 {
-  "Har obyekt alohida varaqda (oxirida jamlama varaq)": { "ru": "Каждый объект на отдельном листе (в конце — сводный лист)", "en": "Each object on its own sheet (summary sheet last)" }
+  "Qo‘shimcha: har obyekt alohida varaqda (sukut — real F-3 kabi bitta varaq, shartnoma jami)": { "ru": "Дополнительно: каждый объект на отдельном листе (по умолчанию — один лист, итог по договору, как в реальной Ф-3)", "en": "Optional: each object on its own sheet (default — one sheet with the contract total, as in the real F-3)" }
 }
