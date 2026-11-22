@@ -203,6 +203,24 @@ export function paketReja(nomzodlar: readonly Nomzod[], tanlov: Tanlov): PaketRe
   };
 }
 
+/**
+ * F-2 Diskdan to'g'ridan olinadimi: Diskda fayl bor, fonda yangilanmayapti (eskirmagan), navbat xatosi yo'q VA allaqachon to'langan (qayta yuklash bepul).
+ * Aks holda (eskirgan/yo'q/to'lanmagan) - server dvigateli (`/api/hujjat-yarat`: token shu yerda, kerak bo'lsa yangidan yasaydi va Diskka yozadi).
+ */
+export const f2DisktanOlinadi = (n: Nomzod): boolean => {
+  const x = n as Nomzod & { yangilanmoqda?: boolean; navbat_holat?: string | null; tolangan?: boolean };
+  return n.tur === 'f2' && n.fayl_id != null && x.yangilanmoqda !== true && x.navbat_holat !== 'xato' && x.tolangan === true;
+};
+
+/** Sayt va server uchun bitta qoida: F-2 yangi va to'langan bo'lsa Diskdan, qolgan F-2 server dvigateli orqali; boshqa turlar Diskdan (rejadagidek). */
+export function rejaF2Disk(r0: Pick<PaketReja, 'diskdan' | 'yasash'>): Pick<PaketReja, 'diskdan' | 'yasash'> {
+  const f2 = r0.diskdan.filter((n) => n.tur === 'f2');
+  return {
+    diskdan: [...r0.diskdan.filter((n) => n.tur !== 'f2'), ...f2.filter(f2DisktanOlinadi)],
+    yasash: [...r0.yasash, ...f2.filter((n) => !f2DisktanOlinadi(n))],
+  };
+}
+
 /** Token bahosi: `narx(katak)` - chaqiruvchi beradi (sayt: `narxHisob` + token holati; MCP: RPC). Faqat yasaladigan hujjat uchun; Disk BEPUL. */
 export function tokenBahosi(reja: Pick<PaketReja, 'yasash' | 'katak'>, narx: ((katak: number) => number | null) | null): { token: number | null; yasashSoni: number; katak: number } {
   if (!reja.yasash.length) return { token: 0, yasashSoni: 0, katak: 0 };

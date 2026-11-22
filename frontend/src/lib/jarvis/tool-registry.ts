@@ -9,6 +9,7 @@ export const jarvisTools = {
   cumulative: { mode: 'read', description: 'Read a cumulative statement. Query example: Nakopitelniy 2026-06.', permissions: ['f2.read'] },
   discrepancy: { mode: 'read', description: 'Read estimate and actual quantity discrepancies. Query example: Slichitelniy vedomost.', permissions: ['fakt.read', 'document.read'] },
   warehouse_balance: { mode: 'read', description: 'Read warehouse stock. Query example: Ombor #7 qoldig‘i: sement.', permissions: ['warehouse.read'] },
+  transport_tekshir: { mode: 'read', description: 'Audit the transport kind (foiz / tkm / narx_ichida) of an object and its errors (double transport). Query example: Transport tekshir.', permissions: ['smeta.read'] },
   document_search: { mode: 'read', description: 'Find a document by ID or quoted filename. Query example: «Sinov.xlsx» ni top.', permissions: ['document.read'] },
 } as const;
 

@@ -10,14 +10,15 @@ import { Download, RefreshCw, Save, Trash2, X } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
-import { filtrOchir, filtrSaqla, filtrlarOl, paketRoyxatOl, saytYetkazuvchi, tanlanganNomzodlar, SAHIFA_HAJMI, type SaqlanganFiltr, type Variantlar } from '../../api/hujjat-paket';
+import { filtrOchir, filtrSaqla, filtrlarOl, paketRoyxatOl, paketTayyorla, saytYetkazuvchi, tanlanganNomzodlar, SAHIFA_HAJMI, type SaqlanganFiltr, type Variantlar } from '../../api/hujjat-paket';
 import { narxHisob, tokenHolatOl, type TokenHolat } from '../../api/t2-token';
-import { paketReja, TUR_NOMI, type PaketFiltr } from '../../lib/hujjat-paket/nomzod';
+import { paketReja, rejaF2Disk, TUR_NOMI, type PaketFiltr } from '../../lib/hujjat-paket/nomzod';
 import {
   BOSH_FILTR, FILTR_HOLATLARI, FILTR_TURLARI, HOLAT_NOMI, filtrBosh, filtrdanServerga, filtrniTozala, obyektQidir, oyOraligi, tanlanganlar, yangilikMatni, yuklashBahosi,
   type FiltrHolati, type RoyxatQator,
 } from '../../lib/hujjat-paket/royxat';
-import { paketExcel, paketYigish, paketZipi } from '../../lib/hujjat-paket/yigish';
+import { tayyorlaSikl } from '../../lib/hujjat-paket/tayyorla';
+import { obyektHolatlari, paketExcel, paketYigish, paketZipi, type HujjatHolati } from '../../lib/hujjat-paket/yigish';
 
 const Chip = ({ yoqilgan, onClick, children }: { yoqilgan: boolean; onClick: () => void; children: string }) => (
   <button type="button" aria-pressed={yoqilgan} onClick={onClick} className={`fz-chip${yoqilgan ? ' fz-chip--on' : ''}`} style={{ padding: '2px 10px', borderRadius: 999, border: '1px solid currentColor', opacity: yoqilgan ? 1 : 0.6, fontSize: 13 }}>{children}</button>
@@ -42,6 +43,7 @@ export function HujjatPaket(p: { kompaniyaId: number; tashkilot?: string | null;
   const [qidiruv, setQidiruv] = useState('');
   const [format, setFormat] = useState<'zip' | 'excel'>('zip');
   const [jarayon, setJarayon] = useState<string | null>(null);
+  const [holatlar, setHolatlar] = useState<HujjatHolati[]>([]);
   const [tokenH, setTokenH] = useState<TokenHolat | null>(null);
   const [saqlangan, setSaqlangan] = useState<SaqlanganFiltr[]>([]);
   const [filtrNomi, setFiltrNomi] = useState('');
@@ -79,17 +81,34 @@ export function HujjatPaket(p: { kompaniyaId: number; tashkilot?: string | null;
   const obyektNomi = (id: number) => obyektlar.find((o) => o.id === id)?.nom ?? (variantlar?.obyektlar.find((o) => o.id === id)?.nom ?? `#${id}`);
   const ozgar = (q: Partial<FiltrHolati>) => setFiltr((f) => ({ ...f, ...q }));
 
+  /** Oldindan tayyorlash: eskirgan/yo'q hujjatlar serverda (token yechilmasdan) Diskda yangilanadi; yuklab olishdan oldin avtomatik ham ishlaydi. */
+  const tayyorla = async () => {
+    const n = await tayyorlaSikl(() => paketTayyorla(p.kompaniyaId, serverFiltr, tanlov), { tayyor: (q, b) => setJarayon(`${t('Tayyorlanmoqda')} ${Math.max(b - q, 0)}/${b}`) });
+    void yukla();
+    return n;
+  };
+  const tayyorlaTugma = async () => {
+    if (!tanlov.size) { toast(t('Hujjat tanlanmagan'), 'warn'); return; }
+    setJarayon(t('Tayyorlanmoqda'));
+    try {
+      const n = await tayyorla();
+      toast(n.xabar ? `${t('Tayyorlab bo‘lmadi')}: ${n.xabar}` : n.qolgan > 0 ? t('{n} ta hujjat hali tayyor emas (yuklab olishda yasaladi)', { n: n.qolgan }) : t('Hujjatlar tayyor'), n.xabar || n.qolgan > 0 ? 'warn' : 'ok');
+    } finally { setJarayon(null); }
+  };
+
   const yuklabOl = async () => {
     if (!tanlov.size) { toast(t('Hujjat tanlanmagan'), 'warn'); return; }
-    setJarayon('…');
+    setJarayon('…'); setHolatlar([]);
     try {
+      try { await tayyorla(); } catch { /* tayyorlash to'smaydi: qolganlari yuklab olishda yasaladi */ }
       const nomzodlar = (await tanlanganNomzodlar(p.kompaniyaId, serverFiltr, tanlov)).filter((n) => !n.takror && !n.taxminiy);
       const reja0 = paketReja(nomzodlar, new Set(nomzodlar.map((n) => n.kalit)));
       // F-2: har doim server orqali (token yuklab olishda, mazmun kaliti bo'yicha bir marta; Diskda tayyor bo'lsa - zudlik bilan). Boshqa turlar Diskdan - bepul.
-      const reja = { diskdan: reja0.diskdan.filter((n) => n.tur !== 'f2'), yasash: [...reja0.yasash, ...reja0.diskdan.filter((n) => n.tur === 'f2')] };
+      const reja = rejaF2Disk(reja0);
       setJarayon('0/' + (reja.diskdan.length + reja.yasash.length));
       const y = await paketYigish(reja, saytYetkazuvchi(p.kompaniyaId), { tayyor: (b, j) => setJarayon(`${b}/${j}`) });
       const sarlavha = `${t('HUJJATLAR PAKETI')}${p.tashkilot ? ` · ${p.tashkilot}` : ''}`;
+      setHolatlar(y.holatlar ?? []);
       if (!y.fayllar.length) { toast(y.xatolar[0] ?? t('Hujjat yasalmadi'), 'danger'); return; }
       if (format === 'zip') downloadBlob(paketZipi(y, { sarlavha, reja: { rad: [], olinmaydi: [] } }).bytes, 'hujjatlar-paketi.zip', 'application/zip');
       else { const e = await paketExcel(y, { sarlavha }); downloadBlob(e.bytes, 'hujjatlar-paketi.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); }
@@ -175,6 +194,23 @@ export function HujjatPaket(p: { kompaniyaId: number; tashkilot?: string | null;
       </ul>
       {qatorlar.length < jami && <button type="button" className="fz-btn" onClick={() => void yana()}>{t('Yana {n} ta', { n: Math.min(SAHIFA_HAJMI, jami - qatorlar.length) })}</button>}
 
+      {holatlar.length > 0 && (
+        <div className="text-sm my-2" data-testid="paket-holat" role="status">
+          <b>{t('Paket holati (obyektlar bo‘yicha)')}</b>
+          <ul>
+            {obyektHolatlari(holatlar).map((o) => (
+              <li key={o.obyekt_id ?? 0}>
+                {o.obyekt_nom}: {t('{n} ta tayyor', { n: o.tayyor })}
+                {o.yangilandi > 0 ? `, ${t('{n} ta hozir yangilandi', { n: o.yangilandi })}` : ''}
+                {o.eskirgan > 0 ? `, ${t('{n} ta eski versiya (fonda yangilanmoqda)', { n: o.eskirgan })}` : ''}
+                {o.xato > 0 ? <span className="text-red-600">{`, ${t('{n} ta kirmadi', { n: o.xato })}`}</span> : null}
+                {o.xatolar.length > 0 && <ul className="text-red-600">{o.xatolar.map((x) => <li key={x}>{x}</li>)}</ul>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <footer className="flex flex-wrap items-center gap-3 mt-2">
         <select aria-label={t('Chiqish')} value={format} onChange={(e) => setFormat(e.target.value as 'zip' | 'excel')}>
           <option value="zip">{t('ZIP (papkalar)')}</option><option value="excel">{t('Bitta Excel')}</option>
@@ -183,6 +219,7 @@ export function HujjatPaket(p: { kompaniyaId: number; tashkilot?: string | null;
           {baho.token == null ? t('Token: narx hisoblanmoqda') : baho.token === 0 ? t('Bepul (to‘langan)') : t('Token: ≈ {n} ({k} ta yangi hujjat)', { n: baho.token, k: baho.tolanadigan })}
           {yuklanmagan > 0 ? ` · ${t('+{n} ta ro‘yxatda ko‘rinmagan (yuklashda aniqlanadi)', { n: yuklanmagan })}` : ''}
         </span>
+        <button type="button" className="fz-btn" disabled={!!jarayon || !tanlov.size} onClick={() => void tayyorlaTugma()}>{t('Tayyorlash')}</button>
         <button type="button" className="fz-btn fz-btn--primary" disabled={!!jarayon || !tanlov.size} onClick={() => void yuklabOl()}>
           <Download size={14} /> {jarayon ? t('Yig‘ilmoqda {j}', { j: jarayon }) : `${t('Yuklab olish')} (${tanlov.size}) — ${format === 'zip' ? 'ZIP' : 'Excel'}`}
         </button>

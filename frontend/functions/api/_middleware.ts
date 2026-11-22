@@ -4,6 +4,7 @@ import { SCOPED_APIS, requestPermission, yopiqModul } from '../_shared/permissio
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { webGate } from '../_shared/mobil-bilet';
 import { qulfDarvoza } from '../_shared/qulf-darvoza';
+import { fondaYangila } from '../_shared/hujjat-fon';
 
 type Env = { SUPABASE_URL:string; SUPABASE_KEY:string; SESSIYA_KALIT:string };
 const positive = (v:unknown) => Number.isSafeInteger(Number(v)) && Number(v)>0 ? Number(v) : null;
@@ -91,6 +92,8 @@ export const onRequest: PagesFunction<Env> = async ctx => {
   const gate = await webGate(ctx.request, ctx.env).catch(() => ({ deny: true as const }));
   if (gate?.deny) return Response.json({ ok: false, code: 'AUTH_REQUIRED', error: 'Tizimga qayta kiring.' }, { status: 401, headers: { 'Cache-Control': 'no-store' } });
   const res = await inner(ctx);
+  // «Hujjat doim tayyor»: javob qaytgach fonda navbatdan bitta hujjat (functions/_shared/hujjat-fon.ts). Javobga ta'sir qilmaydi.
+  fondaYangila(ctx as never, new URL(ctx.request.url).pathname.split('/').filter(Boolean).at(-1) || '', res.status);
   if (!gate || !gate.refresh) return res;
   const h = new Headers(res.headers); h.append('Set-Cookie', gate.refresh);
   return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h });

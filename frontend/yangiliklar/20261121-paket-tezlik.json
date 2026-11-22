@@ -1,0 +1,11 @@
+{
+  "sana": "2026-11-21",
+  "sarlavha": "Hujjatlar paketi tezroq va aniqroq: har obyekt uchun holat ko'rinadi",
+  "bandlar": [
+    "Paket yig'ilayotganda Disk, tayyor hujjatlar va qayta yasalayotganlar bir vaqtda olinadi - avvalgidan ancha tez.",
+    "Paketdan keyin har obyekt bo'yicha: nechta hujjat tayyor edi, nechtasi hozir yangilandi, nechtasi eski versiya va qaysilari nima uchun kirmadi - ko'rinadi.",
+    "Diskda tayyor va to'langan F-2 paketga qayta yasalmasdan, to'g'ridan-to'g'ri olinadi; fayl nomida .xlsx kengaytmasi doim bo'ladi.",
+    "Yangi «Tayyorlash» tugmasi: eskirgan hujjatlar serverda oldindan yangilanadi (yuklab olishdan oldin avtomatik ham ishlaydi).",
+    "Token yetmay qolsa yoki tarmoq uzilsa hujjat jim tashlanmaydi: sababi yoziladi, vaqtinchalik xato bir marta qayta uriladi."
+  ]
+}

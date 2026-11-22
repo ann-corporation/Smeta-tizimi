@@ -13,6 +13,7 @@ import { normAnswer, normReference } from './normative';
 import { resolveJarvisObject, type JarvisObjectScope, type JarvisReadRpc } from './object-scope';
 import { priceRowAnswer, priceRowIntent, priceSearchAnswer, priceSearchIntent } from './prices';
 import { jarvisText } from './reply-language';
+import { transportAnswer, transportIntent } from './transport';
 import { warehouseAnswer, warehouseIntent } from './warehouse';
 
 type Answer = { javob: string; rad?: boolean; dalil?: unknown; sahifalar?: Array<{ yol: string; nom: string }> };
@@ -27,6 +28,7 @@ const parsers = {
   norm_reference: normReference, catalog_price: catalogIntent, f2_register: f2RegisterIntent,
   cumulative: cumulativeIntent, discrepancy: (q: string) => discrepancyIntent(q) || null,
   warehouse_balance: warehouseIntent, document_search: documentIntent,
+  transport_tekshir: (q: string) => transportIntent(q) || null,
 } satisfies Record<JarvisToolName, (query: string) => unknown>;
 
 export function readToolCall(name: JarvisToolName, query: string): LocalCall | null {
@@ -80,6 +82,7 @@ export function jarvisReadTools(env: JarvisEnv, scope: JarvisObjectScope, men: R
         case 'norm_reference': answer = await normAnswer(env, actor, company, args as string, men, text); break;
         case 'catalog_price': answer = typeof args === 'number' ? await priceRowAnswer(env.R2_CANONICAL, args, text)
           : await priceSearchAnswer(env.R2_CANONICAL, args as NonNullable<ReturnType<typeof priceSearchIntent>>, text); break;
+        case 'transport_tekshir': answer = await transportAnswer(rpc, scope, men); break;
         case 'document_search': answer = await documentAnswer(rpc, scope, args as NonNullable<ReturnType<typeof documentIntent>>, men); break;
       }
     } catch { answer = unavailable; error = 'SOURCE_UNAVAILABLE'; }
