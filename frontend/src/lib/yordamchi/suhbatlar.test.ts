@@ -34,3 +34,9 @@ describe('Jarvis suhbatlari (ixcham arxiv)', () => {
     m.set('buzuq', '{x'); expect(suhbatOqi('buzuq', st, NOW)).toEqual([]);
   });
 });
+
+it('missing storage adapter never falls back to global plaintext browser storage', () => {
+ const key='jarvis-no-implicit-plain',legacy=JSON.stringify([{id:'sentinel',sarlavha:'Old',yangilandi:Date.now(),xabarlar:[]}]);localStorage.setItem(key,legacy);
+ suhbatYoz(key,[]);expect(localStorage.getItem(key)).toBe(legacy);expect(suhbatOqi(key)).toEqual([]);
+ localStorage.removeItem(key);
+});

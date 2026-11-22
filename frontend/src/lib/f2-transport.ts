@@ -9,7 +9,7 @@
  */
 
 /** t·km qatori nomi oldidagi belgi (hujjatda materialning tagida ko'rinadi). */
-export const TKM_PREFIKS = '↳ ТРАНСПОРТ: ';
+export const TKM_PREFIKS = 'ТРАНСПОРТ: '; // egasi 2026-11-21: strelka kerak emas
 
 /** Transport maydonlari (`t2_qator`). */
 export type TransportMaydon = {
@@ -42,10 +42,11 @@ const fmtSom = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximu
  */
 export function tkmSarlavha(ozNom: string, o: { material?: string | null; zichlik?: unknown; km?: unknown; narx?: number | null }): string {
   const z = son(o.zichlik); const km = son(o.km);
-  const bor = (s: string) => (s.startsWith('↳') ? s : TKM_PREFIKS + s);
+  // Eski nom «↳ ТРАНСПОРТ: …» bo'lsa strelka olib tashlanadi; prefiks ikki marta qo'shilmaydi.
+  const bor = (s: string) => { const x = s.replace(/^\s*↳\s*/, ''); return /^ТРАНСПОРТ/i.test(x) ? x : TKM_PREFIKS + x; };
   if (!o.material?.trim() || z == null || km == null) return bor(ozNom);
   const qisqa = o.material.trim().replace(/\s+/g, ' ');
-  const mat = qisqa.length > 40 ? `${qisqa.slice(0, 39)}…` : qisqa;
+  const mat = qisqa; // egasi 2026-11-21: nom TO'LIQ yoziladi («…» bilan kesilmaydi)
   const zt = z === 1 ? '1 т' : `${fmt.format(z)} т/м³`;
   const narx = o.narx != null && Number.isFinite(o.narx) ? ` × ${fmt.format(o.narx)} сум/т·км` : '';
   return `${TKM_PREFIKS}${mat} — ${zt} × ${fmt.format(km)} км${narx}`;

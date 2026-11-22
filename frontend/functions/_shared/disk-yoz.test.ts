@@ -108,3 +108,32 @@ describe('diskArxivla (server yasagan hujjat)', () => {
     jurnal.mockRestore();
   });
 });
+describe('diskArxivla - qotgan band operatsiya (prod 2026-11-21)', () => {
+  it('CANONICAL_HASH_MISMATCH: bir marta baytlar xeshi bilan yangi operatsiya, hujjat Diskka yoziladi', async () => {
+    const ops: string[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (u: string, init?: RequestInit) => {
+      const nom = String(u).split('/rpc/')[1]; const a = JSON.parse(String(init?.body ?? '{}'));
+      if (nom === 't2_document_canonical_reserve_v1') { ops.push(a.p_operation_id); return Response.json({ ok: true, document_id: ops.length === 1 ? 5 : 6, r2_key: 'k' + ops.length, canonical_storage_status: 'reserved' }); }
+      if (nom === 't2_document_canonical_finalize_v1') return Response.json(a.p_operation_id === ops[0] ? { ok: false, code: 'CANONICAL_HASH_MISMATCH' } : { ok: true });
+      return Response.json({ ok: true, fayl_id: 3, raqam: 2, yangi: false });
+    }));
+    const jurnal = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const r = await diskArxivla(env(r2().bucket) as never, base);
+    expect(r).toMatchObject({ ok: true, documentId: 6 });
+    expect(ops).toHaveLength(2);
+    expect(ops[1]).not.toBe(ops[0]);
+    jurnal.mockRestore();
+  });
+  it('boshqa xato - qayta urinilmaydi', async () => {
+    const ops: string[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (u: string, init?: RequestInit) => {
+      const nom = String(u).split('/rpc/')[1]; const a = JSON.parse(String(init?.body ?? '{}'));
+      if (nom === 't2_document_canonical_reserve_v1') { ops.push(a.p_operation_id); return Response.json({ ok: false, code: 'KVOTA_TUGADI' }); }
+      return Response.json({ ok: true });
+    }));
+    const jurnal = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(await diskArxivla(env(r2().bucket) as never, base)).toEqual({ ok: false, code: 'KVOTA_TUGADI' });
+    expect(ops).toHaveLength(1);
+    jurnal.mockRestore();
+  });
+});

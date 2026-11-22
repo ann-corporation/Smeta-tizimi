@@ -19,7 +19,7 @@ describe('f2-transport: sof yordamchilar', () => {
     expect(tkmSarlavha('X', { material: 'ГПС', zichlik: 1.5, km: 14.5, narx: 1227.1 })).toBe(`${TKM_PREFIKS}ГПС — 1,5 т/м³ × 14,5 км × 1${'\u00a0'}227,1 сум/т·км`);
     expect(tkmSarlavha('X', { material: 'ЩЕБЕНЬ', zichlik: 1, km: 10, narx: 5 })).toContain('— 1 т × 10 км');
     expect(tkmSarlavha('Т-1', {})).toBe(`${TKM_PREFIKS}Т-1`);
-    expect(tkmSarlavha('↳ ТРАНСПОРТ Т·КМ: Q', {})).toBe('↳ ТРАНСПОРТ Т·КМ: Q');
+    expect(tkmSarlavha('↳ ТРАНСПОРТ Т·КМ: Q', {})).toBe('ТРАНСПОРТ Т·КМ: Q');
   });
 
   it('transportTartib: t·km qatori materialining to\'g\'ridan-to\'g\'ri tagiga; qolgan tartib saqlanadi', () => {

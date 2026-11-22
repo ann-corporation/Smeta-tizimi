@@ -4086,6 +4086,36 @@
         "docs/architecture/JARVIS_TASK.md"
       ],
       "note": "L0 expanded LANE-1, existing named task writer only. Signed preview then explicit actor/company-bound confirmation, existing operation idempotency and audit; no DB/main/prod writes. Core/channel wiring next bounded PR."
+    },
+    {
+      "id": "JARVIS-M2-WEB-CACHE-20261122",
+      "title": "Encrypt browser conversation cache using existing outbox crypto store",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/jarvis-encrypted-web-cache",
+      "base_sha": "b0c53115922761f6bdf86bd99f97d270867e2ed2",
+      "status": "ready_for_review",
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md"
+      ],
+      "production_write_allowed": false,
+      "owns": [
+        "frontend/src/lib/jarvis/conversation-cache.ts",
+        "frontend/src/lib/yordamchi/suhbatlar.ts",
+        "frontend/src/lib/yordamchi/suhbatlar.test.ts",
+        "frontend/src/lib/jarvis/conversation-cache.test.ts",
+        "frontend/src/lib/jarvis/conversation-outbox.ts",
+        "frontend/src/umumiy/ui/AiChat.tsx",
+        "frontend/src/umumiy/ui/AiChat.conversations.test.tsx",
+        "frontend/src/umumiy/ui/AiChat.cache.test.tsx",
+        "frontend/src/i18n/lugat/qism/jarvis-cache.json",
+        "android-native/shared/src/main/resources/site-i18n/ru.json",
+        "android-native/shared/src/main/resources/site-i18n/en.json",
+        "docs/architecture/JARVIS_CACHE.md"
+      ],
+      "note": "L0 expanded AI lane. Separate encrypted cache keys; pending outbox untouched, migrate/delete legacy only after verified encrypted commit. No main/prod/DB writes."
     }
   ]
 }
