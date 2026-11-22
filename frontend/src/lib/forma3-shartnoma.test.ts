@@ -309,8 +309,17 @@ describe('Forma 3 shartnoma — etalon shakli: har obyekt alohida varaq, summa a
   }
   const obs = () => { const o = ikkiObyekt(); const a = akt(12, '2026-03', 2_000_000, 2_300_000, 276_000); o[0] = { ...o[0], davrAktlari: [a], aktlarJami: [a] }; return o; };
 
-  it('sukut (egasi 2026-11-23, real F-3): BITTA varaq, bitta «1. ИТОГО ПО ОБЪЕКТУ» bloki, гр.6 = shartnoma summasi', async () => {
-    const j = forma3ShartnomaHujjat(obs(), { davr: '2026-03', shartnomaRaqam: 'T-1', shartnomaSumma: 30_000_000 });
+  it('sukut (egasi 2026-11-23): BITTA varaq — har obyekt bloki (QQS siz / QQS / QQS bilan) va oxirida «ИТОГО ПО ОБЪЕКТУ»', async () => {
+    const b = forma3ShartnomaHujjat(obs(), { davr: '2026-03', shartnomaRaqam: 'T-1', shartnomaSumma: 30_000_000 });
+    const kb = await yukla(b.bytes);
+    expect(kb.worksheets.filter((w) => w.name.startsWith('СЧЁТ-ФАКТ.')).length).toBe(1);
+    const m: string[] = []; kb.worksheets[0].eachRow((row) => row.eachCell((c) => { if (typeof c.value === 'string') m.push(c.value); }));
+    expect(m.filter((x) => x === 'ВСЕГО ПО ПОДОБЪЕКТУ').length).toBe(obs().length);
+    expect(m.some((x) => /^\d+\. ИТОГО ПО ОБЪЕКТУ$/.test(x))).toBe(true);
+  });
+
+  it('jami rejimi: BITTA varaq, bitta «1. ИТОГО ПО ОБЪЕКТУ» bloki, гр.6 = shartnoma summasi', async () => {
+    const j = forma3ShartnomaHujjat(obs(), { varaqRejim: 'jami', davr: '2026-03', shartnomaRaqam: 'T-1', shartnomaSumma: 30_000_000 });
     const kitob = await yukla(j.bytes);
     expect(kitob.worksheets[0].name).toBe('СЧЁТ-ФАКТ.');
     expect(kitob.worksheets.filter((w) => w.name.startsWith('СЧЁТ-ФАКТ.')).length).toBe(1);

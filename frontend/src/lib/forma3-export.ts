@@ -1518,7 +1518,7 @@ export function forma3ShartnomaHujjat(obyektlar: ReadonlyArray<Forma3ShartnomaOb
   const kop = y.obyektlar.length > 1;
 
   // Etalon shakli: har obyekt ALOHIDA varaqda (o'z nomi, bloki, imzosi), oxirida jamlama varaq «ИТОГО ПО ДОГОVORУ». `bitta` — hamma obyekt bitta varaqda.
-  const rejim = o.varaqRejim ?? 'jami';
+  const rejim = o.varaqRejim ?? 'bitta';
   const alohida = kop && rejim === 'alohida';
   const jamiRejim = kop && rejim === 'jami';
   const dizayn = f3EtalonDizayn();
