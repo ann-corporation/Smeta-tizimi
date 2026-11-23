@@ -467,9 +467,9 @@ export const qoshimchaIsh = tool({
   nom: 'qoshimcha_ish',
   tavsif: 'Qo\'shimcha (smetadan tashqari) ish + resurslari (t2_ish_abc_saqla_v1, command additional): `ish {nom, birlik, hajm, kod?}`, '
     + '`resurslar [{nom, birlik, kat?, norma? (ish birligiga) | hajm?, narx?, narx_manba?, kod?}]` (≤60; norma bo\'lsa rs, aks holda mat/ob), ixtiyoriy `fakt_hajm` + `sana`. '
-    + '`ota_qator_id` berilmasa — «СМЕТАДАН ТАШҚАРИ ИШЛАР» bo\'limiga. `sabab` majburiy. Preview: taxminiy summa.',
+    + 'Faol ota bo‘lim (ota_qator_id) va sabab majburiy. Bo‘lim noma’lum bo‘lsa foydalanuvchidan tanlov oling.',
   kirish: {
-    obyekt_id: obyektIdS, ota_qator_id: z.number().int().positive().optional(),
+    obyekt_id: obyektIdS, ota_qator_id: z.number().int().positive(),
     ish: z.object({ nom: z.string().min(1).max(1000), birlik: z.string().min(1).max(50), hajm: z.number().positive(), kod: z.string().max(100).optional() }),
     resurslar: z.array(z.object({
       nom: z.string().min(1).max(1000), birlik: z.string().min(1).max(50), kat: z.enum(KAT).optional(), norma: z.number().positive().optional(), hajm: z.number().positive().optional(),
@@ -483,14 +483,14 @@ export const qoshimchaIsh = tool({
     for (const [i, r] of (a.resurslar ?? []).entries()) if (r.norma == null && r.hajm == null) throw new Error(`resurs ${i + 1}: norma yoki hajm kerak`);
     return mu.yozish({ tool: 'qoshimcha_ish', args: a, dryRun: dry, obyektId: a.obyekt_id, izoh: a.ish.nom.slice(0, 100) }, async (m) => {
       const ob = await obyektBormi(m, a.obyekt_id);
-      let versiya: number | null = null;
-      if (a.ota_qator_id) {
-        const o = (await m.query<{ versiya: number; tur: string }>('select versiya, tur from public.t2_qator where id = $1 and obyekt_id = $2', [a.ota_qator_id, a.obyekt_id])).rows[0];
-        if (!o) throw new Error(`ota qator #${a.ota_qator_id} bu obyektda yo'q`);
-        versiya = Number(o.versiya);
-      }
+      const parent = (await m.query<{ versiya: number }>(
+        "select versiya from public.t2_qator where id = $1 and obyekt_id = $2 and tur = 'rz' and versiya_holat = 'faol'",
+        [a.ota_qator_id, a.obyekt_id],
+      )).rows[0];
+      if (!parent) throw new Error('PARENT_SECTION_REQUIRED — shu obyektning faol bo‘limini tanlang');
+      const versiya = Number(parent.versiya);
       const res = await rpcOk(m, 't2_ish_abc_saqla_v1', {
-        p_actor_id: aktor, p_kompaniya_id: Number(ob.kompaniya_id), p_obyekt_id: a.obyekt_id, p_command: 'additional', p_ota_qator_id: a.ota_qator_id ?? null,
+        p_actor_id: aktor, p_kompaniya_id: Number(ob.kompaniya_id), p_obyekt_id: a.obyekt_id, p_command: 'additional', p_ota_qator_id: a.ota_qator_id,
         p_almashtirilayotgan_qator_id: null, p_ish: a.ish, p_resurslar: a.resurslar ?? [], p_fakt_hajm: a.fakt_hajm ?? null, p_sana: a.sana ?? null,
         p_sabab: a.sabab, p_operation_id: a.operation_id ?? randomUUID(), p_kutilgan_versiya: versiya,
       }, aktor);

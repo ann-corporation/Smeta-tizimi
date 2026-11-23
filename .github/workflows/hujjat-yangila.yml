@@ -26,9 +26,9 @@ jobs:
       - name: Navbatni ishlash
         run: |
           if [ -z "$BILDIRISHNOMA_CRON_KALIT" ] || [ -z "$PROD_URL" ]; then
-            echo "BILDIRISHNOMA_CRON_KALIT yoki PROD_URL sozlanmagan - o'tkazib yuborildi."; exit 0
+            echo "BILDIRISHNOMA_CRON_KALIT yoki PROD_URL sozlanmagan - tick bajarilmadi."; exit 1
           fi
           code=$(curl -sS -o resp.json -w '%{http_code}' -X POST "$PROD_URL/api/hujjat-yangila-tick" \
-            -H 'Content-Type: application/json' -H "X-Cron-Kalit: $BILDIRISHNOMA_CRON_KALIT" --data '{}' --max-time 60 || echo 000)
+            -H 'Content-Type: application/json' -H "X-Cron-Kalit: $BILDIRISHNOMA_CRON_KALIT" --data '{}' --max-time 60 || exit 1)
           echo "HTTP $code"; head -c 300 resp.json; echo
-          if [ "$code" != "200" ]; then echo "::warning::hujjat-yangila muvaffaqiyatsiz (HTTP $code)"; fi
+          if [ "$code" != "200" ]; then echo "::warning::hujjat-yangila muvaffaqiyatsiz (HTTP $code)"; exit 1; fi

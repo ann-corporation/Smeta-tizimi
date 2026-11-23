@@ -35,6 +35,8 @@ export type YangilaDeps = {
 };
 export type IshlaNatija = { korildi: number; yangilandi: number; otkazildi: number; xato: number; xatolar: string[] };
 
+class FinishUnconfirmed extends Error {}
+
 const qisqa = (e: unknown): string => (e instanceof Error ? e.message : String(e)).slice(0, 200);
 
 /** Muddati kelgan navbatni ishlaydi. `byudjetMs` - umumiy vaqt chegarasi (Worker so'rov limiti); undan oshsa qolganlari navbatda qoladi (keyingi tick). */
@@ -45,11 +47,13 @@ export async function navbatniIshla(d: YangilaDeps, o: { limit?: number; byudjet
   const n: IshlaNatija = { korildi: qatorlar.length, yangilandi: 0, otkazildi: 0, xato: 0, xatolar: [] };
   for (const q of qatorlar) {
     if (o.byudjetMs != null && hozir() - boshi > o.byudjetMs) { await d.tugat(q.id, 'xato', 'VAQT_BUDJETI', null); n.xato++; continue; }
+    let phase = 'generate';
     try {
       if (boshqaTurMi(q.tur) && d.yasaBoshqa && d.yozBoshqa) {
         if (!q.aktor_id) { await d.tugat(q.id, 'xato', 'AKTOR_YOQ', null); n.xato++; n.xatolar.push(`${q.tur}#${q.manba_id}: AKTOR_YOQ`); continue; }
         const b = await d.yasaBoshqa(q as NavbatQator & { tur: BoshqaTur });
         if (!b.arxivla) { await d.tugat(q.id, 'otkazildi', 'arxivlanmaydi', null); n.otkazildi++; continue; }
+        phase = 'archive';
         const rb = await d.yozBoshqa(q, b);
         if (!rb.ok || !rb.disk.ok) {
           const kod = !rb.ok ? rb.code : (rb.disk as { code?: string }).code ?? 'DISK_XATO';
@@ -61,6 +65,7 @@ export async function navbatniIshla(d: YangilaDeps, o: { limit?: number; byudjet
       if (!q.aktor_id || !q.obyekt_id) { await d.tugat(q.id, 'xato', 'AKTOR_YOQ', null); n.xato++; n.xatolar.push(`#${q.manba_id}: AKTOR_YOQ`); continue; }
       const t = await d.yasaF2(q);
       if (!t.arxivla || !f2DiskkaArxivlansinmi(t.akt)) { await d.tugat(q.id, 'otkazildi', 'bekor_yoki_taxminiy', null); n.otkazildi++; continue; }
+      phase = 'archive';
       const r = await d.yoz(q, t);
       if (!r.ok || !r.disk.ok) {
         const kod = !r.ok ? r.code : (r.disk as { code?: string }).code ?? 'DISK_XATO';
@@ -68,6 +73,9 @@ export async function navbatniIshla(d: YangilaDeps, o: { limit?: number; byudjet
       }
       await d.tugat(q.id, 'ok', null, r.disk.versiya); n.yangilandi++;
     } catch (e) {
+      if (e instanceof FinishUnconfirmed) { n.xato++; n.xatolar.push(`#${q.manba_id}: FINISH_UNCONFIRMED`); continue; }
+      console.error(JSON.stringify({ hujjat_yangila: 'job_failed', queue_id: q.id, manba_id: q.manba_id,
+        kompaniya_id: q.kompaniya_id, tur: q.tur, phase, urinish: q.urinish }));
       // Akt endi yo'q / boshqa kompaniya / bekor: qayta urinish befoyda.
       if (e instanceof Rad && (e.code === 'AKT_TOPILMADI' || e.status === 404 || (boshqaTurMi(q.tur) && ['HUJJAT_BOSH', 'F3_HISOBLANMADI', 'PARAMETR_YOQ'].includes(e.code)))) { await d.tugat(q.id, 'otkazildi', e.code, null).catch(() => undefined); n.otkazildi++; continue; }
       await d.tugat(q.id, 'xato', qisqa(e), null).catch(() => undefined); n.xato++; n.xatolar.push(`#${q.manba_id}: ${qisqa(e)}`);
@@ -86,9 +94,18 @@ export function haqiqiyDeps(ctx: Ctx, o: { kompaniyaId?: number | null; turlar?:
     async ol(limit) {
       // v2: F-2 birinchi (og'ir ostatka/slichitelniy tez F-2 ni to'smaydi) + ixtiyoriy tur filtri (migratsiya 20270121000101).
       const r = await hmRpc(env, 't2_hujjat_yangila_ol_v2', { p_limit: limit, p_kompaniya: o.kompaniyaId ?? null, p_turlar: o.turlar?.length ? [...o.turlar] : null });
-      return r.httpOk && r.body?.ok ? (r.body.qatorlar as NavbatQator[]) : [];
+      if (!r.httpOk || r.body?.ok !== true || !Array.isArray(r.body.qatorlar)) throw new Error('NAVBAT_OL_RPC_XATO');
+      return r.body.qatorlar as NavbatQator[];
     },
-    async tugat(id, natija, xato, versiya) { await hmRpc(env, 't2_hujjat_yangila_tugat_v1', { p_id: id, p_natija: natija, p_xato: xato ?? null, p_versiya: versiya ?? null }); },
+    async tugat(id, natija, xato, versiya) {
+      try {
+        const r = await hmRpc(env, 't2_hujjat_yangila_tugat_v1', { p_id: id, p_natija: natija, p_xato: xato ?? null, p_versiya: versiya ?? null });
+        if (!r.httpOk || r.body?.ok !== true) throw new Error('NAVBAT_TUGAT_RPC_XATO');
+      } catch {
+        console.error(JSON.stringify({ hujjat_yangila: 'finish_unconfirmed', queue_id: id, natija }));
+        throw new FinishUnconfirmed();
+      }
+    },
     async yasaF2(q) {
       const origin = new URL(ctx.request.url).origin;
       const cookie = await imzola({ rol: 'pto', foydalanuvchi_id: q.aktor_id as number }, env.SESSIYA_KALIT);

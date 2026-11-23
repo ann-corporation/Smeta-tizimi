@@ -64,7 +64,11 @@ export async function aktQatorlariOl(obyektId: number, aktIdlar: readonly number
       jadval: 't2_akt_qator', filtr: `obyekt_id=eq.${obyektId}&akt_id=in.(${ids.slice(i, i + 100).join(',')})`,
       ustunlar: 'id,akt_id,qator_id,hajm,narx,summa,certified_quantity,certified_unit_price,certified_amount,raw_snapshot', limit: 200000,
     }, 'id');
-    if (!r.ok || r.toliq === false) throw new Error('AKT_QATOR_OQILMADI');
+    if (!r.ok || r.toliq === false) {
+      const code = r.code && /^[A-Z0-9_]{1,40}$/.test(r.code) ? r.code : undefined;
+      const detail = code ?? (r.ok ? 'INCOMPLETE' : undefined);
+      throw new Error(detail ? `AKT_QATOR_OQILMADI: ${detail}` : 'AKT_QATOR_OQILMADI');
+    }
     for (const q of r.qatorlar ?? []) {
       const l = out.get(q.akt_id);
       if (l) l.push(q); else out.set(q.akt_id, [q]);

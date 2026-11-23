@@ -15,10 +15,9 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (k === 'sozlanmagan') return Response.json({ ok: false, code: 'CRON_SOZLANMAGAN' }, { status: 503 });
   if (k === 'rad') return Response.json({ ok: false, code: 'RAD' }, { status: 403 });
   try {
-    const b = await ctx.request.json().catch(() => null) as { limit?: number } | null;
     const bf = await hmRpc(ctx.env, 't2_hujjat_yangila_backfill_v1', { p_oy: 3 });
-    const limit = Math.min(Math.max(Number(b?.limit) || 4, 1), 10);
-    const natija = await navbatniIshla(haqiqiyDeps(ctx), { limit, byudjetMs: 20_000 });
+    // Each scheduled invocation claims one document so a stopped worker leaves only one lease to recover.
+    const natija = await navbatniIshla(haqiqiyDeps(ctx), { limit: 1 });
     if (natija.xato > 0) console.error(JSON.stringify({ hujjat_yangila: 'xato', soni: natija.xato, xatolar: natija.xatolar.slice(0, 5) }));
     return Response.json({ ok: true, backfill: bf.body?.ok ? { qoshildi: bf.body.qoshildi, allaqachon: bf.body.allaqachon === true } : null, natija }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (e) {
