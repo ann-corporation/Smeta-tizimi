@@ -10,7 +10,7 @@ import { olish, qidir, SECURITY_META } from './chatgpt';
 import { Muhit } from '../../smeta-mcp/src/muhit';
 import type { Env, Props } from './env';
 import { hyperdriveHovuz } from './hovuz';
-import { MASOFAVIY_TOOLLAR, masofaviyChaqir, masofaviyKirish, masofaviyTavsif } from './siyosat';
+import { MASOFAVIY_TOOLLAR, OQISH, masofaviyChaqir, masofaviyKirish, masofaviyTavsif } from './siyosat';
 import { vakolatOl, type Vakolat } from './vakolat';
 import { f2Fayl } from './fayl';
 import { hujjatPaketMasofaviy, paketKirish } from './paket';
@@ -26,17 +26,23 @@ export const KORSATMA_MASOFAVIY = `${KORSATMA.replace(/ RPC aktori:.*$/, '')} Ak
   + 'Yozuvchi toollar standart dry_run:true; haqiqiy yozish — dry_run:false + tasdiq:true (foydalanuvchi roziligidan keyin). Domen qoidalari (`smeta://qoidalar` resursi bilan bir xil):\n\n'
   + QOIDALAR;
 
-export function masofaviyServer(mu: Muhit, v: Vakolat, sayt?: string, fayl?: { env: Env; origin: string }): McpServer {
-  const s = new McpServer({ name: 'smeta-remote', version: VERSIYA }, { instructions: KORSATMA_MASOFAVIY });
+export function masofaviyServer(mu: Muhit, v: Vakolat, sayt?: string, faqatOqish = false, fayl?: { env: Env; origin: string }): McpServer {
+  const s = new McpServer({ name: 'smeta-remote', version: VERSIYA }, { instructions: faqatOqish
+    ? `${KORSATMA.replace(/ RPC aktori:.*$/, '')} Aktor — tizim SSO sessiyasi; faqat joriy kompaniya. Faqat o'qish. smeta://qoidalar.` : KORSATMA_MASOFAVIY });
   s.registerResource('qoidalar', 'smeta://qoidalar', { title: 'QURAI domen qoidalari', description: 'NDS siz narx, ustamasiz/ustamali, asl smeta const, F2 narxi = max(smeta, xarid), dry_run/tasdiq.', mimeType: 'text/markdown' },
     async (uri) => ({ contents: [{ uri: uri.href, mimeType: 'text/markdown', text: QOIDALAR }] }));
-  for (const t of MASOFAVIY_TOOLLAR) {
+  for (const t of (faqatOqish ? OQISH.filter(t => !t.yozadi) : MASOFAVIY_TOOLLAR)) {
     s.registerTool(t.nom, {
       description: masofaviyTavsif(t),
       inputSchema: masofaviyKirish(t),
       annotations: { readOnlyHint: !t.yozadi, destructiveHint: t.yozadi, openWorldHint: false },
       _meta: SECURITY_META,
-    }, async (args: unknown) => masofaviyChaqir(t, mu, v, args));
+    }, async (args: unknown) => {
+      if (faqatOqish && args && typeof args === 'object' && 'narx_override' in args) {
+        return { isError: true, content: [{ type: 'text', text: 'SOURCE_ONLY: narx_override is not source evidence.' }] };
+      }
+      return masofaviyChaqir(t, mu, v, args);
+    });
   }
   // ChatGPT deep research / company knowledge: ikkita o'qish tooli (tenant doirasi mavjud toollar orqali).
   const ro = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
@@ -52,7 +58,7 @@ export function masofaviyServer(mu: Muhit, v: Vakolat, sayt?: string, fayl?: { e
     outputSchema: { id: z.string(), title: z.string(), text: z.string(), url: z.string(), metadata: z.record(z.string(), z.string()).optional() },
     annotations: ro, _meta: SECURITY_META,
   }, async ({ id }) => olish(id, mu, v, sayt));
-  if (fayl) {
+  if (fayl && !faqatOqish) {
     s.registerTool('f2_fayl', {
       title: 'F-2 Excel fayli',
       description: 'Rasmiy F-2 Excel fayli (sayt fonda tayyorlagan, Diskdagi eng yangi versiya) uchun 15 daqiqalik yuklab olish havolasi. '
@@ -72,7 +78,7 @@ export function masofaviyServer(mu: Muhit, v: Vakolat, sayt?: string, fayl?: { e
       _meta: SECURITY_META,
     }, async (a) => hujjatPaketMasofaviy(a, mu, v, fayl.env, fayl.origin));
   }
-  if (v.superadmin) {
+  if (v.superadmin && !faqatOqish) {
     // Superadmin: tizimning ichki tuzilishi va holatini ko'rish uchun xom o'qish (READ ONLY tranzaksiya, Postgres o'zi yozishni rad etadi).
     for (const t of [sqlOqish, sxema]) {
       s.registerTool(t.nom, {
@@ -120,16 +126,22 @@ export async function mcpFetch(request: Request, env: Env, ctx: McpCtx): Promise
   if (request.method !== 'POST') return jsonXato(405, 'Faqat POST (Streamable HTTP, stateless).');
   const props = ctx.props;
   if (!props?.foydalanuvchi_id) return jsonXato(401, 'Kirish talab qilinadi.');
-  const rl = await env.MCP_RATE.limit({ key: `u:${props.foydalanuvchi_id}` });
+  return mcpVakolatFetch(request, env, ctx, props.foydalanuvchi_id, () => vakolatOl(props, env));
+}
+
+/** Shared authenticated runtime: same limits, SDK, tools and deferred cleanup for OAuth and SSO. */
+export async function mcpVakolatFetch(request: Request, env: Env, ctx: Pick<McpCtx, 'waitUntil'>,
+  aktor: number, vakolat: () => Promise<Vakolat | null>, faqatOqish = false): Promise<Response> {
+  const rl = await env.MCP_RATE.limit({ key: `u:${aktor}` });
   if (!rl.success) return jsonXato(429, 'Juda ko\'p so\'rov — bir daqiqadan so\'ng qayta urinib ko\'ring.');
   const tana = await tanaOqi(request);
   if (tana == null) return jsonXato(413, `So'rov hajmi ${SOROV_MAX} baytdan katta.`);
-  const v = await vakolatOl(props, env);
+  const v = await vakolat();
   if (!v) return jsonXato(403, 'Hisob faol emas yoki vakolatni tekshirib bo\'lmadi — tizimga qayta ulaning (connector qayta avtorizatsiya).');
   const t = Number(env.SMETA_MCP_TIMEOUT_MS);
   const mu = new Muhit({ dbUrl: null, aktorId: v.foydalanuvchiId, auditFayl: null, dbRol: null, timeoutMs: Number.isFinite(t) && t > 0 ? t : 25_000, sslVerify: false },
     () => hyperdriveHovuz(env.HYPERDRIVE.connectionString));
-  const server = masofaviyServer(mu, v, env.SAYT_URL, { env, origin: new URL(request.url).origin });
+  const server = masofaviyServer(mu, v, env.SAYT_URL, faqatOqish, faqatOqish ? undefined : { env, origin: new URL(request.url).origin });
   const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   try {
     await server.connect(transport);
