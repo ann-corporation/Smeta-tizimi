@@ -9,7 +9,7 @@ import type { Muhit } from '../../smeta-mcp/src/muhit';
 import type { ToolJavob } from '../../smeta-mcp/src/tool';
 import { paketReja, qoidaBilanAjrat, TUR_NOMI, type Nomzod } from '../../smeta-mcp/src/frontend';
 import type { Env } from './env';
-import { HAVOLA_TTL, kengaytmali, YUKLA_YO_L } from './fayl';
+import { f2ExportStatus, HAVOLA_TTL, kengaytmali, YUKLA_YO_L } from './fayl';
 import { oqishMumkin, type Vakolat } from './vakolat';
 
 const OY = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -40,6 +40,17 @@ export async function hujjatPaketMasofaviy(a: Kirish, mu: Muhit, v: Vakolat, env
   const r = await mu.oqish(async (m) => (await m.query<{ r: { ok: boolean; code?: string; nomzodlar?: Nomzod[]; jami?: number; kesilgan?: boolean } }>(
     'select public."t2_hujjat_paket_nomzod_v1"($1::bigint, $2::bigint, $3::jsonb) as r', [v.foydalanuvchiId, a.kompaniya_id, JSON.stringify(filtr)])).rows[0]?.r);
   if (!r?.ok || !r.nomzodlar) return matn(`${r?.code ?? 'NOMZOD_OQILMADI'}: nomzodlar o'qilmadi.`, true);
+  const ids = [...new Set(r.nomzodlar.filter(n => n.tur === 'f2' && n.akt_id != null).map(n => n.akt_id))];
+  const fresh = ids.length ? await mu.oqish(async m => (await m.query<{ id: number; j: Record<string, unknown> }>(
+    'select id, public.t2_hujjat_tayyor_ol_v1($1, $2, id) as j from unnest($3::bigint[]) as ids(id)',
+    [v.foydalanuvchiId, a.kompaniya_id, ids],
+  )).rows) : [];
+  const byId = new Map(fresh.map(row => [Number(row.id), row.j]));
+  for (const n of r.nomzodlar) {
+    if (n.tur !== 'f2') continue;
+    const j = byId.get(Number(n.akt_id));
+    if (!j || f2ExportStatus(j) !== 'current' || j.fayl_id !== n.fayl_id || j.versiya !== n.versiya) n.yasash = true;
+  }
   const { yaroqli, rad } = qoidaBilanAjrat(r.nomzodlar);
   const reja = paketReja(r.nomzodlar, new Set(yaroqli.map((n) => n.kalit)));
   const qisqa = (n: Nomzod) => ({ tur: TUR_NOMI[n.tur] ?? n.tur, sarlavha: n.sarlavha, obyekt: n.obyekt_nom, oy: n.oy, holat: n.holat });
@@ -54,14 +65,17 @@ export async function hujjatPaketMasofaviy(a: Kirish, mu: Muhit, v: Vakolat, env
     return matn({ rejim: 'preview — hech narsa yuklanmadi. ZIP havola uchun havola:true.', ...natija,
       eslatma: reja.yasash.length ? 'Diskda yo\'q yoki eskirgan hujjatlarni sayt fonda yangilaydi (bir necha daqiqa) yoki saytdagi «Hujjatlar paketi»dan yasaladi.' : undefined });
   }
-  const tanlov = reja.diskdan.slice(0, PAKET_MAX_FAYL);
+  if (reja.yasash.length || r.kesilgan || reja.diskdan.length > PAKET_MAX_FAYL) {
+    return matn({ rejim: 'havola', ...natija, kod: 'PAKET_TOLIQ_EMAS' });
+  }
+  const tanlov = reja.diskdan;
   if (!tanlov.length) return matn({ rejim: 'havola', ...natija, xato: 'Diskda tayyor fayl yo\'q — paket bo\'sh. Saytdagi «Hujjatlar paketi»dan foydalaning yoki birozdan so\'ng qayta so\'rang.' });
   const fayllar: Array<{ kalit: string; nom: string }> = [];
   const nomlar = new Set<string>();
   await mu.yozish({ tool: 'hujjat_paket', args: { kompaniya_id: a.kompaniya_id, soni: tanlov.length }, dryRun: false, snapshot: false }, async (m) => {
     for (const n of tanlov) {
       if (n.fayl_id == null) continue;
-      const y = (await m.query<{ j: Record<string, unknown> }>('select public.t2_hm_yuklab_v1($1, $2, $3) as j', [v.foydalanuvchiId, n.fayl_id, null])).rows[0]?.j;
+      const y = (await m.query<{ j: Record<string, unknown> }>('select public.t2_hm_yuklab_v1($1, $2, $3) as j', [v.foydalanuvchiId, n.fayl_id, n.versiya])).rows[0]?.j;
       if (!y || y.ok !== true || !y.kalit) continue;
       const papka = faylNomi(TUR_NOMI[n.tur] ?? String(n.tur));
       let nom = `${papka}/${kengaytmali(faylNomi(String(y.nom || n.sarlavha)), y.mime)}`;
@@ -69,7 +83,7 @@ export async function hujjatPaketMasofaviy(a: Kirish, mu: Muhit, v: Vakolat, env
       nomlar.add(nom); fayllar.push({ kalit: String(y.kalit), nom });
     }
   });
-  if (!fayllar.length) return matn({ rejim: 'havola', ...natija, xato: 'Disk fayllarini olib bo\'lmadi. Birozdan so\'ng qayta urinib ko\'ring.' }, true);
+  if (fayllar.length !== tanlov.length) return matn({ rejim: 'havola', ...natija, xato: 'Disk fayllarini olib bo\'lmadi. Birozdan so\'ng qayta urinib ko\'ring.' }, true);
   const kod = crypto.getRandomValues(new Uint8Array(32)).reduce((s, x) => s + x.toString(16).padStart(2, '0'), '');
   const oy = a.oy_dan && a.oy_gacha && a.oy_dan === a.oy_gacha ? `_${a.oy_dan}` : '';
   await env.OAUTH_KV.put(`yukla:${kod}`, JSON.stringify({ zip: true, nom: `Hujjatlar_paketi${oy}.zip`, fayllar, aktor: v.foydalanuvchiId }), { expirationTtl: HAVOLA_TTL });

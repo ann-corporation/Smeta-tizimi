@@ -121,7 +121,8 @@ export async function yuklaGet(req: Request, env: Env): Promise<Response> {
     const ich: Record<string, Uint8Array> = {};
     for (const f of y.fayllar) {
       const o = await env.SNAPSHOT_R2.get(f.kalit);
-      if (o) ich[f.nom] = new Uint8Array(await o.arrayBuffer());
+      if (!o) return new Response('Paket fayllaridan biri topilmadi.', { status: 409 });
+      ich[f.nom] = new Uint8Array(await o.arrayBuffer());
     }
     if (!Object.keys(ich).length) return new Response('Fayllar topilmadi.', { status: 404 });
     tana = zipSync(ich, { level: 0 }); mime = 'application/zip';

@@ -35,6 +35,8 @@ export type YangilaDeps = {
 };
 export type IshlaNatija = { korildi: number; yangilandi: number; otkazildi: number; xato: number; xatolar: string[] };
 
+class FinishUnconfirmed extends Error {}
+
 const qisqa = (e: unknown): string => (e instanceof Error ? e.message : String(e)).slice(0, 200);
 
 /** Muddati kelgan navbatni ishlaydi. `byudjetMs` - umumiy vaqt chegarasi (Worker so'rov limiti); undan oshsa qolganlari navbatda qoladi (keyingi tick). */
@@ -68,6 +70,7 @@ export async function navbatniIshla(d: YangilaDeps, o: { limit?: number; byudjet
       }
       await d.tugat(q.id, 'ok', null, r.disk.versiya); n.yangilandi++;
     } catch (e) {
+      if (e instanceof FinishUnconfirmed) { n.xato++; n.xatolar.push(`#${q.manba_id}: FINISH_UNCONFIRMED`); continue; }
       // Akt endi yo'q / boshqa kompaniya / bekor: qayta urinish befoyda.
       if (e instanceof Rad && (e.code === 'AKT_TOPILMADI' || e.status === 404 || (boshqaTurMi(q.tur) && ['HUJJAT_BOSH', 'F3_HISOBLANMADI', 'PARAMETR_YOQ'].includes(e.code)))) { await d.tugat(q.id, 'otkazildi', e.code, null).catch(() => undefined); n.otkazildi++; continue; }
       await d.tugat(q.id, 'xato', qisqa(e), null).catch(() => undefined); n.xato++; n.xatolar.push(`#${q.manba_id}: ${qisqa(e)}`);
@@ -86,9 +89,18 @@ export function haqiqiyDeps(ctx: Ctx, o: { kompaniyaId?: number | null; turlar?:
     async ol(limit) {
       // v2: F-2 birinchi (og'ir ostatka/slichitelniy tez F-2 ni to'smaydi) + ixtiyoriy tur filtri (migratsiya 20270121000101).
       const r = await hmRpc(env, 't2_hujjat_yangila_ol_v2', { p_limit: limit, p_kompaniya: o.kompaniyaId ?? null, p_turlar: o.turlar?.length ? [...o.turlar] : null });
-      return r.httpOk && r.body?.ok ? (r.body.qatorlar as NavbatQator[]) : [];
+      if (!r.httpOk || r.body?.ok !== true || !Array.isArray(r.body.qatorlar)) throw new Error('NAVBAT_OL_RPC_XATO');
+      return r.body.qatorlar as NavbatQator[];
     },
-    async tugat(id, natija, xato, versiya) { await hmRpc(env, 't2_hujjat_yangila_tugat_v1', { p_id: id, p_natija: natija, p_xato: xato ?? null, p_versiya: versiya ?? null }); },
+    async tugat(id, natija, xato, versiya) {
+      try {
+        const r = await hmRpc(env, 't2_hujjat_yangila_tugat_v1', { p_id: id, p_natija: natija, p_xato: xato ?? null, p_versiya: versiya ?? null });
+        if (!r.httpOk || r.body?.ok !== true) throw new Error('NAVBAT_TUGAT_RPC_XATO');
+      } catch {
+        console.error(JSON.stringify({ hujjat_yangila: 'finish_unconfirmed', queue_id: id, natija }));
+        throw new FinishUnconfirmed();
+      }
+    },
     async yasaF2(q) {
       const origin = new URL(ctx.request.url).origin;
       const cookie = await imzola({ rol: 'pto', foydalanuvchi_id: q.aktor_id as number }, env.SESSIYA_KALIT);
