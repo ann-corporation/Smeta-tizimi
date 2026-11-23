@@ -491,18 +491,23 @@ export const faktJurnal = tool({
 
 export const normativQidir = tool({
   nom: 'normativ_qidir',
-  tavsif: 'Qidiruv (faqat o\'qish): `tur:"normativ"` — ShNK/normativ hujjatlar bo\'laklari (t2_normativ_qidir_v1: norma kodi, nom, tahrir, sahifa); '
+  tavsif: 'Qidiruv (faqat o\'qish): `tur:"normativ"` — ShNK/normativ hujjatlar: masofada saytdagi R2 manbasi (tasdiqlangan matn, SHA, tahrir, sahifa), lokal stdio SQL; '
     + '`"resurs"` — resurs variantlari shu obyekt/boshqa smetalar/katalogdan narxi bilan (t2_resurs_qidir_v1, `kat` filtri); `"ish"` — ish turi variantlari tarkibi (norma) bilan (t2_ish_turi_qidir_v1). '
     + 'Zamena/qo\'shimcha ish uchun kod, norma va narx topishda ishlating. `obyekt_id` majburiy (resurs/ish; normativ uchun kompaniya shundan).',
-  kirish: { matn: z.string().min(2).max(300), tur: z.enum(['normativ', 'resurs', 'ish']).optional(), obyekt_id: obyektIdS, kat: z.enum(KAT).optional(), limit: z.number().int().min(1).max(100).optional() },
+  kirish: { matn: z.string().min(2).max(300), tur: z.enum(['normativ', 'resurs', 'ish']).optional(), obyekt_id: obyektIdS, kat: z.enum(KAT).optional(),
+    tahrir: z.string().trim().min(1).max(80).optional().describe('Normativ tahriri (masalan yil); noaniq manbada aynan tahrirni tanlang.'), limit: z.number().int().min(1).max(100).optional() },
   yozadi: false,
   bajar: async (a, mu) => {
     const aktor = mu.aktorKerak();
+    if ((a.tur ?? 'normativ') === 'normativ' && mu.normativQidir) {
+      const company = await mu.oqish(async m => Number((await obyektBormi(m, a.obyekt_id)).kompaniya_id));
+      return { tur: 'normativ', ...await mu.normativQidir(company, a.matn, a.limit ?? 20, a.tahrir) };
+    }
     return mu.oqish(async (m) => {
       const ob = await obyektBormi(m, a.obyekt_id);
       const tur = a.tur ?? 'normativ'; const limit = a.limit ?? 20;
       if (tur === 'normativ') {
-        const r = (await m.query<{ r: { ok?: boolean; natijalar?: Array<Record<string, unknown>>; code?: string } }>('select public.t2_normativ_qidir_v1($1::bigint, $2::bigint, $3::text, null, null, null, $4::int) as r', [aktor, Number(ob.kompaniya_id), a.matn, limit])).rows[0]?.r;
+        const r = (await m.query<{ r: { ok?: boolean; natijalar?: Array<Record<string, unknown>>; code?: string } }>('select public.t2_normativ_qidir_v1($1::bigint, $2::bigint, $3::text, $4::text, null, null, $5::int) as r', [aktor, Number(ob.kompaniya_id), a.matn, a.tahrir ?? null, limit])).rows[0]?.r;
         if (!r || r.ok === false) throw new Error(`t2_normativ_qidir_v1: ${xatoIzoh(r ?? 'javob yo\'q')}`);
         return { tur, natijalar: (r.natijalar ?? []).map((x) => ({ norma_kod: x.norma_kod, nom: x.nom, tahrir: x.tahrir, bob_punkt: x.bob_punkt, jadval_kod: x.jadval_kod, sahifa_pdf: x.sahifa_pdf, sahifa_bosma: x.sahifa_bosma, hujjat_id: x.hujjat_id, unit: x.unit })) };
       }

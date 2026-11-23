@@ -4,7 +4,7 @@
 //   index/bNNN.json.gz    term -> [[docId, unitIdx, tf], ...]; bucket = fnv1a32(term) % corpus.buckets
 //   docs/<job>.bundle     gzip member per unit + manifest member + table member + 12 byte trailer; a unit is one Range read
 import { normalise, bucketOf, bucketName } from './normativ-token';
-import { unpackChunk } from './normativ-evidence';
+import { unpackChunk, type NormativBucket } from './normativ-evidence';
 
 export const DEFAULT_PREFIX = 'normativ/shnk/v1/';
 const TTL_MS = 10 * 60 * 1000;
@@ -13,7 +13,7 @@ const MAX_TABLES_CACHED = 64;
 const MAX_OBJECT_BYTES = 8 * 1024 * 1024;
 const MAX_UNPACKED_BYTES = 24 * 1024 * 1024;
 
-export type R2Source = Pick<R2Bucket, 'get'>;
+export type R2Source = NormativBucket;
 export type CorpusDoc = {
   id: number; code: string; title: string; tahrir: string; source_type: string; source_sha: string; job_sha: string;
   state: string; flags: string[]; pages: number; chars: number; n: number;

@@ -17,6 +17,7 @@ import { hujjatPaketMasofaviy, paketKirish } from './paket';
 import { sqlOqish, sxema } from '../../smeta-mcp/src/tools/oqish';
 import { toolChaqir } from '../../smeta-mcp/src/tool';
 import { JAVOB_MAX } from './siyosat';
+import { normativUla } from './normativ';
 
 export const VERSIYA = '0.1.0';
 /** So'rov tanasi chegarasi (f2_yarat 5000 qator ≈ 0,5 MB). */
@@ -129,6 +130,7 @@ export async function mcpFetch(request: Request, env: Env, ctx: McpCtx): Promise
   const t = Number(env.SMETA_MCP_TIMEOUT_MS);
   const mu = new Muhit({ dbUrl: null, aktorId: v.foydalanuvchiId, auditFayl: null, dbRol: null, timeoutMs: Number.isFinite(t) && t > 0 ? t : 25_000, sslVerify: false },
     () => hyperdriveHovuz(env.HYPERDRIVE.connectionString));
+  normativUla(mu, env, v);
   const server = masofaviyServer(mu, v, env.SAYT_URL, { env, origin: new URL(request.url).origin });
   const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   try {
