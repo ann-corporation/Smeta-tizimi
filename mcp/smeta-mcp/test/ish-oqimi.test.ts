@@ -7,7 +7,7 @@ import {
 import { standartPodval, podvalTekshir } from '../src/frontend';
 import { TOOLLAR } from '../src/server';
 import { toolChaqir } from '../src/tool';
-import { f2Holat, f2QoralamaYarat } from '../src/tools/ish-oqimi';
+import { f2Holat, f2QoralamaYarat, qoshimchaIsh } from '../src/tools/ish-oqimi';
 import { mockMuhit } from './mock';
 
 const M = (x: Partial<MumkinQator> & { qator_id: number; tur: string; mumkin: number }): MumkinQator =>
@@ -237,4 +237,13 @@ describe('f2_holat (mock)', () => {
     expect(r.aktlar[0].xato).toMatch(/NARXSIZ_QATOR_BOR/);
     expect(h.sorovlar.at(-1)!.sql).toBe('ROLLBACK');
   });
+});
+
+it('requires an explicit parent section before running the additional-work command', async () => {
+  const { mu } = mockMuhit(() => { throw new Error('unexpected database access'); });
+  const result = await toolChaqir(qoshimchaIsh, mu, {
+    obyekt_id: 1, ish: { nom: 'Synthetic additional work', birlik: 'm2', hajm: 2 }, sabab: 'Synthetic test',
+  });
+  expect(result.isError).toBe(true);
+  expect(result.content[0].text).toContain('ota_qator_id');
 });

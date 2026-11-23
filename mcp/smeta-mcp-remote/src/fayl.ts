@@ -38,6 +38,15 @@ function tasodifiy(): string {
   return [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
 }
 
+export function f2ExportStatus(t: Record<string, unknown> | null): 'current' | 'stale' | 'generating' | 'failed' {
+  if (t?.ok !== true) return 'failed';
+  if (t.navbat_holat === 'ishlanmoqda') return 'generating';
+  if (t.navbat_holat === 'xato' || t.navbat_holat === 'failed') return 'failed';
+  if (t.navbat_holat === 'kutmoqda') return t.fayl_id == null ? 'generating' : 'stale';
+  if (t.fayl_id == null || t.versiya == null) return 'failed';
+  return t.eskirgan === false ? 'current' : 'stale';
+}
+
 export async function f2Fayl(aktId: number, mu: Muhit, v: Vakolat, env: Env, origin: string): Promise<ToolJavob> {
   const h = havolalarYig('f2_fayl', { akt_id: aktId });
   let komp: number[];
@@ -48,32 +57,38 @@ export async function f2Fayl(aktId: number, mu: Muhit, v: Vakolat, env: Env, ori
   } catch { return matn('Ruxsat tekshiruvini bajarib bo\'lmadi (baza). Qayta urinib ko\'ring.', true); }
   if (!oqishMumkin(v, komp)) return matn('RUXSAT_YOQ — topilmadi yoki ruxsat yo\'q.', true);
 
-  type Akt = { id: number; obyekt_id: number; kompaniya_id: number; oy: string | null; raqam: string | null; tur: string; holat: string | null; obyekt: string | null };
-  const info = await mu.oqish(async (m) => {
-    const akt = (await m.query<Akt>(`select a.id, a.obyekt_id, coalesce(o.kompaniya_id, a.kompaniya_id) as kompaniya_id, to_char(a.oy, 'YYYY-MM-DD') as oy, a.raqam, a.tur, a.holat, o.nom as obyekt
+  type Akt = { versiya: number; id: number; obyekt_id: number; kompaniya_id: number; oy: string | null; raqam: string | null; tur: string; holat: string | null; obyekt: string | null };
+  const readInfo = () => mu.oqish(async (m) => {
+    const akt = (await m.query<Akt>(`select a.id, a.versiya, a.obyekt_id, coalesce(o.kompaniya_id, a.kompaniya_id) as kompaniya_id, to_char(a.oy, 'YYYY-MM-DD') as oy, a.raqam, a.tur, a.holat, o.nom as obyekt
                                         from public.t2_akt a left join public.t2_obyekt o on o.id = a.obyekt_id where a.id = $1`, [aktId])).rows[0];
-    if (!akt) return null;
+    if (!akt || !oqishMumkin(v, [Number(akt.kompaniya_id)])) return null;
+    if (akt.tur !== 'f2') return { akt, t: null };
     const t = (await m.query<{ j: Record<string, unknown> }>('select public.t2_hujjat_tayyor_ol_v1($1, $2, $3) as j', [v.foydalanuvchiId, akt.kompaniya_id, aktId])).rows[0]?.j ?? null;
     return { akt, t };
   });
+  const info = await readInfo();
   if (!info) return matn(`Akt ${aktId} topilmadi.`, true);
   const { akt, t } = info;
-  // t2_hm_yuklab_v1 trafik hisobini yozadi — o'qish tranzaksiyasida emas (snapshotsiz, audit bilan).
-  const y = t?.ok === true && t.eskirgan !== true && t.fayl_id != null ? await hmYuklab(mu, v.foydalanuvchiId, Number(t.fayl_id)) : null;
-  if (akt.tur !== 'f2') return matn(`Akt ${aktId} — F-2 emas (tur: ${akt.tur}).`, true);
-  if (!t || t.ok !== true || t.fayl_id == null) {
-    return matn({ tayyor: false, akt_id: aktId, obyekt: akt.obyekt, sabab: 'Bu F-2 ning Diskdagi fayli hali yo\'q (sayt uni fonda tayyorlaydi).',
-      maslahat: 'Foydalanuvchiga: saytdagi «Hujjatlar paketi» yoki F-2 sahifasidan yuklab oling; yoki 2–5 daqiqadan so\'ng qayta so\'rang.' });
+  if (akt.tur !== 'f2') return matn({ tayyor: false, status: 'failed', kod: 'NOT_F2', akt_id: aktId }, true);
+  const status = f2ExportStatus(t);
+  if (status !== 'current' || !t) {
+    return matn({ tayyor: false, status, akt_id: aktId,
+      ...(t?.code === 'RUXSAT_YOQ' ? { kod: 'RUXSAT_YOQ' } : {}),
+      maslahat: 'F-2 fayli tayyorligini saytdagi Hujjatlar paketi orqali tekshiring.' }, status === 'failed');
   }
-  if (t.eskirgan === true) {
-    return matn({ tayyor: false, akt_id: aktId, obyekt: akt.obyekt, sabab: 'F-2 o\'zgargan — Diskdagi fayl yangilanish navbatida (fon tayyorlamoqda).',
-      maslahat: 'Foydalanuvchiga: 2–5 daqiqadan so\'ng qayta so\'rang (eski versiya berilmaydi).' });
-  }
+  const y = await hmYuklab(mu, v.foydalanuvchiId, Number(t.fayl_id));
   if (!y || y.ok !== true || !y.kalit) return matn('Faylni Diskdan olib bo\'lmadi. Birozdan so\'ng qayta urinib ko\'ring.', true);
   if (!env.SNAPSHOT_R2) return matn('Fayl ombori (R2) ulanmagan — administratorga xabar bering.', true);
   const obj = await env.SNAPSHOT_R2.get(String(y.kalit));
   if (!obj) return matn('Fayl omborda topilmadi. Birozdan so\'ng qayta urinib ko\'ring.', true);
   const bytes = new Uint8Array(await obj.arrayBuffer());
+
+  const latest = await readInfo();
+  const current = latest?.t ?? null;
+  if (latest?.akt.versiya !== akt.versiya || latest?.akt.kompaniya_id !== akt.kompaniya_id ||
+      current?.fayl_id !== t.fayl_id || current?.versiya !== t.versiya || f2ExportStatus(current) !== 'current') {
+    return matn({ tayyor: false, status: 'stale', akt_id: aktId, kod: 'EXPORT_CHANGED' });
+  }
 
   const xesh = f2HujjatKaliti(akt.obyekt_id, akt.oy ?? '', akt.raqam, akt.id) ?? `f2:${akt.obyekt_id}:akt${akt.id}`;
   const s = await serverSarfla(env, { actorId: v.foydalanuvchiId, kompaniyaId: akt.kompaniya_id, turi: 'f2_hujjat', obyektId: akt.obyekt_id, davr: akt.oy, xesh, bytes });
@@ -84,7 +99,7 @@ export async function f2Fayl(aktId: number, mu: Muhit, v: Vakolat, env: Env, ori
   await env.OAUTH_KV.put(`yukla:${kod}`, JSON.stringify({ kalit: String(y.kalit), nom, mime: y.mime ?? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', akt: aktId, aktor: v.foydalanuvchiId }), { expirationTtl: HAVOLA_TTL });
   console.log(JSON.stringify({ tur: 'mcp_remote', tool: 'f2_fayl', aktor: v.foydalanuvchiId, akt: aktId, token_sarf: s.sarflandi, bepul_takror: s.bepulTakror }));
   return matn({
-    tayyor: true, akt_id: aktId, obyekt: akt.obyekt, oy: akt.oy, raqam: akt.raqam, holat: akt.holat, fayl: nom, hajm_kb: Math.round(bytes.byteLength / 1024),
+    tayyor: true, status: 'current', akt_versiya: akt.versiya, akt_id: aktId, obyekt: akt.obyekt, oy: akt.oy, raqam: akt.raqam, holat: akt.holat, fayl: nom, hajm_kb: Math.round(bytes.byteLength / 1024),
     havola: `${origin}${YUKLA_YO_L}${kod}`, havola_muddati: '15 daqiqa',
     token: s.sarflandi > 0 ? `${s.sarflandi} token yechildi` : 'bepul (shu F-2 avval yuklangan)',
     disk_versiya: t.versiya ?? null, yangilangan: t.yangilandi ?? null,
