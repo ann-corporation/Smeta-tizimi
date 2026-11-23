@@ -47,11 +47,13 @@ export async function navbatniIshla(d: YangilaDeps, o: { limit?: number; byudjet
   const n: IshlaNatija = { korildi: qatorlar.length, yangilandi: 0, otkazildi: 0, xato: 0, xatolar: [] };
   for (const q of qatorlar) {
     if (o.byudjetMs != null && hozir() - boshi > o.byudjetMs) { await d.tugat(q.id, 'xato', 'VAQT_BUDJETI', null); n.xato++; continue; }
+    let phase = 'generate';
     try {
       if (boshqaTurMi(q.tur) && d.yasaBoshqa && d.yozBoshqa) {
         if (!q.aktor_id) { await d.tugat(q.id, 'xato', 'AKTOR_YOQ', null); n.xato++; n.xatolar.push(`${q.tur}#${q.manba_id}: AKTOR_YOQ`); continue; }
         const b = await d.yasaBoshqa(q as NavbatQator & { tur: BoshqaTur });
         if (!b.arxivla) { await d.tugat(q.id, 'otkazildi', 'arxivlanmaydi', null); n.otkazildi++; continue; }
+        phase = 'archive';
         const rb = await d.yozBoshqa(q, b);
         if (!rb.ok || !rb.disk.ok) {
           const kod = !rb.ok ? rb.code : (rb.disk as { code?: string }).code ?? 'DISK_XATO';
@@ -63,6 +65,7 @@ export async function navbatniIshla(d: YangilaDeps, o: { limit?: number; byudjet
       if (!q.aktor_id || !q.obyekt_id) { await d.tugat(q.id, 'xato', 'AKTOR_YOQ', null); n.xato++; n.xatolar.push(`#${q.manba_id}: AKTOR_YOQ`); continue; }
       const t = await d.yasaF2(q);
       if (!t.arxivla || !f2DiskkaArxivlansinmi(t.akt)) { await d.tugat(q.id, 'otkazildi', 'bekor_yoki_taxminiy', null); n.otkazildi++; continue; }
+      phase = 'archive';
       const r = await d.yoz(q, t);
       if (!r.ok || !r.disk.ok) {
         const kod = !r.ok ? r.code : (r.disk as { code?: string }).code ?? 'DISK_XATO';
@@ -71,6 +74,8 @@ export async function navbatniIshla(d: YangilaDeps, o: { limit?: number; byudjet
       await d.tugat(q.id, 'ok', null, r.disk.versiya); n.yangilandi++;
     } catch (e) {
       if (e instanceof FinishUnconfirmed) { n.xato++; n.xatolar.push(`#${q.manba_id}: FINISH_UNCONFIRMED`); continue; }
+      console.error(JSON.stringify({ hujjat_yangila: 'job_failed', queue_id: q.id, manba_id: q.manba_id,
+        kompaniya_id: q.kompaniya_id, tur: q.tur, phase, urinish: q.urinish }));
       // Akt endi yo'q / boshqa kompaniya / bekor: qayta urinish befoyda.
       if (e instanceof Rad && (e.code === 'AKT_TOPILMADI' || e.status === 404 || (boshqaTurMi(q.tur) && ['HUJJAT_BOSH', 'F3_HISOBLANMADI', 'PARAMETR_YOQ'].includes(e.code)))) { await d.tugat(q.id, 'otkazildi', e.code, null).catch(() => undefined); n.otkazildi++; continue; }
       await d.tugat(q.id, 'xato', qisqa(e), null).catch(() => undefined); n.xato++; n.xatolar.push(`#${q.manba_id}: ${qisqa(e)}`);
