@@ -27,9 +27,9 @@ export function kengaytmali(nom: string, mime?: unknown): string {
 }
 
 /** Disk faylini yuklash ruxsati (trafik hisobi yoziladi). */
-export async function hmYuklab(mu: Muhit, aktor: number, faylId: number): Promise<Record<string, unknown> | null> {
+export async function hmYuklab(mu: Muhit, aktor: number, faylId: number, version: number | null = null): Promise<Record<string, unknown> | null> {
   const r = await mu.yozish({ tool: 'hm_yuklab', args: { fayl_id: faylId }, dryRun: false, snapshot: false }, async (m) =>
-    (await m.query<{ j: Record<string, unknown> }>('select public.t2_hm_yuklab_v1($1, $2, $3) as j', [aktor, faylId, null])).rows[0]?.j ?? null);
+    (await m.query<{ j: Record<string, unknown> }>('select public.t2_hm_yuklab_v1($1, $2, $3) as j', [aktor, faylId, version])).rows[0]?.j ?? null);
   return r.natija;
 }
 
@@ -43,7 +43,8 @@ export function f2ExportStatus(t: Record<string, unknown> | null): 'current' | '
   if (t.navbat_holat === 'ishlanmoqda') return 'generating';
   if (t.navbat_holat === 'xato' || t.navbat_holat === 'failed') return 'failed';
   if (t.navbat_holat === 'kutmoqda') return t.fayl_id == null ? 'generating' : 'stale';
-  if (t.fayl_id == null || t.versiya == null) return 'failed';
+  if (!Number.isSafeInteger(t.fayl_id) || Number(t.fayl_id) <= 0 ||
+      !Number.isSafeInteger(t.versiya) || Number(t.versiya) <= 0) return 'failed';
   return t.eskirgan === false ? 'current' : 'stale';
 }
 
@@ -76,7 +77,7 @@ export async function f2Fayl(aktId: number, mu: Muhit, v: Vakolat, env: Env, ori
       ...(t?.code === 'RUXSAT_YOQ' ? { kod: 'RUXSAT_YOQ' } : {}),
       maslahat: 'F-2 fayli tayyorligini saytdagi Hujjatlar paketi orqali tekshiring.' }, status === 'failed');
   }
-  const y = await hmYuklab(mu, v.foydalanuvchiId, Number(t.fayl_id));
+  const y = await hmYuklab(mu, v.foydalanuvchiId, Number(t.fayl_id), Number(t.versiya));
   if (!y || y.ok !== true || !y.kalit) return matn('Faylni Diskdan olib bo\'lmadi. Birozdan so\'ng qayta urinib ko\'ring.', true);
   if (!env.SNAPSHOT_R2) return matn('Fayl ombori (R2) ulanmagan — administratorga xabar bering.', true);
   const obj = await env.SNAPSHOT_R2.get(String(y.kalit));
