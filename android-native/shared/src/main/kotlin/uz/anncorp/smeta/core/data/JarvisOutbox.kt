@@ -8,6 +8,8 @@ import java.io.File
 import java.io.FileOutputStream
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.nio.channels.FileChannel
+import java.nio.file.StandardOpenOption
 
 @Serializable
 data class PendingJarvisWrite(
@@ -22,6 +24,7 @@ interface JarvisPendingStore {
     suspend fun read(device: String, company: Long): Result<PendingJarvisWrite?>
     suspend fun store(device: String, company: Long, write: PendingJarvisWrite): Boolean
     suspend fun remove(device: String, company: Long, write: PendingJarvisWrite): Boolean
+    suspend fun replace(device: String, company: Long, expected: PendingJarvisWrite, replacement: PendingJarvisWrite): Boolean = false
 }
 
 /** One ordered slot per device credential and company. Never stores the bearer or a plaintext transcript. */
@@ -45,27 +48,41 @@ class JarvisOutbox(
         return stored.pending
     }
 
+    private fun persist(target: File, device: String, company: Long, write: PendingJarvisWrite) {
+        check(directory.isDirectory || directory.mkdirs())
+        val sealed = StoredJarvisWrite(device, company, write)
+        val data = cipher.encrypt(json.encodeToString(StoredJarvisWrite.serializer(), sealed).encodeToByteArray())
+        check(data.size.toLong() <= MAX_BYTES)
+        val temp = File.createTempFile("jarvis-", ".tmp", directory)
+        try {
+            FileOutputStream(temp).use { it.write(data); it.fd.sync() }
+            Files.move(temp.toPath(), target.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+        } finally { temp.delete() }
+    }
+
+    /** The lock spans processes too: two Windows instances must not replace each other's slot. */
+    private fun <T> exclusive(device: String, company: Long, action: (File) -> T): T {
+        file(device, company)
+        check(directory.isDirectory || directory.mkdirs())
+        return FileChannel.open(File(directory, "$device-$company.lock").toPath(), StandardOpenOption.CREATE, StandardOpenOption.WRITE).use { channel ->
+            channel.lock().use { action(file(device, company)) }
+        }
+    }
+
     override suspend fun read(device: String, company: Long) = withContext(Dispatchers.IO) {
-        synchronized(lock) { runCatching { load(file(device, company), device, company) } }
+        synchronized(lock) { runCatching { exclusive(device, company) { load(it, device, company) } } }
     }
 
     override suspend fun store(device: String, company: Long, write: PendingJarvisWrite): Boolean = withContext(Dispatchers.IO) {
         synchronized(lock) {
             runCatching {
-                val target = file(device, company)
+              exclusive(device, company) { target ->
                 val current = load(target, device, company)
-                if (current == write) return@runCatching true
-                if (current != null && (current != write.copy(stale = false) || !write.stale)) return@runCatching false
-                check(directory.isDirectory || directory.mkdirs())
-                val sealed = StoredJarvisWrite(device, company, write)
-                val data = cipher.encrypt(json.encodeToString(StoredJarvisWrite.serializer(), sealed).encodeToByteArray())
-                check(data.size.toLong() <= MAX_BYTES)
-                val temp = File.createTempFile("jarvis-", ".tmp", directory)
-                try {
-                    FileOutputStream(temp).use { it.write(data); it.fd.sync() }
-                    Files.move(temp.toPath(), target.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
-                } finally { temp.delete() }
+                if (current == write) return@exclusive true
+                if (current != null && (current != write.copy(stale = false) || !write.stale)) return@exclusive false
+                persist(target, device, company, write)
                 true
+              }
             }.getOrDefault(false)
         }
     }
@@ -73,9 +90,23 @@ class JarvisOutbox(
     override suspend fun remove(device: String, company: Long, write: PendingJarvisWrite): Boolean = withContext(Dispatchers.IO) {
         synchronized(lock) {
             runCatching {
-                val target = file(device, company)
+              exclusive(device, company) { target ->
                 val current = load(target, device, company)
                 current == null || (current == write && target.delete())
+              }
+            }.getOrDefault(false)
+        }
+    }
+
+    /** Explicit conflict fork: replace exactly this durable draft without a delete-before-write gap. */
+    override suspend fun replace(device: String, company: Long, expected: PendingJarvisWrite, replacement: PendingJarvisWrite) = withContext(Dispatchers.IO) {
+        synchronized(lock) {
+            runCatching {
+              exclusive(device, company) { target ->
+                if (load(target, device, company) != expected) return@exclusive false
+                persist(target, device, company, replacement)
+                true
+              }
             }.getOrDefault(false)
         }
     }

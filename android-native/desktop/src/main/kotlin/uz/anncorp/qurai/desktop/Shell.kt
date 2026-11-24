@@ -50,6 +50,7 @@ import uz.anncorp.smeta.core.data.ChatSnapshot
 import uz.anncorp.smeta.core.data.ChatWrite
 import uz.anncorp.smeta.core.data.JarvisRepository
 import uz.anncorp.smeta.core.data.ChatMsg
+import uz.anncorp.smeta.core.data.PendingJarvisWrite
 import uz.anncorp.smeta.core.data.JarvisResult
 import uz.anncorp.smeta.core.data.TodayRepository
 import uz.anncorp.smeta.core.data.ObjectLeaf
@@ -83,7 +84,9 @@ enum class Mod(val id: String, val needsObject: Boolean) {
 class JarvisState {
     val msgs = mutableStateListOf<ChatMsg>()
     var chatId by mutableStateOf(UUID.randomUUID().toString())
-    var busy by mutableStateOf(false)
+    var busy by mutableStateOf(true)
+    var saveIssue by mutableStateOf<JournalIssue?>(null)
+    var needsHistory by mutableStateOf(false)
     var chats by mutableStateOf<List<ChatInfo>>(emptyList())
     var etag by mutableStateOf<String?>(null)
     var showChats by mutableStateOf(false)
@@ -92,7 +95,7 @@ class JarvisState {
     val previews = androidx.compose.runtime.mutableStateMapOf<Int, String>()
     var recording by mutableStateOf(false)
     var transcribing by mutableStateOf(false)
-    fun reset() { previews.clear(); msgs.clear(); chatId = UUID.randomUUID().toString(); etag = null; showChats = false }
+    fun reset() { previews.clear(); msgs.clear(); chatId = UUID.randomUUID().toString(); etag = null; showChats = false; needsHistory = false }
 }
 
 @Composable
@@ -108,7 +111,7 @@ fun MainScreen(sv: Services, me: SessionUser) {
     var scopeOpen by remember { mutableStateOf(false) }
     var scope by remember { mutableStateOf(WorkScope()) }
     var unread by remember { mutableStateOf(0) }
-    val jarvis = remember { JarvisState() }
+    val jarvis = remember(me.id, place?.companyId) { JarvisState() }
     // The language setting retranslates the shared menu titles (Android strings; unknown titles stay Uzbek).
     val lang = DesktopPrefs.lang
     val sections = remember(lang) { QNav.visible(Mod.ids).map { s -> s.copy(title = I18n.t(s.title, lang), items = s.items.map { it.copy(title = I18n.t(it.title, lang)) }) } }
@@ -234,13 +237,57 @@ private val digitKeys: Map<Long, Int> = listOf(Key.One, Key.Two, Key.Three, Key.
 fun JarvisPanel(sv: Services, p: Workplace, obj: Obj?, st: JarvisState, focusTick: Int, onClose: () -> Unit) {
     val scope = rememberCoroutineScope()
     val focus = remember { FocusRequester() }
+    val device = remember(st) { sv.jarvisOutbox.deviceId() }
+    val journal = remember(st, device) { if (sv.demo) null else device?.let { id -> JarvisJournal(sv.jarvisOutbox, id, p.companyId) { write, boundDevice ->
+        sv.jarvis.writeMessages(p.companyId, write.cursor, write.title, write.turns, write.operationId, boundDevice)
+    } } }
+    fun saved() {
+        if (journal?.pending == null) journal?.savedCursor?.let { st.chatId = it.id; st.etag = it.etag }
+        st.saveIssue = journal?.issue ?: if (journal == null) JournalIssue.DEVICE else null
+    }
+    suspend fun retry(fork: Boolean = false) {
+        if (st.busy || journal == null) return
+        st.busy = true
+        try {
+            val forkTurns = journal.pending?.turns
+            val ack = if (fork) journal.fork() else journal.retry()
+            if (fork && ack != null && forkTurns != null) { st.msgs.clear(); st.msgs.addAll(forkTurns); st.previews.clear() }
+            journal.pending?.let { st.chatId = it.cursor.id; st.etag = it.cursor.etag; st.msgs.clear(); st.msgs.addAll(it.preview); st.previews.clear() }
+            saved()
+        } finally { st.busy = false }
+    }
+    LaunchedEffect(st, journal) {
+        if (sv.demo) { st.busy = false; return@LaunchedEffect }
+        st.busy = true
+        try {
+            journal?.restore()?.let { st.chatId = it.cursor.id; st.etag = it.cursor.etag; st.msgs.clear(); st.msgs.addAll(it.preview); st.previews.clear(); st.needsHistory = true }
+            saved()
+        } finally { st.busy = false }
+        while (true) {
+            delay(5000)
+            if (st.busy || st.input.isNotBlank()) continue
+            if (st.saveIssue == JournalIssue.RETRY) { retry(); continue }
+            if (st.saveIssue != null || device != sv.jarvisOutbox.deviceId()) continue
+            val id = st.chatId; val tag = st.etag
+            val sync = sv.jarvis.syncChats(p.companyId, ChatCursor(id, if (st.needsHistory) null else tag)) ?: continue
+            if (st.busy || st.input.isNotBlank() || id != st.chatId || tag != st.etag) continue
+            st.chats = sync.chats
+            if (sync.active is ChatSnapshot.Missing) { st.reset(); continue }
+            val active = sync.active as? ChatSnapshot.Changed ?: continue
+            val messages = active.messages ?: continue
+            if (st.msgs.toList() != messages) { st.msgs.clear(); st.msgs.addAll(messages); st.previews.clear() }
+            st.etag = active.etag
+            st.needsHistory = false
+        }
+    }
     LaunchedEffect(focusTick) { runCatching { focus.requestFocus() } }
     fun send(text: String) {
         val q = text.trim()
-        if (q.isEmpty() || st.busy) return
+        if (q.isEmpty() || st.busy || st.saveIssue != null || st.needsHistory || (!sv.demo && journal == null) || device != sv.jarvisOutbox.deviceId() || st.recording || st.transcribing) return
         val history = st.msgs.toList()
         st.msgs.add(ChatMsg(true, q)); st.input = ""; st.busy = true; st.showChats = false
         scope.launch {
+          try {
             val res = sv.jarvis.ask(q, p.companyId, history, obj?.id)
             Log.i("jarvis ${res::class.simpleName}")
             val idx = st.msgs.size
@@ -252,15 +299,14 @@ fun JarvisPanel(sv: Services, p: Workplace, obj: Obj?, st: JarvisState, focusTic
                 JarvisResult.Network -> "Tarmoq yo'q: Jarvis faqat onlayn ishlaydi"
                 is JarvisResult.Server -> res.message ?: "Server xatosi"
             }))
-            st.busy = false
-            runCatching {
-                val all = st.msgs.toList()
-                val tag = st.etag
-                val cursor = ChatCursor(st.chatId, tag)
-                val write = if (tag == null) sv.jarvis.writeMessages(p.companyId, cursor, JarvisRepository.chatTitle(all), all.takeLast(JarvisRepository.MAX_SAVED))
-                else sv.jarvis.writeMessages(p.companyId, cursor, null, all.takeLast(2), UUID.randomUUID().toString())
-                if (write is ChatWrite.Saved) st.etag = write.etag
+            val all = st.msgs.toList(); val tag = st.etag
+            val turns = all.takeLast(2)
+            if (journal != null) {
+                journal.submit(PendingJarvisWrite(ChatCursor(st.chatId, tag), if (tag == null) JarvisRepository.chatTitle(turns) else null,
+                    turns, if (tag != null) UUID.randomUUID().toString() else null, all.takeLast(JarvisRepository.MAX_SAVED)))
+                saved()
             }
+          } finally { st.busy = false }
         }
     }
     val bubbles = st.msgs.mapIndexed { i, it -> if (it.mine) QBubble.Mine(it.text) else QBubble.Jarvis(it.text, st.previews[i]) }
@@ -285,14 +331,33 @@ fun JarvisPanel(sv: Services, p: Workplace, obj: Obj?, st: JarvisState, focusTic
             scope = obj?.nom?.let { "Obyekt: $it" },
             quick = uz.anncorp.qurai.ui.screens.JARVIS_QUICK_UZ,
             onQuick = { send(it) },
+            canSend = !st.busy && st.saveIssue == null && !st.needsHistory && !st.recording && !st.transcribing,
             chats = st.chats.map { QChatItem(it.id, it.title) }, activeChat = st.chatId, showChats = st.showChats,
             onToggleChats = { st.showChats = !st.showChats; if (st.showChats) scope.launch { st.chats = sv.jarvis.syncChats(p.companyId)?.chats.orEmpty() } },
-            onNewChat = { st.reset() },
-            onOpenChat = { ch -> scope.launch { (sv.jarvis.syncChats(p.companyId, ChatCursor(ch.id))?.active as? ChatSnapshot.Changed)?.let { s -> st.msgs.clear(); st.msgs.addAll(s.messages.orEmpty()); st.chatId = ch.id; st.etag = s.etag; st.showChats = false } } },
+            onNewChat = { if (!st.busy && st.saveIssue == null) st.reset() },
+            onOpenChat = { ch -> if (!st.busy && st.saveIssue == null) scope.launch {
+                st.busy = true
+                try { (sv.jarvis.syncChats(p.companyId, ChatCursor(ch.id))?.active as? ChatSnapshot.Changed)?.let { s ->
+                    if (s.messages != null) { st.msgs.clear(); st.msgs.addAll(s.messages!!); st.previews.clear(); st.chatId = ch.id; st.etag = s.etag; st.showChats = false; st.needsHistory = false }
+                } } finally { st.busy = false }
+            } },
             headerExtra = { QButton("", onClose, kind = QButtonKind.Ghost, icon = QIcons.X) },
             focus = focus,
-            onConfirm = { token -> sv.jarvis.confirm(p.companyId, token) },
+            onConfirm = { token -> if (st.busy || st.saveIssue != null || device != sv.jarvisOutbox.deviceId()) I18n.s("jarvis_sync_wait", "Avval saqlashni yakunlang") else sv.jarvis.confirm(p.companyId, token) },
             voice = voice,
+            belowHeader = {
+                if (st.needsHistory && st.saveIssue == null) Text(I18n.s("jarvis_sync_loading", "Suhbat tarixi yuklanmoqda…"), modifier = Modifier.padding(12.dp))
+                if (st.saveIssue != null) Column(Modifier.padding(12.dp)) {
+                    Text(when (st.saveIssue) {
+                        JournalIssue.STALE -> I18n.s("jarvis_sync_stale", "Suhbat boshqa qurilmada o‘zgargan.")
+                        JournalIssue.UNREADABLE -> I18n.s("jarvis_sync_unreadable", "Shifrlangan xabarlar o‘qilmadi.")
+                        JournalIssue.DEVICE -> I18n.s("jarvis_sync_device", "Qurilma sessiyasi o‘zgargan. Qayta kiring.")
+                        else -> I18n.s("jarvis_sync_failed", "Xabarlar saqlanmadi. Ilovani yopmang.")
+                    }, color = Q.colors.danger)
+                    if (st.saveIssue == JournalIssue.RETRY) QButton(I18n.s("jarvis_sync_retry", "Qayta saqlash"), { scope.launch { retry() } }, enabled = !st.busy)
+                    if (st.saveIssue == JournalIssue.STALE) QButton(I18n.s("jarvis_sync_fork", "Saqlanmagan xabarlarni yangi suhbatga saqlash"), { scope.launch { retry(true) } }, enabled = !st.busy)
+                }
+            },
         )
     }
 }
