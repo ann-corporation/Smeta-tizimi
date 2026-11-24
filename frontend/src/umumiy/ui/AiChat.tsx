@@ -9,7 +9,7 @@ import { ArrowRight, Bot, Mic, MicOff, Send, Square, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { kasbSavolOqim, niyatLlmOl, suhbatRoyxatOl, suhbatServerdanOl, suhbatServerga, type ServerSuhbat, tizimYordamSavol, type KasbIshchi, type KasbYakun, type Qadam, type SahifaIshora } from '../../api/t2-agent-ish';
 import { appendJarvisMessages, jarvisConversationPage, mutateJarvisConversation, syncJarvisConversation, type ConversationPageCursor } from '../../api/jarvis-suhbat-sync';
-import { jarvisOutboxRead, jarvisOutboxRemove, jarvisOutboxStore, type JarvisQueuedWrite } from '../../lib/jarvis/conversation-outbox';
+import { jarvisOutboxAcknowledge, jarvisOutboxRead, jarvisOutboxRemove, jarvisOutboxStore, type JarvisQueuedWrite } from '../../lib/jarvis/conversation-outbox';
 import { jarvisKichikGap } from '../../lib/jarvis/intent';
 import { katalogKonteksti, narxSavolimi, vaqtBilan, type KatalogKontekst } from '../../lib/jarvis/katalog-kontekst';
 import { t } from '../../i18n/til';
@@ -75,7 +75,7 @@ function suhbatXabarlari(xabarlar: Xabar[]) {
     return m.trim() ? [{ r: x.rol, m }] : [];
   });
 }
-const queuedPreview = (xabarlar: Xabar[]) => xabarlar.slice(-12).flatMap(x => {
+const queuedPreview = (xabarlar: Xabar[]) => xabarlar.filter(x => !x.jonli).flatMap(x => {
   const m = x.matn;
   return m.trim() ? [{ r: x.rol, m }] : [];
 });
@@ -138,6 +138,14 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const [discardPending, setDiscardPending] = useState(false);
   const discardingPending = useRef(false);
   const outboxOwner = foydalanuvchiId != null && kompaniyaId != null ? { actor: foydalanuvchiId, company: kompaniyaId } : null;
+  const outboxWrites = useRef(Promise.resolve(true));
+  const recoverySignature = useRef('');
+  const storeQueued = (item: JarvisQueuedWrite) => {
+    const owner = outboxOwner;
+    const write = outboxWrites.current.then(() => owner ? jarvisOutboxStore(owner, item) : true).catch(() => false);
+    outboxWrites.current = write;
+    return write;
+  };
   const outboxLoading = !!yordamchi && !!outboxOwner && outboxScope !== scope;
   /** Serverdan faqat qisqartma sifatida yuklangan suhbat id si: yangi xabar qo'shilganda asl nusxa ustiga yozilmaydi, yangi suhbat (fork) bo'ladi. */
   const qisqartmaDan = useRef<string | null>(null);
@@ -232,16 +240,20 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
       const view = queued.preview.map((x, i) => ({
         id: `${queued.id}-pending-${i}`, rol: x.r, matn: x.m, jarvis: x.r === 'ai',
       }));
-      const signature = xabarImzo(view);
+      const count = queued.headCount ?? view.length;
+      const signature = xabarImzo(view.slice(0, count));
       yuklanganImzo.current = '';
-      if (queued.kind === 'create') {
+      if (queued.acknowledged) {
+        remoteAnchor.current = { id: queued.id, etag: queued.acknowledged, count, base: queued.preview.slice(0, count) };
+        yuklanganImzo.current = signature;
+      } else if (queued.kind === 'create') {
         yangiServerSuhbat.current = { id: queued.id, start: 0, stale: queued.stale,
-          first: { title: queued.title, messages: queued.turns, count: view.length, signature } };
+          first: { title: queued.title, messages: queued.turns, count, signature } };
       } else {
         const anchor = { id: queued.id, etag: queued.etag, count: 0, base: [] };
         remoteAnchor.current = anchor;
         appendRetry.current = { anchor, etag: queued.etag, operationId: queued.operation, delta: queued.turns,
-          count: view.length, signature, stale: queued.stale };
+          count, signature, stale: queued.stale };
       }
       setXabarlar(view);
     }).catch(() => {
@@ -257,6 +269,26 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     window.addEventListener('online', online);
     return () => window.removeEventListener('online', online);
   }, []);
+  // Persist accepted later turns even while the immutable head RPC is still in flight.
+  useEffect(() => {
+    if (!yordamchi || outboxLoading || discardingPending.current || !xabarlar.length) return;
+    const fresh = yangiServerSuhbat.current;
+    const batch = appendRetry.current;
+    const preview = queuedPreview(xabarlar.slice(fresh?.first ? fresh.start : batch?.anchor.count ?? 0));
+    const item: JarvisQueuedWrite | null = fresh?.first ? {
+      kind: 'create', id: fresh.id, operation: fresh.id, title: fresh.first.title,
+      turns: fresh.first.messages, headCount: fresh.first.messages.length, preview, stale: fresh.stale,
+    } : batch ? { kind: 'append', id: batch.anchor.id, operation: batch.operationId, etag: batch.etag,
+      turns: batch.delta, headCount: batch.delta.length, preview, stale: batch.stale } : null;
+    if (!item || preview.length < (item.headCount ?? 0)) return;
+    const signature = `${scope}|${item.operation}|${xabarImzo(preview.map(x => ({ rol: x.r, matn: x.m })))}`;
+    if (recoverySignature.current === signature) return;
+    recoverySignature.current = signature;
+    const avlod = gen.current;
+    void storeQueued(item).then(ok => {
+      if (!ok && gen.current === avlod) setSaqlashHolati('local');
+    });
+  }, [xabarlar, scope, outboxLoading]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!yordamchi || !tarixKalit || tarixEga !== tarixKalit || !xabarlar.length) return;
     if (outboxOwner && outboxScope !== scope) return;
@@ -293,15 +325,16 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
           };
           appendRetry.current = batch;
           const queued: JarvisQueuedWrite = { kind: 'append', id: anchor.id, operation: batch.operationId,
-            etag: batch.etag, turns: batch.delta, preview: queuedPreview(xabarlar.slice(0, batch.count)) };
-          if (outboxOwner && !await jarvisOutboxStore(outboxOwner, queued)) { if (stillCurrent()) setSaqlashHolati('local'); return; }
+            etag: batch.etag, turns: batch.delta, headCount: batch.delta.length, preview: queuedPreview(xabarlarRef.current.slice(anchor.count)) };
+          if (!await storeQueued(queued)) { if (stillCurrent()) setSaqlashHolati('local'); return; }
           if (!stillCurrent()) return;
           const result = await appendJarvisMessages(kompaniyaId, anchor.id, batch.etag, batch.delta, batch.operationId, outboxOwner?.actor);
-          if (outboxOwner && result && 'etag' in result && !await jarvisOutboxRemove(outboxOwner, queued.operation)) {
+          await outboxWrites.current;
+          if (outboxOwner && result && 'etag' in result && !await jarvisOutboxAcknowledge(outboxOwner, queued.operation, result.etag)) {
             if (stillCurrent()) setSaqlashHolati('local');
             return;
           }
-          if (outboxOwner && result && 'stale' in result) await jarvisOutboxStore(outboxOwner, { ...queued, stale: true });
+          if (outboxOwner && result && 'stale' in result) await storeQueued({ ...queued, stale: true });
           if (!stillCurrent()) return;
           if (!result || 'stale' in result) {
             batch.stale = !!result;
@@ -312,7 +345,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
           appendRetry.current = null;
           remoteAnchor.current = { ...anchor, etag: result.etag, count: batch.count };
           yuklanganImzo.current = batch.signature;
-          setSaqlashHolati('saved');
+          setSaqlashHolati(xabarlarRef.current.length > batch.count ? 'saving' : 'saved');
           if (xabarlarRef.current.length > batch.count) setSaqlashQadami(i => i + 1);
         } finally {
           if (appendPending.current === anchor) appendPending.current = null;
@@ -339,16 +372,17 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
         const stillCurrent = () => gen.current === avlod && yangiServerSuhbat.current === fresh;
         try {
           const queued: JarvisQueuedWrite = { kind: 'create', id: fresh.id, operation: fresh.id, title: first.title,
-            turns: first.messages, preview: queuedPreview(xabarlar.slice(0, first.count)) };
-          if (outboxOwner && !await jarvisOutboxStore(outboxOwner, queued)) { if (stillCurrent()) setSaqlashHolati('local'); return; }
+            turns: first.messages, headCount: first.messages.length, preview: queuedPreview(xabarlarRef.current.slice(fresh.start)) };
+          if (!await storeQueued(queued)) { if (stillCurrent()) setSaqlashHolati('local'); return; }
           if (!stillCurrent()) return;
           const result = await mutateJarvisConversation(kompaniyaId, fresh.id, null,
             { harakat: 'create', sarlavha: first.title, xabarlar: first.messages }, outboxOwner?.actor);
-          if (outboxOwner && result.status === 'saved' && !await jarvisOutboxRemove(outboxOwner, queued.operation)) {
+          await outboxWrites.current;
+          if (outboxOwner && result.status === 'saved' && !await jarvisOutboxAcknowledge(outboxOwner, queued.operation, result.etag)) {
             if (stillCurrent()) setSaqlashHolati('local');
             return;
           }
-          if (outboxOwner && result.status === 'stale') await jarvisOutboxStore(outboxOwner, { ...queued, stale: true });
+          if (outboxOwner && result.status === 'stale') await storeQueued({ ...queued, stale: true });
           if (!stillCurrent()) return;
           if (result.status !== 'saved') {
             fresh.stale = result.status === 'stale';
@@ -359,7 +393,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
           remoteAnchor.current = { id: fresh.id, etag: result.etag, count: first.count, base: first.messages };
           yangiServerSuhbat.current = null;
           yuklanganImzo.current = first.signature;
-          setSaqlashHolati('saved');
+          setSaqlashHolati(xabarlarRef.current.length > first.count ? 'saving' : 'saved');
           setSaqlashQadami(i => i + 1);
         } finally { fresh.sending = false; }
       };

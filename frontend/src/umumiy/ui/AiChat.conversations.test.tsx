@@ -3,10 +3,10 @@ import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-libra
 import { MemoryRouter } from 'react-router-dom';
 import type { YordamchiUlanish } from './yordamchi/ishlov';
 import type { KasbIshchi } from '../../api/t2-agent-ish';
-const m=vi.hoisted(()=>({ask:vi.fn(),load:vi.fn(),list:vi.fn(),intent:vi.fn(),save:vi.fn(),sync:vi.fn(),append:vi.fn(),mutate:vi.fn(),diskRead:vi.fn(),diskSave:vi.fn(),diskRemove:vi.fn(),page:vi.fn()}));
+const m=vi.hoisted(()=>({ask:vi.fn(),load:vi.fn(),list:vi.fn(),intent:vi.fn(),save:vi.fn(),sync:vi.fn(),append:vi.fn(),mutate:vi.fn(),diskRead:vi.fn(),diskSave:vi.fn(),diskRemove:vi.fn(),diskAck:vi.fn(),page:vi.fn()}));
 vi.mock('../../api/t2-agent-ish',()=>({niyatLlmOl:m.intent,suhbatRoyxatOl:m.list,suhbatServerga:m.save,suhbatServerdanOl:m.load,kasbSavolOqim:m.ask,tizimYordamSavol:vi.fn()}));
 vi.mock('../../api/jarvis-suhbat-sync',()=>({syncJarvisConversation:m.sync,appendJarvisMessages:m.append,mutateJarvisConversation:m.mutate,jarvisConversationPage:m.page}));
-vi.mock('../../lib/jarvis/conversation-outbox',()=>({jarvisOutboxRead:m.diskRead,jarvisOutboxStore:m.diskSave,jarvisOutboxRemove:m.diskRemove}));
+vi.mock('../../lib/jarvis/conversation-outbox',()=>({jarvisOutboxAcknowledge:m.diskAck,jarvisOutboxRead:m.diskRead,jarvisOutboxStore:m.diskSave,jarvisOutboxRemove:m.diskRemove}));
 vi.mock('./AiBaho',()=>({AiBaho:()=>null}));vi.mock('./AiHarakatKarta',()=>({AiHarakatKarta:()=>null}));
 vi.mock('../../lib/yordamchi/niyat',()=>({niyatAniqla:()=>({tur:'nomalum',yaqin:[]})}));
 vi.mock('../../lib/yordamchi/niyat-llm',()=>({niyatLlmGaMosmi:()=>true}));
@@ -22,6 +22,7 @@ beforeEach(()=>{localStorage.clear();sessionStorage.clear();m.ask.mockReset();m.
  m.diskRead.mockReset().mockResolvedValue(null);
  m.diskSave.mockReset().mockResolvedValue(true);
  m.diskRemove.mockReset().mockResolvedValue(true);
+ m.diskAck.mockReset().mockResolvedValue(true);
  m.page.mockReset().mockResolvedValue(null);
  localStorage.setItem('jarvis-suhbatlar:7:17',JSON.stringify(['a','b'].map(id=>({id,sarlavha:'Chat '+id,yangilandi:Date.now(),xabarlar:[{rol:'user',matn:'Message '+id}]}))));});
 afterEach(()=>{vi.useRealTimers();cleanup();});
@@ -52,7 +53,7 @@ it('loads older pages without duplicate newest rows, then opens an archived conv
  expect(m.load).toHaveBeenCalledWith(17,old.id);
 });
 
-it('restores an encrypted queued append after reopening and removes it only after acknowledgment', async () => {
+it('restores an encrypted queued append and checkpoints acknowledgement before moving on', async () => {
  const {row,etag} = await openVersionedChat();
  m.ask.mockResolvedValue({ok:true,javob:'Synthetic pending answer'});
  m.append.mockResolvedValueOnce(null);
@@ -69,7 +70,8 @@ it('restores an encrypted queued append after reopening and removes it only afte
  expect(screen.getByText('Synthetic pending answer')).toBeTruthy();
  await tick(1000);
  expect(m.append.mock.calls[1]).toEqual(sent);
- expect(m.diskRemove).toHaveBeenCalledWith(owner,record.operation);
+ expect(m.diskAck).toHaveBeenCalledWith(owner,record.operation,'b'.repeat(32));
+ expect(m.diskRemove).not.toHaveBeenCalled();
 });
 
 it('discards only the local outbox after explicit confirmation of a stored conflict', async () => {
