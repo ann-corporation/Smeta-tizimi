@@ -54,12 +54,4 @@ export function parseJarvisWriteCall(value: unknown): JarvisWriteCall | null {
   return 'xato' in parsed || parsed.amal !== 'taklif' ? null : { name: parsed.vosita.nom as YozishNomi, args: parsed.a };
 }
 
-/** Keep model numbers byte-for-byte traceable to tool output. Raw evidence is retained. */
-export function toolSummary(raw: string, evidence: string): string | null {
-  try {
-    const value = JSON.parse(raw) as { javob?: unknown; tool_call?: unknown };
-    if (value.tool_call != null || typeof value.javob !== 'string' || !value.javob.trim()) return null;
-    const numbers = new Set(evidence.match(/[-+]?\d+(?:[.,]\d+)*/g) ?? []);
-    return (value.javob.match(/[-+]?\d+(?:[.,]\d+)*/g) ?? []).every(number => numbers.has(number)) ? value.javob.slice(0, 1200) : null;
-  } catch { return null; }
-}
+export { toolSummary } from './tool-evidence';
