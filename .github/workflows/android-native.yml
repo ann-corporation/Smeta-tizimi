@@ -120,7 +120,7 @@ jobs:
             '{version:$version,generatedAtUtc:$generatedAtUtc,file:$file,bytes:$bytes,sha256:$sha256,signed:$signed,minSdk:$minSdk}' \
             > "$(dirname "$APK_PATH")/android-native-manifest.json"
           cat "$(dirname "$APK_PATH")/android-native-manifest.json"
-      - name: Build Play AAB (Play flavour: no self-update, monotonic versionCode)
+      - name: 'Build Play AAB (Play flavour: no self-update, monotonic versionCode)'
         # Google Play requires an .aab. -Pplay=true hides the in-app APK updater (Play policy); versionCode = 3_000_000 + run number is monotonic per repo
         # (always above the site APK's 2_000_xxx). Same upload key as the APK; Play App Signing re-signs for users. See docs/play-market/QOLLANMA.md.
         run: ./gradlew --no-daemon -Pplay=true -PversionCode=$((3000000 + GITHUB_RUN_NUMBER)) bundleRelease
@@ -153,7 +153,8 @@ jobs:
           name: android-native-aab
           path: ${{ env.AAB_PATH }}
           if-no-files-found: error
-          retention-days: 30      - uses: actions/upload-artifact@v4
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
         with:
           name: android-native-apk
           path: |
