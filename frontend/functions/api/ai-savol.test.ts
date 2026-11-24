@@ -69,7 +69,7 @@ beforeEach(() => {
   ai.mockReset(); rpc.mockClear(); kontekstKeshTozala();
   categories = ['obyektlar', 'smeta_pul'];
   men = () => Response.json({ ok: true, context_kompaniyalar: [
-    { kompaniya_id: 17, permissions: ['warehouse.read'] },
+    { kompaniya_id: 17, permissions: ['warehouse.read', 'company.read', 'f2.read'] },
   ] });
   stock = () => Response.json({ ok: true, qatorlar: [{ nomi: 'Sinov sement', birligi: 'kg', qoldiq: 87.375 }] });
   discrepancies = () => Response.json({
@@ -99,6 +99,17 @@ beforeEach(() => {
   vi.stubGlobal('fetch', rpc);
 });
 afterEach(() => vi.unstubAllGlobals());
+
+it.each(['Katalogdagi #50 narxi qancha?', 'Sinov Bino F2 ro‘yxati'])(
+  'denies a deterministic read without its capability before R2, register or model: %s', async question => {
+    men = () => Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: 17, permissions: [] }] });
+    const get = vi.fn();
+    const body = await (await run(question, 17, { obyekt_id: 34 }, { R2_CANONICAL: { get } })).json();
+    expect(body).toMatchObject({ provider: 'local', rad: true });
+    expect(called('t2_akt_reestr_obyekt_v1')).toHaveLength(0);
+    expect(get).not.toHaveBeenCalled(); expect(ai).not.toHaveBeenCalled();
+  },
+);
 
 it.each([
   'Sinov Bino smetada M200 beton qanchadan?', 'Sinov Bino сметада М200 бетон қанчадан?', 'Сколько стоит бетон М200 в смете Sinov Bino?',
@@ -313,6 +324,7 @@ it.each([
 });
 
 it('keeps task reads closed for missing authority and corrupted tenant scope', async () => {
+  men = () => Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: 17, permissions: [] }] });
   const question = 'Mening ochiq topshiriqlarim';
   expect(await (await run(question)).json()).toMatchObject({ rad: true });
   expect(called('t2_topshiriqlar_v1')).toHaveLength(0);
@@ -360,8 +372,9 @@ it('does not turn price or write questions into exact row reads and keeps an una
 });
 
 it('keeps an explicit normative reference on the source lookup route', async () => {
+  men = () => Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: 17, permissions: [] }] });
   const body = await (await run('Покажи ШНК 4.02.06-04 для позиции Е06-01-001-1', 17, { obyekt_id: 34 })).json();
-  expect(body).toMatchObject({ rad: true, javob: expect.stringContaining('норматива') });
+  expect(body).toMatchObject({ rad: true, javob: expect.stringContaining('доступ') });
   expect(called('t2_jarvis_smeta_qator_aniq_v1')).toHaveLength(0);
   expect(ai).not.toHaveBeenCalled();
 });
@@ -393,6 +406,7 @@ it.each([
 });
 
 it('cumulative refuses missing F2 permission before reading the scoped report', async () => {
+  men = () => Response.json({ ok: true, context_kompaniyalar: [{ kompaniya_id: 17, permissions: [] }] });
   categories.push('f2_fakt_pul');
   expect(await (await run('Nakopitelniy jami', 17, { obyekt_id: 34 })).json()).toMatchObject({ rad: true });
   expect(called('t2_nakopitelniy_v2')).toHaveLength(0);

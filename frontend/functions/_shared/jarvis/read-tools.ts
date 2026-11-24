@@ -52,7 +52,7 @@ export function jarvisReadTools(env: JarvisEnv, scope: JarvisObjectScope, men: R
   const visible = (name: JarvisToolName) => jarvisTools[name].permissions.every(permission => jarvisHasPermission(men, company, permission)) &&
     (name !== 'estimate_price' || categories.includes('smeta_pul')) && (name !== 'cumulative' || categories.includes('f2_fakt_pul'));
 
-  async function run(call: LocalCall, modelRequested = false): Promise<Answer | null> {
+  async function run(call: LocalCall, _modelRequested = false): Promise<Answer | null> {
     const started = Date.now();
     const signal = AbortSignal.timeout(3500);
     const rpc: JarvisReadRpc = (name, body) => rpcData(env, name, body, signal);
@@ -60,7 +60,7 @@ export function jarvisReadTools(env: JarvisEnv, scope: JarvisObjectScope, men: R
     let error: string | null = null;
     const args = call.args;
     try {
-      if (modelRequested && !visible(call.name)) answer = denied;
+      if (!visible(call.name)) answer = denied;
       else switch (call.name) {
         case 'object_search': {
           if (!visible(call.name)) { answer = denied; break; }
