@@ -79,3 +79,31 @@ export async function jarvisOutboxRemove(scope: Scope, operation: string): Promi
     return true;
   } catch { return false; }
 }
+
+/** Completed UI cache has its own namespace, never the durable pending head. */
+type CacheSlot = { revision: string; bytes: Uint8Array };
+export async function jarvisCacheRead(key: string): Promise<unknown> {
+  const db = storage();
+  if (!db || !/^jarvis:cache:v1:[0-9]+:[0-9]+:[a-zA-Z0-9:-]+$/.test(key)) throw new Error('JARVIS_CACHE_UNAVAILABLE');
+  const slot = await get<CacheSlot | null>(key, db);
+  if (!slot) return undefined;
+  if (!(slot.bytes instanceof Uint8Array) || slot.bytes.byteLength < 29 || slot.bytes.byteLength > MAX_BYTES) throw new Error('JARVIS_CACHE_INVALID');
+  return shifrOch(key, slot.bytes, await secret(db));
+}
+export async function jarvisCacheUpdate(key: string, change: (previous: unknown) => unknown): Promise<unknown> {
+  const db = storage();
+  if (!db || !/^jarvis:cache:v1:[0-9]+:[0-9]+:[a-zA-Z0-9:-]+$/.test(key)) throw new Error('JARVIS_CACHE_UNAVAILABLE');
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const previous = await get<CacheSlot | null>(key, db);
+    const next = change(await jarvisCacheRead(key));
+    const bytes = await shifrla(key, next, await secret(db));
+    if (bytes.byteLength > MAX_BYTES) throw new Error('JARVIS_CACHE_LIMIT');
+    let accepted = false;
+    await update<CacheSlot | null>(key, current => {
+      if (current?.revision !== previous?.revision) return current ?? null;
+      accepted = true; return { revision: crypto.randomUUID(), bytes };
+    }, db);
+    if (accepted) return next;
+  }
+  throw new Error('JARVIS_CACHE_CONFLICT');
+}
