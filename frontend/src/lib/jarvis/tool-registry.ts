@@ -2,6 +2,7 @@
 export const jarvisTools = {
   object_search: { mode: 'read', description: 'Find a company object by name. Query example: Obyektni top Sinov obyekt.', permissions: ['smeta.read'] },
   estimate_row: { mode: 'read', description: 'Find an exact estimate shifr. Query example: Smeta qatori E06-01-001-1.', permissions: ['smeta.read'] },
+  material_prices: { mode: 'read', description: 'Compare source estimate unit prices across company objects. Receipt prices are not included. Query: Obyektlar bo‘yicha M200 beton narxlari.', permissions: ['smeta.read'] },
   estimate_price: { mode: 'read', description: 'Read resource prices in an object estimate. Query example: Smetada M200 beton narxi?', permissions: ['smeta.read'] },
   norm_reference: { mode: 'read', description: 'Read a normative reference by ShNQ code. Query example: ShNQ 4.02.06-04.', permissions: ['company.read'] },
   catalog_price: { mode: 'read', description: 'Read the price catalog by name, code or row number. Query example: Katalogda M200 beton narxi?', permissions: ['company.read'] },

@@ -15,6 +15,7 @@ import { priceRowAnswer, priceRowIntent, priceSearchAnswer, priceSearchIntent } 
 import { jarvisText } from './reply-language';
 import { transportAnswer, transportIntent } from './transport';
 import { warehouseAnswer, warehouseIntent } from './warehouse';
+import { materialPriceAnswer, materialPriceIntent } from './material-prices';
 
 type Answer = { javob: string; rad?: boolean; dalil?: unknown; sahifalar?: Array<{ yol: string; nom: string }> };
 type LocalCall = { name: JarvisToolName; args: unknown };
@@ -25,7 +26,7 @@ const parsers = {
     const terms = estimatePriceIntent(q);
     return terms.length ? terms : null;
   },
-  norm_reference: normReference, catalog_price: catalogIntent, f2_register: f2RegisterIntent,
+  material_prices: materialPriceIntent, norm_reference: normReference, catalog_price: catalogIntent, f2_register: f2RegisterIntent,
   cumulative: cumulativeIntent, discrepancy: (q: string) => discrepancyIntent(q) || null,
   warehouse_balance: warehouseIntent, document_search: documentIntent,
   transport_tekshir: (q: string) => transportIntent(q) || null,
@@ -50,7 +51,7 @@ export function jarvisReadTools(env: JarvisEnv, scope: JarvisObjectScope, men: R
   const denied = { rad: true, javob: text('Bu ma’lumotni ko‘rish uchun ruxsat kerak.', 'Для просмотра этих данных нужен доступ.') };
   const unavailable = { javob: text('Manbani hozir tekshirib bo‘lmadi. Keyinroq urinib ko‘ring.', 'Не удалось проверить источник. Повторите запрос позже.') };
   const visible = (name: JarvisToolName) => jarvisTools[name].permissions.every(permission => jarvisHasPermission(men, company, permission)) &&
-    (name !== 'estimate_price' || categories.includes('smeta_pul')) && (name !== 'cumulative' || categories.includes('f2_fakt_pul'));
+    (!['estimate_price', 'material_prices'].includes(name) || categories.includes('smeta_pul')) && (name !== 'cumulative' || categories.includes('f2_fakt_pul'));
 
   async function run(call: LocalCall, modelRequested = false): Promise<Answer | null> {
     const started = Date.now();
@@ -79,6 +80,7 @@ export function jarvisReadTools(env: JarvisEnv, scope: JarvisObjectScope, men: R
         case 'discrepancy': answer = await discrepancyAnswer(rpc, scope, men); break;
         case 'estimate_row': answer = await estimateRowAnswer(rpc, scope, args as string, men); break;
         case 'estimate_price': answer = await estimatePriceAnswer(rpc, scope, args as string[], men, categories.includes('smeta_pul')); break;
+        case 'material_prices': answer = await materialPriceAnswer(rpc, scope, args as string[], men, categories.includes('smeta_pul')); break;
         case 'norm_reference': answer = await normAnswer(env, actor, company, args as string, men, text); break;
         case 'catalog_price': answer = typeof args === 'number' ? await priceRowAnswer(env.R2_CANONICAL, args, text)
           : await priceSearchAnswer(env.R2_CANONICAL, args as NonNullable<ReturnType<typeof priceSearchIntent>>, text); break;
@@ -87,6 +89,7 @@ export function jarvisReadTools(env: JarvisEnv, scope: JarvisObjectScope, men: R
       }
     } catch { answer = unavailable; error = 'SOURCE_UNAVAILABLE'; }
     if (!answer) error = 'SOURCE_UNAVAILABLE';
+    if (answer && 'source_unavailable' in answer && answer.source_unavailable === true) error = 'SOURCE_UNAVAILABLE';
     if (answer?.rad) error = 'FORBIDDEN';
     await telemetriyaYoz(env, { actor, kompaniyaId: company, yuza: 'jarvis', vositalar: [call.name], manba: 'tool',
       ok: error === null, xatoKod: error, vositaXato: error ? 1 : 0, kechikishMs: Date.now() - started });

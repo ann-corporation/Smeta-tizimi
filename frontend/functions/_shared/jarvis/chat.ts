@@ -91,7 +91,7 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
   const local = so.studio == null && !writeIntent ? firstReadTool([
     ...(navigatsiyaSorovi(savol) ? [] : ['cumulative'] as const),
     'f2_register', 'warehouse_balance', 'discrepancy',
-    ...(norm ? [] : ['estimate_price', 'catalog_price', 'estimate_row'] as const),
+    ...(norm ? [] : ['material_prices', 'estimate_price', 'catalog_price', 'estimate_row'] as const),
     'document_search', 'object_search',
   ], savol) : null;
   if (local) {
